@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistem Payroll</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?= base_url('css/login.css') ?>">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="logo-circle">
+                    <i class="fas fa-building"></i>
+                </div>
+                <h1>Payroll System</h1>
+                <p>Silakan login untuk mengelola payroll</p>
+            </div>
+            <form id="loginForm">
+                <div class="input-group">
+                    <label for="username">Username</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" placeholder="Masukkan username" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" placeholder="Masukkan password" required>
+                    </div>
+                </div>
+                <div class="remember-forgot">
+                    <label><input type="checkbox"> Ingat saya</label>
+                    <a href="#">Lupa password?</a>
+                </div>
+                <button type="submit" class="btn-login">Login Sekarang</button>
+            </form>
+            <div id="loginMessage" class="login-message"></div>
+        </div>
+    </div>
+    <script src="<?= base_url('js/login.js') ?>"></script>
+</body>
+</html>
