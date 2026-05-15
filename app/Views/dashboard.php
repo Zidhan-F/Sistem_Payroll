@@ -345,7 +345,7 @@
                             <select id="selectUmrType" class="umr-select" onchange="handleUmrSelectChange(this.value)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
                                 <option value="UMP">UMP (Provinsi)</option>
                                 <option value="UMK">UMK (Kota/Kabupaten)</option>
-                                <option value="MANUAL" style="color: #10b981; font-weight: 600;">+ Tambah Manual</option>
+                                <option value="MANUAL">+ Tambah Manual</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin-bottom: 0; min-width: 150px;">
