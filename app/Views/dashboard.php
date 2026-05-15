@@ -342,9 +342,10 @@
                     <div class="umr-filter-container" style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end;">
                         <div class="form-group" style="margin-bottom: 0; min-width: 250px;">
                             <label style="font-size: 13px; color: #666; margin-bottom: 8px; display: block;">Tipe Data</label>
-                            <select id="selectUmrType" class="umr-select" onchange="switchUmrTab(this.value)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
+                            <select id="selectUmrType" class="umr-select" onchange="handleUmrSelectChange(this.value)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
                                 <option value="UMP">UMP (Provinsi)</option>
                                 <option value="UMK">UMK (Kota/Kabupaten)</option>
+                                <option value="MANUAL" style="color: #10b981; font-weight: 600;">+ Tambah Manual</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin-bottom: 0; min-width: 150px;">
@@ -368,9 +369,6 @@
                             </button>
                             <button class="umr-btn-upload" onclick="bukaModalUploadUmr()">
                                 <i class="fas fa-upload"></i> Upload CSV
-                            </button>
-                            <button class="umr-btn-upload" onclick="bukaModalManualUmr()" style="background: #10b981;">
-                                <i class="fas fa-plus-circle"></i> Tambah Manual
                             </button>
                         </div>
                     </div>

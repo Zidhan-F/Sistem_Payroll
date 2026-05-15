@@ -521,7 +521,7 @@ Object.assign(window, {
     bukaModalPeriode, generateGaji, approveGaji,
     bukaSlipGaji, tutupModalSlip, cetakSlip,
     switchUmrTab, filterUmrTable, bukaModalUploadUmr, tutupModalUploadUmr,
-    bukaModalManualUmr, tutupModalManualUmr,
+    handleUmrSelectChange, bukaModalManualUmr, tutupModalManualUmr,
     downloadTemplateUmr, goUmrPage,
     tutupSemuaModal,
     bukaModalSkema, bukaModalKomponen, bukaModalOrg, bukaModalCutOff,
@@ -719,12 +719,22 @@ function tutupModalUploadUmr() {
     document.getElementById('overlay').style.display = 'none';
 }
 
+function handleUmrSelectChange(val) {
+    if (val === 'MANUAL') {
+        // Balikkan dropdown ke pilihan sebelumnya agar filter tidak rusak
+        document.getElementById('selectUmrType').value = currentUmrType;
+        bukaModalManualUmr();
+    } else {
+        switchUmrTab(val);
+    }
+}
+
 function bukaModalManualUmr() {
     document.getElementById('modalManualUmr').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('manualUmrTipe').value = currentUmrType;
     document.getElementById('formManualUmr').reset();
-    document.getElementById('manualUmrTipe').value = currentUmrType; // Reset triggers full reset
+    document.getElementById('manualUmrTipe').value = currentUmrType;
 }
 
 function tutupModalManualUmr() {
