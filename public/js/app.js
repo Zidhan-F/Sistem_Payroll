@@ -522,8 +522,64 @@ Object.assign(window, {
     bukaSlipGaji, tutupModalSlip, cetakSlip,
     switchUmrTab, filterUmrTable, bukaModalUploadUmr, tutupModalUploadUmr,
     downloadTemplateUmr, goUmrPage,
-    tutupSemuaModal
+    tutupSemuaModal,
+    bukaModalSkema, bukaModalKomponen, bukaModalOrg, bukaModalCutOff,
+    tutupModalSkema, tutupModalKomponen, tutupModalPajak, tutupModalSetup, 
+    tutupModalPKWT, tutupModalPeriode, tutupModalCutOff
 });
+
+function bukaModalSkema(mode, id = null) {
+    document.getElementById('modalSkema').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+    if(mode === 'edit' && id) {
+        const s = payrollSchemes.find(x => x.id == id);
+        if(s) {
+            document.getElementById('modalSkemaTitle').innerText = 'Edit Skema Payroll';
+            document.getElementById('skemaId').value = s.id;
+            document.getElementById('skemaNama').value = s.nama;
+            document.getElementById('skemaDeskripsi').value = s.deskripsi;
+            document.getElementById('skemaTipe').value = s.tipe;
+        }
+    } else {
+        document.getElementById('modalSkemaTitle').innerText = 'Tambah Skema Payroll';
+        document.getElementById('formSkema').reset();
+        document.getElementById('skemaId').value = '';
+    }
+}
+
+function bukaModalKomponen(schemeId) {
+    document.getElementById('modalKomponen').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('formKomponen').reset();
+    document.getElementById('komponenSchemeId').value = schemeId;
+}
+
+function bukaModalOrg(type, mode, id = null) {
+    document.getElementById('modalOrg').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('orgType').value = type;
+}
+
+function bukaModalPeriode() {
+    document.getElementById('modalPeriode').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+}
+
+function bukaModalCutOff(pkwtId, empName) {
+    document.getElementById('modalCutOff').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('cutoffPkwtId').value = pkwtId;
+    document.getElementById('cutoffEmployeeName').value = empName;
+}
+
+// Global Closing Handlers
+function tutupModalSkema() { tutupSemuaModal(); }
+function tutupModalKomponen() { tutupSemuaModal(); }
+function tutupModalPajak() { tutupSemuaModal(); }
+function tutupModalSetup() { tutupSemuaModal(); }
+function tutupModalPKWT() { tutupSemuaModal(); }
+function tutupModalPeriode() { tutupSemuaModal(); }
+function tutupModalCutOff() { tutupSemuaModal(); }
 
 // ===== UMP / UMK MODULE =====
 
