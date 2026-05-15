@@ -85,42 +85,11 @@ function logout() {
 }
 
 // --- UI INITIALIZATION ---
-const modal = document.getElementById('modalKlien');
-const overlay = document.getElementById('overlay');
-const modalTitle = document.getElementById('modalTitle');
-const formKlien = document.getElementById('formKlien');
-let clients = [];
-let selectedClientId = null;
-let employees = [];
-        const msgText = document.getElementById('confirmMessage');
-
-        msgText.innerText = message;
-        modal.style.display = 'block';
-        overlay.style.display = 'block';
-        overlay.style.zIndex = '10000'; // Make sure it's behind the confirm modal
-
-        const handleResponse = (result) => {
-            modal.style.display = 'none';
-            overlay.style.display = 'none';
-            overlay.style.zIndex = '999'; // Reset z-index
-            btnYes.removeEventListener('click', onYes);
-            btnCancel.removeEventListener('click', onCancel);
-            resolve(result);
-        };
-
-        const onYes = () => handleResponse(true);
-        const onCancel = () => handleResponse(false);
-
-        btnYes.addEventListener('click', onYes);
-        btnCancel.addEventListener('click', onCancel);
-    });
-}
-window.showConfirm = showConfirm;
 
 // Elemen DOM
 const tabelBody = document.getElementById('tabelKlienBody');
 const formKlien = document.getElementById('formKlien');
-const modal = document.getElementById('modalClient');
+const modal = document.getElementById('modalClient') || document.getElementById('modalKlien');
 const overlay = document.getElementById('overlay');
 const modalTitle = document.getElementById('modalTitle');
 
@@ -537,8 +506,8 @@ async function renderClientOrg(clientId) {
                                         <span style="font-weight: 700; color: #1e293b; font-size: 13px; line-height: 1.2;">${emp ? emp.nama : 'Posisi Kosong'}</span>
                                     </div>
                                     <div class="action-btns" style="display: flex; gap: 4px;">
-                                        <button class="btn-icon" style="padding: 4px; font-size: 10px;" onclick="bukaModalOrg('posisi', 'edit', ${pos.id}, ${dept.id})"><i class="fas fa-edit"></i></button>
-                                        <button class="btn-icon" style="padding: 4px; font-size: 10px; color: #ef4444;" onclick="hapusOrg('posisi', ${pos.id})"><i class="fas fa-trash"></i></button>
+                                        <button class="btn-icon btn-edit" style="padding: 4px; font-size: 10px;" onclick="bukaModalOrg('posisi', 'edit', ${pos.id}, ${dept.id})"><i class="fas fa-edit"></i></button>
+                                        <button class="btn-icon btn-delete" style="padding: 4px; font-size: 10px;" onclick="hapusOrg('posisi', ${pos.id})"><i class="fas fa-trash"></i></button>
                                     </div>
                                 </div>
                             `;

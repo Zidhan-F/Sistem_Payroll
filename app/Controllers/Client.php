@@ -3,7 +3,6 @@
 namespace App\Controllers;
 
 use App\Models\ClientModel;
-use App\Models\ClientSchemaModel;
 use App\Models\PayrollComponentModel;
 use CodeIgniter\RESTful\ResourceController;
 
@@ -54,22 +53,17 @@ class Client extends ResourceController
 
     public function getSchema($clientId)
     {
-        $schemaModel = new ClientSchemaModel();
-        $schema = $schemaModel->where('client_id', $clientId)->first();
+        $schema = $this->model->find($clientId);
         return $this->respond($schema ?: []);
     }
 
     public function saveSchema()
     {
         $data = $this->request->getJSON(true);
-        $schemaModel = new ClientSchemaModel();
-        $existing = $schemaModel->where('client_id', $data['client_id'])->first();
-
-        if ($existing) {
-            $schemaModel->update($existing['id'], $data);
-        } else {
-            $schemaModel->insert($data);
-        }
+        $clientId = $data['client_id'];
+        unset($data['client_id']); // Remove client_id since we update by primary key id
+        
+        $this->model->update($clientId, $data);
         return $this->respond(['message' => 'Schema saved']);
     }
 

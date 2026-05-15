@@ -6,7 +6,7 @@ use App\Models\PayrollModel;
 use App\Models\PayrollDetailModel;
 use App\Models\EmployeeModel;
 use App\Models\AttendanceModel;
-use App\Models\ClientSchemaModel;
+use App\Models\ClientModel;
 use App\Models\PayrollPeriodModel;
 use App\Models\PayrollComponentModel;
 use App\Models\PayrollPeriodCheckModel;
@@ -49,8 +49,8 @@ class Payroll extends ResourceController
         $dataKaryawan = $json['data']; // Array of {employee_id, hadir, alpa, sakit, lembur}
 
         // 1. Ambil Skema Klien
-        $schemaModel = new ClientSchemaModel();
-        $schema = $schemaModel->where('client_id', $clientId)->first();
+        $clientModel = new ClientModel();
+        $schema = $clientModel->find($clientId);
         
         $bpjsKesRate = $schema ? ($schema['bpjs_kes_percent'] / 100) : 0.01;
         $bpjsJhtRate = $schema ? ($schema['bpjs_jht_percent'] / 100) : 0.02;

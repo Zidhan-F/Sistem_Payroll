@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Models\ContractModel;
 use App\Models\EmployeeModel;
-use App\Models\ClientSchemaModel;
 use App\Models\PayrollComponentModel;
 use CodeIgniter\RESTful\ResourceController;
 
