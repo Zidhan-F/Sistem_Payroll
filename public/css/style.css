@@ -1309,3 +1309,32 @@ td {
     margin-top: 10px;
 }
 
+/* Badge */
+.badge {
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+
+/* Toast */
+#toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+    min-width: 300px; padding: 15px 25px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: flex; align-items: center;
+    gap: 12px; color: #333; font-weight: 500; font-size: 14px;
+    transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+.toast.show { transform: translateX(0); }
+.toast-success { border-left: 5px solid #2ecc71; }
+.toast-error { border-left: 5px solid #e74c3c; }
+.toast i { font-size: 18px; }
+.toast-success i { color: #2ecc71; }
+.toast-error i { color: #e74c3c; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.active { transform: translateX(0); }
+    .main-content { margin-left: 0; width: 100%; }
+}
+
