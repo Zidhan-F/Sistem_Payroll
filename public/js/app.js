@@ -596,12 +596,17 @@ function formatNominal(val) {
 
 async function renderUmrTable() {
     try {
-        const response = await fetch(`${API_URL}/minimum-wages?tipe=${currentUmrType}`);
+        const tipe = document.getElementById('selectUmrType')?.value || currentUmrType;
+        const tahun = document.getElementById('selectUmrYear')?.value || new Date().getFullYear();
+        
+        const response = await fetch(`${API_URL}/minimum-wages?tipe=${tipe}&tahun=${tahun}`);
         umrAllData = await response.json();
         
+        currentUmrType = tipe;
+        
         // Change table headers based on type
-        document.getElementById('colUmrCode').innerText = currentUmrType === 'UMP' ? 'Kode Provinsi' : 'Kode Kota/Kab';
-        document.getElementById('colUmrName').innerText = currentUmrType === 'UMP' ? 'Provinsi' : 'Kota/Kabupaten';
+        document.getElementById('colUmrCode').innerText = tipe === 'UMP' ? 'Kode Provinsi' : 'Kode Kota/Kab';
+        document.getElementById('colUmrName').innerText = tipe === 'UMP' ? 'Provinsi' : 'Kota/Kabupaten';
 
         // Apply search filter
         const q = (document.getElementById('searchUmr')?.value || '').toLowerCase();
@@ -685,13 +690,6 @@ function switchUmrTab(tipe) {
     // Reset search
     const search = document.getElementById('searchUmr');
     if (search) search.value = '';
-
-    // Update tab styles
-    document.querySelectorAll('.umr-tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    const activeBtn = document.getElementById(tipe === 'UMP' ? 'tabUmp' : 'tabUmk');
-    if (activeBtn) activeBtn.classList.add('active');
 
     renderUmrTable();
 }

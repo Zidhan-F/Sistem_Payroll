@@ -338,11 +338,22 @@
                     <div class="section-header">
                         <h2 style="font-size: 24px; font-weight: 700; color: #2c3e50;">Upload UMP/UMK</h2>
                     </div>
-                    <!-- Tabs -->
-                    <div class="umr-tabs-container">
-                        <div class="umr-tabs-header">
-                            <button id="tabUmp" class="umr-tab-btn active" onclick="switchUmrTab('UMP')">UMP</button>
-                            <button id="tabUmk" class="umr-tab-btn" onclick="switchUmrTab('UMK')">UMK</button>
+                    <!-- Dropdown Filter Tipe Data -->
+                    <div class="umr-filter-container" style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end;">
+                        <div class="form-group" style="margin-bottom: 0; min-width: 250px;">
+                            <label style="font-size: 13px; color: #666; margin-bottom: 8px; display: block;">Tipe Data</label>
+                            <select id="selectUmrType" class="umr-select" onchange="switchUmrTab(this.value)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
+                                <option value="UMP">UMP (Provinsi)</option>
+                                <option value="UMK">UMK (Kota/Kabupaten)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0; min-width: 150px;">
+                            <label style="font-size: 13px; color: #666; margin-bottom: 8px; display: block;">Tahun</label>
+                            <select id="selectUmrYear" class="umr-select" onchange="renderUmrTable()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                                <option value="2025">2025</option>
+                            </select>
                         </div>
                     </div>
                     <!-- Action Bar -->
