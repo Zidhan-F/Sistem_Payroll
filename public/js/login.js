@@ -1,6 +1,6 @@
 const loginForm = document.getElementById('loginForm');
 const loginMessage = document.getElementById('loginMessage');
-const API_URL = '/api'; // Sesuaikan dengan port server Anda
+const API_URL = BASE_URL + 'index.php/api';
 
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
@@ -27,7 +27,7 @@ if (loginForm) {
                 
                 // Redirect ke halaman utama setelah 1.5 detik
                 setTimeout(() => {
-                    window.location.href = './';
+                    window.location.href = BASE_URL + 'index.php/dashboard';
                 }, 1500);
             } else {
                 loginMessage.innerText = data.message || 'Login gagal';

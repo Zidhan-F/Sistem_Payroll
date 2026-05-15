@@ -41,6 +41,10 @@
             <div id="loginMessage" class="login-message"></div>
         </div>
     </div>
+    
+    <script>
+        const BASE_URL = "<?= base_url() ?>";
+    </script>
     <script src="<?= base_url('js/login.js') ?>"></script>
 </body>
 </html>
