@@ -410,7 +410,7 @@ async function approveGaji(id) {
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal() {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     if(document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
 }
@@ -521,6 +521,7 @@ Object.assign(window, {
     bukaModalPeriode, generateGaji, approveGaji,
     bukaSlipGaji, tutupModalSlip, cetakSlip,
     switchUmrTab, filterUmrTable, bukaModalUploadUmr, tutupModalUploadUmr,
+    bukaModalManualUmr, tutupModalManualUmr,
     downloadTemplateUmr, goUmrPage,
     tutupSemuaModal,
     bukaModalSkema, bukaModalKomponen, bukaModalOrg, bukaModalCutOff,
@@ -720,6 +721,19 @@ function tutupModalUploadUmr() {
     document.getElementById('overlay').style.display = 'none';
 }
 
+function bukaModalManualUmr() {
+    document.getElementById('modalManualUmr').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('manualUmrTipe').value = currentUmrType;
+    document.getElementById('formManualUmr').reset();
+    document.getElementById('manualUmrTipe').value = currentUmrType; // Reset triggers full reset
+}
+
+function tutupModalManualUmr() {
+    document.getElementById('modalManualUmr').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+}
+
 // CSV Download Template
 function downloadTemplateUmr() {
     const tipe = currentUmrType;
@@ -855,5 +869,41 @@ if (formUploadUmr) {
             }
         };
         reader.readAsText(file);
+    });
+}
+
+// Manual UMR Form Handler
+const formManualUmr = document.getElementById('formManualUmr');
+if (formManualUmr) {
+    formManualUmr.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            items: [{
+                tipe: document.getElementById('manualUmrTipe').value,
+                kode_daerah: document.getElementById('manualUmrKode').value,
+                nama_daerah: document.getElementById('manualUmrNama').value,
+                nominal: parseFloat(document.getElementById('manualUmrNominal').value) || 0,
+                tahun: parseInt(document.getElementById('manualUmrTahun').value)
+            }]
+        };
+
+        try {
+            const res = await fetch(`${API_URL}/minimum-wages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                tutupModalManualUmr();
+                renderUmrTable();
+                showToast('Data berhasil disimpan secara manual!', 'success');
+            } else {
+                showToast('Gagal menyimpan data!', 'error');
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Terjadi kesalahan sistem!', 'error');
+        }
     });
 }

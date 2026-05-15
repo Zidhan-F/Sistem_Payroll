@@ -352,11 +352,14 @@
                             <input type="text" id="searchUmr" placeholder="Cari Provinsi..." onkeyup="filterUmrTable()">
                         </div>
                         <div class="umr-action-buttons">
-                            <button class="umr-btn-download" onclick="downloadTemplateUmr()">
-                                <i class="fas fa-download"></i> Download
+                            <button class="umr-btn-download" onclick="downloadTemplateUmr()" style="background: #3498db; color: white;">
+                                <i class="fas fa-download"></i> Template
                             </button>
                             <button class="umr-btn-upload" onclick="bukaModalUploadUmr()">
-                                <i class="fas fa-upload"></i> Upload
+                                <i class="fas fa-upload"></i> Upload CSV
+                            </button>
+                            <button class="umr-btn-upload" onclick="bukaModalManualUmr()" style="background: #10b981;">
+                                <i class="fas fa-plus-circle"></i> Tambah Manual
                             </button>
                         </div>
                     </div>
@@ -420,6 +423,49 @@
                 <button type="submit" class="btn-save" style="background: #2c3e50;">
                     <i class="fas fa-upload" style="margin-right: 5px;"></i> Mulai Upload
                 </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Modal Manual Entry UMP/UMK -->
+    <div id="modalManualUmr" class="modal-skema">
+        <div class="modal-header" style="background: #10b981;">
+            <h3><i class="fas fa-plus-circle" style="margin-right: 8px;"></i>Input Manual UMP/UMK</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalManualUmr()"></i>
+        </div>
+        <form id="formManualUmr">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Tipe Data</label>
+                    <select id="manualUmrTipe" required>
+                        <option value="UMP">UMP (Provinsi)</option>
+                        <option value="UMK">UMK (Kota/Kabupaten)</option>
+                    </select>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Kode Daerah</label>
+                        <input type="text" id="manualUmrKode" placeholder="Contoh: ID 31 (DKI)" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Daerah</label>
+                        <input type="text" id="manualUmrNama" placeholder="Contoh: JAKARTA PUSAT" required>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nominal (Rp)</label>
+                        <input type="number" id="manualUmrNominal" placeholder="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tahun</label>
+                        <input type="number" id="manualUmrTahun" value="<?= date('Y') ?>" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="tutupModalManualUmr()">Batal</button>
+                <button type="submit" class="btn-save" style="background: #10b981;">Simpan Data</button>
             </div>
         </form>
     </div>
