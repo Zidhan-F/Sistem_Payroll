@@ -1,6 +1,29 @@
 const loginForm = document.getElementById('loginForm');
-const loginMessage = document.getElementById('loginMessage');
-const API_URL = '/api'; // Sesuaikan dengan port server Anda
+const API_URL = '/api';
+
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+    toast.innerHTML = `
+        <i class="fas ${icon}"></i>
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+    }, 3000);
+}
 
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
@@ -19,24 +42,15 @@ if (loginForm) {
             const data = await response.json();
             
             if (response.ok) {
-                loginMessage.innerText = 'Login berhasil! Mengalihkan...';
-                loginMessage.className = 'login-message success';
-                
-                // Simpan data user ke localStorage
+                showToast('Login berhasil! Mengalihkan...', 'success');
                 localStorage.setItem('user', JSON.stringify(data.user));
-                
-                // Redirect ke halaman utama setelah 1.5 detik
-                setTimeout(() => {
-                    window.location.href = './';
-                }, 1500);
+                setTimeout(() => window.location.href = './', 1500);
             } else {
-                loginMessage.innerText = data.message || 'Login gagal';
-                loginMessage.className = 'login-message error';
+                showToast(data.message || 'Login gagal', 'error');
             }
         } catch (err) {
             console.error('Error:', err);
-            loginMessage.innerText = 'Terjadi kesalahan koneksi ke server';
-            loginMessage.className = 'login-message error';
+            showToast('Terjadi kesalahan koneksi ke server', 'error');
         }
     });
 }

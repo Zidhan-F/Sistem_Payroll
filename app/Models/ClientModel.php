@@ -10,5 +10,5 @@ class ClientModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['nama', 'email', 'sektor', 'nib', 'npwp', 'tgl_gabung', 'alamat'];
+    protected $allowedFields    = ['no_klien', 'nama', 'email', 'telepon', 'sektor', 'nib', 'npwp', 'tgl_gabung', 'alamat', 'status'];
 }

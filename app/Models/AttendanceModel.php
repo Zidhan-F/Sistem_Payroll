@@ -4,11 +4,11 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class DepartmentModel extends Model
+class AttendanceModel extends Model
 {
-    protected $table            = 'departments';
+    protected $table            = 'attendances';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['nama', 'division_id', 'client_id'];
+    protected $allowedFields    = ['employee_id', 'tanggal', 'status', 'jam_lembur'];
 }
