@@ -58,9 +58,6 @@
                 <i class="fas fa-calculator"></i>
                 <span>Proses Payroll</span>
             </li>
-            <li onclick="switchView('umr')">
-                <i class="fas fa-file-upload"></i> <span>Upload UMP/UMK</span>
-            </li>
             <li onclick="switchView('simulasi')">
                 <i class="fas fa-calculator"></i> <span>Simulasi Gaji</span>
             </li>
@@ -334,67 +331,6 @@
                 </div>
             </div>
 
-            <!-- Section: Upload UMP/UMK -->
-            <div id="viewUmr" class="view-section">
-                <div class="content-card">
-                    <div class="section-header">
-                        <h2 style="font-size: 24px; font-weight: 700; color: #2c3e50;">Upload UMP/UMK</h2>
-                    </div>
-                    <!-- Dropdown Filter Tipe Data -->
-                    <div class="umr-filter-container" style="margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end;">
-                        <div class="form-group" style="margin-bottom: 0; min-width: 250px;">
-                            <label style="font-size: 13px; color: #666; margin-bottom: 8px; display: block;">Tipe Data</label>
-                            <select id="selectUmrType" class="umr-select" onchange="handleUmrSelectChange(this.value)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
-                                <option value="UMP">UMP (Provinsi)</option>
-                                <option value="UMK">UMK (Kota/Kabupaten)</option>
-                                <option value="MANUAL">Nominal</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom: 0; min-width: 150px;">
-                            <label style="font-size: 13px; color: #666; margin-bottom: 8px; display: block;">Tahun</label>
-                            <select id="selectUmrYear" class="umr-select" onchange="renderUmrTable()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; font-family: inherit;">
-                                <option value="2024">2024</option>
-                                <option value="2023">2023</option>
-                                <option value="2025">2025</option>
-                            </select>
-                        </div>
-                    </div>
-                    <!-- Action Bar -->
-                    <div class="umr-action-bar">
-                        <div class="umr-search-wrapper">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="searchUmr" placeholder="Cari Provinsi..." onkeyup="filterUmrTable()">
-                        </div>
-                        <div class="umr-action-buttons">
-                            <button class="umr-btn-download" onclick="downloadTemplateUmr()" style="background: #3498db; color: white;">
-                                <i class="fas fa-download"></i> Template
-                            </button>
-                            <button class="umr-btn-upload" onclick="bukaModalUploadUmr()">
-                                <i class="fas fa-upload"></i> Upload CSV
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Table -->
-                    <div class="table-container">
-                        <table class="umr-table">
-                            <thead>
-                                <tr>
-                                    <th id="colUmrCode">Kode Provinsi</th>
-                                    <th id="colUmrName">Provinsi</th>
-                                    <th class="col-nominal">nominal</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelUmrBody"></tbody>
-                        </table>
-                    </div>
-                    <!-- Pagination -->
-                    <div class="umr-pagination">
-                        <span id="umrPaginationInfo" class="umr-pagination-info">Menampilkan 0 data</span>
-                        <div id="umrPaginationControls" class="umr-pagination-controls"></div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Section: Simulasi Gaji -->
             <div id="viewSimulasi" class="view-section">
                 <div class="content-card" style="max-width: 600px; margin: 0 auto;">
@@ -449,89 +385,6 @@
         </div>
     </div>
 
-    <!-- Modal Upload UMP/UMK -->
-    <div id="modalUploadUmr" class="modal-skema">
-        <div class="modal-header" style="background: #2c3e50;">
-            <h3><i class="fas fa-cloud-upload-alt" style="margin-right: 8px;"></i>Upload Data UMP/UMK</h3>
-            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadUmr()"></i>
-        </div>
-        <form id="formUploadUmr">
-            <div class="modal-body">
-                <div class="umr-upload-zone" id="umrDropZone" onclick="document.getElementById('fileUmr').click()">
-                    <i class="fas fa-file-csv"></i>
-                    <p>Drag & drop file CSV di sini, atau <b>klik untuk pilih file</b></p>
-                    <p style="font-size: 12px; color: #999;">Format: .csv (Kode Daerah, Nama Daerah, Nominal)</p>
-                    <div id="umrFileName" class="file-name" style="display:none;"></div>
-                    <input type="file" id="fileUmr" accept=".csv" style="display: none;" required>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Tipe Data</label>
-                        <select id="uploadUmrTipe" required>
-                            <option value="UMP">UMP (Provinsi)</option>
-                            <option value="UMK">UMK (Kota/Kabupaten)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Tahun</label>
-                        <input type="number" id="uploadUmrTahun" value="<?= date('Y') ?>" required>
-                    </div>
-                </div>
-                <p style="font-size: 11px; color: #e67e22; background: #fff3e0; padding: 10px; border-radius: 5px; margin-top: 10px;">
-                    <i class="fas fa-info-circle"></i> Format CSV: kolom 1 = Kode Daerah, kolom 2 = Nama Daerah, kolom 3 = Nominal. Baris pertama (header) akan di-skip.
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="tutupModalUploadUmr()">Batal</button>
-                <button type="submit" class="btn-save" style="background: #2c3e50;">
-                    <i class="fas fa-upload" style="margin-right: 5px;"></i> Mulai Upload
-                </button>
-            </div>
-        </form>
-    </div>
-    
-    <!-- Modal Manual Entry UMP/UMK -->
-    <div id="modalManualUmr" class="modal-skema">
-        <div class="modal-header" style="background: #10b981;">
-            <h3><i class="fas fa-plus-circle" style="margin-right: 8px;"></i>Input Manual UMP/UMK</h3>
-            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalManualUmr()"></i>
-        </div>
-        <form id="formManualUmr">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Tipe Data</label>
-                    <select id="manualUmrTipe" required>
-                        <option value="UMP">UMP (Provinsi)</option>
-                        <option value="UMK">UMK (Kota/Kabupaten)</option>
-                    </select>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Kode Daerah</label>
-                        <input type="text" id="manualUmrKode" placeholder="Contoh: ID 31 (DKI)" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Nama Daerah</label>
-                        <input type="text" id="manualUmrNama" placeholder="Contoh: JAKARTA PUSAT" required>
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Nominal (Rp)</label>
-                        <input type="number" id="manualUmrNominal" placeholder="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Tahun</label>
-                        <input type="number" id="manualUmrTahun" value="<?= date('Y') ?>" required>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="tutupModalManualUmr()">Batal</button>
-                <button type="submit" class="btn-save" style="background: #10b981;">Simpan Data</button>
-            </div>
-        </form>
-    </div>
 
     <!-- Modal Slip Gaji -->
     <div id="overlay" onclick="tutupSemuaModal()"></div>
