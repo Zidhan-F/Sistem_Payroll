@@ -969,6 +969,50 @@ async function loadSimulasiRegions() {
         const res = await fetch(`${API_URL}/minimum-wages?tipe=${type}`);
         simulasiAllData = await res.json();
         
+        // Jika data di database kosong, gunakan data default 38 Provinsi (Update 2026 Projection)
+        if (simulasiAllData.length === 0 && type === 'UMP') {
+            simulasiAllData = [
+                {id: 'p1', nama_daerah: 'ACEH', nominal: 3750000},
+                {id: 'p2', nama_daerah: 'SUMATERA UTARA', nominal: 3100000},
+                {id: 'p3', nama_daerah: 'SUMATERA BARAT', nominal: 3050000},
+                {id: 'p4', nama_daerah: 'RIAU', nominal: 3550000},
+                {id: 'p5', nama_daerah: 'JAMBI', nominal: 3300000},
+                {id: 'p6', nama_daerah: 'SUMATERA SELATAN', nominal: 3700000},
+                {id: 'p7', nama_daerah: 'BENGKULU', nominal: 2800000},
+                {id: 'p8', nama_daerah: 'LAMPUNG', nominal: 3000000},
+                {id: 'p9', nama_daerah: 'KEP. BANGKA BELITUNG', nominal: 3950000},
+                {id: 'p10', nama_daerah: 'KEPULAUAN RIAU', nominal: 3700000},
+                {id: 'p11', nama_daerah: 'DKI JAKARTA', nominal: 5500000},
+                {id: 'p12', nama_daerah: 'JAWA BARAT', nominal: 2300000},
+                {id: 'p13', nama_daerah: 'JAWA TENGAH', nominal: 2250000},
+                {id: 'p14', nama_daerah: 'DI YOGYAKARTA', nominal: 2400000},
+                {id: 'p15', nama_daerah: 'JAWA TIMUR', nominal: 2450000},
+                {id: 'p16', nama_daerah: 'BANTEN', nominal: 3000000},
+                {id: 'p17', nama_daerah: 'BALI', nominal: 3000000},
+                {id: 'p18', nama_daerah: 'NUSA TENGGARA BARBART', nominal: 2700000},
+                {id: 'p19', nama_daerah: 'NUSA TENGGARA TIMUR', nominal: 2400000},
+                {id: 'p20', nama_daerah: 'KALIMANTAN BARAT', nominal: 3000000},
+                {id: 'p21', nama_daerah: 'KALIMANTAN TENGAH', nominal: 3500000},
+                {id: 'p22', nama_daerah: 'KALIMANTAN SELATAN', nominal: 3600000},
+                {id: 'p23', nama_daerah: 'KALIMANTAN TIMUR', nominal: 3700000},
+                {id: 'p24', nama_daerah: 'KALIMANTAN UTARA', nominal: 3700000},
+                {id: 'p25', nama_daerah: 'SULAWESI UTARA', nominal: 3850000},
+                {id: 'p26', nama_daerah: 'SULAWESI TENGAH', nominal: 3000000},
+                {id: 'p27', nama_daerah: 'SULAWESI SELATAN', nominal: 3750000},
+                {id: 'p28', nama_daerah: 'SULAWESI TENGGARA', nominal: 3150000},
+                {id: 'p29', nama_daerah: 'GORONTALO', nominal: 3300000},
+                {id: 'p30', nama_daerah: 'SULAWESI BARAT', nominal: 3200000},
+                {id: 'p31', nama_daerah: 'MALUKU', nominal: 3200000},
+                {id: 'p32', nama_daerah: 'MALUKU UTARA', nominal: 3500000},
+                {id: 'p33', nama_daerah: 'PAPUA', nominal: 4400000},
+                {id: 'p34', nama_daerah: 'PAPUA BARAT', nominal: 3750000},
+                {id: 'p35', nama_daerah: 'PAPUA SELATAN', nominal: 4300000},
+                {id: 'p36', nama_daerah: 'PAPUA TENGAH', nominal: 4300000},
+                {id: 'p37', nama_daerah: 'PAPUA PEGUNUNGAN', nominal: 4300000},
+                {id: 'p38', nama_daerah: 'PAPUA BARAT DAYA', nominal: 3750000}
+            ];
+        }
+
         const select = document.getElementById('simulasiRegion');
         select.innerHTML = '<option value="">-- Pilih Daerah --</option>' + 
             simulasiAllData.map(r => `<option value="${r.id}">${r.nama_daerah}</option>`).join('');
