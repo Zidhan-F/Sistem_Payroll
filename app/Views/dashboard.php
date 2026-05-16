@@ -59,7 +59,7 @@
                 <span>Proses Payroll</span>
             </li>
             <li onclick="switchView('simulasi')">
-                <i class="fas fa-calculator"></i> <span>Simulasi Gaji</span>
+                <i class="fas fa-file-upload"></i> <span>Upload UMP/UMK</span>
             </li>
         </ul>
     </div>
@@ -338,7 +338,7 @@
                         <div style="background: rgba(52, 152, 219, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
                             <i class="fas fa-calculator" style="font-size: 32px; color: var(--info);"></i>
                         </div>
-                        <h2 style="font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">Simulasi Gaji Karyawan</h2>
+                        <h2 style="font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">Upload UMP/UMK</h2>
                         <p style="color: #666; font-size: 14px;">Hitung estimasi Take Home Pay berdasarkan UMP/UMK daerah</p>
                     </div>
                     
