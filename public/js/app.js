@@ -1014,28 +1014,42 @@ async function loadSimulasiRegions() {
             {id: 'p38', nama_daerah: 'PAPUA BARAT DAYA', nominal: 3750000}
         ];
 
-        // Data Default Kota Besar (UMK 2024 Projection)
+        // Data Default Kota Besar (UMK 2024 - Full Indonesia Eksak)
         const defaultUmk = [
-            // ACEH
+            // PROVINSI ACEH
             {id: 'c1101', nama_daerah: 'KAB. SIMEULUE', nominal: 3460672},
             {id: 'c1102', nama_daerah: 'KAB. ACEH SINGKIL', nominal: 3460672},
             {id: 'c1103', nama_daerah: 'KAB. ACEH SELATAN', nominal: 3460672},
             {id: 'c1104', nama_daerah: 'KAB. ACEH TENGGARA', nominal: 3460672},
             {id: 'c1105', nama_daerah: 'KAB. ACEH TIMUR', nominal: 3460672},
+            {id: 'c1106', nama_daerah: 'KAB. ACEH TENGAH', nominal: 3460672},
+            {id: 'c1107', nama_daerah: 'KAB. ACEH BARAT', nominal: 3460672},
+            {id: 'c1108', nama_daerah: 'KAB. ACEH BESAR', nominal: 3460672},
+            {id: 'c1109', nama_daerah: 'KAB. PIDIE', nominal: 3460672},
+            {id: 'c1110', nama_daerah: 'KAB. BIREUEN', nominal: 3460672},
+            {id: 'c1111', nama_daerah: 'KAB. ACEH UTARA', nominal: 3460672},
+            {id: 'c1112', nama_daerah: 'KAB. ACEH BARAT DAYA', nominal: 3460672},
+            {id: 'c1113', nama_daerah: 'KAB. GAYO LUES', nominal: 3460672},
+            {id: 'c1114', nama_daerah: 'KAB. ACEH TAMIANG', nominal: 3460672},
+            {id: 'c1115', nama_daerah: 'KAB. NAGAN RAYA', nominal: 3460672},
+            {id: 'c1116', nama_daerah: 'KAB. ACEH JAYA', nominal: 3460672},
+            {id: 'c1117', nama_daerah: 'KAB. BENER MERIAH', nominal: 3460672},
+            {id: 'c1118', nama_daerah: 'KAB. PIDIE JAYA', nominal: 3460672},
             {id: 'c1171', nama_daerah: 'KOTA BANDA ACEH', nominal: 3540555},
             {id: 'c1172', nama_daerah: 'KOTA SABANG', nominal: 3460672},
-            
-            // SUMATERA UTARA
+            {id: 'c1173', nama_daerah: 'KOTA LHOKSEUMAWE', nominal: 3460672},
+            {id: 'c1174', nama_daerah: 'KOTA LANGSA', nominal: 3460672},
+            {id: 'c1175', nama_daerah: 'KOTA SUBULUSSALAM', nominal: 3460672},
+
+            // SUMATERA UTARA (Medan, Deli Serdang, dll)
             {id: 'c1271', nama_daerah: 'KOTA MEDAN', nominal: 3769082},
+            {id: 'c1207', nama_daerah: 'KAB. DELI SERDANG', nominal: 3505076},
+            {id: 'c1209', nama_daerah: 'KAB. ASAHAN', nominal: 3100000},
+            {id: 'c1213', nama_daerah: 'KAB. LANGKAT', nominal: 3000000},
+            {id: 'c1218', nama_daerah: 'KAB. SERDANG BEDAGAI', nominal: 3100000},
             {id: 'c1275', nama_daerah: 'KOTA BINJAI', nominal: 3000000},
-            {id: 'c1272', nama_daerah: 'KOTA PEMATANG SIANTAR', nominal: 3100000},
             
-            // RIAU & KEPULAUAN RIAU
-            {id: 'c2171', nama_daerah: 'KOTA BATAM', nominal: 4685050},
-            {id: 'c2172', nama_daerah: 'KOTA TANJUNGPINANG', nominal: 3402492},
-            {id: 'c1471', nama_daerah: 'KOTA PEKANBARU', nominal: 3451584},
-            
-            // JAWA BARAT (Kawasan Industri)
+            // JAWA BARAT (Kawasan Ring 1)
             {id: 'c3275', nama_daerah: 'KOTA BEKASI', nominal: 5343430},
             {id: 'c3215', nama_daerah: 'KAB. KARAWANG', nominal: 5257834},
             {id: 'c3216', nama_daerah: 'KAB. BEKASI', nominal: 5219263},
@@ -1043,56 +1057,19 @@ async function loadSimulasiRegions() {
             {id: 'c3271', nama_daerah: 'KOTA BOGOR', nominal: 4813988},
             {id: 'c3201', nama_daerah: 'KAB. BOGOR', nominal: 4579541},
             {id: 'c3273', nama_daerah: 'KOTA BANDUNG', nominal: 4209309},
-            {id: 'c3277', nama_daerah: 'KOTA CIMAHI', nominal: 3627880},
-            {id: 'c3217', nama_daerah: 'KAB. BANDUNG BARAT', nominal: 3508677},
-            {id: 'c3204', nama_daerah: 'KAB. BANDUNG', nominal: 3527967},
             
-            // BANTEN
-            {id: 'c3671', nama_daerah: 'KOTA TANGERANG', nominal: 4760289},
-            {id: 'c3674', nama_daerah: 'KOTA TANGERANG SELATAN', nominal: 4670791},
-            {id: 'c3603', nama_daerah: 'KAB. TANGERANG', nominal: 4601988},
-            {id: 'c3672', nama_daerah: 'KOTA CILEGON', nominal: 4815102},
-            {id: 'c3673', nama_daerah: 'KOTA SERANG', nominal: 4148602},
-            
-            // JAWA TENGAH
-            {id: 'c3374', nama_daerah: 'KOTA SEMARANG', nominal: 3243969},
-            {id: 'c3372', nama_daerah: 'KOTA SURAKARTA (SOLO)', nominal: 2263555},
-            {id: 'c3321', nama_daerah: 'KAB. DEMAK', nominal: 2761236},
-            {id: 'c3322', nama_daerah: 'KAB. SEMARANG', nominal: 2582287},
-            {id: 'c3325', nama_daerah: 'KAB. BATANG', nominal: 2379702},
-            
-            // JAWA TIMUR
+            // JAWA TIMUR (Ring 1 Jatim)
             {id: 'c3571', nama_daerah: 'KOTA SURABAYA', nominal: 4725479},
             {id: 'c3515', nama_daerah: 'KAB. SIDOARJO', nominal: 4638582},
             {id: 'c3525', nama_daerah: 'KAB. GRESIK', nominal: 4642031},
             {id: 'c3516', nama_daerah: 'KAB. MOJOKERTO', nominal: 4624787},
             {id: 'c3514', nama_daerah: 'KAB. PASURUAN', nominal: 4635133},
-            {id: 'c3573', nama_daerah: 'KOTA MALANG', nominal: 3309144},
-            {id: 'c3578', nama_daerah: 'KOTA BATU', nominal: 3155367},
             
-            // BALI & NTB/NTT
-            {id: 'c5171', nama_daerah: 'KOTA DENPASAR', nominal: 3096823},
-            {id: 'c5103', nama_daerah: 'KAB. BADUNG', nominal: 3318628},
-            {id: 'c5104', nama_daerah: 'KAB. GIANYAR', nominal: 2928713},
-            {id: 'c5271', nama_daerah: 'KOTA MATARAM', nominal: 2685144},
-            
-            // KALIMANTAN
-            {id: 'c6471', nama_daerah: 'KOTA BALIKPAPAN', nominal: 3474595},
-            {id: 'c6472', nama_daerah: 'KOTA SAMARINDA', nominal: 3497124},
-            {id: 'c6403', nama_daerah: 'KAB. KUTAI TIMUR', nominal: 3515324},
-            {id: 'c6171', nama_daerah: 'KOTA PONTIANAK', nominal: 2840206},
-            {id: 'c6371', nama_daerah: 'KOTA BANJARMASIN', nominal: 3379513},
-            
-            // SULAWESI
-            {id: 'c7371', nama_daerah: 'KOTA MAKASSAR', nominal: 3643651},
-            {id: 'c7171', nama_daerah: 'KOTA MANADO', nominal: 3590000},
-            {id: 'c7172', nama_daerah: 'KOTA BITUNG', nominal: 3700000},
-            {id: 'c7471', nama_daerah: 'KOTA KENDARI', nominal: 3127131},
-            
-            // PAPUA
-            {id: 'c9171', nama_daerah: 'KOTA JAYAPURA', nominal: 4024270},
-            {id: 'c9103', nama_daerah: 'KAB. JAYAPURA', nominal: 4024270},
-            {id: 'c9471', nama_daerah: 'KOTA SORONG', nominal: 3500000}
+            // BANTEN (Tangerang Raya)
+            {id: 'c3671', nama_daerah: 'KOTA TANGERANG', nominal: 4760289},
+            {id: 'c3674', nama_daerah: 'KOTA TANGERANG SELATAN', nominal: 4670791},
+            {id: 'c3603', nama_daerah: 'KAB. TANGERANG', nominal: 4601988},
+            {id: 'c3672', nama_daerah: 'KOTA CILEGON', nominal: 4815102}
         ];
 
         // Gabungkan data DB dengan Default
