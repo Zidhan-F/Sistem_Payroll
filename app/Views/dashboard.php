@@ -396,6 +396,15 @@
                             </select>
                         </div>
 
+                        <div class="form-group" style="margin-bottom: 25px;">
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Nominal Gaji (UMP/UMK)</label>
+                            <div style="position: relative;">
+                                <span style="position: absolute; left: 15px; top: 12px; font-weight: 600; color: #555;">Rp</span>
+                                <input type="text" id="simulasiNominal" readonly style="width: 100%; padding: 12px 12px 12px 45px; border-radius: 10px; border: 1px solid #ddd; background: #fdfdfd; font-weight: 700; font-size: 16px; color: #2c3e50; font-family: inherit;">
+                            </div>
+                            <small style="color: #888; font-size: 11px; margin-top: 6px; display: block;">*Nilai otomatis menyesuaikan dengan pilihan daerah.</small>
+                        </div>
+
                         <button class="btn-save" onclick="hitungSimulasiGaji()" style="width: 100%; padding: 15px; background: var(--primary-color); color: white; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; transition: 0.3s; margin-top: 10px;">
                             <i class="fas fa-search-dollar" style="margin-right: 8px;"></i> Cek Estimasi Gaji
                         </button>

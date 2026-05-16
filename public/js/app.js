@@ -1082,25 +1082,40 @@ async function loadSimulasiRegions() {
         const select = document.getElementById('simulasiRegion');
         select.innerHTML = '<option value="">-- Pilih Daerah --</option>' + 
             simulasiAllData.map(r => `<option value="${r.id}">${r.nama_daerah}</option>`).join('');
+
+        // Update nominal otomatis saat daerah dipilih
+        select.onchange = () => {
+            const region = simulasiAllData.find(r => r.id == select.value);
+            const nominalInput = document.getElementById('simulasiNominal');
+            if (region && nominalInput) {
+                nominalInput.value = formatNominal(region.nominal);
+            } else if (nominalInput) {
+                nominalInput.value = '';
+            }
+        };
     } catch (err) { console.error(err); }
 }
 
 function hitungSimulasiGaji() {
     const regionId = document.getElementById('simulasiRegion').value;
-    const region = simulasiAllData.find(r => r.id == regionId);
+    const nominalStr = document.getElementById('simulasiNominal').value;
     
-    if (!region) {
+    if (!regionId || !nominalStr) {
         showToast('Pilih daerah terlebih dahulu!', 'warning');
         return;
     }
 
-    const basic = parseFloat(region.nominal);
+    const basic = parseFloat(nominalStr.replace(/\./g, ''));
     const allowance = basic * 0.1; // Estimasi 10%
     const total = basic + allowance;
 
-    document.getElementById('simBasic').innerText = formatNominal(basic);
-    document.getElementById('simAllowance').innerText = formatNominal(allowance);
-    document.getElementById('simTotal').innerText = formatNominal(total);
+    document.getElementById('simBasic').innerText = 'Rp ' + formatNominal(basic);
+    document.getElementById('simAllowance').innerText = 'Rp ' + formatNominal(allowance);
+    
+    // Pastikan ID elemen sesuai
+    const thpEl = document.getElementById('simTotal') || document.getElementById('simThp');
+    if(thpEl) thpEl.innerText = 'Rp ' + formatNominal(total);
 
     document.getElementById('simulasiResult').style.display = 'block';
-}
+    document.getElementById('simulasiResult').scrollIntoView({ behavior: 'smooth' });
+}
