@@ -749,14 +749,26 @@ function downloadTemplateUmr() {
     
     if (tipe === 'UMP') {
         csvContent = 'Kode Provinsi,Provinsi,Nominal\n';
-        csvContent += 'ID 11,ACEH,3000000\n';
-        csvContent += 'ID 12,SUMATERA UTARA,4000000\n';
-        csvContent += 'ID 13,SUMATERA BARAT,2000000\n';
     } else {
         csvContent = 'Kode Kota/Kab,Kota/Kabupaten,Nominal\n';
-        csvContent += 'ID 3171,KOTA JAKARTA PUSAT,5000000\n';
-        csvContent += 'ID 3271,KOTA BOGOR,4500000\n';
-        csvContent += 'ID 3273,KOTA BANDUNG,4200000\n';
+    }
+
+    // Jika ada data di tabel, masukkan data tersebut ke CSV
+    if (umrAllData && umrAllData.length > 0) {
+        umrAllData.forEach(row => {
+            csvContent += `${row.kode_daerah},${row.nama_daerah},${row.nominal}\n`;
+        });
+    } else {
+        // Fallback ke data contoh jika tabel kosong
+        if (tipe === 'UMP') {
+            csvContent += 'ID 11,ACEH,3000000\n';
+            csvContent += 'ID 12,SUMATERA UTARA,4000000\n';
+            csvContent += 'ID 13,SUMATERA BARAT,2000000\n';
+        } else {
+            csvContent += 'ID 3171,KOTA JAKARTA PUSAT,5000000\n';
+            csvContent += 'ID 3271,KOTA BOGOR,4500000\n';
+            csvContent += 'ID 3273,KOTA BANDUNG,4200000\n';
+        }
     }
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
