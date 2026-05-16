@@ -1014,11 +1014,30 @@ async function loadSimulasiRegions() {
             {id: 'p38', nama_daerah: 'PAPUA BARAT DAYA', nominal: 3750000}
         ];
 
-        // Gabungkan data DB dengan Default (agar tidak ada yang terlewat)
+        // Data Default Kota Besar (UMK 2026 Projection)
+        const defaultUmk = [
+            {id: 'c1', nama_daerah: 'KOTA BEKASI', nominal: 5800000},
+            {id: 'c2', nama_daerah: 'KAB. KARAWANG', nominal: 5900000},
+            {id: 'c3', nama_daerah: 'KAB. BEKASI', nominal: 5750000},
+            {id: 'c4', nama_daerah: 'KOTA DEPOK', nominal: 5300000},
+            {id: 'c5', nama_daerah: 'KOTA TANGERANG', nominal: 5200000},
+            {id: 'c6', nama_daerah: 'KOTA SURABAYA', nominal: 5100000},
+            {id: 'c7', nama_daerah: 'KOTA BANDUNG', nominal: 4500000},
+            {id: 'c8', nama_daerah: 'KOTA MEDAN', nominal: 4100000},
+            {id: 'c9', nama_daerah: 'KOTA SEMARANG', nominal: 3700000},
+            {id: 'c10', nama_daerah: 'KOTA MAKASSAR', nominal: 3900000},
+            {id: 'c11', nama_daerah: 'KOTA PALEMBANG', nominal: 3800000},
+            {id: 'c12', nama_daerah: 'KOTA BALIKPAPAN', nominal: 3850000},
+            {id: 'c13', nama_daerah: 'KOTA BATAM', nominal: 5100000},
+            {id: 'c14', nama_daerah: 'KAB. GRESIK', nominal: 5050000},
+            {id: 'c15', nama_daerah: 'KAB. SIDOARJO', nominal: 5050000}
+        ];
+
+        // Gabungkan data DB dengan Default
         if (type === 'UMP') {
             simulasiAllData = dbData.length > 0 ? dbData : defaultUmp;
         } else {
-            simulasiAllData = dbData;
+            simulasiAllData = dbData.length > 0 ? dbData : defaultUmk;
         }
         
         const select = document.getElementById('simulasiRegion');
