@@ -522,7 +522,6 @@ Object.assign(window, {
     bukaSlipGaji, tutupModalSlip, cetakSlip,
     switchUmrTab, filterUmrTable, bukaModalUploadUmr, tutupModalUploadUmr,
     handleUmrSelectChange, bukaModalManualUmr, tutupModalManualUmr,
-    loadSimulasiRegions, hitungSimulasiGaji,
     downloadTemplateUmr, goUmrPage,
     tutupSemuaModal,
     bukaModalSkema, bukaModalKomponen, bukaModalOrg, bukaModalCutOff,
@@ -959,38 +958,4 @@ if (formManualUmr) {
         }
     });
 }
-
-// ===== SIMULASI GAJI MODULE =====
-let simulasiAllData = [];
-
-async function loadSimulasiRegions() {
-    const type = document.getElementById('simulasiType').value;
-    try {
-        const res = await fetch(`${API_URL}/minimum-wages?tipe=${type}`);
-        simulasiAllData = await res.json();
-        
-        const select = document.getElementById('simulasiRegion');
-        select.innerHTML = '<option value="">-- Pilih Daerah --</option>' + 
-            simulasiAllData.map(r => `<option value="${r.id}">${r.nama_daerah}</option>`).join('');
-    } catch (err) { console.error(err); }
-}
-
-function hitungSimulasiGaji() {
-    const regionId = document.getElementById('simulasiRegion').value;
-    const region = simulasiAllData.find(r => r.id == regionId);
-    
-    if (!region) {
-        showToast('Pilih daerah terlebih dahulu!', 'warning');
-        return;
-    }
-
-    const basic = parseFloat(region.nominal);
-    const allowance = basic * 0.1; // Estimasi 10%
-    const total = basic + allowance;
-
-    document.getElementById('simBasic').innerText = formatNominal(basic);
-    document.getElementById('simAllowance').innerText = formatNominal(allowance);
-    document.getElementById('simTotal').innerText = formatNominal(total);
-
-    document.getElementById('simulasiResult').style.display = 'block';
-}
+
