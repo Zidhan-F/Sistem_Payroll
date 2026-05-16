@@ -8,6 +8,7 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'Home::index');
 $routes->get('login', 'Home::login');
 $routes->get('dashboard', 'Home::dashboard');
+$routes->get('calculator', 'Home::calculator');
 $routes->get('migrasi', 'Migrasi::index');
 $routes->get('migrasi/seed-ump', 'Migrasi::seedUmp');
 
