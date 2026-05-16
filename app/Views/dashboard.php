@@ -355,6 +355,44 @@
                             <label style="font-weight: 600; margin-bottom: 8px; display: block;">Pilih Daerah</label>
                             <select id="simulasiRegion" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit;">
                                 <option value="">-- Pilih Daerah --</option>
+                                <option value="p1">ACEH</option>
+                                <option value="p2">SUMATERA UTARA</option>
+                                <option value="p3">SUMATERA BARAT</option>
+                                <option value="p4">RIAU</option>
+                                <option value="p5">JAMBI</option>
+                                <option value="p6">SUMATERA SELATAN</option>
+                                <option value="p7">BENGKULU</option>
+                                <option value="p8">LAMPUNG</option>
+                                <option value="p9">KEP. BANGKA BELITUNG</option>
+                                <option value="p10">KEPULAUAN RIAU</option>
+                                <option value="p11">DKI JAKARTA</option>
+                                <option value="p12">JAWA BARAT</option>
+                                <option value="p13">JAWA TENGAH</option>
+                                <option value="p14">DI YOGYAKARTA</option>
+                                <option value="p15">JAWA TIMUR</option>
+                                <option value="p16">BANTEN</option>
+                                <option value="p17">BALI</option>
+                                <option value="p18">NUSA TENGGARA BARAT</option>
+                                <option value="p19">NUSA TENGGARA TIMUR</option>
+                                <option value="p20">KALIMANTAN BARAT</option>
+                                <option value="p21">KALIMANTAN TENGAH</option>
+                                <option value="p22">KALIMANTAN SELATAN</option>
+                                <option value="p23">KALIMANTAN TIMUR</option>
+                                <option value="p24">KALIMANTAN UTARA</option>
+                                <option value="p25">SULAWESI UTARA</option>
+                                <option value="p26">SULAWESI TENGAH</option>
+                                <option value="p27">SULAWESI SELATAN</option>
+                                <option value="p28">SULAWESI TENGGARA</option>
+                                <option value="p29">GORONTALO</option>
+                                <option value="p30">SULAWESI BARAT</option>
+                                <option value="p31">MALUKU</option>
+                                <option value="p32">MALUKU UTARA</option>
+                                <option value="p33">PAPUA</option>
+                                <option value="p34">PAPUA BARAT</option>
+                                <option value="p35">PAPUA SELATAN</option>
+                                <option value="p36">PAPUA TENGAH</option>
+                                <option value="p37">PAPUA PEGUNUNGAN</option>
+                                <option value="p38">PAPUA BARAT DAYA</option>
                             </select>
                         </div>
 
