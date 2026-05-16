@@ -1072,21 +1072,50 @@ async function loadSimulasiRegions() {
             {id: 'c3672', nama_daerah: 'KOTA CILEGON', nominal: 4815102}
         ];
 
-        // Gabungkan data DB dengan Default
+        const type = document.getElementById('simulasiType').value;
+        const select = document.getElementById('simulasiRegion');
+        const nominalInput = document.getElementById('simulasiNominal');
+
+        if (type === 'NOMINAL') {
+            select.innerHTML = '<option value="manual">Input Manual Aktif</option>';
+            select.disabled = true;
+            if (nominalInput) {
+                nominalInput.readOnly = false;
+                nominalInput.style.backgroundColor = '#fff';
+                nominalInput.placeholder = 'Masukkan nominal...';
+                nominalInput.value = '';
+                nominalInput.focus();
+                
+                // Tambahkan formatter ribuan saat mengetik
+                nominalInput.oninput = (e) => {
+                    let val = e.target.value.replace(/\D/g, '');
+                    e.target.value = val ? new Intl.NumberFormat('id-ID').format(val) : '';
+                };
+            }
+            return;
+        }
+
+        // Reset if switching back from Nominal
+        select.disabled = false;
+        if (nominalInput) {
+            nominalInput.readOnly = true;
+            nominalInput.style.backgroundColor = '#fdfdfd';
+            nominalInput.oninput = null;
+        }
+
+        // Ambil data dari DB (jika ada) atau gunakan default
         if (type === 'UMP') {
             simulasiAllData = dbData.length > 0 ? dbData : defaultUmp;
         } else {
             simulasiAllData = dbData.length > 0 ? dbData : defaultUmk;
         }
-        
-        const select = document.getElementById('simulasiRegion');
+
         select.innerHTML = '<option value="">-- Pilih Daerah --</option>' + 
             simulasiAllData.map(r => `<option value="${r.id}">${r.nama_daerah}</option>`).join('');
 
         // Update nominal otomatis saat daerah dipilih
         select.onchange = () => {
             const region = simulasiAllData.find(r => r.id == select.value);
-            const nominalInput = document.getElementById('simulasiNominal');
             if (region && nominalInput) {
                 nominalInput.value = formatNominal(region.nominal);
             } else if (nominalInput) {

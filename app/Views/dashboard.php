@@ -348,6 +348,7 @@
                             <select id="simulasiType" onchange="loadSimulasiRegions()" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit;">
                                 <option value="UMP">Provinsi (UMP)</option>
                                 <option value="UMK">Kota/Kabupaten (UMK)</option>
+                                <option value="NOMINAL">Nominal (Input Manual)</option>
                             </select>
                         </div>
 
