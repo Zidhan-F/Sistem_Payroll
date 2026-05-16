@@ -761,9 +761,40 @@ function downloadTemplateUmr() {
     } else {
         // Fallback ke data contoh jika tabel kosong
         if (tipe === 'UMP') {
-            csvContent += 'ID 11,ACEH,3000000\n';
-            csvContent += 'ID 12,SUMATERA UTARA,4000000\n';
-            csvContent += 'ID 13,SUMATERA BARAT,2000000\n';
+            csvContent += 'ID 11,ACEH,3460672\n';
+            csvContent += 'ID 12,SUMATERA UTARA,2809915\n';
+            csvContent += 'ID 13,SUMATERA BARAT,2811449\n';
+            csvContent += 'ID 14,RIAU,3294625\n';
+            csvContent += 'ID 15,JAMBI,3037121\n';
+            csvContent += 'ID 16,SUMATERA SELATAN,3456874\n';
+            csvContent += 'ID 17,BENGKULU,2507079\n';
+            csvContent += 'ID 18,LAMPUNG,2716497\n';
+            csvContent += 'ID 19,KEP. BANGKA BELITUNG,3640000\n';
+            csvContent += 'ID 21,KEPULAUAN RIAU,3402492\n';
+            csvContent += 'ID 31,DKI JAKARTA,5067381\n';
+            csvContent += 'ID 32,JAWA BARAT,2057495\n';
+            csvContent += 'ID 33,JAWA TENGAH,2036947\n';
+            csvContent += 'ID 34,DI YOGYAKARTA,2125898\n';
+            csvContent += 'ID 35,JAWA TIMUR,2165244\n';
+            csvContent += 'ID 36,BANTEN,2727812\n';
+            csvContent += 'ID 51,BALI,2713672\n';
+            csvContent += 'ID 52,NUSA TENGGARA BARAT,2444067\n';
+            csvContent += 'ID 53,NUSA TENGGARA TIMUR,2186826\n';
+            csvContent += 'ID 61,KALIMANTAN BARAT,2702616\n';
+            csvContent += 'ID 62,KALIMANTAN TENGAH,3226648\n';
+            csvContent += 'ID 63,KALIMANTAN SELATAN,3282812\n';
+            csvContent += 'ID 64,KALIMANTAN TIMUR,3360858\n';
+            csvContent += 'ID 65,KALIMANTAN UTARA,3361653\n';
+            csvContent += 'ID 71,SULAWESI UTARA,3545000\n';
+            csvContent += 'ID 72,SULAWESI TENGAH,2736698\n';
+            csvContent += 'ID 73,SULAWESI SELATAN,3434298\n';
+            csvContent += 'ID 74,SULAWESI TENGGARA,2885964\n';
+            csvContent += 'ID 75,GORONTALO,3025100\n';
+            csvContent += 'ID 76,SULAWESI BARAT,2914958\n';
+            csvContent += 'ID 81,MALUKU,2949953\n';
+            csvContent += 'ID 82,MALUKU UTARA,3200000\n';
+            csvContent += 'ID 91,PAPUA,4024270\n';
+            csvContent += 'ID 94,PAPUA BARAT,3393000\n';
         } else {
             csvContent += 'ID 3171,KOTA JAKARTA PUSAT,5000000\n';
             csvContent += 'ID 3271,KOTA BOGOR,4500000\n';
