@@ -38,12 +38,6 @@
                 </div>
                 <button type="submit" class="btn-login">Login Sekarang</button>
             </form>
-            <div style="margin-top: 20px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-                <p style="color: #666; font-size: 14px; margin-bottom: 10px;">Ingin cek simulasi gaji daerah kamu?</p>
-                <a href="<?= base_url('index.php/calculator') ?>" style="display: inline-block; padding: 10px 20px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; color: #2c3e50; text-decoration: none; font-weight: 600; transition: 0.3s; font-size: 14px;">
-                    <i class="fas fa-calculator" style="margin-right: 8px; color: #2c3e50;"></i> Buka Kalkulator Gaji
-                </a>
-            </div>
             <div id="loginMessage" class="login-message"></div>
         </div>
     </div>
