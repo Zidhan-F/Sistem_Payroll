@@ -1193,7 +1193,7 @@
                         <h4 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 6px;">Seret & Lepas file di sini</h4>
                         <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 15px;">atau klik untuk menelusuri file dari komputer Anda</p>
                         <span id="umrFileName" style="font-size: 13px; font-weight: 600; color: var(--info); display: block; word-break: break-all;">Belum ada file terpilih</span>
-                        <input type="file" id="fileUmr" accept=".csv" required style="display: none;">
+                        <input type="file" id="fileUmr" accept=".csv" style="display: none;">
                     </div>
                 </div>
             </div>

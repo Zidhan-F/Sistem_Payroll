@@ -1943,6 +1943,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileUmr');
     
     if (fileInput) {
+        // Prevent click bubble to dropZone
+        fileInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -1956,6 +1961,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (dropZone) {
+        // Trigger file dialog on click
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
         ['dragenter', 'dragover'].forEach(evt => {
             dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
         });
