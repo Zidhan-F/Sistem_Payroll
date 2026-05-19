@@ -1,3 +1,36 @@
+// Fetch Interceptor to inject logged-in user header
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+    let [resource, config] = args;
+    if (!config) {
+        config = {};
+    }
+    if (!config.headers) {
+        config.headers = {};
+    }
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+        try {
+            const user = JSON.parse(userJson);
+            if (user && user.username) {
+                if (config.headers instanceof Headers) {
+                    if (!config.headers.has('X-User-Action')) {
+                        config.headers.set('X-User-Action', user.username);
+                    }
+                } else {
+                    if (!config.headers['X-User-Action']) {
+                        config.headers['X-User-Action'] = user.username;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error parsing user from localStorage:', e);
+        }
+    }
+    args[1] = config;
+    return originalFetch.apply(this, args);
+};
+
 // Cek Login
 const currentUser = JSON.parse(localStorage.getItem('user'));
 if (!currentUser) {
@@ -189,7 +222,8 @@ function switchView(view) {
         clientWorkspace: 'Workspace Klien',
         payroll: 'Master Skema Payroll',
         pajak: 'Master Skema Pajak',
-        masterKompensasi: 'Master Skema Kompensasi'
+        masterKompensasi: 'Master Skema Kompensasi',
+        logAktivitas: 'Log Aktivitas'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Payroll System';
 
@@ -200,6 +234,7 @@ function switchView(view) {
     if (view === 'payroll') switchPayrollSubTab('skema');
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
+    if (view === 'logAktivitas') renderLogAktivitas();
 }
 
 // ===== 1. KLIEN MODULE =====
@@ -2765,8 +2800,45 @@ async function hapusKaryawanGlobal(id) {
     }
 }
 
+async function renderLogAktivitas() {
+    const tableBody = document.getElementById('logAktivitasTableBody');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = `<tr><td colspan="3" class="text-center">Memuat data...</td></tr>`;
+    
+    try {
+        const res = await fetch(`${API_URL}/logs`);
+        if (!res.ok) throw new Error('Gagal mengambil data log');
+        const logs = await res.json();
+        
+        if (logs.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="3" class="text-center" style="font-style: italic; color: #888;">Belum ada log aktivitas.</td></tr>`;
+            return;
+        }
+        
+        tableBody.innerHTML = logs.map(log => {
+            const dateStr = log.created_at ? new Date(log.created_at).toLocaleString('id-ID', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+            }) : '-';
+            
+            return `
+                <tr>
+                    <td style="font-weight: 500; color: #1e293b;">${log.action || '-'}</td>
+                    <td><span class="scheme-badge rutin" style="text-transform: none;">${log.user_action || '-'}</span></td>
+                    <td style="color: #64748b;">${dateStr}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error(err);
+        tableBody.innerHTML = `<tr><td colspan="3" class="text-center" style="color: var(--danger);">Gagal memuat log aktivitas.</td></tr>`;
+    }
+}
+
 window.renderManajemenKaryawan = renderManajemenKaryawan;
 window.cariKaryawanGlobalAktif = cariKaryawanGlobalAktif;
 window.bukaModalKaryawanGlobal = bukaModalKaryawanGlobal;
 window.bukaModalKaryawanGlobalEdit = bukaModalKaryawanGlobalEdit;
-window.hapusKaryawanGlobal = hapusKaryawanGlobal;
+window.hapusKaryawanGlobal = hapusKaryawanGlobal;
+window.renderLogAktivitas = renderLogAktivitas;

@@ -195,7 +195,15 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'alamat')
             ALTER TABLE employees ADD alamat NVARCHAR(MAX) NULL");
 
-        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, dan kolom alamat karyawan)";
+        // 13. Tambah tabel status_logs (tanpa primary key)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'status_logs')
+            CREATE TABLE status_logs (
+                action NVARCHAR(255),
+                user_action NVARCHAR(100),
+                created_at DATETIME DEFAULT GETDATE()
+            )");
+
+        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, dan tabel status log)";
     }
 
     /**

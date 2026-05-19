@@ -26,6 +26,7 @@ class Api extends ResourceController
                          ->getRow();
 
         if ($user && $password === $user->password) { // Catatan: Sebaiknya gunakan password_verify
+            $this->logActivity("User login berhasil", $user->username);
             return $this->respond([
                 'message' => 'Login berhasil',
                 'user' => [
@@ -94,6 +95,7 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('clients')->insert($data);
+        $this->logActivity("Membuat klien baru: " . ($data['nama'] ?? ''));
         return $this->respondCreated(['message' => 'Klien berhasil ditambahkan']);
     }
 
@@ -101,12 +103,16 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('clients')->where('id', $id)->update($data);
+        $this->logActivity("Mengupdate klien ID: " . $id . " (" . ($data['nama'] ?? '') . ")");
         return $this->respond(['message' => 'Klien berhasil diupdate']);
     }
 
     public function deleteClient($id)
     {
+        $client = $this->db->table('clients')->where('id', $id)->get()->getRow();
+        $clientName = $client ? $client->nama : 'Unknown';
         $this->db->table('clients')->where('id', $id)->delete();
+        $this->logActivity("Menghapus klien ID: " . $id . " (" . $clientName . ")");
         return $this->respondDeleted(['message' => 'Klien berhasil dihapus']);
     }
 
@@ -203,6 +209,7 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('payroll_schemes')->insert($data);
+        $this->logActivity("Membuat skema payroll baru: " . ($data['nama'] ?? ''));
         return $this->respondCreated(['message' => 'Skema berhasil ditambahkan']);
     }
 
@@ -210,12 +217,16 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('payroll_schemes')->where('id', $id)->update($data);
+        $this->logActivity("Mengupdate skema payroll ID: " . $id . " (" . ($data['nama'] ?? '') . ")");
         return $this->respond(['message' => 'Skema berhasil diupdate']);
     }
 
     public function deletePayrollScheme($id)
     {
+        $scheme = $this->db->table('payroll_schemes')->where('id', $id)->get()->getRow();
+        $schemeName = $scheme ? $scheme->nama : 'Unknown';
         $this->db->table('payroll_schemes')->where('id', $id)->delete();
+        $this->logActivity("Menghapus skema payroll ID: " . $id . " (" . $schemeName . ")");
         return $this->respondDeleted(['message' => 'Skema berhasil dihapus']);
     }
 
@@ -283,6 +294,7 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('compensation_schemes')->insert($data);
+        $this->logActivity("Membuat skema kompensasi baru: " . ($data['nama'] ?? ''));
         return $this->respondCreated(['message' => 'Skema kompensasi berhasil ditambahkan']);
     }
 
@@ -290,13 +302,17 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('compensation_schemes')->where('id', $id)->update($data);
+        $this->logActivity("Mengupdate skema kompensasi ID: " . $id . " (" . ($data['nama'] ?? '') . ")");
         return $this->respond(['message' => 'Skema kompensasi berhasil diupdate']);
     }
 
     public function deleteCompensationScheme($id)
     {
+        $scheme = $this->db->table('compensation_schemes')->where('id', $id)->get()->getRow();
+        $schemeName = $scheme ? $scheme->nama : 'Unknown';
         $this->db->table('compensation_schemes')->where('id', $id)->delete();
         $this->db->table('compensation_components')->where('scheme_id', $id)->delete(); // Cascade
+        $this->logActivity("Menghapus skema kompensasi ID: " . $id . " (" . $schemeName . ")");
         return $this->respondDeleted(['message' => 'Skema kompensasi berhasil dihapus']);
     }
 
@@ -444,12 +460,16 @@ class Api extends ResourceController
             }
         }
 
+        $this->logActivity("Membuat PKWT baru untuk karyawan: " . ($data['employee_name'] ?? ''));
         return $this->respondCreated(['message' => 'PKWT berhasil dibuat dan gaji telah tergenerate']);
     }
 
     public function deletePKWT($id)
     {
+        $pkwt = $this->db->table('pkwt')->where('id', $id)->get()->getRow();
+        $employeeName = $pkwt ? $pkwt->employee_name : 'Unknown';
         $this->db->table('pkwt')->where('id', $id)->delete();
+        $this->logActivity("Menghapus PKWT karyawan: " . $employeeName . " (ID: " . $id . ")");
         return $this->respondDeleted(['message' => 'PKWT berhasil dihapus']);
     }
 
@@ -675,6 +695,9 @@ class Api extends ResourceController
             }
         }
 
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        $periodName = $period ? $period->nama : "ID: $periodId";
+        $this->logActivity("Men-generate payroll untuk periode: " . $periodName);
         return $this->respond(['message' => 'Gaji bulanan berhasil di-generate untuk periode ini']);
     }
 
@@ -694,10 +717,20 @@ class Api extends ResourceController
 
     public function approvePayroll($id)
     {
+        $username = $this->request->getHeaderLine('X-User-Action') ?: 'Admin';
         $this->db->table('payroll_final')->where('id', $id)->update([
             'status_approval' => 'Approved',
-            'approved_by' => 'Admin'
+            'approved_by' => $username
         ]);
+        
+        $final = $this->db->table('payroll_final')
+                          ->select('payroll_final.*, pkwt.employee_name')
+                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
+                          ->where('payroll_final.id', $id)
+                          ->get()
+                          ->getRow();
+        $employeeName = $final ? $final->employee_name : 'Unknown';
+        $this->logActivity("Menyetujui payroll karyawan: " . $employeeName . " (Payroll ID: " . $id . ")");
         return $this->respond(['message' => 'Gaji telah disetujui']);
     }
 
@@ -930,6 +963,30 @@ class Api extends ResourceController
             $this->db->table('client_absence_configs')->insert($data);
         }
 
+        $this->logActivity("Menyimpan konfigurasi absensi klien ID: " . $clientId);
         return $this->respond(['message' => 'Konfigurasi absensi berhasil disimpan']);
+    }
+
+    // --- LOGS ---
+    public function getLogs()
+    {
+        $logs = $this->db->table('status_logs')
+                         ->orderBy('created_at', 'DESC')
+                         ->get()
+                         ->getResultArray();
+        return $this->respond($logs ?: []);
+    }
+
+    protected function logActivity($action, $username = null)
+    {
+        if ($username === null) {
+            $username = $this->request->getHeaderLine('X-User-Action') ?: 'System';
+        }
+        
+        $this->db->table('status_logs')->insert([
+            'action' => $action,
+            'user_action' => $username,
+            'created_at' => date('Y-m-d H:i:s')
+        ]);
     }
 }

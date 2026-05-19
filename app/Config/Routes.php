@@ -25,6 +25,9 @@ $routes->group('api', function($routes) {
     
     // Org Structure handled in Org.php below
     
+    // Logs
+    $routes->get('logs', 'Api::getLogs');
+
     // Payroll
     $routes->get('payroll-schemes', 'Api::getPayrollSchemes');
     $routes->post('payroll-schemes', 'Api::createPayrollScheme');
