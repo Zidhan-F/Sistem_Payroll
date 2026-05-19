@@ -849,13 +849,6 @@
                 <input type="hidden" id="orgId">
                 <input type="hidden" id="orgParentId">
                 <input type="hidden" id="orgType">
-                <!-- Nama Karyawan (Hanya untuk Posisi) -->
-                <div id="posEmployeeField" style="display: none;">
-                    <div class="form-group">
-                        <label>Nama Karyawan</label>
-                        <input type="text" id="posEmployeeName" placeholder="Nama lengkap karyawan">
-                    </div>
-                </div>
 
                 <div class="form-group">
                     <label id="labelOrgName">Nama Divisi</label>
@@ -876,28 +869,6 @@
                             <option value="Manager">Manager</option>
                             <option value="Lead">Lead</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Email Karyawan</label>
-                        <input type="email" id="posEmail" placeholder="contoh@mail.com">
-                    </div>
-                    <div class="form-group">
-                        <label>No HP</label>
-                        <input type="text" id="posPhone" placeholder="Masukkan no HP">
-                    </div>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Gaji Pokok</label>
-                            <input type="number" id="posSalary" placeholder="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Tunjangan</label>
-                            <input type="number" id="posAllowance" placeholder="0">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Potongan</label>
-                        <input type="number" id="posDeduction" placeholder="0">
                     </div>
                 </div>
             </div>
