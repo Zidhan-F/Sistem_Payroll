@@ -852,11 +852,11 @@
                     </div>
                     <div class="form-group">
                         <label>Nomor Induk Berusaha</label>
-                        <input type="number" id="nib" placeholder="Masukkan NIB" required>
+                        <input type="text" id="nib" placeholder="Masukkan NIB" required>
                     </div>
                     <div class="form-group">
                         <label>NPWP</label>
-                        <input type="number" id="npwp" placeholder="Masukkan NPWP" required>
+                        <input type="text" id="npwp" placeholder="Masukkan NPWP" required>
                     </div>
                     <div class="form-group">
                         <label>Tanggal Bergabung</label>
