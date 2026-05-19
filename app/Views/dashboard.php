@@ -1346,10 +1346,6 @@
                         <option value="K/1">K/1 (Kawin, 1 Tanggungan)</option>
                         <option value="K/2">K/2 (Kawin, 2 Tanggungan)</option>
                         <option value="K/3">K/3 (Kawin, 3 Tanggungan)</option>
-                        <option value="K/I/0">K/I/0 (Kawin Istri Gabung Pajak, 0 Tanggungan)</option>
-                        <option value="K/I/1">K/I/1 (Kawin Istri Gabung Pajak, 1 Tanggungan)</option>
-                        <option value="K/I/2">K/I/2 (Kawin Istri Gabung Pajak, 2 Tanggungan)</option>
-                        <option value="K/I/3">K/I/3 (Kawin Istri Gabung Pajak, 3 Tanggungan)</option>
                     </select>
                 </div>
             </div>
