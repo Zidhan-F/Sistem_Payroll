@@ -530,11 +530,10 @@
                                     <!-- State Tracker for UMR type -->
                                     <input type="hidden" id="selectUmrType" value="UMP">
                                     
-                                    <!-- Search Dropdown Select -->
-                                    <div class="search-box" style="width: 240px; margin-bottom: 0; position: relative;">
-                                        <select id="searchUmr" onchange="filterUmrTable()" style="padding: 10px 12px; border-radius: 4px; border: 1px solid #ccc; outline: none; font-size: 14px; width: 100%; cursor: pointer;">
-                                            <option value="">-- Pilih Provinsi --</option>
-                                        </select>
+                                    <!-- Search Input Bar -->
+                                    <div class="search-box" style="width: 240px; margin-bottom: 0;">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" id="searchUmr" placeholder="Cari Provinsi..." onkeyup="filterUmrTable()">
                                     </div>
 
                                     <!-- Blue Download Template Button -->

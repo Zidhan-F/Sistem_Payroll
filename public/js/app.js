@@ -1641,7 +1641,7 @@ async function renderUmrTable() {
         
         // Dynamically populate searchUmr select options
         const searchEl = document.getElementById('searchUmr');
-        if (searchEl) {
+        if (searchEl && searchEl.tagName === 'SELECT') {
             const prevVal = searchEl.value;
             let optionsHtml = '';
             
