@@ -392,7 +392,7 @@
 
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
                                     <!-- Skema Payroll Card -->
-                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                                    <div style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
                                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                                             <div style="width: 40px; height: 40px; background: rgba(52,152,219,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                                                 <i class="fas fa-file-invoice-dollar" style="font-size: 18px; color: #3498db;"></i>
