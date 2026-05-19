@@ -48,13 +48,38 @@ class Api extends ResourceController
     public function saveMinimumWages()
     {
         $data = $this->request->getJSON(true);
+        
+        $processItem = function($item) {
+            // Find existing minimum wage with same tipe, kode_daerah, and tahun
+            $existing = $this->db->table('minimum_wages')
+                ->where('tipe', $item['tipe'])
+                ->where('kode_daerah', $item['kode_daerah'])
+                ->where('tahun', $item['tahun'])
+                ->get()
+                ->getRowArray();
+                
+            if ($existing) {
+                // Update existing record
+                $this->db->table('minimum_wages')
+                    ->where('id', $existing['id'])
+                    ->update([
+                        'nama_daerah' => $item['nama_daerah'],
+                        'provinsi' => $item['provinsi'] ?? '',
+                        'nominal' => $item['nominal']
+                    ]);
+            } else {
+                // Insert new record
+                $this->db->table('minimum_wages')->insert($item);
+            }
+        };
+
         // If it's a batch upload, we might handle multiple rows
         if (isset($data['items'])) {
             foreach ($data['items'] as $item) {
-                $this->db->table('minimum_wages')->insert($item);
+                $processItem($item);
             }
         } else {
-            $this->db->table('minimum_wages')->insert($data);
+            $processItem($data);
         }
         return $this->respondCreated(['message' => 'Data gaji minimum berhasil disimpan']);
     }

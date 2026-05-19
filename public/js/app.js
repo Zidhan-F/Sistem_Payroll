@@ -2053,8 +2053,34 @@ if (formUploadUmr) {
                 const items = dataLines.map(line => {
                     // Handle CSV with commas inside quotes
                     const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                    const rawNominal = cols[nominalIdx] || '0';
-                    const nominalVal = parseFloat(rawNominal.replace(/[^0-9.]/g, '')) || 0;
+                    let rawNominal = cols[nominalIdx] || '0';
+                    rawNominal = rawNominal.trim();
+                    
+                    let nominalVal = 0;
+                    if (rawNominal.includes('.') && rawNominal.includes(',')) {
+                        if (rawNominal.lastIndexOf('.') > rawNominal.lastIndexOf(',')) {
+                            nominalVal = parseFloat(rawNominal.replace(/,/g, '')) || 0;
+                        } else {
+                            nominalVal = parseFloat(rawNominal.replace(/\./g, '').replace(/,/g, '.')) || 0;
+                        }
+                    } else if (rawNominal.includes(',')) {
+                        const parts = rawNominal.split(',');
+                        if (parts.length === 2 && parts[1].length === 2) {
+                            nominalVal = parseFloat(rawNominal.replace(/,/g, '.')) || 0;
+                        } else {
+                            nominalVal = parseFloat(rawNominal.replace(/,/g, '')) || 0;
+                        }
+                    } else if (rawNominal.includes('.')) {
+                        const parts = rawNominal.split('.');
+                        if (parts.length > 2 || (parts.length === 2 && parts[1].length === 3)) {
+                            nominalVal = parseFloat(rawNominal.replace(/\./g, '')) || 0;
+                        } else {
+                            nominalVal = parseFloat(rawNominal) || 0;
+                        }
+                    } else {
+                        nominalVal = parseFloat(rawNominal) || 0;
+                    }
+
                     const provinceVal = stateIdIdx !== -1 ? (cols[stateIdIdx] || '') : '';
                     
                     return {
