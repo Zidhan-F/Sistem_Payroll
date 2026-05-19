@@ -138,6 +138,10 @@ document.getElementById('formOrg')?.addEventListener('submit',async(e)=>{
     const nik=document.getElementById('posNik')?.value.trim()||'';
     const email=document.getElementById('posEmail')?.value.trim()||'';
     const phone=document.getElementById('posPhone')?.value.trim()||'';
+    
+    // Retrieve target client ID (from global context or active employee form client selection)
+    const targetClientId = selectedClientId || document.getElementById('empClientId')?.value || null;
+    
     if(!name){showToast('Nama harus diisi!','error');return;}
     try{
         let r;
@@ -145,9 +149,9 @@ document.getElementById('formOrg')?.addEventListener('submit',async(e)=>{
             r=await fetch(`${API}/org/${type}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nama:name,employee_name:empName,email,phone,level:document.getElementById('posLevel')?.value||''})});
         }else{
             let ep='',body={nama:name};
-            if(type==='divisi'){ep='/divisions';body.client_id=selectedClientId;}
+            if(type==='divisi'){ep='/divisions';body.client_id=targetClientId;}
             else if(type==='department'){ep='/departments';body.division_id=parentId;}
-            else{ep='/positions';body.department_id=parentId;body.client_id=selectedClientId;body.employee_name=empName;body.nik=nik;body.email=email;body.phone=phone;body.level=document.getElementById('posLevel')?.value||''};
+            else{ep='/positions';body.department_id=parentId;body.client_id=targetClientId;body.employee_name=empName;body.nik=nik;body.email=email;body.phone=phone;body.level=document.getElementById('posLevel')?.value||''};
             r=await fetch(`${API}${ep}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         }
         if(r.ok){
@@ -167,14 +171,14 @@ document.getElementById('formOrg')?.addEventListener('submit',async(e)=>{
                 const deptSelect = document.getElementById('empDepartmentId');
                 
                 if (type === 'divisi') {
-                    await loadOrgSelects(selectedClientId, newId);
+                    await loadOrgSelects(targetClientId, newId);
                 } else if (type === 'department') {
                     const currentDivId = divSelect.value;
-                    await loadOrgSelects(selectedClientId, currentDivId, newId);
+                    await loadOrgSelects(targetClientId, currentDivId, newId);
                 } else if (type === 'posisi') {
                     const currentDivId = divSelect.value;
                     const currentDeptId = deptSelect.value;
-                    await loadOrgSelects(selectedClientId, currentDivId, currentDeptId, newId);
+                    await loadOrgSelects(targetClientId, currentDivId, currentDeptId, newId);
                 }
             }
             
