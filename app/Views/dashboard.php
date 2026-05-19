@@ -113,6 +113,9 @@
                             <tr>
                                 <th>Nama Klien</th>
                                 <th>Bisnis Klien</th>
+                                <th>NPWP</th>
+                                <th>NIB</th>
+                                <th>Tanggal Bergabung</th>
                                 <th>Alamat</th>
                                 <th>Action</th>
                             </tr>
