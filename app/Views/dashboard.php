@@ -203,9 +203,6 @@
                                             <i class="fas fa-search"></i>
                                             <input type="text" id="searchKaryawan" placeholder="Cari nama atau posisi..." onkeyup="filterKaryawan()">
                                         </div>
-                                        <button class="btn-add" onclick="bukaModalKaryawanSpecific()" style="display: flex; align-items: center; gap: 8px;">
-                                            <i class="fas fa-user-plus"></i> Tambah Karyawan
-                                        </button>
                                     </div>
                                 </div>
                                 <div class="table-container">
