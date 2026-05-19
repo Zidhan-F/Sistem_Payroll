@@ -285,6 +285,31 @@ async function bukaModalKaryawan(mode,id=null){
     cs.innerHTML='<option value="">-- Pilih Klien --</option>';
     clients.forEach(c=>{cs.innerHTML+=`<option value="${c.id}">${c.nama}</option>`;});
     
+    // Populate UMP/UMK Select
+    try {
+        const umrSel = document.getElementById('empMinimumWageId');
+        if (umrSel) {
+            umrSel.innerHTML = '<option value="">Loading...</option>';
+            const rUMP = await fetch(`${API}/minimum-wages?tipe=UMP`);
+            const umpData = await rUMP.json();
+            const rUMK = await fetch(`${API}/minimum-wages?tipe=UMK`);
+            const umkData = await rUMK.json();
+            
+            umrSel.innerHTML = '<option value="">-- Pilih Provinsi/Kota (UMP/UMK) --</option>';
+            let umpOptGroup = '<optgroup label="UMP (Provinsi)">';
+            umpData.forEach(u => { umpOptGroup += `<option value="${u.id}">${u.nama_daerah} (Rp ${formatNominal(u.nominal)})</option>`; });
+            umpOptGroup += '</optgroup>';
+            
+            let umkOptGroup = '<optgroup label="UMK (Kota/Kab)">';
+            umkData.forEach(u => { umkOptGroup += `<option value="${u.id}">${u.nama_daerah} (Rp ${formatNominal(u.nominal)})</option>`; });
+            umkOptGroup += '</optgroup>';
+            
+            umrSel.innerHTML += umpOptGroup + umkOptGroup;
+        }
+    } catch(e) {
+        console.error('Error loading UMP/UMK', e);
+    }
+
     cs.onchange = async () => {
         const cid = cs.value;
         if (cid) {
@@ -319,6 +344,7 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empGaji').value=emp.gaji_pokok;
         document.getElementById('empClientId').value=emp.client_id;
         document.getElementById('empTglMasuk').value=emp.tgl_masuk;
+        if(document.getElementById('empMinimumWageId')) document.getElementById('empMinimumWageId').value = emp.minimum_wage_id || '';
         await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
     }
 }
@@ -331,7 +357,7 @@ async function loadPositions(cid){
 document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     e.preventDefault();
     const id=document.getElementById('employeeId').value;
-    const d={nik:document.getElementById('empNik').value,nama:document.getElementById('empNama').value,email:document.getElementById('empEmail').value,no_rekening:document.getElementById('empRekening').value,bank_name:document.getElementById('empBankName').value,ptkp:document.getElementById('empPtkp').value,gaji_pokok:document.getElementById('empGaji').value,client_id:document.getElementById('empClientId').value,position_id:document.getElementById('empPositionId').value,tgl_masuk:document.getElementById('empTglMasuk').value};
+    const d={nik:document.getElementById('empNik').value,nama:document.getElementById('empNama').value,email:document.getElementById('empEmail').value,no_rekening:document.getElementById('empRekening').value,bank_name:document.getElementById('empBankName').value,ptkp:document.getElementById('empPtkp').value,gaji_pokok:document.getElementById('empGaji').value,client_id:document.getElementById('empClientId').value,position_id:document.getElementById('empPositionId').value,tgl_masuk:document.getElementById('empTglMasuk').value, minimum_wage_id:document.getElementById('empMinimumWageId')?.value||null};
     const r=await fetch(id?`${API}/employees/${id}`:`${API}/employees`,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
     if(r.ok){
         tutupModalKaryawan();

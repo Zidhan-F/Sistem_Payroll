@@ -421,7 +421,7 @@ async function renderAllEmployees() {
                 <td style="font-weight:600;"><i class="fas fa-user" style="margin-right: 8px; opacity: 0.6;"></i>${emp.nama}</td>
                 <td>${emp.nama_posisi || '-'}</td>
                 <td>${emp.nama_dept || '-'}</td>
-                <td>${emp.nama_divisi || '-'}</td>
+                <td>${emp.alamat || '-'}</td>
                 <td>${emp.email || '-'}</td>
                 <td>
                     <div style="display: flex; gap: 8px;">
@@ -2591,7 +2591,7 @@ async function renderManajemenKaryawan(list = null) {
                 <td style="font-weight: 600; color: var(--secondary-color);">${emp.nama_klien || '-'}</td>
                 <td>${emp.nama_posisi || '-'}</td>
                 <td>${emp.nama_dept || '-'}</td>
-                <td>${emp.nama_divisi || '-'}</td>
+                <td>${emp.alamat || '-'}</td>
                 <td>${emp.email || '-'}</td>
                 <td>
                     <div style="display: flex; gap: 8px;">

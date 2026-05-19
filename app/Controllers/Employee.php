@@ -14,11 +14,12 @@ class Employee extends ResourceController
     {
         $clientId = $this->request->getGet('client_id');
         if ($clientId) {
-            $data = $this->model->select('employees.*, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, clients.nama as nama_klien, positions.department_id as department_id, departments.division_id as division_id')
+            $data = $this->model->select('employees.*, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, clients.nama as nama_klien, positions.department_id as department_id, departments.division_id as division_id, minimum_wages.nama_daerah as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal')
                         ->join('positions', 'positions.id = employees.position_id', 'left')
                         ->join('departments', 'departments.id = positions.department_id', 'left')
                         ->join('divisions', 'divisions.id = departments.division_id', 'left')
                         ->join('clients', 'clients.id = employees.client_id', 'left')
+                        ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
                         ->where('employees.client_id', $clientId)
                         ->findAll();
             return $this->respond($data);

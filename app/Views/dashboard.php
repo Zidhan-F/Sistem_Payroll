@@ -152,7 +152,7 @@
                                 <th>Perusahaan / Klien</th>
                                 <th>Posisi</th>
                                 <th>Department</th>
-                                <th>Divisi</th>
+                                <th>Alamat (UMP/UMK)</th>
                                 <th>Email</th>
                                 <th>Action</th>
                             </tr>
@@ -212,7 +212,7 @@
                                                 <th>Nama Karyawan</th>
                                                 <th>Posisi</th>
                                                 <th>Department</th>
-                                                <th>Divisi</th>
+                                                <th>Alamat (UMP/UMK)</th>
                                                 <th>Kontak</th>
                                                 <th>Action</th>
                                             </tr>
@@ -1346,6 +1346,14 @@
                         <option value="K/1">K/1 (Kawin, 1 Tanggungan)</option>
                         <option value="K/2">K/2 (Kawin, 2 Tanggungan)</option>
                         <option value="K/3">K/3 (Kawin, 3 Tanggungan)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Alamat (Tersinkronisasi dengan UMP/UMK)</label>
+                    <select id="empMinimumWageId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="">-- Pilih Provinsi/Kota (UMP/UMK) --</option>
+                        <!-- Options will be populated via JS -->
                     </select>
                 </div>
             </div>
