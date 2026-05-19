@@ -41,7 +41,13 @@ class Api extends ResourceController
     public function getMinimumWages()
     {
         $tipe = $this->request->getGet('tipe') ?: 'UMP';
-        $data = $this->db->table('minimum_wages')->where('tipe', $tipe)->get()->getResult();
+        $tahun = $this->request->getGet('tahun');
+        
+        $query = $this->db->table('minimum_wages')->where('tipe', $tipe);
+        if ($tahun) {
+            $query->where('tahun', $tahun);
+        }
+        $data = $query->get()->getResult();
         return $this->respond($data);
     }
 
@@ -49,38 +55,31 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         
-        $processItem = function($item) {
-            // Find existing minimum wage with same tipe, kode_daerah, and tahun
-            $existing = $this->db->table('minimum_wages')
-                ->where('tipe', $item['tipe'])
-                ->where('kode_daerah', $item['kode_daerah'])
-                ->where('tahun', $item['tahun'])
-                ->get()
-                ->getRowArray();
-                
-            if ($existing) {
-                // Update existing record
-                $this->db->table('minimum_wages')
-                    ->where('id', $existing['id'])
-                    ->update([
-                        'nama_daerah' => $item['nama_daerah'],
-                        'provinsi' => $item['provinsi'] ?? '',
-                        'nominal' => $item['nominal']
-                    ]);
-            } else {
-                // Insert new record
-                $this->db->table('minimum_wages')->insert($item);
-            }
-        };
-
-        // If it's a batch upload, we might handle multiple rows
-        if (isset($data['items'])) {
-            foreach ($data['items'] as $item) {
-                $processItem($item);
-            }
-        } else {
-            $processItem($data);
+        $items = isset($data['items']) ? $data['items'] : [$data];
+        if (empty($items)) {
+            return $this->respondCreated(['message' => 'Tidak ada data untuk disimpan']);
         }
+        
+        // Extract the tipe and tahun from the first item to define our upload scope
+        $firstItem = $items[0];
+        $tipe = $firstItem['tipe'] ?? 'UMP';
+        $tahun = $firstItem['tahun'] ?? 2026;
+        
+        // Strictly delete ONLY the existing records of this specific tipe and tahun!
+        // This guarantees that UMK is NEVER touched when uploading UMP, and vice versa!
+        $this->db->table('minimum_wages')
+            ->where('tipe', $tipe)
+            ->where('tahun', $tahun)
+            ->delete();
+            
+        // Insert the uploaded list for this specific type and year
+        foreach ($items as $item) {
+            // Force strict consistency
+            $item['tipe'] = $tipe;
+            $item['tahun'] = $tahun;
+            $this->db->table('minimum_wages')->insert($item);
+        }
+        
         return $this->respondCreated(['message' => 'Data gaji minimum berhasil disimpan']);
     }
 
