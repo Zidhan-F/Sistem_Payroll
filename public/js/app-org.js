@@ -277,6 +277,11 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
 async function bukaModalKaryawan(mode,id=null){
     const m=document.getElementById('modalKaryawan'),cs=document.getElementById('empClientId');
     m.style.display='block';document.getElementById('overlay').style.display='block';
+    
+    // Reset form first so it doesn't overwrite values set below!
+    document.getElementById('formKaryawan').reset();
+    document.getElementById('employeeId').value='';
+    
     cs.innerHTML='<option value="">-- Pilih Klien --</option>';
     clients.forEach(c=>{cs.innerHTML+=`<option value="${c.id}">${c.nama}</option>`;});
     
@@ -291,12 +296,15 @@ async function bukaModalKaryawan(mode,id=null){
         }
     };
 
+    const clientContainer = document.getElementById('empClientIdContainer');
     if(selectedClientId){
         cs.value=selectedClientId;
         cs.disabled=true;
+        if(clientContainer) clientContainer.style.display = 'none';
         await loadOrgSelects(selectedClientId);
     }else{
         cs.disabled=false;
+        if(clientContainer) clientContainer.style.display = 'block';
     }
     
     if(mode==='edit'&&id){
@@ -312,9 +320,6 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empClientId').value=emp.client_id;
         document.getElementById('empTglMasuk').value=emp.tgl_masuk;
         await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
-    }else{
-        document.getElementById('formKaryawan').reset();
-        document.getElementById('employeeId').value='';
     }
 }
 

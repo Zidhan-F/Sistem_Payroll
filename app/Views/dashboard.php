@@ -1258,7 +1258,13 @@
         <form id="formKaryawan">
             <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
                 <input type="hidden" id="employeeId">
-                <input type="hidden" id="empClientId">
+                
+                <div class="form-group" id="empClientIdContainer" style="margin-bottom: 15px; display: none;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Pilih Perusahaan / Klien</label>
+                    <select id="empClientId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="">-- Pilih Klien --</option>
+                    </select>
+                </div>
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
