@@ -100,8 +100,10 @@
                 </div>
 
                 <div class="content-card" style="margin-top: 30px;">
-                    <h3 style="font-size: 16px; margin-bottom: 20px;">Aktivitas Terbaru</h3>
-                    <p style="color: var(--text-muted); font-size: 14px;">Selamat datang kembali, <span id="welcomeName">Admin</span>! Berikut adalah ringkasan sistem hari ini.</p>
+                    <h3 style="font-size: 16px; margin-bottom: 20px; font-weight: 700; color: #1e293b;">Aktivitas Terbaru</h3>
+                    <div id="latestActivitiesContainer" style="display: flex; flex-direction: column; gap: 16px;">
+                        <p style="color: var(--text-muted); font-size: 14px;">Memuat aktivitas terbaru...</p>
+                    </div>
                 </div>
             </div>
 
