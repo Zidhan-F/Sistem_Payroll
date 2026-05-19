@@ -324,7 +324,17 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     const id=document.getElementById('employeeId').value;
     const d={nik:document.getElementById('empNik').value,nama:document.getElementById('empNama').value,email:document.getElementById('empEmail').value,no_rekening:document.getElementById('empRekening').value,bank_name:document.getElementById('empBankName').value,ptkp:document.getElementById('empPtkp').value,gaji_pokok:document.getElementById('empGaji').value,client_id:document.getElementById('empClientId').value,position_id:document.getElementById('empPositionId').value,tgl_masuk:document.getElementById('empTglMasuk').value};
     const r=await fetch(id?`${API}/employees/${id}`:`${API}/employees`,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
-    if(r.ok){tutupModalKaryawan();if(selectedClientId){renderTableKaryawanClient();renderClientOrg(selectedClientId);}showToast('Data karyawan berhasil disimpan');}
+    if(r.ok){
+        tutupModalKaryawan();
+        if(selectedClientId){
+            renderTableKaryawanClient();
+            renderClientOrg(selectedClientId);
+        }
+        if(typeof renderManajemenKaryawan === 'function'){
+            renderManajemenKaryawan();
+        }
+        showToast('Data karyawan berhasil disimpan');
+    }
 });
 
 function tutupModalKaryawan(){

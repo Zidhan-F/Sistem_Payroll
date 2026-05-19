@@ -185,6 +185,7 @@ function switchView(view) {
     const titles = {
         dashboard: 'Dashboard',
         klien: 'Manajemen Klien',
+        manajemenKaryawan: 'Manajemen Karyawan',
         clientWorkspace: 'Workspace Klien',
         payroll: 'Master Skema Payroll',
         pajak: 'Master Skema Pajak',
@@ -195,6 +196,7 @@ function switchView(view) {
     // Auto load data based on view
     if (view === 'dashboard') updateDashboardStats();
     if (view === 'klien') renderTable();
+    if (view === 'manajemenKaryawan') renderManajemenKaryawan();
     if (view === 'payroll') switchPayrollSubTab('skema');
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
@@ -2529,4 +2531,91 @@ function simpanNominalManual() {
     showToast('Nominal Rp ' + inputVal + ' berhasil disimpan untuk simulasi.', 'success');
     // Here you can integrate with backend API if needed to save the user's manual nominal preference
     document.getElementById('inputUmrNominal').value = '';
-}
+}
+
+// ===== 3. GLOBAL MANAJEMEN KARYAWAN =====
+let allEmployeesGlobal = [];
+
+async function renderManajemenKaryawan(list = null) {
+    try {
+        if (!list) {
+            const res = await fetch(`${API_URL}/employees`);
+            allEmployeesGlobal = await res.json();
+            list = allEmployeesGlobal;
+        }
+        const tbody = document.getElementById('tabelKaryawanGlobalBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = list.map(emp => `
+            <tr>
+                <td style="font-weight: 600; color: #64748b;">${emp.nik || '-'}</td>
+                <td style="font-weight: 600; color: var(--primary-color);">
+                    <i class="fas fa-user" style="margin-right: 8px; opacity: 0.6;"></i>${emp.nama}
+                </td>
+                <td style="font-weight: 600; color: var(--secondary-color);">${emp.nama_klien || '-'}</td>
+                <td>${emp.nama_posisi || '-'}</td>
+                <td>${emp.nama_dept || '-'}</td>
+                <td>${emp.nama_divisi || '-'}</td>
+                <td>${emp.email || '-'}</td>
+                <td>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-icon btn-edit" onclick="bukaModalKaryawanGlobalEdit(${emp.id}, ${emp.client_id})" title="Edit Karyawan" style="color: var(--primary-color); background: rgba(41, 128, 185, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-user-edit"></i></button>
+                        <button class="btn-icon btn-delete" onclick="hapusKaryawanGlobal(${emp.id})" title="Hapus Karyawan" style="color: var(--danger); background: rgba(231, 76, 60, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function cariKaryawanGlobalAktif() {
+    const q = document.getElementById('cariKaryawanGlobal').value.toLowerCase();
+    if (!q) {
+        renderManajemenKaryawan(allEmployeesGlobal);
+        return;
+    }
+    const filtered = allEmployeesGlobal.filter(emp => {
+        return (emp.nama && emp.nama.toLowerCase().includes(q)) ||
+               (emp.nik && emp.nik.toLowerCase().includes(q)) ||
+               (emp.nama_klien && emp.nama_klien.toLowerCase().includes(q)) ||
+               (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
+               (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
+               (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q));
+    });
+    renderManajemenKaryawan(filtered);
+}
+
+function bukaModalKaryawanGlobal() {
+    window.selectedClientId = null;
+    if (typeof bukaModalKaryawan === 'function') {
+        bukaModalKaryawan('tambah');
+    }
+}
+
+async function bukaModalKaryawanGlobalEdit(id, clientId) {
+    window.selectedClientId = clientId;
+    if (typeof bukaModalKaryawan === 'function') {
+        await bukaModalKaryawan('edit', id);
+    }
+}
+
+async function hapusKaryawanGlobal(id) {
+    if (!await showConfirm('Yakin ingin menghapus karyawan ini?')) return;
+    try {
+        const res = await fetch(`${API_URL}/employees/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            renderManajemenKaryawan();
+            showToast('Karyawan berhasil dihapus', 'success');
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+window.renderManajemenKaryawan = renderManajemenKaryawan;
+window.cariKaryawanGlobalAktif = cariKaryawanGlobalAktif;
+window.bukaModalKaryawanGlobal = bukaModalKaryawanGlobal;
+window.bukaModalKaryawanGlobalEdit = bukaModalKaryawanGlobalEdit;
+window.hapusKaryawanGlobal = hapusKaryawanGlobal;
