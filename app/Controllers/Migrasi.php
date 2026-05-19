@@ -72,6 +72,15 @@ class Migrasi extends BaseController
                 created_at DATETIME DEFAULT GETDATE()
             )");
 
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt_components') AND name = 'jenis_komponen')
+            ALTER TABLE pkwt_components ADD jenis_komponen NVARCHAR(50) DEFAULT 'kompensasi'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt_components') AND name = 'sifat_kompensasi')
+            ALTER TABLE pkwt_components ADD sifat_kompensasi NVARCHAR(20) DEFAULT 'tetap'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt_components') AND name = 'sumber_nilai')
+            ALTER TABLE pkwt_components ADD sumber_nilai NVARCHAR(50) DEFAULT 'nominal'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt_components') AND name = 'periode')
+            ALTER TABLE pkwt_components ADD periode NVARCHAR(20) DEFAULT 'bulan'");
+
         // 5. Tabel Periode Gaji
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'payroll_periods')
             CREATE TABLE payroll_periods (
@@ -155,15 +164,20 @@ class Migrasi extends BaseController
                 created_at DATETIME DEFAULT GETDATE()
             )");
 
-        // Ensure compensation_components has all required columns (for older tables)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('compensation_components') AND name = 'tipe')
             ALTER TABLE compensation_components ADD tipe NVARCHAR(20) DEFAULT 'pendapatan'");
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('compensation_components') AND name = 'nilai')
             ALTER TABLE compensation_components ADD nilai DECIMAL(15,2) DEFAULT 0");
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('compensation_components') AND name = 'is_persentase')
             ALTER TABLE compensation_components ADD is_persentase BIT DEFAULT 0");
-
-        // 10. Tabel Konfigurasi Absensi Klien
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('compensation_components') AND name = 'jenis_komponen')
+            ALTER TABLE compensation_components ADD jenis_komponen NVARCHAR(50) DEFAULT 'kompensasi'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('compensation_components') AND name = 'sumber_nilai')
+            ALTER TABLE compensation_components ADD sumber_nilai NVARCHAR(50) DEFAULT 'nominal'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('compensation_components') AND name = 'periode')
+            ALTER TABLE compensation_components ADD periode NVARCHAR(20) DEFAULT 'bulan'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('compensation_components') AND name = 'sifat_kompensasi')
+            ALTER TABLE compensation_components ADD sifat_kompensasi NVARCHAR(20) DEFAULT 'tetap'");
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'client_absence_configs')
             CREATE TABLE client_absence_configs (
                 id INT IDENTITY(1,1) PRIMARY KEY,
@@ -177,7 +191,11 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('positions') AND name = 'level')
             ALTER TABLE positions ADD level NVARCHAR(50) DEFAULT ''");
 
-        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, dan kolom level posisi)";
+        // 12. Tambah kolom alamat pada employees (jika belum ada)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'alamat')
+            ALTER TABLE employees ADD alamat NVARCHAR(MAX) NULL");
+
+        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, dan kolom alamat karyawan)";
     }
 
     /**

@@ -285,27 +285,72 @@ async function bukaModalKaryawan(mode,id=null){
     cs.innerHTML='<option value="">-- Pilih Klien --</option>';
     clients.forEach(c=>{cs.innerHTML+=`<option value="${c.id}">${c.nama}</option>`;});
     
-    // Populate UMP/UMK Select
-    try {
-        const umrSel = document.getElementById('empMinimumWageId');
+    // Fetch and filter UMP/UMK based on type select
+    let umpData = [];
+    let umkData = [];
+    
+    const wageTypeSel = document.getElementById('empWageType');
+    const umrSel = document.getElementById('empMinimumWageId');
+    const alamatTextarea = document.getElementById('empAlamat');
+    const gajiInput = document.getElementById('empGaji');
+    const btnSync = document.getElementById('btnSyncAlamat');
+
+    const updateWageRegions = () => {
+        const selectedType = wageTypeSel ? wageTypeSel.value : '';
         if (umrSel) {
-            umrSel.innerHTML = '<option value="">Loading...</option>';
-            const rUMP = await fetch(`${API}/minimum-wages?tipe=UMP`);
-            const umpData = await rUMP.json();
-            const rUMK = await fetch(`${API}/minimum-wages?tipe=UMK`);
-            const umkData = await rUMK.json();
-            
-            umrSel.innerHTML = '<option value="">-- Pilih Provinsi/Kota (UMP/UMK) --</option>';
-            let umpOptGroup = '<optgroup label="UMP (Provinsi)">';
-            umpData.forEach(u => { umpOptGroup += `<option value="${u.id}">${u.nama_daerah} (Rp ${formatNominal(u.nominal)})</option>`; });
-            umpOptGroup += '</optgroup>';
-            
-            let umkOptGroup = '<optgroup label="UMK (Kota/Kab)">';
-            umkData.forEach(u => { umkOptGroup += `<option value="${u.id}">${u.nama_daerah} (Rp ${formatNominal(u.nominal)})</option>`; });
-            umkOptGroup += '</optgroup>';
-            
-            umrSel.innerHTML += umpOptGroup + umkOptGroup;
+            umrSel.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
+            const list = selectedType === 'UMP' ? umpData : (selectedType === 'UMK' ? umkData : []);
+            list.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.id;
+                opt.innerText = `${u.nama_daerah} (Rp ${formatNominal(u.nominal)})`;
+                opt.setAttribute('data-nominal', u.nominal);
+                opt.setAttribute('data-nama', u.nama_daerah);
+                umrSel.appendChild(opt);
+            });
         }
+    };
+
+    if (wageTypeSel) {
+        wageTypeSel.onchange = updateWageRegions;
+    }
+
+    if (umrSel) {
+        umrSel.onchange = () => {
+            const selectedOpt = umrSel.options[umrSel.selectedIndex];
+            if (selectedOpt && selectedOpt.value) {
+                const nominal = selectedOpt.getAttribute('data-nominal');
+                const nama = selectedOpt.getAttribute('data-nama');
+                if (nominal && gajiInput) {
+                    gajiInput.value = nominal;
+                }
+                if (alamatTextarea && !alamatTextarea.value.trim()) {
+                    alamatTextarea.value = nama;
+                }
+            }
+        };
+    }
+
+    if (btnSync) {
+        btnSync.onclick = () => {
+            const selectedOpt = umrSel ? umrSel.options[umrSel.selectedIndex] : null;
+            if (selectedOpt && selectedOpt.value) {
+                const nama = selectedOpt.getAttribute('data-nama');
+                if (alamatTextarea) {
+                    alamatTextarea.value = nama;
+                    showToast('Wilayah disalin ke alamat!');
+                }
+            } else {
+                showToast('Pilih wilayah UMP/UMK terlebih dahulu!', 'error');
+            }
+        };
+    }
+
+    try {
+        const rUMP = await fetch(`${API}/minimum-wages?tipe=UMP`);
+        umpData = await rUMP.json();
+        const rUMK = await fetch(`${API}/minimum-wages?tipe=UMK`);
+        umkData = await rUMK.json();
     } catch(e) {
         console.error('Error loading UMP/UMK', e);
     }
@@ -344,7 +389,13 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empGaji').value=emp.gaji_pokok;
         document.getElementById('empClientId').value=emp.client_id;
         document.getElementById('empTglMasuk').value=emp.tgl_masuk;
-        if(document.getElementById('empMinimumWageId')) document.getElementById('empMinimumWageId').value = emp.minimum_wage_id || '';
+        if(alamatTextarea) alamatTextarea.value = emp.alamat || '';
+        
+        if (wageTypeSel && emp.umr_tipe) {
+            wageTypeSel.value = emp.umr_tipe;
+            updateWageRegions();
+            if (umrSel) umrSel.value = emp.minimum_wage_id || '';
+        }
         await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
     }
 }
@@ -357,7 +408,7 @@ async function loadPositions(cid){
 document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     e.preventDefault();
     const id=document.getElementById('employeeId').value;
-    const d={nik:document.getElementById('empNik').value,nama:document.getElementById('empNama').value,email:document.getElementById('empEmail').value,no_rekening:document.getElementById('empRekening').value,bank_name:document.getElementById('empBankName').value,ptkp:document.getElementById('empPtkp').value,gaji_pokok:document.getElementById('empGaji').value,client_id:document.getElementById('empClientId').value,position_id:document.getElementById('empPositionId').value,tgl_masuk:document.getElementById('empTglMasuk').value, minimum_wage_id:document.getElementById('empMinimumWageId')?.value||null};
+    const d={nik:document.getElementById('empNik').value,nama:document.getElementById('empNama').value,email:document.getElementById('empEmail').value,no_rekening:document.getElementById('empRekening').value,bank_name:document.getElementById('empBankName').value,ptkp:document.getElementById('empPtkp').value,gaji_pokok:document.getElementById('empGaji').value,client_id:document.getElementById('empClientId').value,position_id:document.getElementById('empPositionId').value,tgl_masuk:document.getElementById('empTglMasuk').value, minimum_wage_id:document.getElementById('empMinimumWageId')?.value||null, alamat:document.getElementById('empAlamat')?.value.trim()||''};
     const r=await fetch(id?`${API}/employees/${id}`:`${API}/employees`,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
     if(r.ok){
         tutupModalKaryawan();

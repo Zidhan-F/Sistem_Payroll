@@ -423,6 +423,27 @@ class Api extends ResourceController
             ]);
         }
 
+        // 4. Fetch components from global compensation scheme (if configured)
+        if ($config && $config->compensation_scheme_id) {
+            $compComponents = $this->db->table('compensation_components')
+                                       ->where('scheme_id', $config->compensation_scheme_id)
+                                       ->get()
+                                       ->getResult();
+            foreach ($compComponents as $comp) {
+                $this->db->table('pkwt_components')->insert([
+                    'pkwt_id' => $pkwtId,
+                    'nama' => $comp->nama,
+                    'tipe' => $comp->tipe,
+                    'nilai' => $comp->nilai,
+                    'is_persentase' => $comp->is_persentase,
+                    'jenis_komponen' => $comp->jenis_komponen ?? 'kompensasi',
+                    'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
+                    'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
+                    'periode' => $comp->periode ?? 'bulan'
+                ]);
+            }
+        }
+
         return $this->respondCreated(['message' => 'PKWT berhasil dibuat dan gaji telah tergenerate']);
     }
 
@@ -504,18 +525,123 @@ class Api extends ResourceController
                             ->where('pkwt_id', $pkwt->id)
                             ->get()->getRow();
             
+            // 4. Resolve Employee / Client UMR (Minimum Wage)
+            $emp = $this->db->table('employees')
+                            ->select('employees.*, minimum_wages.nominal as umr_nominal')
+                            ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                            ->where('employees.nama', $pkwt->employee_name)
+                            ->get()
+                            ->getRow();
+            
+            $minimumWage = 0;
+            if ($emp && isset($emp->umr_nominal) && $emp->umr_nominal > 0) {
+                $minimumWage = floatval($emp->umr_nominal);
+            } else {
+                // Fallback to client config's minimum wage
+                $clientConfig = $this->db->table('client_payroll_configs')
+                                         ->select('client_payroll_configs.*, minimum_wages.nominal as umr_nominal')
+                                         ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
+                                         ->where('client_id', $pkwt->client_id)
+                                         ->get()
+                                         ->getRow();
+                if ($clientConfig && isset($clientConfig->umr_nominal) && $clientConfig->umr_nominal > 0) {
+                    $minimumWage = floatval($clientConfig->umr_nominal);
+                }
+            }
+
+            // 5. First pass: Find and calculate Gaji Pokok (Basic Salary)
+            $gajiPokok = 0;
+            foreach ($components as $comp) {
+                $isBasicSalary = false;
+                if (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') {
+                    $isBasicSalary = true;
+                } elseif (stripos($comp->nama, 'Gaji Pokok') !== false) {
+                    $isBasicSalary = true;
+                }
+
+                if ($isBasicSalary) {
+                    $base_nilai = floatval($comp->nilai);
+                    
+                    // Check source
+                    if (isset($comp->sumber_nilai) && $comp->sumber_nilai === 'ump_umk') {
+                        $base_nilai = $minimumWage * ($base_nilai / 100);
+                    }
+                    
+                    // Scale by period
+                    if (isset($comp->periode)) {
+                        if ($comp->periode === 'hari') {
+                            $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                            $base_nilai = $base_nilai * $days;
+                        } elseif ($comp->periode === 'minggu') {
+                            $base_nilai = $base_nilai * 4;
+                        } elseif ($comp->periode === 'tahun') {
+                            $base_nilai = $base_nilai / 12;
+                        }
+                    }
+                    
+                    $gajiPokok = $base_nilai;
+                    break; // Assume only one basic salary component
+                }
+            }
+
+            if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
+                $gajiPokok = floatval($emp->gaji_pokok);
+            }
+
+            // 6. Second pass: Calculate all components
             $totalPendapatan = 0;
             $totalPotongan = 0;
 
             foreach ($components as $comp) {
-                if ($comp->tipe === 'pendapatan') {
-                    $totalPendapatan += $comp->nilai;
+                $isBasic = false;
+                if (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') {
+                    $isBasic = true;
+                } elseif (stripos($comp->nama, 'Gaji Pokok') !== false) {
+                    $isBasic = true;
+                }
+
+                $nilai = 0;
+
+                if ($isBasic) {
+                    $nilai = $gajiPokok;
                 } else {
-                    $totalPotongan += $comp->nilai;
+                    if (isset($comp->jenis_komponen) && !empty($comp->jenis_komponen)) {
+                        // New Master Compensation component logic
+                        $base_nilai = floatval($comp->nilai);
+                        
+                        if ($comp->sumber_nilai === 'ump_umk') {
+                            $base_nilai = $minimumWage * ($base_nilai / 100);
+                        }
+                        
+                        // Scale by period
+                        if ($comp->periode === 'hari') {
+                            $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                            $nilai = $base_nilai * $days;
+                        } elseif ($comp->periode === 'minggu') {
+                            $nilai = $base_nilai * 4;
+                        } elseif ($comp->periode === 'tahun') {
+                            $nilai = $base_nilai / 12;
+                        } else {
+                            // bulanan
+                            $nilai = $base_nilai;
+                        }
+                    } else {
+                        // Legacy component logic
+                        $nilai = floatval($comp->nilai);
+                        if (intval($comp->is_persentase) === 1 || $comp->is_persentase === true) {
+                            $nilai = $gajiPokok * ($nilai / 100);
+                        }
+                    }
+                }
+
+                if ($comp->tipe === 'pendapatan') {
+                    $totalPendapatan += $nilai;
+                } else {
+                    $totalPotongan += $nilai;
                 }
             }
 
-            // 4. Add Variable Data from Attendance
+            // 7. Add Variable Data from Attendance
             if ($att) {
                 $totalPotongan += $att->potongan_absensi;
                 $totalPendapatan += $att->bonus_tambahan;
@@ -527,7 +653,7 @@ class Api extends ResourceController
 
             $thp = $totalPendapatan - $totalPotongan;
 
-            // 5. Save to payroll_final
+            // 8. Save to payroll_final
             $existingFinal = $this->db->table('payroll_final')
                                       ->where('period_id', $periodId)
                                       ->where('pkwt_id', $pkwt->id)
@@ -601,13 +727,121 @@ class Api extends ResourceController
                         ->where('pkwt_id', $final['pkwt_id'])
                         ->get()
                         ->getRowArray();
+
+        // 1. Resolve Employee / Client UMR (Minimum Wage)
+        $emp = $this->db->table('employees')
+                        ->select('employees.*, minimum_wages.nominal as umr_nominal')
+                        ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                        ->where('employees.nama', $final['employee_name'])
+                        ->get()
+                        ->getRow();
         
+        $minimumWage = 0;
+        if ($emp && isset($emp->umr_nominal) && $emp->umr_nominal > 0) {
+            $minimumWage = floatval($emp->umr_nominal);
+        } else {
+            // Fallback to client config's minimum wage
+            $clientConfig = $this->db->table('client_payroll_configs')
+                                     ->select('client_payroll_configs.*, minimum_wages.nominal as umr_nominal')
+                                     ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
+                                     ->where('client_id', $final['client_id'])
+                                     ->get()
+                                     ->getRow();
+            if ($clientConfig && isset($clientConfig->umr_nominal) && $clientConfig->umr_nominal > 0) {
+                $minimumWage = floatval($clientConfig->umr_nominal);
+            }
+        }
+
+        // 2. First pass: Find and calculate Gaji Pokok (Basic Salary)
+        $gajiPokok = 0;
+        foreach ($fixed as $comp) {
+            $isBasicSalary = false;
+            if (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') {
+                $isBasicSalary = true;
+            } elseif (stripos($comp['nama'], 'Gaji Pokok') !== false) {
+                $isBasicSalary = true;
+            }
+
+            if ($isBasicSalary) {
+                $base_nilai = floatval($comp['nilai']);
+                
+                // Check source
+                if (isset($comp['sumber_nilai']) && $comp['sumber_nilai'] === 'ump_umk') {
+                    $base_nilai = $minimumWage * ($base_nilai / 100);
+                }
+                
+                // Scale by period
+                if (isset($comp['periode'])) {
+                    if ($comp['periode'] === 'hari') {
+                        $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
+                        $base_nilai = $base_nilai * $days;
+                    } elseif ($comp['periode'] === 'minggu') {
+                        $base_nilai = $base_nilai * 4;
+                    } elseif ($comp['periode'] === 'tahun') {
+                        $base_nilai = $base_nilai / 12;
+                    }
+                }
+                
+                $gajiPokok = $base_nilai;
+                break; // Assume only one basic salary component
+            }
+        }
+
+        if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
+            $gajiPokok = floatval($emp->gaji_pokok);
+        }
+
         $earnings = [];
         $deductions = [];
 
-        foreach ($fixed as $f) {
-            if ($f['tipe'] === 'pendapatan') $earnings[] = ['nama' => $f['nama'], 'nilai' => $f['nilai']];
-            else $deductions[] = ['nama' => $f['nama'], 'nilai' => $f['nilai']];
+        // 3. Calculate components
+        foreach ($fixed as $comp) {
+            $isBasic = false;
+            if (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') {
+                $isBasic = true;
+            } elseif (stripos($comp['nama'], 'Gaji Pokok') !== false) {
+                $isBasic = true;
+            }
+
+            $nilai = 0;
+
+            if ($isBasic) {
+                $nilai = $gajiPokok;
+            } else {
+                if (isset($comp['jenis_komponen']) && !empty($comp['jenis_komponen'])) {
+                    // New Master Compensation component logic
+                    $base_nilai = floatval($comp['nilai']);
+                    
+                    if ($comp['sumber_nilai'] === 'ump_umk') {
+                        $base_nilai = $minimumWage * ($base_nilai / 100);
+                    }
+                    
+                    // Scale by period
+                    if ($comp['periode'] === 'hari') {
+                        $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
+                        $nilai = $base_nilai * $days;
+                    } elseif ($comp['periode'] === 'minggu') {
+                        $nilai = $base_nilai * 4;
+                    } elseif ($comp['periode'] === 'tahun') {
+                        $nilai = $base_nilai / 12;
+                    } else {
+                        // bulanan
+                        $nilai = $base_nilai;
+                    }
+                } else {
+                    // Legacy component logic
+                    $nilai = floatval($comp['nilai']);
+                    if (intval($comp['is_persentase']) === 1 || $comp['is_persentase'] === true) {
+                        $nilai = $gajiPokok * ($nilai / 100);
+                    }
+                }
+            }
+
+            if ($comp['tipe'] === 'pendapatan') {
+                $earnings[] = ['nama' => $comp['nama'], 'nilai' => $nilai];
+            } else {
+                $deductions[] = ['nama' => $comp['nama'], 'nilai' => $nilai];
+            }
         }
 
         if ($att) {

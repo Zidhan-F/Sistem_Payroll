@@ -1349,12 +1349,31 @@
                     </select>
                 </div>
 
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Tipe Minimum Wage</label>
+                        <select id="empWageType" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih UMP/UMK --</option>
+                            <option value="UMP">UMP (Provinsi)</option>
+                            <option value="UMK">UMK (Kota/Kabupaten)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Wilayah Minimum Wage</label>
+                        <select id="empMinimumWageId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Wilayah --</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-group" style="margin-top: 15px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Alamat (Tersinkronisasi dengan UMP/UMK)</label>
-                    <select id="empMinimumWageId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                        <option value="">-- Pilih Provinsi/Kota (UMP/UMK) --</option>
-                        <!-- Options will be populated via JS -->
-                    </select>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-weight: 600; margin: 0;">Alamat Lengkap (Bisa Diedit Bebas)</label>
+                        <button type="button" id="btnSyncAlamat" style="background: var(--info); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Salin wilayah UMP/UMK terpilih ke input Alamat">
+                            <i class="fas fa-sync-alt"></i> Salin Wilayah ke Alamat
+                        </button>
+                    </div>
+                    <textarea id="empAlamat" placeholder="Masukkan alamat lengkap karyawan" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; font-family: inherit; resize: vertical;" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1399,27 +1418,56 @@
             <div class="modal-body">
                 <input type="hidden" id="komponenKompensasiId">
                 <input type="hidden" id="komponenKompensasiSchemeId">
+                
                 <div class="form-group">
-                    <label>Nama Komponen</label>
-                    <input type="text" id="komponenKompensasiNama" placeholder="Contoh: Tunjangan Makan, Potongan Kehadiran" required>
-                </div>
-                <div class="form-group">
-                    <label>Tipe Komponen</label>
-                    <select id="komponenKompensasiTipe" required>
-                        <option value="pendapatan">Pendapatan (+)</option>
-                        <option value="potongan">Potongan (-)</option>
+                    <label>Jenis Komponen</label>
+                    <select id="komponenKompensasiJenis" onchange="handleJenisKomponenChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="basic_salary">Basic Salary</option>
+                        <option value="kompensasi" selected>Kompensasi Tetap / Tidak Tetap</option>
                     </select>
                 </div>
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+
+                <!-- Tampilkan Tipe Kompensasi jika jenisnya Kompensasi -->
+                <div class="form-group" id="containerSifatKompensasi" style="display: block; margin-bottom: 15px;">
+                    <label>Tipe Kompensasi</label>
+                    <select id="komponenKompensasiSifat" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="tetap">Kompensasi Tetap</option>
+                        <option value="tidak_tetap">Kompensasi Tidak Tetap</option>
+                    </select>
+                </div>
+
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label>Nilai / Nominal</label>
-                        <input type="number" id="komponenKompensasiNilai" placeholder="0" value="0" required>
+                        <label>Sumber Nilai</label>
+                        <select id="komponenKompensasiSumber" onchange="handleSumberNilaiChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="ump_umk">UMP / UMK</option>
+                            <option value="nominal" selected>Nominal Custom</option>
+                        </select>
                     </div>
-                    <div class="form-group">
+                    
+                    <div class="form-group" id="containerFormatNilai" style="display: none;">
                         <label>Format Nilai</label>
-                        <select id="komponenKompensasiIsPersentase" required>
-                            <option value="0">Rupiah (Rp)</option>
+                        <select id="komponenKompensasiIsPersentase" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="0" selected>Rupiah (Rp)</option>
                             <option value="1">Persentase (%)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label id="labelNilaiKompensasi">Nominal Custom (Rp)</label>
+                        <input type="number" id="komponenKompensasiNilai" placeholder="Contoh: 5000000" value="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Periode / Siklus</label>
+                        <select id="komponenKompensasiPeriode" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="hari">Hari</option>
+                            <option value="minggu">Minggu</option>
+                            <option value="bulan" selected>Bulan</option>
+                            <option value="tahun">Tahun</option>
                         </select>
                     </div>
                 </div>

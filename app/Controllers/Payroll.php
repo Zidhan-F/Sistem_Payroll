@@ -57,9 +57,33 @@ class Payroll extends ResourceController
         $taxMethod   = $schema ? $schema['tax_method'] : 'Gross';
         $otRateSchema = $schema ? $schema['overtime_rate_per_hour'] : 0;
 
-        // 2. Ambil Komponen Payroll Custom
-        $compModel = new PayrollComponentModel();
-        $components = $compModel->getByClient($clientId);
+        $db = \Config\Database::connect();
+        $payrollConfig = $db->table('client_payroll_configs')
+                            ->select('client_payroll_configs.*, minimum_wages.nominal as minimum_wage_nominal')
+                            ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
+                            ->where('client_id', $clientId)
+                            ->get()
+                            ->getRow();
+
+        // 2. Ambil Komponen Payroll Custom (Global Master Skema Kompensasi or Legacy)
+        $components = [];
+        if ($payrollConfig && !empty($payrollConfig->compensation_scheme_id)) {
+            $compComponents = $db->table('compensation_components')
+                                 ->where('scheme_id', $payrollConfig->compensation_scheme_id)
+                                 ->get()
+                                 ->getResultArray();
+            foreach ($compComponents as $cc) {
+                $components[] = [
+                    'nama_komponen' => $cc['nama'],
+                    'tipe' => ($cc['tipe'] === 'pendapatan') ? 'Tunjangan' : 'Potongan',
+                    'jenis_nilai' => (intval($cc['is_persentase']) === 1) ? 'Persentase' : 'Tetap',
+                    'nilai' => floatval($cc['nilai'])
+                ];
+            }
+        } else {
+            $compModel = new PayrollComponentModel();
+            $components = $compModel->getByClient($clientId);
+        }
 
         $employeeModel = new EmployeeModel();
         $detailModel = new PayrollDetailModel();
@@ -75,14 +99,6 @@ class Payroll extends ResourceController
         } else {
             $periodModel->update($periodExist['id'], ['status_cutoff' => 'Generated']);
         }
-
-        $db = \Config\Database::connect();
-        $payrollConfig = $db->table('client_payroll_configs')
-                            ->select('client_payroll_configs.*, minimum_wages.nominal as minimum_wage_nominal')
-                            ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
-                            ->where('client_id', $clientId)
-                            ->get()
-                            ->getRow();
 
         foreach ($dataKaryawan as $dk) {
             $emp = $employeeModel->find($dk['employee_id']);

@@ -610,6 +610,22 @@ async function renderPKWTTable() {
     } catch (err) { console.error(err); }
 }
 
+async function hapusPKWT(id) {
+    if (!await showConfirm('Apakah Anda yakin ingin menghapus PKWT ini?')) return;
+    try {
+        const res = await fetch(`${API_URL}/pkwt/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            renderPKWTTable();
+            showToast('PKWT berhasil dihapus!', 'success');
+        } else {
+            showToast('Gagal menghapus PKWT!', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Gagal menghapus PKWT!', 'error');
+    }
+}
+
 function bukaModalPKWT() {
     document.getElementById('modalPKWT').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
@@ -993,12 +1009,25 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const id = document.getElementById('komponenKompensasiId').value;
             const schemeId = document.getElementById('komponenKompensasiSchemeId').value;
+            const jenis = document.getElementById('komponenKompensasiJenis').value;
+            const sifat = document.getElementById('komponenKompensasiSifat').value;
+            let nama = '';
+            if (jenis === 'basic_salary') {
+                nama = 'Gaji Pokok';
+            } else {
+                nama = sifat === 'tetap' ? 'Kompensasi Tetap' : 'Kompensasi Tidak Tetap';
+            }
+
             const data = {
                 scheme_id: parseInt(schemeId),
-                nama: document.getElementById('komponenKompensasiNama').value,
-                tipe: document.getElementById('komponenKompensasiTipe').value,
+                nama: nama,
+                tipe: 'pendapatan',
                 nilai: parseFloat(document.getElementById('komponenKompensasiNilai').value) || 0,
-                is_persentase: parseInt(document.getElementById('komponenKompensasiIsPersentase').value) || 0
+                is_persentase: parseInt(document.getElementById('komponenKompensasiIsPersentase').value) || 0,
+                jenis_komponen: jenis,
+                sifat_kompensasi: sifat,
+                sumber_nilai: document.getElementById('komponenKompensasiSumber').value,
+                periode: document.getElementById('komponenKompensasiPeriode').value
             };
             const url = id ? `${API_URL}/compensation-components/${id}` : `${API_URL}/compensation-components`;
             const res = await fetch(url, {
@@ -1012,6 +1041,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(id ? 'Komponen berhasil diupdate!' : 'Komponen berhasil ditambahkan!', 'success');
             } else {
                 showToast('Gagal menyimpan komponen!', 'error');
+            }
+        });
+    }
+
+    // Form PKWT submit handler
+    if (document.getElementById('formPKWT')) {
+        document.getElementById('formPKWT').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                employee_name: document.getElementById('pkwtEmployeeName').value,
+                client_id: parseInt(document.getElementById('pkwtClientId').value),
+                position_name: document.getElementById('pkwtPositionName').value,
+                start_date: document.getElementById('pkwtStartDate').value,
+                end_date: document.getElementById('pkwtEndDate').value,
+                basic_salary: parseFloat(document.getElementById('pkwtBasicSalary').value) || 0,
+                status: 'Aktif'
+            };
+            try {
+                const res = await fetch(`${API_URL}/pkwt`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    tutupModalPKWT();
+                    renderPKWTTable();
+                    showToast('PKWT berhasil dibuat dan gaji telah tergenerate', 'success');
+                } else {
+                    showToast('Gagal membuat PKWT', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal membuat PKWT', 'error');
             }
         });
     }
@@ -1249,7 +1311,7 @@ async function renderMasterKompensasi() {
                         <div class="scheme-card-actions" onclick="event.stopPropagation()">
                             <button class="btn-icon btn-edit" onclick="bukaModalSkemaKompensasi('edit', ${scheme.id})"><i class="fas fa-edit"></i></button>
                             <button class="btn-icon btn-delete" onclick="hapusSkemaKompensasi(${scheme.id})"><i class="fas fa-trash"></i></button>
-                            <div class="scheme-toggle" id="comp-scheme-toggle-${scheme.id}"><i class="fas fa-chevron-down"></i></div>
+                            <div class="scheme-toggle" id="comp-scheme-toggle-${scheme.id}" onclick="toggleSchemeCardBody(${scheme.id}); event.stopPropagation();"><i class="fas fa-chevron-down"></i></div>
                         </div>
                     </div>
                     <div class="scheme-card-body" id="comp-scheme-body-${scheme.id}" style="display: none; padding: 20px; border-top: 1px solid #f1f5f9; background: #fafbfc;">
@@ -1272,14 +1334,17 @@ async function renderMasterKompensasi() {
                                         </div>
                                         <div class="component-info" style="display: flex; flex-direction: column;">
                                             <span class="comp-name" style="font-weight: 600; font-size: 14px; color: #1e293b;">${k.nama}</span>
-                                            <span class="comp-kategori" style="color: ${k.tipe === 'pendapatan' ? '#10b981' : '#ef4444'}; font-weight: 600; font-size: 11px;">
-                                                ${k.tipe.toUpperCase()}
+                                            <span class="comp-kategori" style="color: #64748b; font-weight: 500; font-size: 11px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px;">
+                                                <span style="background: ${k.tipe === 'pendapatan' ? '#d1fae5' : '#fee2e2'}; color: ${k.tipe === 'pendapatan' ? '#065f46' : '#991b1b'}; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 10px;">${k.tipe.toUpperCase()}</span>
+                                                <span style="background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">${k.jenis_komponen === 'basic_salary' ? 'Basic Salary' : (k.sifat_kompensasi === 'tidak_tetap' ? 'Kompensasi Tidak Tetap' : 'Kompensasi Tetap')}</span>
+                                                <span style="background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">${k.sumber_nilai === 'ump_umk' ? 'Persentase UMP/UMK' : 'Nominal Custom'}</span>
+                                                <span style="background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">/ ${k.periode ? k.periode.toUpperCase() : 'BULAN'}</span>
                                             </span>
                                         </div>
                                     </div>
                                     <div class="component-item-right" style="display: flex; align-items: center; gap: 15px;">
                                         <div class="component-value ${k.tipe}" style="font-weight: 700; font-size: 14px; padding: 4px 10px; border-radius: 6px; background: ${k.tipe === 'pendapatan' ? '#d1fae5' : '#fee2e2'}; color: ${k.tipe === 'pendapatan' ? '#059669' : '#dc2626'};">
-                                            ${k.is_persentase == 1 ? k.nilai + '%' : formatRupiah(k.nilai)}
+                                            ${k.sumber_nilai === 'ump_umk' ? k.nilai + '% UMP/UMK' : (k.is_persentase == 1 ? k.nilai + '%' : formatRupiah(k.nilai))}
                                         </div>
                                         <div class="component-item-actions" style="display: flex; gap: 5px;">
                                             <button class="btn-icon btn-edit" onclick="bukaModalKomponenKompensasi(${scheme.id}, 'edit', ${k.id})" style="width: 28px; height: 28px; background: var(--info); border-radius: 4px; border: none; color: white; cursor: pointer;"><i class="fas fa-edit" style="font-size: 11px;"></i></button>
@@ -1350,6 +1415,36 @@ async function hapusSkemaKompensasi(id) {
     }
 }
 
+function handleJenisKomponenChange() {
+    const jenis = document.getElementById('komponenKompensasiJenis').value;
+    const sifatContainer = document.getElementById('containerSifatKompensasi');
+    if (jenis === 'kompensasi') {
+        if (sifatContainer) sifatContainer.style.display = 'block';
+    } else {
+        if (sifatContainer) sifatContainer.style.display = 'none';
+    }
+}
+
+function handleSumberNilaiChange() {
+    const sumber = document.getElementById('komponenKompensasiSumber').value;
+    const formatContainer = document.getElementById('containerFormatNilai');
+    const labelNilai = document.getElementById('labelNilaiKompensasi');
+    const inputNilai = document.getElementById('komponenKompensasiNilai');
+    const selectIsPersentase = document.getElementById('komponenKompensasiIsPersentase');
+
+    if (sumber === 'ump_umk') {
+        if (formatContainer) formatContainer.style.display = 'none';
+        if (selectIsPersentase) selectIsPersentase.value = '1';
+        if (labelNilai) labelNilai.innerText = 'Nilai Persentase (%) dari UMP/UMK';
+        if (inputNilai) inputNilai.placeholder = 'Contoh: 100';
+    } else {
+        if (formatContainer) formatContainer.style.display = 'none';
+        if (selectIsPersentase) selectIsPersentase.value = '0';
+        if (labelNilai) labelNilai.innerText = 'Nominal Custom (Rp)';
+        if (inputNilai) inputNilai.placeholder = 'Contoh: 5000000';
+    }
+}
+
 function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
     document.getElementById('modalKomponenKompensasi').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
@@ -1360,17 +1455,36 @@ function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
         if (k) {
             document.getElementById('modalKomponenKompensasiTitle').innerText = 'Edit Komponen Kompensasi';
             document.getElementById('komponenKompensasiId').value = k.id;
-            document.getElementById('komponenKompensasiNama').value = k.nama;
-            document.getElementById('komponenKompensasiTipe').value = k.tipe;
+            const nameEl = document.getElementById('komponenKompensasiNama');
+            if (nameEl) nameEl.value = k.nama;
+            const tipeEl = document.getElementById('komponenKompensasiTipe');
+            if (tipeEl) tipeEl.value = k.tipe;
             document.getElementById('komponenKompensasiNilai').value = k.nilai;
             document.getElementById('komponenKompensasiIsPersentase').value = (k.is_persentase == 1 || k.is_persentase === true || k.is_persentase === '1') ? '1' : '0';
+            
+            // New fields
+            document.getElementById('komponenKompensasiJenis').value = k.jenis_komponen || 'kompensasi';
+            document.getElementById('komponenKompensasiSifat').value = k.sifat_kompensasi || 'tetap';
+            document.getElementById('komponenKompensasiSumber').value = k.sumber_nilai || 'nominal';
+            document.getElementById('komponenKompensasiPeriode').value = k.periode || 'bulan';
         }
     } else {
         document.getElementById('modalKomponenKompensasiTitle').innerText = 'Tambah Komponen Kompensasi';
         document.getElementById('formKomponenKompensasi').reset();
         document.getElementById('komponenKompensasiId').value = '';
         document.getElementById('komponenKompensasiSchemeId').value = schemeId;
+        
+        // Defaults
+        document.getElementById('komponenKompensasiJenis').value = 'kompensasi';
+        document.getElementById('komponenKompensasiSifat').value = 'tetap';
+        document.getElementById('komponenKompensasiSumber').value = 'nominal';
+        document.getElementById('komponenKompensasiPeriode').value = 'bulan';
+        document.getElementById('komponenKompensasiIsPersentase').value = '0';
     }
+    
+    // Trigger handlers to update visibility/labels
+    handleJenisKomponenChange();
+    handleSumberNilaiChange();
 }
 
 function tutupModalKomponenKompensasi() {
@@ -1465,7 +1579,7 @@ Object.assign(window, {
     switchView, logout, bukaModal, tutupModal, hapusKlien, 
     bukaModalPajak, renderTaxSchemes, renderPayrollSchemes,
     bukaModalSetup, renderClientSetup,
-    bukaModalPKWT, renderPKWTTable,
+    bukaModalPKWT, renderPKWTTable, hapusPKWT,
     bukaModalPeriode, generateGaji, approveGaji,
     bukaSlipGaji, tutupModalSlip, cetakSlip,
     switchUmrTab, filterUmrTable, bukaModalUploadUmr, tutupModalUploadUmr,
@@ -1482,7 +1596,8 @@ Object.assign(window, {
     renderUmrTable,
     renderMasterKompensasi, bukaModalSkemaKompensasi, tutupModalSkemaKompensasi, hapusSkemaKompensasi,
     bukaModalKomponenKompensasi, tutupModalKomponenKompensasi, hapusKomponenKompensasi, toggleSchemeCardBody,
-    renderPilihanKompensasiSummary, loadPilihanSkema, simpanPilihanSkema
+    renderPilihanKompensasiSummary, loadPilihanSkema, simpanPilihanSkema,
+    handleJenisKomponenChange, handleSumberNilaiChange
 });
 
 function bukaModalSkema(mode, id = null) {
