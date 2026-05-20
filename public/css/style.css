@@ -165,6 +165,46 @@ body {
     transform: scale(1.15);
 }
 
+/* Submenu Styles */
+.sidebar-submenu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 0 0 8px 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.sidebar-submenu li {
+    padding: 12px 25px 12px 45px !important;
+    font-size: 13.5px !important;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-left: 4px solid transparent;
+    border-radius: 0 !important;
+    margin: 0 !important;
+}
+
+.sidebar-submenu li:hover {
+    background: rgba(243, 156, 18, 0.08) !important;
+    color: var(--primary-dark) !important;
+    border-left: 4px solid var(--primary-color) !important;
+}
+
+.sidebar-submenu li.active {
+    background: rgba(243, 156, 18, 0.15) !important;
+    color: var(--primary-dark) !important;
+    border-left: 4px solid var(--primary-color) !important;
+    font-weight: 600 !important;
+}
+
+.submenu-arrow {
+    margin-left: auto;
+    font-size: 12px;
+    transition: transform 0.3s ease;
+}
+
 /* ===== Main Content ===== */
 .main-content {
     margin-left: var(--sidebar-width);
@@ -1102,7 +1142,8 @@ tbody tr:hover {
     box-shadow:
         0 25px 60px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(243, 156, 18, 0.08);
-    overflow: hidden;
+    max-height: 90vh;
+    overflow-y: auto;
     animation: modalSkemaEntrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 

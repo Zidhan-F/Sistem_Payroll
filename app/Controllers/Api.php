@@ -44,7 +44,10 @@ class Api extends ResourceController
         $tipe = $this->request->getGet('tipe') ?: 'UMP';
         $tahun = $this->request->getGet('tahun');
         
-        $query = $this->db->table('minimum_wages')->where('tipe', $tipe);
+        $query = $this->db->table('minimum_wages');
+        if ($tipe !== 'all') {
+            $query->where('tipe', $tipe);
+        }
         if ($tahun) {
             $query->where('tahun', $tahun);
         }
@@ -207,17 +210,117 @@ class Api extends ResourceController
 
     public function createPayrollScheme()
     {
-        $data = $this->request->getJSON(true);
-        $this->db->table('payroll_schemes')->insert($data);
-        $this->logActivity("Membuat skema payroll baru: " . ($data['nama'] ?? ''));
+        $requestData = $this->request->getJSON(true);
+        
+        $schemeData = [
+            'nama' => $requestData['nama'] ?? '',
+            'deskripsi' => $requestData['deskripsi'] ?? '',
+            'tipe' => $requestData['tipe'] ?? 'bulanan',
+            'compensation_scheme_id' => !empty($requestData['compensation_scheme_id']) ? intval($requestData['compensation_scheme_id']) : null,
+            'prorate' => isset($requestData['prorate']) ? intval($requestData['prorate']) : 0,
+            'absen_tidak_potong' => isset($requestData['absen_tidak_potong']) ? intval($requestData['absen_tidak_potong']) : 0,
+            'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0
+        ];
+        
+        $this->db->table('payroll_schemes')->insert($schemeData);
+        $schemeId = $this->db->insertID();
+        
+        $componentData = [
+            'scheme_id' => $schemeId,
+            'nama' => 'Gaji Pokok',
+            'tipe' => 'pendapatan',
+            'nilai' => $requestData['nilai'] ?? 0,
+            'is_persentase' => isset($requestData['is_persentase']) ? intval($requestData['is_persentase']) : 0,
+            'jenis_komponen' => 'basic_salary',
+            'sumber_nilai' => $requestData['sumber_nilai'] ?? 'nominal',
+            'periode' => $requestData['periode'] ?? 'bulan',
+            'sifat_kompensasi' => 'tetap'
+        ];
+        
+        $this->db->table('payroll_components')->insert($componentData);
+
+        // Save selected compensation components
+        if (!empty($requestData['components'])) {
+            foreach ($requestData['components'] as $comp) {
+                $compData = [
+                    'scheme_id' => $schemeId,
+                    'nama' => $comp['nama'] ?? '',
+                    'tipe' => $comp['tipe'] ?? 'pendapatan',
+                    'nilai' => isset($comp['nilai']) ? floatval($comp['nilai']) : 0,
+                    'is_persentase' => isset($comp['is_persentase']) ? intval($comp['is_persentase']) : 0,
+                    'jenis_komponen' => 'kompensasi',
+                    'sumber_nilai' => $comp['sumber_nilai'] ?? 'nominal',
+                    'periode' => $comp['periode'] ?? 'bulan',
+                    'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? 'tetap'
+                ];
+                $this->db->table('payroll_components')->insert($compData);
+            }
+        }
+        
+        $this->logActivity("Membuat skema payroll baru: " . ($schemeData['nama'] ?? ''));
         return $this->respondCreated(['message' => 'Skema berhasil ditambahkan']);
     }
-
+ 
     public function updatePayrollScheme($id)
     {
-        $data = $this->request->getJSON(true);
-        $this->db->table('payroll_schemes')->where('id', $id)->update($data);
-        $this->logActivity("Mengupdate skema payroll ID: " . $id . " (" . ($data['nama'] ?? '') . ")");
+        $requestData = $this->request->getJSON(true);
+        
+        $schemeData = [
+            'nama' => $requestData['nama'] ?? '',
+            'deskripsi' => $requestData['deskripsi'] ?? '',
+            'tipe' => $requestData['tipe'] ?? 'bulanan',
+            'compensation_scheme_id' => !empty($requestData['compensation_scheme_id']) ? intval($requestData['compensation_scheme_id']) : null,
+            'prorate' => isset($requestData['prorate']) ? intval($requestData['prorate']) : 0,
+            'absen_tidak_potong' => isset($requestData['absen_tidak_potong']) ? intval($requestData['absen_tidak_potong']) : 0,
+            'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0
+        ];
+        
+        $this->db->table('payroll_schemes')->where('id', $id)->update($schemeData);
+        
+        $componentData = [
+            'nama' => 'Gaji Pokok',
+            'tipe' => 'pendapatan',
+            'nilai' => $requestData['nilai'] ?? 0,
+            'is_persentase' => isset($requestData['is_persentase']) ? intval($requestData['is_persentase']) : 0,
+            'jenis_komponen' => 'basic_salary',
+            'sumber_nilai' => $requestData['sumber_nilai'] ?? 'nominal',
+            'periode' => $requestData['periode'] ?? 'bulan',
+            'sifat_kompensasi' => 'tetap'
+        ];
+        
+        $existing = $this->db->table('payroll_components')->where('scheme_id', $id)->where('jenis_komponen', 'basic_salary')->get()->getRow();
+        if ($existing) {
+            $this->db->table('payroll_components')->where('id', $existing->id)->update($componentData);
+        } else {
+            $componentData['scheme_id'] = $id;
+            $this->db->table('payroll_components')->insert($componentData);
+        }
+
+        // Delete existing non-basic components
+        $this->db->table('payroll_components')
+                 ->where('scheme_id', $id)
+                 ->where('jenis_komponen !=', 'basic_salary')
+                 ->delete();
+
+        // Save selected compensation components
+        if (!empty($requestData['components'])) {
+            foreach ($requestData['components'] as $comp) {
+                $compData = [
+                    'scheme_id' => $id,
+                    'nama' => $comp['nama'] ?? '',
+                    'tipe' => $comp['tipe'] ?? 'pendapatan',
+                    'nilai' => isset($comp['nilai']) ? floatval($comp['nilai']) : 0,
+                    'is_persentase' => isset($comp['is_persentase']) ? intval($comp['is_persentase']) : 0,
+                    'jenis_komponen' => 'kompensasi',
+                    'sumber_nilai' => $comp['sumber_nilai'] ?? 'nominal',
+                    'periode' => $comp['periode'] ?? 'bulan',
+                    'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? 'tetap'
+                ];
+                $this->db->table('payroll_components')->insert($compData);
+            }
+        }
+        
+        $this->logActivity("Mengupdate skema payroll ID: " . $id . " (" . ($schemeData['nama'] ?? '') . ")");
         return $this->respond(['message' => 'Skema berhasil diupdate']);
     }
 
@@ -301,27 +404,29 @@ class Api extends ResourceController
         
         $this->db->table('compensation_schemes')->insert($schemeData);
         $schemeId = $this->db->insertID();
-        
+        $namaKompensasi = $requestData['nama'] ?? '';
+        $sifatKompensasi = ($requestData['sifat_kompensasi'] ?? '') === 'tidak_tetap' ? 'tidak_tetap' : 'tetap';
+
         $componentData = [
             'scheme_id' => $schemeId,
-            'nama' => $requestData['nama'] ?? '',
+            'nama' => $namaKompensasi,
             'tipe' => $requestData['tipe'] ?? 'pendapatan',
             'nilai' => $requestData['nilai'] ?? 0,
             'is_persentase' => isset($requestData['is_persentase']) ? intval($requestData['is_persentase']) : 0,
-            'jenis_komponen' => ($requestData['nama'] === 'Basic Salary' ? 'basic_salary' : ($requestData['sifat_kompensasi'] === 'tidak_tetap' ? 'tidak_tetap' : 'tetap')),
+            'jenis_komponen' => 'kompensasi',
             'sumber_nilai' => $requestData['sumber_nilai'] ?? 'nominal',
             'periode' => $requestData['periode'] ?? 'bulan',
-            'sifat_kompensasi' => $requestData['sifat_kompensasi'] ?? 'tetap'
+            'sifat_kompensasi' => $sifatKompensasi
         ];
         
         $this->db->table('compensation_components')->insert($componentData);
         
         $this->logActivity("Membuat skema kompensasi baru: " . ($schemeData['nama'] ?? ''));
         return $this->respondCreated(['message' => 'Skema kompensasi berhasil ditambahkan']);
-    }
-
-    public function updateCompensationScheme($id)
-    {
+     }
+ 
+     public function updateCompensationScheme($id)
+     {
         $requestData = $this->request->getJSON(true);
         
         $schemeData = [
@@ -331,15 +436,18 @@ class Api extends ResourceController
         
         $this->db->table('compensation_schemes')->where('id', $id)->update($schemeData);
         
+        $namaKompensasi = $requestData['nama'] ?? '';
+        $sifatKompensasi = ($requestData['sifat_kompensasi'] ?? '') === 'tidak_tetap' ? 'tidak_tetap' : 'tetap';
+
         $componentData = [
-            'nama' => $requestData['nama'] ?? '',
+            'nama' => $namaKompensasi,
             'tipe' => $requestData['tipe'] ?? 'pendapatan',
             'nilai' => $requestData['nilai'] ?? 0,
             'is_persentase' => isset($requestData['is_persentase']) ? intval($requestData['is_persentase']) : 0,
-            'jenis_komponen' => ($requestData['nama'] === 'Basic Salary' ? 'basic_salary' : ($requestData['sifat_kompensasi'] === 'tidak_tetap' ? 'tidak_tetap' : 'tetap')),
+            'jenis_komponen' => 'kompensasi',
             'sumber_nilai' => $requestData['sumber_nilai'] ?? 'nominal',
             'periode' => $requestData['periode'] ?? 'bulan',
-            'sifat_kompensasi' => $requestData['sifat_kompensasi'] ?? 'tetap'
+            'sifat_kompensasi' => $sifatKompensasi
         ];
         
         $existing = $this->db->table('compensation_components')->where('scheme_id', $id)->get()->getRow();
@@ -463,9 +571,13 @@ class Api extends ResourceController
 
             foreach ($components as $comp) {
                 $nilai = $comp->nilai;
-                // If this is a basic salary component, use the manual input
-                if (stripos($comp->nama, 'Gaji Pokok') !== false) {
-                    $nilai = $basicSalary;
+                // If this is a basic salary component, and its source is nominal, use the manual input
+                if (stripos($comp->nama, 'Gaji Pokok') !== false || ($comp->jenis_komponen ?? '') === 'basic_salary') {
+                    if (isset($comp->sumber_nilai) && ($comp->sumber_nilai === 'ump' || $comp->sumber_nilai === 'umk' || $comp->sumber_nilai === 'kompensasi')) {
+                        $nilai = $comp->nilai; // Keep the percentage from template
+                    } else {
+                        $nilai = $basicSalary; // Use the manual input
+                    }
                 }
 
                 $this->db->table('pkwt_components')->insert([
@@ -473,7 +585,11 @@ class Api extends ResourceController
                     'nama' => $comp->nama,
                     'tipe' => $comp->tipe,
                     'nilai' => $nilai,
-                    'is_persentase' => $comp->is_persentase
+                    'is_persentase' => $comp->is_persentase,
+                    'jenis_komponen' => $comp->jenis_komponen ?? 'basic_salary',
+                    'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
+                    'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
+                    'periode' => $comp->periode ?? 'bulan'
                 ]);
             }
         } else {
@@ -488,9 +604,21 @@ class Api extends ResourceController
         }
 
         // 4. Fetch components from global compensation scheme (if configured)
-        if ($config && $config->compensation_scheme_id) {
+        // Resolve compensation scheme ID from payroll scheme or fallback to client config
+        $compensationSchemeId = null;
+        if ($config && $config->payroll_scheme_id) {
+            $payrollScheme = $this->db->table('payroll_schemes')->where('id', $config->payroll_scheme_id)->get()->getRow();
+            if ($payrollScheme && !empty($payrollScheme->compensation_scheme_id)) {
+                $compensationSchemeId = $payrollScheme->compensation_scheme_id;
+            }
+        }
+        if (!$compensationSchemeId && $config && $config->compensation_scheme_id) {
+            $compensationSchemeId = $config->compensation_scheme_id;
+        }
+
+        if ($compensationSchemeId) {
             $compComponents = $this->db->table('compensation_components')
-                                       ->where('scheme_id', $config->compensation_scheme_id)
+                                       ->where('scheme_id', $compensationSchemeId)
                                        ->get()
                                        ->getResult();
             foreach ($compComponents as $comp) {
@@ -584,10 +712,32 @@ class Api extends ResourceController
         $pkwts = $query->get()->getResult();
 
         foreach ($pkwts as $pkwt) {
-            // Load client absence config
+            // Get client config to find payroll scheme ID
+            $clientConfig = $this->db->table('client_payroll_configs')->where('client_id', $pkwt->client_id)->get()->getRow();
+            
+            $isProrate = false;
+            $isAbsenTidakPotong = false;
+            $nominalPotonganAbsen = 0;
+            
+            // Try resolving from payroll scheme first
+            if ($clientConfig && $clientConfig->payroll_scheme_id) {
+                $payrollScheme = $this->db->table('payroll_schemes')->where('id', $clientConfig->payroll_scheme_id)->get()->getRow();
+                if ($payrollScheme) {
+                    $isProrate = ($payrollScheme->prorate == 1);
+                    $isAbsenTidakPotong = ($payrollScheme->absen_tidak_potong == 1);
+                    $nominalPotonganAbsen = floatval($payrollScheme->nominal_potongan);
+                }
+            }
+            
+            // Fallback to client_absence_configs
             $absenceConfig = $this->db->table('client_absence_configs')->where('client_id', $pkwt->client_id)->get()->getRow();
-            $isProrate = ($absenceConfig && $absenceConfig->prorate == 1);
-            $isAbsenTidakPotong = ($absenceConfig && $absenceConfig->absen_tidak_potong == 1);
+            if ($clientConfig && !$isProrate && !$isAbsenTidakPotong && $nominalPotonganAbsen == 0) {
+                if ($absenceConfig) {
+                    $isProrate = ($absenceConfig->prorate == 1);
+                    $isAbsenTidakPotong = ($absenceConfig->absen_tidak_potong == 1);
+                    $nominalPotonganAbsen = floatval($absenceConfig->nominal_potongan);
+                }
+            }
 
             // 2. Get Fixed Components from PKWT
             $components = $this->db->table('pkwt_components')->where('pkwt_id', $pkwt->id)->get()->getResult();
@@ -612,16 +762,13 @@ class Api extends ResourceController
                 $minimumWage = floatval($emp->umr_nominal);
                 $mwId = $emp->mw_id;
             } else {
-                // Fallback to client config's minimum wage
-                $clientConfig = $this->db->table('client_payroll_configs')
-                                         ->select('client_payroll_configs.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id')
-                                         ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
-                                         ->where('client_id', $pkwt->client_id)
-                                         ->get()
-                                         ->getRow();
-                if ($clientConfig && isset($clientConfig->umr_nominal) && $clientConfig->umr_nominal > 0) {
-                    $minimumWage = floatval($clientConfig->umr_nominal);
-                    $mwId = $clientConfig->mw_id;
+                // Fallback to client config's minimum wage from clientConfig loaded above
+                if ($clientConfig && isset($clientConfig->minimum_wage_id)) {
+                    $mw = $this->db->table('minimum_wages')->where('id', $clientConfig->minimum_wage_id)->get()->getRow();
+                    if ($mw) {
+                        $minimumWage = floatval($mw->nominal);
+                        $mwId = $mw->id;
+                    }
                 }
             }
 
@@ -629,6 +776,16 @@ class Api extends ResourceController
             $resolvedWages = $this->resolveUmpUmk($mwId);
             $umpWageValue = $resolvedWages['ump'];
             $umkWageValue = $resolvedWages['umk'];
+
+            // Check if we have a basic salary component with source = kompensasi
+            $hasKompensasiSource = false;
+            foreach ($components as $comp) {
+                $isBasicSalary = (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') || (stripos($comp->nama, 'Gaji Pokok') !== false);
+                if ($isBasicSalary && isset($comp->sumber_nilai) && $comp->sumber_nilai === 'kompensasi') {
+                    $hasKompensasiSource = true;
+                    break;
+                }
+            }
 
             // 5. First pass: Find and calculate Gaji Pokok (Basic Salary)
             $gajiPokok = 0;
@@ -651,6 +808,14 @@ class Api extends ResourceController
                             $base_nilai = $umkWageValue * ($base_nilai / 100);
                         } else if ($comp->sumber_nilai === 'ump_umk') {
                             $base_nilai = $minimumWage * ($base_nilai / 100);
+                        } else if ($comp->sumber_nilai === 'kompensasi') {
+                            $kompTetapValue = 0;
+                            foreach ($components as $c) {
+                                if (($c->jenis_komponen ?? '') === 'kompensasi' && ($c->sifat_kompensasi ?? '') === 'tetap') {
+                                    $kompTetapValue += floatval($c->nilai);
+                                }
+                            }
+                            $base_nilai = $kompTetapValue * ($base_nilai / 100);
                         }
                     }
                     
@@ -702,7 +867,9 @@ class Api extends ResourceController
                 if ($isBasic) {
                     $nilai = $gajiPokok;
                 } else {
-                    if (isset($comp->jenis_komponen) && !empty($comp->jenis_komponen)) {
+                    if ($hasKompensasiSource && ($comp->jenis_komponen ?? '') === 'kompensasi' && ($comp->sifat_kompensasi ?? '') === 'tetap') {
+                        $nilai = 0; // Prevent double-counting by setting it to 0
+                    } else if (isset($comp->jenis_komponen) && !empty($comp->jenis_komponen)) {
                         // New Master Compensation component logic
                         $base_nilai = floatval($comp->nilai);
                         
@@ -753,7 +920,7 @@ class Api extends ResourceController
             if ($att) {
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
-                    $nominalPotongan = ($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0;
+                    $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
                     if ($nominalPotongan > 0 && $potongan_absen == 0) {
                         $missingDays = 21 - intval($att->hari_kerja);
                         if ($missingDays > 0) {
@@ -846,10 +1013,32 @@ class Api extends ResourceController
         
         if (!$final) return $this->failNotFound('Data tidak ditemukan');
 
-        // Get absence config
+        // Get client config to find payroll scheme ID
+        $clientConfig = $this->db->table('client_payroll_configs')->where('client_id', $final['client_id'])->get()->getRow();
+        
+        $isProrate = false;
+        $isAbsenTidakPotong = false;
+        $nominalPotonganAbsen = 0;
+        
+        // Try resolving from payroll scheme first
+        if ($clientConfig && $clientConfig->payroll_scheme_id) {
+            $payrollScheme = $this->db->table('payroll_schemes')->where('id', $clientConfig->payroll_scheme_id)->get()->getRow();
+            if ($payrollScheme) {
+                $isProrate = ($payrollScheme->prorate == 1);
+                $isAbsenTidakPotong = ($payrollScheme->absen_tidak_potong == 1);
+                $nominalPotonganAbsen = floatval($payrollScheme->nominal_potongan);
+            }
+        }
+        
+        // Fallback to client_absence_configs
         $absenceConfig = $this->db->table('client_absence_configs')->where('client_id', $final['client_id'])->get()->getRow();
-        $isProrate = ($absenceConfig && $absenceConfig->prorate == 1);
-        $isAbsenTidakPotong = ($absenceConfig && $absenceConfig->absen_tidak_potong == 1);
+        if ($clientConfig && !$isProrate && !$isAbsenTidakPotong && $nominalPotonganAbsen == 0) {
+            if ($absenceConfig) {
+                $isProrate = ($absenceConfig->prorate == 1);
+                $isAbsenTidakPotong = ($absenceConfig->absen_tidak_potong == 1);
+                $nominalPotonganAbsen = floatval($absenceConfig->nominal_potongan);
+            }
+        }
 
         // Get Fixed Components
         $fixed = $this->db->table('pkwt_components')
@@ -879,15 +1068,12 @@ class Api extends ResourceController
             $mwId = $emp->mw_id;
         } else {
             // Fallback to client config's minimum wage
-            $clientConfig = $this->db->table('client_payroll_configs')
-                                     ->select('client_payroll_configs.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id')
-                                     ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
-                                     ->where('client_id', $final['client_id'])
-                                     ->get()
-                                     ->getRow();
-            if ($clientConfig && isset($clientConfig->umr_nominal) && $clientConfig->umr_nominal > 0) {
-                $minimumWage = floatval($clientConfig->umr_nominal);
-                $mwId = $clientConfig->mw_id;
+            if ($clientConfig && isset($clientConfig->minimum_wage_id)) {
+                $mw = $this->db->table('minimum_wages')->where('id', $clientConfig->minimum_wage_id)->get()->getRow();
+                if ($mw) {
+                    $minimumWage = floatval($mw->nominal);
+                    $mwId = $mw->id;
+                }
             }
         }
 
@@ -895,6 +1081,16 @@ class Api extends ResourceController
         $resolvedWages = $this->resolveUmpUmk($mwId);
         $umpWageValue = $resolvedWages['ump'];
         $umkWageValue = $resolvedWages['umk'];
+
+        // Check if we have a basic salary component with source = kompensasi
+        $hasKompensasiSource = false;
+        foreach ($fixed as $comp) {
+            $isBasic = (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') || (stripos($comp['nama'], 'Gaji Pokok') !== false);
+            if ($isBasic && isset($comp['sumber_nilai']) && $comp['sumber_nilai'] === 'kompensasi') {
+                $hasKompensasiSource = true;
+                break;
+            }
+        }
 
         // 2. First pass: Find and calculate Gaji Pokok (Basic Salary)
         $gajiPokok = 0;
@@ -917,6 +1113,14 @@ class Api extends ResourceController
                         $base_nilai = $umkWageValue * ($base_nilai / 100);
                     } else if ($comp['sumber_nilai'] === 'ump_umk') {
                         $base_nilai = $minimumWage * ($base_nilai / 100);
+                    } else if ($comp['sumber_nilai'] === 'kompensasi') {
+                        $kompTetapValue = 0;
+                        foreach ($fixed as $c) {
+                            if (($c['jenis_komponen'] ?? '') === 'kompensasi' && ($c['sifat_kompensasi'] ?? '') === 'tetap') {
+                                $kompTetapValue += floatval($c['nilai']);
+                            }
+                        }
+                        $base_nilai = $kompTetapValue * ($base_nilai / 100);
                     }
                 }
                 
@@ -968,7 +1172,9 @@ class Api extends ResourceController
             if ($isBasic) {
                 $nilai = $gajiPokok;
             } else {
-                if (isset($comp['jenis_komponen']) && !empty($comp['jenis_komponen'])) {
+                if ($hasKompensasiSource && ($comp['jenis_komponen'] ?? '') === 'kompensasi' && ($comp['sifat_kompensasi'] ?? '') === 'tetap') {
+                    $nilai = 0; // Prevent double-counting by setting it to 0
+                } else if (isset($comp['jenis_komponen']) && !empty($comp['jenis_komponen'])) {
                     // New Master Compensation component logic
                     $base_nilai = floatval($comp['nilai']);
                     
@@ -1021,7 +1227,7 @@ class Api extends ResourceController
             
             $potongan_absen = floatval($att['potongan_absensi']);
             if (!$isAbsenTidakPotong) {
-                $nominalPotongan = ($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0;
+                $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
                 if ($nominalPotongan > 0 && $potongan_absen == 0) {
                     $missingDays = 21 - intval($att['hari_kerja']);
                     if ($missingDays > 0) {

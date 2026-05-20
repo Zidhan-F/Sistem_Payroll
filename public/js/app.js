@@ -1,6 +1,6 @@
 // Fetch Interceptor to inject logged-in user header
 const originalFetch = window.fetch;
-window.fetch = async function(...args) {
+window.fetch = async function (...args) {
     let [resource, config] = args;
     if (!config) {
         config = {};
@@ -206,6 +206,53 @@ function switchPayrollSubTab(tab) {
     }
 }
 
+let currentPayrollSub = 'setting'; // Default payroll sub menu
+
+function togglePayrollSubmenu(openOnly = false) {
+    const submenu = document.getElementById('submenuPayroll');
+    const arrow = document.querySelector('#menuPayroll .submenu-arrow');
+    if (!submenu) return;
+
+    const isHidden = submenu.style.display === 'none';
+    if (openOnly) {
+        submenu.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+        if (isHidden) {
+            submenu.style.display = 'block';
+            if (arrow) arrow.style.transform = 'rotate(180deg)';
+        } else {
+            submenu.style.display = 'none';
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+    }
+}
+
+function switchPayrollSub(sub) {
+    currentPayrollSub = sub;
+
+    // Toggle active classes on submenu elements
+    document.querySelectorAll('.sidebar-submenu li').forEach(el => el.classList.remove('active'));
+
+    // Make sure parent menu is active and open
+    const parentMenu = document.getElementById('menuPayroll');
+    if (parentMenu) parentMenu.classList.add('active');
+    togglePayrollSubmenu(true);
+
+    const subItem = document.getElementById('submenu_' + sub);
+    if (subItem) subItem.classList.add('active');
+
+    if (sub === 'uploadUmr') {
+        switchView('payroll');
+        switchPayrollSubTab('umr');
+    } else if (sub === 'kompensasi') {
+        switchView('masterKompensasi');
+    } else if (sub === 'setting') {
+        switchView('payroll');
+        switchPayrollSubTab('skema');
+    }
+}
+
 function switchView(view) {
     // Auto-close any open modals when switching views
     tutupSemuaModal();
@@ -228,9 +275,9 @@ function switchView(view) {
 
     const sectionId = 'view' + view.charAt(0).toUpperCase() + view.slice(1);
     const menuId = 'menu' + view.charAt(0).toUpperCase() + view.slice(1);
-    
-    if(document.getElementById(sectionId)) document.getElementById(sectionId).classList.add('active');
-    if(document.getElementById(menuId)) document.getElementById(menuId).classList.add('active');
+
+    if (document.getElementById(sectionId)) document.getElementById(sectionId).classList.add('active');
+    if (document.getElementById(menuId)) document.getElementById(menuId).classList.add('active');
 
     const titles = {
         dashboard: 'Dashboard',
@@ -244,6 +291,23 @@ function switchView(view) {
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Payroll System';
 
+    // Highlight and expand parent menu if we are in one of the payroll submenus
+    if (view === 'payroll' || view === 'masterKompensasi') {
+        const parentMenu = document.getElementById('menuPayroll');
+        if (parentMenu) parentMenu.classList.add('active');
+        togglePayrollSubmenu(true);
+        const subItem = document.getElementById('submenu_' + currentPayrollSub);
+        if (subItem) subItem.classList.add('active');
+    } else {
+        // Collapse submenu if switching to another section
+        const submenu = document.getElementById('submenuPayroll');
+        const arrow = document.querySelector('#menuPayroll .submenu-arrow');
+        if (submenu) {
+            submenu.style.display = 'none';
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+    }
+
     // Auto-collapse sidebar after clicking a menu item
     const sidebar = document.querySelector('.sidebar');
     if (sidebar && !sidebar.classList.contains('collapsed')) {
@@ -256,7 +320,13 @@ function switchView(view) {
     if (view === 'dashboard') updateDashboardStats();
     if (view === 'klien') renderTable();
     if (view === 'manajemenKaryawan') renderManajemenKaryawan();
-    if (view === 'payroll') switchPayrollSubTab('skema');
+    if (view === 'payroll') {
+        if (currentPayrollSub === 'uploadUmr') {
+            switchPayrollSubTab('umr');
+        } else {
+            switchPayrollSubTab('skema');
+        }
+    }
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
     if (view === 'logAktivitas') renderLogAktivitas();
@@ -304,10 +374,10 @@ function selectClient(id, name, sektor) {
     window.selectedClientId = id;
     window.selectedClientName = name;
     window.selectedClientSektor = sektor;
-    
+
     document.getElementById('clientWorkspaceTitle').innerText = name;
     document.getElementById('clientWorkspaceSektor').innerText = sektor;
-    
+
     switchView('clientWorkspace');
     switchWorkspaceTab('karyawan');
 }
@@ -405,9 +475,9 @@ async function loadWorkspaceSetup() {
         const response = await fetch(`${API_URL}/client-configs`);
         const configs = await response.json();
         const conf = configs.find(c => c.client_id == window.selectedClientId);
-        
+
         document.getElementById('wSetupClientName').innerText = window.selectedClientName || '-';
-        
+
         if (conf) {
             let payrollSchemeText = 'Belum Set';
             if (conf.payroll_type === 'UMP') {
@@ -475,7 +545,7 @@ async function renderAllEmployees() {
         const employees = await res.json();
         window.employees = employees; // Expose globally for app-org.js
         const tbody = document.getElementById('tabelKaryawanBody');
-        if(!tbody) return;
+        if (!tbody) return;
         tbody.innerHTML = employees.map(emp => `
             <tr>
                 <td style="font-weight:600;"><i class="fas fa-user" style="margin-right: 8px; opacity: 0.6;"></i>${emp.nama}</td>
@@ -494,27 +564,56 @@ async function renderAllEmployees() {
     } catch (err) { console.error(err); }
 }
 
-// ===== 3. PAYROLL SCHEMES =====
 async function renderPayrollSchemes() {
     try {
+        if (!window.compensationSchemes) {
+            const compRes = await fetch(`${API_URL}/compensation-schemes`);
+            window.compensationSchemes = await compRes.json();
+        }
         const res = await fetch(`${API_URL}/payroll-schemes`);
         payrollSchemes = await res.json();
         const container = document.getElementById('payrollSchemesContainer');
-        if(!container) return;
-        container.innerHTML = payrollSchemes.map(scheme => `
-            <div class="scheme-card">
-                <div class="scheme-card-header">
-                    <div class="scheme-card-info">
-                        <h4><i class="fas fa-file-invoice-dollar"></i> ${scheme.nama}</h4>
-                        <div class="scheme-card-desc">${scheme.deskripsi || 'Tidak ada deskripsi'}</div>
-                    </div>
-                    <div class="scheme-card-actions">
-                        <button class="btn-icon btn-edit" onclick="bukaModalSkema('edit', ${scheme.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon btn-delete" onclick="hapusSkema(${scheme.id})"><i class="fas fa-trash"></i></button>
+        if (!container) return;
+        container.innerHTML = payrollSchemes.map(scheme => {
+            const basic = scheme.components ? scheme.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok')) : null;
+            let basicDetails = 'Belum dikonfigurasi';
+            if (basic) {
+                if (basic.sumber_nilai === 'ump') {
+                    basicDetails = `UMP (${basic.nilai}%)`;
+                } else if (basic.sumber_nilai === 'umk') {
+                    basicDetails = `UMK (${basic.nilai}%)`;
+                } else if (basic.sumber_nilai === 'kompensasi') {
+                    basicDetails = `Ambil dari Kompensasi (${basic.nilai}%)`;
+                } else {
+                    basicDetails = formatRupiah(basic.nilai);
+                }
+            }
+
+            const compScheme = window.compensationSchemes ? window.compensationSchemes.find(cs => cs.id == scheme.compensation_scheme_id) : null;
+            const compName = compScheme ? compScheme.nama : 'Tidak terhubung';
+
+            const absenceDetails = `Prorate: ${scheme.prorate == 1 ? 'Ya' : 'Tidak'} | Absen Tidak Potong Gaji: ${scheme.absen_tidak_potong == 1 ? 'Ya' : 'Tidak'} | Potongan: ${formatRupiah(scheme.nominal_potongan || 0)}/hari`;
+
+            return `
+                <div class="scheme-card">
+                    <div class="scheme-card-header">
+                        <div class="scheme-card-info">
+                            <h4><i class="fas fa-file-invoice-dollar"></i> ${scheme.nama}</h4>
+                            <div class="scheme-card-desc" style="margin-bottom: 8px;">${scheme.deskripsi || 'Tidak ada deskripsi'}</div>
+                            <div style="font-size: 12px; color: #475569; display: grid; gap: 4px; border-top: 1px solid #f1f5f9; padding-top: 8px;">
+                                <div><strong>Gaji Pokok:</strong> ${basicDetails}</div>
+                                <div><strong>Skema Kompensasi:</strong> ${compName}</div>
+                                <div><strong>Skema Absen:</strong> ${absenceDetails}</div>
+                            </div>
+                        </div>
+                        <div class="scheme-card-actions">
+                            <button class="btn-icon btn-edit" onclick="bukaModalSkema('edit', ${scheme.id})"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon btn-delete" onclick="hapusSkema(${scheme.id})"><i class="fas fa-trash"></i></button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } catch (err) { console.error(err); }
 }
 
@@ -600,7 +699,7 @@ async function bukaModalSetup(clientId, clientName) {
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('setupClientId').value = clientId;
     document.getElementById('setupClientNama').value = clientName;
-    
+
     const pRes = await fetch(`${API_URL}/payroll-schemes`);
     const pSchemes = await pRes.json();
     const tRes = await fetch(`${API_URL}/tax-schemes`);
@@ -608,17 +707,17 @@ async function bukaModalSetup(clientId, clientName) {
 
     document.getElementById('setupPayrollScheme').innerHTML = '<option value="">-- Pilih Skema --</option>' + pSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
     document.getElementById('setupTaxScheme').innerHTML = '<option value="">-- Pilih Skema --</option>' + tSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
-    
+
     const current = clientConfigs.find(c => c.client_id == clientId);
-    if(current) {
+    if (current) {
         document.getElementById('setupPayDate').value = current.pay_date || 25;
         document.getElementById('setupCutoffStart').value = current.cutoff_start || 21;
-        
+
         const tipeSelect = document.getElementById('setupPayrollSchemeTipe');
         if (tipeSelect) {
             tipeSelect.value = current.payroll_type || '';
             await handleSetupPayrollSchemeTipeChange();
-            
+
             if (current.payroll_type === 'UMP' || current.payroll_type === 'UMK') {
                 const wilSelect = document.getElementById('setupPayrollSchemeWilayah');
                 if (wilSelect && current.minimum_wage_id) {
@@ -707,7 +806,7 @@ async function loadActivePeriod() {
         const response = await fetch(`${API_URL}/periods`);
         const periods = await response.json();
         window.loadedPeriods = periods;
-        
+
         // 1. Render dropdown selector on the main page
         const select = document.getElementById('selectPeriodInput');
         if (select) {
@@ -715,7 +814,7 @@ async function loadActivePeriod() {
                 <option value="${p.id}" ${p.id == currentPeriodId ? 'selected' : ''}>${p.nama} (${p.status})</option>
             `).join('');
         }
-        
+
         // 2. Render history list inside the popup modal
         const list = document.getElementById('periodHistoryList');
         if (list) {
@@ -726,7 +825,7 @@ async function loadActivePeriod() {
                 </div>
             `).join('');
         }
-        
+
         if (periods.length > 0) {
             if (!currentPeriodId) {
                 selectPeriod(periods[0].id, periods[0].nama);
@@ -750,7 +849,7 @@ function selectPeriod(id, name) {
         return;
     }
     document.getElementById('activePeriodName').innerText = name;
-    
+
     // Update active period status badge dynamically
     const statusBadge = document.getElementById('activePeriodStatus');
     if (statusBadge && window.loadedPeriods) {
@@ -768,7 +867,7 @@ function selectPeriod(id, name) {
 }
 
 async function renderCutOffTable() {
-    if(!currentPeriodId) return;
+    if (!currentPeriodId) return;
     const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
     const res = await fetch(url);
     const data = await res.json();
@@ -785,7 +884,7 @@ async function renderCutOffTable() {
 }
 
 async function renderReviewGajiTable() {
-    if(!currentPeriodId) return;
+    if (!currentPeriodId) return;
     const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
     const res = await fetch(url);
     const data = await res.json();
@@ -801,10 +900,10 @@ async function renderReviewGajiTable() {
                 <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
                 <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
                 <td>
-                    ${row.status_approval === 'Pending' ? 
-                        `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : 
-                        `<button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="Lihat Slip Gaji" style="background:var(--primary-color); color:white; width:30px; height:30px;"><i class="fas fa-eye"></i></button>`
-                    }
+                    ${row.status_approval === 'Pending' ?
+                `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` :
+                `<button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="Lihat Slip Gaji" style="background:var(--primary-color); color:white; width:30px; height:30px;"><i class="fas fa-eye"></i></button>`
+            }
                 </td>
             </tr>
         `).join('');
@@ -812,7 +911,7 @@ async function renderReviewGajiTable() {
 }
 
 async function generateGaji() {
-    if(!currentPeriodId) return;
+    if (!currentPeriodId) return;
     showToast('Menghitung gaji...', 'info');
     const res = await fetch(`${API_URL}/generate-payroll/${currentPeriodId}`, { method: 'POST' });
     if (res.ok) { showToast('Gaji berhasil di-generate!', 'success'); renderReviewGajiTable(); }
@@ -826,8 +925,8 @@ async function approveGaji(id) {
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal() {
     const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi'];
-    modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
-    if(document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
+    modals.forEach(m => { if (document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
+    if (document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
 }
 
 // ===== SLIP GAJI =====
@@ -890,9 +989,9 @@ function cetakSlip() {
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
     switchView('dashboard');
-    
+
     // Global Event Listeners
-    if(document.getElementById('formKlien')) {
+    if (document.getElementById('formKlien')) {
         document.getElementById('formKlien').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('clientId').value;
@@ -915,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // formSetup submit handler
-    if(document.getElementById('formSetup')) {
+    if (document.getElementById('formSetup')) {
         document.getElementById('formSetup').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payrollType = document.getElementById('setupPayrollSchemeTipe').value;
@@ -953,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // formPeriode submit handler
-    if(document.getElementById('formPeriode')) {
+    if (document.getElementById('formPeriode')) {
         document.getElementById('formPeriode').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = {
@@ -978,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modal PKWT update info
     window.updatePKWTSchemeInfo = async () => {
         const clientId = document.getElementById('pkwtClientId').value;
-        if(!clientId) return;
+        if (!clientId) return;
         const res = await fetch(`${API_URL}/client-configs`);
         const configs = await res.json();
         const conf = configs.find(c => c.client_id == clientId);
@@ -992,10 +1091,40 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('formSkema').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('skemaId').value;
+            
+            // Gather selected compensation components
+            const selectedComponents = [];
+            document.querySelectorAll('.skema-comp-checkbox:checked').forEach(cb => {
+                try {
+                    const comp = JSON.parse(decodeURIComponent(cb.getAttribute('data-comp')));
+                    selectedComponents.push({
+                        nama: comp.nama,
+                        tipe: comp.tipe,
+                        nilai: parseFloat(comp.nilai) || 0,
+                        is_persentase: comp.is_persentase,
+                        jenis_komponen: 'kompensasi',
+                        sumber_nilai: comp.sumber_nilai || 'nominal',
+                        periode: comp.periode || 'bulan',
+                        sifat_kompensasi: comp.sifat_kompensasi || 'tetap'
+                    });
+                } catch (err) {
+                    console.error('Error parsing checkbox data-comp:', err);
+                }
+            });
+
             const data = {
                 nama: document.getElementById('skemaNama').value,
                 deskripsi: document.getElementById('skemaDeskripsi').value,
-                tipe: document.getElementById('skemaTipe').value
+                tipe: document.getElementById('skemaTipe').value,
+                compensation_scheme_id: null,
+                components: selectedComponents,
+                prorate: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'prorate') ? 1 : 0,
+                absen_tidak_potong: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'tidak_potong') ? 1 : 0,
+                nominal_potongan: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'potong_nominal') ? (parseFloat(document.getElementById('skemaNominalPotongan').value) || 0) : 0,
+                sumber_nilai: document.getElementById('skemaSumber').value,
+                periode: document.getElementById('skemaPeriode').value,
+                nilai: parseFloat(document.getElementById('skemaNilai').value) || 0,
+                is_persentase: parseInt(document.getElementById('skemaIsPersentase').value) || 0
             };
             const url = id ? `${API_URL}/payroll-schemes/${id}` : `${API_URL}/payroll-schemes`;
             const res = await fetch(url, {
@@ -1061,7 +1190,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 sumber_nilai: document.getElementById('skemaKompensasiSumber').value,
                 nilai: parseFloat(document.getElementById('skemaKompensasiNilai').value) || 0,
                 periode: document.getElementById('skemaKompensasiPeriode').value,
-                is_persentase: parseInt(document.getElementById('skemaKompensasiIsPersentase').value) || 0
+                is_persentase: parseInt(document.getElementById('skemaKompensasiIsPersentase').value) || 0,
+                sifat_kompensasi: document.getElementById('skemaKompensasiSifat').value
             };
             const url = id ? `${API_URL}/compensation-schemes/${id}` : `${API_URL}/compensation-schemes`;
             const res = await fetch(url, {
@@ -1223,7 +1353,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
             summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Skema tidak ditemukan.</p>`;
             return;
         }
-        
+
         const comps = scheme.components || [];
         if (comps.length === 0) {
             summaryDiv.innerHTML = `
@@ -1238,7 +1368,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
         const potongan = comps.filter(c => c.tipe === 'potongan');
         const totalPendapatan = pendapatan.reduce((sum, c) => sum + parseFloat(c.nilai || 0), 0);
         const totalPotongan = potongan.reduce((sum, c) => sum + parseFloat(c.nilai || 0), 0);
-        
+
         summaryDiv.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
                 <span style="font-weight: 600; color: #1e293b; font-size: 14px;"><i class="fas fa-list" style="margin-right: 6px; color: var(--primary-color);"></i> ${comps.length} Komponen</span>
@@ -1295,7 +1425,7 @@ async function loadPilihanSkema() {
         const cfgRes = await fetch(`${API_URL}/client-configs`);
         const configs = await cfgRes.json();
         const conf = configs.find(c => c.client_id == window.selectedClientId);
-        
+
         const summaryDiv = document.getElementById('pilihanKompensasiSummary');
         if (summaryDiv) {
             summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema kompensasi di atas untuk melihat detailnya.</p>`;
@@ -1306,7 +1436,7 @@ async function loadPilihanSkema() {
             if (tipeSelect) {
                 tipeSelect.value = conf.payroll_type || '';
                 await handlePilihanSkemaPayrollTipeChange();
-                
+
                 if (conf.payroll_type === 'UMP' || conf.payroll_type === 'UMK') {
                     const wilSelect = document.getElementById('pilihanSkemaPayrollWilayah');
                     if (wilSelect && conf.minimum_wage_id) {
@@ -1408,7 +1538,7 @@ async function renderMasterKompensasi() {
         window.compensationSchemes = await res.json();
         const container = document.getElementById('compensationSchemesContainer');
         if (!container) return;
-        
+
         if (window.compensationSchemes.length === 0) {
             container.innerHTML = `
                 <tr>
@@ -1455,13 +1585,23 @@ async function renderMasterKompensasi() {
                 }
             }
 
+            let sifatDisplay = '';
+            if (comp) {
+                sifatDisplay = comp.sifat_kompensasi === 'tidak_tetap' ? 'Kompensasi Tidak Tetap' : 'Kompensasi Tetap';
+            }
+
             return `
                 <tr id="comp-scheme-row-${scheme.id}" style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s;">
                     <td style="text-align: center; padding: 16px; color: #475569;">${index + 1}</td>
                     <td style="padding: 16px; font-weight: 600; color: #1e293b;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-coins" style="color: #10b981;"></i>
-                            ${scheme.nama}
+                        <div style="display: flex; flex-direction: column;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-coins" style="color: #10b981;"></i>
+                                ${scheme.nama}
+                            </div>
+                            <span style="font-size: 11px; color: #64748b; font-weight: normal; margin-left: 22px; margin-top: 4px;">
+                                ${sifatDisplay}
+                            </span>
                         </div>
                     </td>
                     <td style="text-align: center; padding: 16px; font-weight: 600; color: #1e293b;">${nilaiDisplay}</td>
@@ -1520,6 +1660,37 @@ function handleSchemeSumberNilaiChange() {
     }
 }
 
+window.handlePayrollSchemeSumberNilaiChange = function() {
+    const sumber = document.getElementById('skemaSumber').value;
+    const labelNilai = document.getElementById('labelNilaiSkemaPayroll');
+    const inputNilai = document.getElementById('skemaNilai');
+    const isPersentase = document.getElementById('skemaIsPersentase');
+    const selectPeriode = document.getElementById('skemaPeriode');
+
+    if (sumber === 'ump' || sumber === 'umk') {
+        if (isPersentase) isPersentase.value = '1';
+        if (labelNilai) labelNilai.innerText = `Nilai Persentase (%) dari ${sumber.toUpperCase()}`;
+        if (inputNilai) {
+            inputNilai.placeholder = 'Contoh: 100';
+            if (inputNilai.value === '') inputNilai.value = '100';
+        }
+        if (selectPeriode) {
+            selectPeriode.value = 'bulan';
+            selectPeriode.disabled = true;
+        }
+    } else {
+        if (isPersentase) isPersentase.value = '0';
+        if (labelNilai) labelNilai.innerText = 'Nominal Custom (Rp)';
+        if (inputNilai) {
+            inputNilai.placeholder = 'Contoh: 5000000';
+            if (inputNilai.value === '100') inputNilai.value = '';
+        }
+        if (selectPeriode) {
+            selectPeriode.disabled = false;
+        }
+    }
+}
+
 function bukaModalSkemaKompensasi(mode, id = null) {
     document.getElementById('modalSkemaKompensasi').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
@@ -1531,17 +1702,19 @@ function bukaModalSkemaKompensasi(mode, id = null) {
             document.getElementById('skemaKompensasiId').value = scheme.id;
             document.getElementById('skemaKompensasiNama').value = scheme.nama;
             document.getElementById('skemaKompensasiDeskripsi').value = '';
-            
+
             if (comp) {
                 document.getElementById('skemaKompensasiSumber').value = comp.sumber_nilai || 'nominal';
                 document.getElementById('skemaKompensasiPeriode').value = comp.periode || 'bulan';
                 document.getElementById('skemaKompensasiNilai').value = comp.nilai || '0';
                 document.getElementById('skemaKompensasiIsPersentase').value = comp.is_persentase || '0';
+                document.getElementById('skemaKompensasiSifat').value = comp.sifat_kompensasi || 'tetap';
             } else {
                 document.getElementById('skemaKompensasiSumber').value = 'nominal';
                 document.getElementById('skemaKompensasiPeriode').value = 'bulan';
                 document.getElementById('skemaKompensasiNilai').value = '0';
                 document.getElementById('skemaKompensasiIsPersentase').value = '0';
+                document.getElementById('skemaKompensasiSifat').value = 'tetap';
             }
             handleSchemeSumberNilaiChange();
         }
@@ -1549,12 +1722,13 @@ function bukaModalSkemaKompensasi(mode, id = null) {
         document.getElementById('modalSkemaKompensasiTitle').innerText = 'Tambah Skema Kompensasi';
         document.getElementById('formSkemaKompensasi').reset();
         document.getElementById('skemaKompensasiId').value = '';
-        document.getElementById('skemaKompensasiNama').value = 'Basic Salary';
+        document.getElementById('skemaKompensasiNama').value = '';
         document.getElementById('skemaKompensasiDeskripsi').value = '';
         document.getElementById('skemaKompensasiSumber').value = 'nominal';
         document.getElementById('skemaKompensasiPeriode').value = 'bulan';
         document.getElementById('skemaKompensasiNilai').value = '';
         document.getElementById('skemaKompensasiIsPersentase').value = '0';
+        document.getElementById('skemaKompensasiSifat').value = 'tetap';
         handleSchemeSumberNilaiChange();
     }
 }
@@ -1634,7 +1808,7 @@ function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
             if (tipeEl) tipeEl.value = k.tipe;
             document.getElementById('komponenKompensasiNilai').value = k.nilai;
             document.getElementById('komponenKompensasiIsPersentase').value = (k.is_persentase == 1 || k.is_persentase === true || k.is_persentase === '1') ? '1' : '0';
-            
+
             // New fields
             document.getElementById('komponenKompensasiJenis').value = k.jenis_komponen || 'kompensasi';
             document.getElementById('komponenKompensasiSifat').value = k.sifat_kompensasi || 'tetap';
@@ -1646,7 +1820,7 @@ function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
         document.getElementById('formKomponenKompensasi').reset();
         document.getElementById('komponenKompensasiId').value = '';
         document.getElementById('komponenKompensasiSchemeId').value = schemeId;
-        
+
         // Defaults
         document.getElementById('komponenKompensasiJenis').value = 'kompensasi';
         document.getElementById('komponenKompensasiSifat').value = 'tetap';
@@ -1654,7 +1828,7 @@ function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
         document.getElementById('komponenKompensasiPeriode').value = 'bulan';
         document.getElementById('komponenKompensasiIsPersentase').value = '0';
     }
-    
+
     // Trigger handlers to update visibility/labels
     handleJenisKomponenChange();
     handleSumberNilaiChange();
@@ -1706,7 +1880,7 @@ async function simpanKonfigAbsen(showToastOnSuccess = true) {
     if (!window.selectedClientId) return;
     const nominalRaw = document.getElementById('cfgNominalPotongan').value;
     const nominalClean = parseFloat(nominalRaw.replace(/\./g, '').replace(/,/g, '.')) || 0;
-    
+
     const data = {
         client_id: window.selectedClientId,
         prorate: document.getElementById('cfgProrate').checked ? 1 : 0,
@@ -1760,7 +1934,7 @@ function toggleSidebar() {
 
 // Expose to window
 Object.assign(window, {
-    switchView, logout, bukaModal, tutupModal, hapusKlien, 
+    switchView, logout, bukaModal, tutupModal, hapusKlien,
     bukaModalPajak, renderTaxSchemes, renderPayrollSchemes,
     bukaModalSetup, renderClientSetup,
     bukaModalPKWT, renderPKWTTable, hapusPKWT,
@@ -1772,7 +1946,7 @@ Object.assign(window, {
     downloadTemplateUmr, goUmrPage,
     tutupSemuaModal, toggleSidebar,
     bukaModalSkema, bukaModalKomponen, bukaModalOrg, bukaModalCutOff,
-    tutupModalSkema, tutupModalKomponen, tutupModalPajak, tutupModalSetup, 
+    tutupModalSkema, tutupModalKomponen, tutupModalPajak, tutupModalSetup,
     tutupModalPKWT, tutupModalPeriode, tutupModalCutOff,
     hapusSkema, hapusPajak,
     selectClient, backToClientList, switchWorkspaceTab, loadWorkspaceSetup,
@@ -1784,24 +1958,321 @@ Object.assign(window, {
     handleJenisKomponenChange, handleSumberNilaiChange
 });
 
-function bukaModalSkema(mode, id = null) {
+async function bukaModalSkema(mode, id = null) {
     document.getElementById('modalSkema').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
-    if(mode === 'edit' && id) {
+
+    try {
+        const compRes = await fetch(`${API_URL}/compensation-schemes`);
+        window.compensationSchemes = await compRes.json();
+    } catch (err) {
+        console.error('Error fetching compensation schemes in bukaModalSkema:', err);
+    }
+
+    const tetapBody = document.getElementById('tabelKompensasiTetapBody');
+    const tidakTetapBody = document.getElementById('tabelKompensasiTidakTetapBody');
+    if (tetapBody) tetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
+    if (tidakTetapBody) tidakTetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
+
+    if (mode === 'edit' && id) {
         const s = payrollSchemes.find(x => x.id == id);
-        if(s) {
+        if (s) {
             document.getElementById('modalSkemaTitle').innerText = 'Edit Skema Payroll';
             document.getElementById('skemaId').value = s.id;
             document.getElementById('skemaNama').value = s.nama;
             document.getElementById('skemaDeskripsi').value = s.deskripsi;
             document.getElementById('skemaTipe').value = s.tipe;
+            
+            // Set absence radio buttons and nominal
+            const radioProrate = document.querySelector('input[name="skemaAbsenRule"][value="prorate"]');
+            const radioTidakPotong = document.querySelector('input[name="skemaAbsenRule"][value="tidak_potong"]');
+            const radioPotongNominal = document.querySelector('input[name="skemaAbsenRule"][value="potong_nominal"]');
+
+            if (radioProrate) radioProrate.checked = false;
+            if (radioTidakPotong) radioTidakPotong.checked = false;
+            if (radioPotongNominal) radioPotongNominal.checked = false;
+            document.getElementById('skemaNominalPotongan').value = '';
+
+            if (s.prorate == 1) {
+                if (radioProrate) radioProrate.checked = true;
+            } else if (s.absen_tidak_potong == 1) {
+                if (radioTidakPotong) radioTidakPotong.checked = true;
+            } else if (s.nominal_potongan > 0) {
+                if (radioPotongNominal) radioPotongNominal.checked = true;
+                document.getElementById('skemaNominalPotongan').value = s.nominal_potongan;
+            }
+            handleSkemaAbsenRuleChange();
+
+            // Find basic salary component
+            const basic = s.components ? s.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok')) : null;
+            if (basic) {
+                document.getElementById('skemaSumber').value = basic.sumber_nilai || 'nominal';
+                document.getElementById('skemaPeriode').value = basic.periode || 'bulan';
+                document.getElementById('skemaNilai').value = basic.nilai || 0;
+                document.getElementById('skemaIsPersentase').value = basic.is_persentase || '0';
+            } else {
+                document.getElementById('skemaSumber').value = 'nominal';
+                document.getElementById('skemaPeriode').value = 'bulan';
+                document.getElementById('skemaNilai').value = 0;
+                document.getElementById('skemaIsPersentase').value = '0';
+            }
+            handlePayrollSchemeSumberNilaiChange();
+
+            const savedComponents = s.components || [];
+
+            const fixedSaved = savedComponents.filter(c => c.jenis_komponen !== 'basic_salary' && c.sifat_kompensasi === 'tetap');
+            const variableSaved = savedComponents.filter(c => c.jenis_komponen !== 'basic_salary' && c.sifat_kompensasi === 'tidak_tetap');
+
+            if (fixedSaved.length > 0 && tetapBody) {
+                tetapBody.innerHTML = fixedSaved.map(c => {
+                    let valStr = '';
+                    if (c.sumber_nilai === 'ump') {
+                        valStr = `${c.nilai}% UMP`;
+                    } else if (c.sumber_nilai === 'umk') {
+                        valStr = `${c.nilai}% UMK`;
+                    } else if (c.sumber_nilai === 'ump_umk') {
+                        valStr = `${c.nilai}% UMP/UMK`;
+                    } else {
+                        valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                    }
+                    const dataAttr = encodeURIComponent(JSON.stringify(c));
+                    return `
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px 12px; font-size: 13px; color: #334155; text-align: left; display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" class="skema-comp-checkbox" checked data-comp="${dataAttr}" style="cursor: pointer; width: 16px; height: 16px;">
+                                <div><span style="font-weight: 500;">${c.nama}</span></div>
+                            </td>
+                            <td style="padding: 10px 12px; font-size: 13px; color: #1e293b; font-weight: 600; text-align: right; vertical-align: middle;">${valStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            if (variableSaved.length > 0 && tidakTetapBody) {
+                tidakTetapBody.innerHTML = variableSaved.map(c => {
+                    let valStr = '';
+                    if (c.sumber_nilai === 'ump') {
+                        valStr = `${c.nilai}% UMP`;
+                    } else if (c.sumber_nilai === 'umk') {
+                        valStr = `${c.nilai}% UMK`;
+                    } else if (c.sumber_nilai === 'ump_umk') {
+                        valStr = `${c.nilai}% UMP/UMK`;
+                    } else {
+                        valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                    }
+                    const dataAttr = encodeURIComponent(JSON.stringify(c));
+                    return `
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px 12px; font-size: 13px; color: #334155; text-align: left; display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" class="skema-comp-checkbox" checked data-comp="${dataAttr}" style="cursor: pointer; width: 16px; height: 16px;">
+                                <div><span style="font-weight: 500;">${c.nama}</span></div>
+                            </td>
+                            <td style="padding: 10px 12px; font-size: 13px; color: #1e293b; font-weight: 600; text-align: right; vertical-align: middle;">${valStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
         }
     } else {
         document.getElementById('modalSkemaTitle').innerText = 'Tambah Skema Payroll';
         document.getElementById('formSkema').reset();
         document.getElementById('skemaId').value = '';
+        const radioProrate = document.querySelector('input[name="skemaAbsenRule"][value="prorate"]');
+        const radioTidakPotong = document.querySelector('input[name="skemaAbsenRule"][value="tidak_potong"]');
+        const radioPotongNominal = document.querySelector('input[name="skemaAbsenRule"][value="potong_nominal"]');
+        if (radioProrate) radioProrate.checked = false;
+        if (radioTidakPotong) radioTidakPotong.checked = false;
+        if (radioPotongNominal) radioPotongNominal.checked = false;
+        document.getElementById('skemaNominalPotongan').value = '';
+        handleSkemaAbsenRuleChange();
+        document.getElementById('skemaSumber').value = 'nominal';
+        document.getElementById('skemaPeriode').value = 'bulan';
+        document.getElementById('skemaNilai').value = '';
+        document.getElementById('skemaIsPersentase').value = '0';
+        handlePayrollSchemeSumberNilaiChange();
     }
 }
+
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+});
+
+function formatRupiahVal(val) {
+    return rupiahFormatter.format(val);
+}
+
+function bukaModalPilihSkema(sifat) {
+    window.activePilihSkemaSifat = sifat;
+    
+    const titleEl = document.getElementById('modalPilihSkemaTitle');
+    const bodyEl = document.getElementById('modalPilihSkemaBody');
+    if (!titleEl || !bodyEl) return;
+
+    titleEl.innerText = sifat === 'tetap' ? 'Pilih Skema Kompensasi Tetap' : 'Pilih Skema Kompensasi Tidak Tetap';
+
+    const filteredSchemes = (window.compensationSchemes || []).filter(s => 
+        (s.components || []).some(c => c.sifat_kompensasi === sifat)
+    );
+
+    if (filteredSchemes.length === 0) {
+        bodyEl.innerHTML = `<tr><td colspan="3" style="padding: 15px; text-align: center; color: #64748b;">Tidak ada skema kompensasi tersedia</td></tr>`;
+    } else {
+        const mainCompNames = Array.from(document.querySelectorAll(`#tabelKompensasi${sifat === 'tetap' ? 'Tetap' : 'TidakTetap'}Body .skema-comp-checkbox`))
+            .map(cb => {
+                try {
+                    return JSON.parse(decodeURIComponent(cb.getAttribute('data-comp'))).nama;
+                } catch (e) {
+                    return null;
+                }
+            }).filter(Boolean);
+
+        bodyEl.innerHTML = filteredSchemes.map(s => {
+            const compsList = (s.components || []).filter(c => c.sifat_kompensasi === sifat).map(c => {
+                let valStr = '';
+                if (c.sumber_nilai === 'ump') {
+                    valStr = `${c.nilai}% UMP`;
+                } else if (c.sumber_nilai === 'umk') {
+                    valStr = `${c.nilai}% UMK`;
+                } else if (c.sumber_nilai === 'ump_umk') {
+                    valStr = `${c.nilai}% UMP/UMK`;
+                } else {
+                    valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                }
+                return `<span style="display: inline-block; background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; margin-bottom: 4px;">${c.nama}: ${valStr}</span>`;
+            }).join('');
+
+            const isChecked = (s.components || []).some(c => c.sifat_kompensasi === sifat && mainCompNames.includes(c.nama));
+            const checkedAttr = isChecked ? 'checked' : '';
+
+            return `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 10px 8px; text-align: center; vertical-align: middle;">
+                        <input type="checkbox" class="modal-choice-scheme-checkbox" value="${s.id}" ${checkedAttr} style="cursor: pointer; width: 16px; height: 16px;">
+                    </td>
+                    <td style="padding: 10px 8px; font-weight: 600; color: #1e293b; vertical-align: middle;">${s.nama}</td>
+                    <td style="padding: 10px 8px; vertical-align: middle; line-height: 1.5;">${compsList}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    document.getElementById('overlayPilihSkema').style.display = 'block';
+    document.getElementById('modalPilihSkema').style.display = 'block';
+}
+
+function tutupModalPilihSkema() {
+    document.getElementById('overlayPilihSkema').style.display = 'none';
+    document.getElementById('modalPilihSkema').style.display = 'none';
+}
+
+function terapkanPilihanSkema() {
+    const sifat = window.activePilihSkemaSifat;
+    const body = sifat === 'tetap' ? document.getElementById('tabelKompensasiTetapBody') : document.getElementById('tabelKompensasiTidakTetapBody');
+    if (!body) return;
+
+    const checkedCheckboxes = document.querySelectorAll('.modal-choice-scheme-checkbox:checked');
+    const checkedSchemeIds = Array.from(checkedCheckboxes).map(cb => cb.value);
+
+    const existingComps = [];
+    body.querySelectorAll('.skema-comp-checkbox').forEach(cb => {
+        try {
+            const data = JSON.parse(decodeURIComponent(cb.getAttribute('data-comp')));
+            existingComps.push({
+                data: data,
+                checked: cb.checked
+            });
+        } catch (e) {}
+    });
+
+    const componentsToRender = [];
+    const addedNames = new Set();
+
+    checkedSchemeIds.forEach(sid => {
+        const cs = (window.compensationSchemes || []).find(s => s.id == sid);
+        if (cs && cs.components) {
+            cs.components.forEach(c => {
+                if (c.sifat_kompensasi === sifat && c.jenis_komponen !== 'basic_salary') {
+                    if (!addedNames.has(c.nama)) {
+                        addedNames.add(c.nama);
+                        componentsToRender.push({
+                            data: c,
+                            checked: true
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    existingComps.forEach(ec => {
+        if (!addedNames.has(ec.data.nama)) {
+            addedNames.add(ec.data.nama);
+            componentsToRender.push(ec);
+        } else {
+            const idx = componentsToRender.findIndex(x => x.data.nama === ec.data.nama);
+            if (idx !== -1) {
+                componentsToRender[idx].checked = ec.checked;
+            }
+        }
+    });
+
+    if (componentsToRender.length === 0) {
+        body.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
+        tutupModalPilihSkema();
+        return;
+    }
+
+    body.innerHTML = componentsToRender.map(item => {
+        const c = item.data;
+        let valStr = '';
+        if (c.sumber_nilai === 'ump') {
+            valStr = `${c.nilai}% UMP`;
+        } else if (c.sumber_nilai === 'umk') {
+            valStr = `${c.nilai}% UMK`;
+        } else if (c.sumber_nilai === 'ump_umk') {
+            valStr = `${c.nilai}% UMP/UMK`;
+        } else {
+            valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+        }
+
+        const checkedAttr = item.checked ? 'checked' : '';
+        const dataAttr = encodeURIComponent(JSON.stringify(c));
+
+        return `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 12px; font-size: 13px; color: #334155; text-align: left; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" class="skema-comp-checkbox" ${checkedAttr} data-comp="${dataAttr}" style="cursor: pointer; width: 16px; height: 16px;">
+                    <div>
+                        <span style="font-weight: 500;">${c.nama}</span>
+                    </div>
+                </td>
+                <td style="padding: 10px 12px; font-size: 13px; color: #1e293b; font-weight: 600; text-align: right; vertical-align: middle;">${valStr}</td>
+            </tr>
+        `;
+    }).join('');
+
+    tutupModalPilihSkema();
+}
+
+window.bukaModalPilihSkema = bukaModalPilihSkema;
+window.tutupModalPilihSkema = tutupModalPilihSkema;
+window.terapkanPilihanSkema = terapkanPilihanSkema;
+
+function handleSkemaAbsenRuleChange() {
+    const selectedRule = document.querySelector('input[name="skemaAbsenRule"]:checked')?.value;
+    const container = document.getElementById('containerNominalPotonganSkema');
+    if (!container) return;
+    if (selectedRule === 'potong_nominal') {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+        document.getElementById('skemaNominalPotongan').value = '';
+    }
+}
+window.handleSkemaAbsenRuleChange = handleSkemaAbsenRuleChange;
 
 function bukaModalKomponen(schemeId) {
     document.getElementById('modalKomponen').style.display = 'block';
@@ -1828,7 +2299,7 @@ function bukaModalCutOff(pkwtId, empName, hariKerja = 22, jamLembur = 0, potonga
     document.getElementById('cutoffEmployeeName').value = empName;
     document.getElementById('cutoffHariKerja').value = hariKerja;
     document.getElementById('cutoffJamLembur').value = jamLembur;
-    
+
     // Calculate default potongan if nominal_potongan is set and no manual potongan exists yet
     let finalPotongan = potongan;
     if (potongan == 0 && window.currentAbsenceConfig && window.currentAbsenceConfig.nominal_potongan > 0) {
@@ -1867,10 +2338,10 @@ async function renderUmrTable() {
     try {
         const tipe = document.getElementById('selectUmrType')?.value || currentUmrType;
         const tahun = document.getElementById('selectUmrYear')?.value || new Date().getFullYear();
-        
+
         const response = await fetch(`${API_URL}/minimum-wages?tipe=${tipe}&tahun=${tahun}`);
         umrAllData = await response.json();
-        
+
         currentUmrType = tipe;
 
         const tabUmp = document.getElementById('tabUmp');
@@ -1912,7 +2383,7 @@ async function renderUmrTable() {
         } else {
             if (tableArea) tableArea.style.display = 'block';
             if (nominalArea) nominalArea.style.display = 'none';
-            
+
             if (tipe === 'UMP') {
                 setActiveTab(tabUmp);
                 const searchEl = document.getElementById('searchUmr');
@@ -1932,7 +2403,6 @@ async function renderUmrTable() {
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateCode</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateName</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">umr_amount</th>
                         </tr>
                     `;
                 } else {
@@ -1941,23 +2411,22 @@ async function renderUmrTable() {
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyId</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyCode</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyName</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">umr_amount</th>
+                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
                         </tr>
                     `;
                 }
             }
         }
-        
+
         // If nominal, we don't need to fetch or render the table data
         if (tipe === 'NOMINAL') return;
-        
+
         // Dynamically populate searchUmr select options
         const searchEl = document.getElementById('searchUmr');
         if (searchEl && searchEl.tagName === 'SELECT') {
             const prevVal = searchEl.value;
             let optionsHtml = '';
-            
+
             if (tipe === 'UMP') {
                 optionsHtml += '<option value="">-- Pilih Provinsi --</option>';
                 const uniqueProvinces = [...new Set(umrAllData.map(row => row.nama_daerah))].sort();
@@ -1976,7 +2445,7 @@ async function renderUmrTable() {
 
         // Apply search filter
         const q = (document.getElementById('searchUmr')?.value || '').toLowerCase();
-        umrFilteredData = q 
+        umrFilteredData = q
             ? umrAllData.filter(row => row.nama_daerah.toLowerCase().includes(q) || row.kode_daerah.toLowerCase().includes(q))
             : [...umrAllData];
 
@@ -1990,7 +2459,7 @@ function renderUmrPage() {
 
     const totalData = umrFilteredData.length;
     const totalPages = Math.max(1, Math.ceil(totalData / UMR_PER_PAGE));
-    
+
     // Clamp page
     if (umrCurrentPage > totalPages) umrCurrentPage = totalPages;
     if (umrCurrentPage < 1) umrCurrentPage = 1;
@@ -2017,7 +2486,6 @@ function renderUmrPage() {
                         <td class="td-code">${stateId}</td>
                         <td class="td-code">${row.kode_daerah}</td>
                         <td class="td-name">${row.nama_daerah}</td>
-                        <td class="td-nominal">${formatNominal(row.nominal)}</td>
                     </tr>
                 `;
             } else {
@@ -2030,13 +2498,12 @@ function renderUmrPage() {
                         <td class="td-code">${row.kode_daerah}</td>
                         <td class="td-name">${row.nama_daerah}</td>
                         <td class="td-code">${stateId}</td>
-                        <td class="td-nominal">${formatNominal(row.nominal)}</td>
                     </tr>
                 `;
             }
         }).join('');
     } else {
-        const colSpan = currentUmrType === 'UMP' ? 4 : 5;
+        const colSpan = currentUmrType === 'UMP' ? 3 : 4;
         tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center; padding:40px; color:#aaa;">
                 <i class="fas fa-database" style="font-size:28px; margin-bottom:10px; display:block;"></i>
                 Belum ada data ${currentUmrType}. Klik <b>Upload</b> untuk menambah data.
@@ -2057,7 +2524,7 @@ function renderUmrPage() {
         let html = '';
         // Prev button
         html += `<button ${umrCurrentPage <= 1 ? 'disabled' : ''} onclick="goUmrPage(${umrCurrentPage - 1})"><i class="fas fa-chevron-left"></i></button>`;
-        
+
         // Page numbers
         const maxVisible = 4;
         let pageStart = Math.max(1, umrCurrentPage - Math.floor(maxVisible / 2));
@@ -2067,10 +2534,10 @@ function renderUmrPage() {
         for (let i = pageStart; i <= pageEnd; i++) {
             html += `<button class="${i === umrCurrentPage ? 'active' : ''}" onclick="goUmrPage(${i})">${i}</button>`;
         }
-        
+
         // Next button
         html += `<button ${umrCurrentPage >= totalPages ? 'disabled' : ''} onclick="goUmrPage(${umrCurrentPage + 1})"><i class="fas fa-chevron-right"></i></button>`;
-        
+
         controls.innerHTML = html;
     }
 }
@@ -2146,11 +2613,11 @@ function tutupModalManualUmr() {
 function downloadTemplateUmr() {
     const tipe = currentUmrType;
     let csvContent = '';
-    
+
     if (tipe === 'UMP') {
-        csvContent = 'StateId,StateCode,StateName,umr_amount\n';
+        csvContent = 'StateId,StateCode,StateName\n';
     } else {
-        csvContent = 'RegencyId,RegencyCode,RegencyName,StateId,umr_amount\n';
+        csvContent = 'RegencyId,RegencyCode,RegencyName,StateId\n';
     }
 
     const stateIdMap = {
@@ -2167,73 +2634,73 @@ function downloadTemplateUmr() {
         umrAllData.forEach(row => {
             if (tipe === 'UMP') {
                 const stateId = stateIdMap[row.kode_daerah] || (row.provinsi || idCounter++);
-                csvContent += `${stateId},${row.kode_daerah},${row.nama_daerah},${row.nominal}\n`;
+                csvContent += `${stateId},${row.kode_daerah},${row.nama_daerah}\n`;
             } else {
                 const regencyId = idCounter++;
                 const prefix = row.kode_daerah.split('.')[0] || '';
                 const stateId = stateIdMap[prefix] || (row.provinsi || 17);
-                csvContent += `${regencyId},${row.kode_daerah},${row.nama_daerah},${stateId},${row.nominal}\n`;
+                csvContent += `${regencyId},${row.kode_daerah},${row.nama_daerah},${stateId}\n`;
             }
         });
     } else {
         // Fallback ke data contoh jika tabel kosong
         if (tipe === 'UMP') {
             const defaultUmpData = [
-                {code: 'ID 11', name: 'ACEH', nominal: 3000000},
-                {code: 'ID 12', name: 'SUMATERA UTARA', nominal: 4000000},
-                {code: 'ID 17', name: 'BENGKULU', nominal: 2000000},
-                {code: 'ID 15', name: 'JAMBI', nominal: 2000000},
-                {code: 'ID 14', name: 'RIAU', nominal: 2000000},
-                {code: 'ID 13', name: 'SUMATERA BARAT', nominal: 2000000},
-                {code: 'ID 16', name: 'SUMATERA SELATAN', nominal: 2000000},
-                {code: 'ID 18', name: 'LAMPUNG', nominal: 2000000},
-                {code: 'ID 19', name: 'KEP. BANGKA BELITUNG', nominal: 2000000},
-                {code: 'ID 21', name: 'KEP. RIAU', nominal: 2000000},
-                {code: 'ID 36', name: 'BANTEN', nominal: 2000000},
-                {code: 'ID 32', name: 'JAWA BARAT', nominal: 2000000},
-                {code: 'ID 31', name: 'DKI JAKARTA', nominal: 2000000},
-                {code: 'ID 33', name: 'JAWA TENGAH', nominal: 2000000},
-                {code: 'ID 35', name: 'JAWA TIMUR', nominal: 2000000},
-                {code: 'ID 34', name: 'DI YOGYAKARTA', nominal: 2000000},
-                {code: 'ID 51', name: 'BALI', nominal: 2000000},
-                {code: 'ID 52', name: 'NUSA TENGGARA BARAT', nominal: 2000000},
-                {code: 'ID 53', name: 'NUSA TENGGARA TIMUR', nominal: 2000000},
-                {code: 'ID 61', name: 'KALIMANTAN BARAT', nominal: 2000000},
-                {code: 'ID 63', name: 'KALIMANTAN SELATAN', nominal: 2000000},
-                {code: 'ID 62', name: 'KALIMANTAN TENGAH', nominal: 2000000},
-                {code: 'ID 64', name: 'KALIMANTAN TIMUR', nominal: 2000000},
-                {code: 'ID 75', name: 'GORONTALO', nominal: 2000000},
-                {code: 'ID 73', name: 'SULAWESI SELATAN', nominal: 2000000},
-                {code: 'ID 74', name: 'SULAWESI TENGGARA', nominal: 2000000},
-                {code: 'ID 72', name: 'SULAWESI TENGAH', nominal: 2000000},
-                {code: 'ID 71', name: 'SULAWESI UTARA', nominal: 2000000},
-                {code: 'ID 76', name: 'SULAWESI BARAT', nominal: 2000000},
-                {code: 'ID 81', name: 'MALUKU', nominal: 2000000},
-                {code: 'ID 82', name: 'MALUKU UTARA', nominal: 2000000},
-                {code: 'ID 91', name: 'PAPUA', nominal: 1000000},
-                {code: 'ID 92', name: 'PAPUA BARAT', nominal: 2000000},
-                {code: 'ID 65', name: 'KALIMANTAN UTARA', nominal: 2000000}
+                { code: 'ID 11', name: 'ACEH' },
+                { code: 'ID 12', name: 'SUMATERA UTARA' },
+                { code: 'ID 17', name: 'BENGKULU' },
+                { code: 'ID 15', name: 'JAMBI' },
+                { code: 'ID 14', name: 'RIAU' },
+                { code: 'ID 13', name: 'SUMATERA BARAT' },
+                { code: 'ID 16', name: 'SUMATERA SELATAN' },
+                { code: 'ID 18', name: 'LAMPUNG' },
+                { code: 'ID 19', name: 'KEP. BANGKA BELITUNG' },
+                { code: 'ID 21', name: 'KEP. RIAU' },
+                { code: 'ID 36', name: 'BANTEN' },
+                { code: 'ID 32', name: 'JAWA BARAT' },
+                { code: 'ID 31', name: 'DKI JAKARTA' },
+                { code: 'ID 33', name: 'JAWA TENGAH' },
+                { code: 'ID 35', name: 'JAWA TIMUR' },
+                { code: 'ID 34', name: 'DI YOGYAKARTA' },
+                { code: 'ID 51', name: 'BALI' },
+                { code: 'ID 52', name: 'NUSA TENGGARA BARAT' },
+                { code: 'ID 53', name: 'NUSA TENGGARA TIMUR' },
+                { code: 'ID 61', name: 'KALIMANTAN BARAT' },
+                { code: 'ID 63', name: 'KALIMANTAN SELATAN' },
+                { code: 'ID 62', name: 'KALIMANTAN TENGAH' },
+                { code: 'ID 64', name: 'KALIMANTAN TIMUR' },
+                { code: 'ID 75', name: 'GORONTALO' },
+                { code: 'ID 73', name: 'SULAWESI SELATAN' },
+                { code: 'ID 74', name: 'SULAWESI TENGGARA' },
+                { code: 'ID 72', name: 'SULAWESI TENGAH' },
+                { code: 'ID 71', name: 'SULAWESI UTARA' },
+                { code: 'ID 76', name: 'SULAWESI BARAT' },
+                { code: 'ID 81', name: 'MALUKU' },
+                { code: 'ID 82', name: 'MALUKU UTARA' },
+                { code: 'ID 91', name: 'PAPUA' },
+                { code: 'ID 92', name: 'PAPUA BARAT' },
+                { code: 'ID 65', name: 'KALIMANTAN UTARA' }
             ];
-            
+
             defaultUmpData.forEach(row => {
                 const stateId = stateIdMap[row.code] || 17;
-                csvContent += `${stateId},${row.code},${row.name},${row.nominal}\n`;
+                csvContent += `${stateId},${row.code},${row.name}\n`;
             });
         } else {
             const defaultUmkData = [
-                {code: 'ID 11.01', name: 'KAB. ACEH BARAT', nominal: 2000000},
-                {code: 'ID 11.02', name: 'KAB. ACEH BARAT DAYA', nominal: 2000000},
-                {code: 'ID 11.03', name: 'KAB. ACEH BESAR', nominal: 2000000},
-                {code: 'ID 31.71', name: 'KOTA JAKARTA PUSAT', nominal: 5000000},
-                {code: 'ID 32.71', name: 'KOTA BOGOR', nominal: 4500000},
-                {code: 'ID 32.73', name: 'KOTA BANDUNG', nominal: 4200000}
+                { code: 'ID 11.01', name: 'KAB. ACEH BARAT' },
+                { code: 'ID 11.02', name: 'KAB. ACEH BARAT DAYA' },
+                { code: 'ID 11.03', name: 'KAB. ACEH BESAR' },
+                { code: 'ID 31.71', name: 'KOTA JAKARTA PUSAT' },
+                { code: 'ID 32.71', name: 'KOTA BOGOR' },
+                { code: 'ID 32.73', name: 'KOTA BANDUNG' }
             ];
-            
+
             let regId = 1;
             defaultUmkData.forEach(row => {
                 const prefix = row.code.split('.')[0] || '';
                 const stateId = stateIdMap[prefix] || 17;
-                csvContent += `${regId++},${row.code},${row.name},${stateId},${row.nominal}\n`;
+                csvContent += `${regId++},${row.code},${row.name},${stateId}\n`;
             });
         }
     }
@@ -2250,11 +2717,23 @@ function downloadTemplateUmr() {
     showToast(`Template ${tipe} berhasil diunduh!`, 'success');
 }
 
+const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+const url = URL.createObjectURL(blob);
+const link = document.createElement('a');
+link.setAttribute('href', url);
+link.setAttribute('download', `template_${tipe.toLowerCase()}_${new Date().getFullYear()}.csv`);
+document.body.appendChild(link);
+link.click();
+document.body.removeChild(link);
+URL.revokeObjectURL(url);
+showToast(`Template ${tipe} berhasil diunduh!`, 'success');
+
+
 // Drag & Drop + File Input Handling
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('umrDropZone');
     const fileInput = document.getElementById('fileUmr');
-    
+
     if (fileInput) {
         // Prevent click bubble to dropZone
         fileInput.addEventListener('click', (e) => {
@@ -2306,10 +2785,10 @@ const formUploadUmr = document.getElementById('formUploadUmr');
 if (formUploadUmr) {
     formUploadUmr.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const fileInput = document.getElementById('fileUmr');
         const file = fileInput.files[0];
-        
+
         if (!file) {
             showToast('Pilih file CSV terlebih dahulu!', 'error');
             return;
@@ -2322,10 +2801,10 @@ if (formUploadUmr) {
             try {
                 const csvText = event.target.result;
                 const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
-                
+
                 // Skip header row
                 const dataLines = lines.slice(1);
-                
+
                 if (dataLines.length === 0) {
                     showToast('File CSV kosong!', 'error');
                     return;
@@ -2333,11 +2812,11 @@ if (formUploadUmr) {
 
                 const tipe = document.getElementById('uploadUmrTipe').value;
                 const tahun = document.getElementById('uploadUmrTahun').value;
-                
+
                 // Dynamically detect column indices based on header names for extreme robustness
                 const headerLine = lines[0];
                 const headers = headerLine.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-                
+
                 let codeIdx = -1;
                 let nameIdx = -1;
                 let nominalIdx = -1;
@@ -2372,13 +2851,13 @@ if (formUploadUmr) {
                         nominalIdx = headers.length >= 5 ? 4 : 2;
                     }
                 }
-                
+
                 const items = dataLines.map(line => {
                     // Handle CSV with commas inside quotes
                     const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
                     let rawNominal = cols[nominalIdx] || '0';
                     rawNominal = rawNominal.trim();
-                    
+
                     let nominalVal = 0;
                     if (rawNominal.includes('.') && rawNominal.includes(',')) {
                         if (rawNominal.lastIndexOf('.') > rawNominal.lastIndexOf(',')) {
@@ -2405,7 +2884,7 @@ if (formUploadUmr) {
                     }
 
                     const provinceVal = stateIdIdx !== -1 ? (cols[stateIdIdx] || '') : '';
-                    
+
                     return {
                         tipe: tipe,
                         kode_daerah: cols[codeIdx] || '',
@@ -2482,343 +2961,343 @@ async function loadSimulasiRegions() {
     try {
         const res = await fetch(`${API_URL}/minimum-wages?tipe=${type}`);
         let dbData = await res.json();
-        
+
         // Data Default 38 Provinsi (Update 2026 Projection)
         const defaultUmp = [
-            {id: 'ID 11', nama_daerah: 'ACEH', nominal: 3000000},
-            {id: 'ID 12', nama_daerah: 'SUMATERA UTARA', nominal: 4000000},
-            {id: 'ID 17', nama_daerah: 'BENGKULU', nominal: 2000000},
-            {id: 'ID 15', nama_daerah: 'JAMBI', nominal: 2000000},
-            {id: 'ID 14', nama_daerah: 'RIAU', nominal: 2000000},
-            {id: 'ID 13', nama_daerah: 'SUMATERA BARAT', nominal: 2000000},
-            {id: 'ID 16', nama_daerah: 'SUMATERA SELATAN', nominal: 2000000},
-            {id: 'ID 18', nama_daerah: 'LAMPUNG', nominal: 2000000},
-            {id: 'ID 19', nama_daerah: 'KEP. BANGKA BELITUNG', nominal: 2000000},
-            {id: 'ID 21', nama_daerah: 'KEP. RIAU', nominal: 2000000},
-            {id: 'ID 36', nama_daerah: 'BANTEN', nominal: 2000000},
-            {id: 'ID 32', nama_daerah: 'JAWA BARAT', nominal: 2000000},
-            {id: 'ID 31', nama_daerah: 'DKI JAKARTA', nominal: 2000000},
-            {id: 'ID 33', nama_daerah: 'JAWA TENGAH', nominal: 2000000},
-            {id: 'ID 35', nama_daerah: 'JAWA TIMUR', nominal: 2000000},
-            {id: 'ID 34', nama_daerah: 'DI YOGYAKARTA', nominal: 2000000},
-            {id: 'ID 51', nama_daerah: 'BALI', nominal: 2000000},
-            {id: 'ID 52', nama_daerah: 'NUSA TENGGARA BARAT', nominal: 2000000},
-            {id: 'ID 53', nama_daerah: 'NUSA TENGGARA TIMUR', nominal: 2000000},
-            {id: 'ID 61', nama_daerah: 'KALIMANTAN BARAT', nominal: 2000000},
-            {id: 'ID 63', nama_daerah: 'KALIMANTAN SELATAN', nominal: 2000000},
-            {id: 'ID 62', nama_daerah: 'KALIMANTAN TENGAH', nominal: 2000000},
-            {id: 'ID 64', nama_daerah: 'KALIMANTAN TIMUR', nominal: 2000000},
-            {id: 'ID 75', nama_daerah: 'GORONTALO', nominal: 2000000},
-            {id: 'ID 73', nama_daerah: 'SULAWESI SELATAN', nominal: 2000000},
-            {id: 'ID 74', nama_daerah: 'SULAWESI TENGGARA', nominal: 2000000},
-            {id: 'ID 72', nama_daerah: 'SULAWESI TENGAH', nominal: 2000000},
-            {id: 'ID 71', nama_daerah: 'SULAWESI UTARA', nominal: 2000000},
-            {id: 'ID 76', nama_daerah: 'SULAWESI BARAT', nominal: 2000000},
-            {id: 'ID 81', nama_daerah: 'MALUKU', nominal: 2000000},
-            {id: 'ID 82', nama_daerah: 'MALUKU UTARA', nominal: 2000000},
-            {id: 'ID 91', nama_daerah: 'PAPUA', nominal: 1000000},
-            {id: 'ID 92', nama_daerah: 'PAPUA BARAT', nominal: 2000000},
-            {id: 'ID 65', nama_daerah: 'KALIMANTAN UTARA', nominal: 2000000}
+            { id: 'ID 11', nama_daerah: 'ACEH', nominal: 3000000 },
+            { id: 'ID 12', nama_daerah: 'SUMATERA UTARA', nominal: 4000000 },
+            { id: 'ID 17', nama_daerah: 'BENGKULU', nominal: 2000000 },
+            { id: 'ID 15', nama_daerah: 'JAMBI', nominal: 2000000 },
+            { id: 'ID 14', nama_daerah: 'RIAU', nominal: 2000000 },
+            { id: 'ID 13', nama_daerah: 'SUMATERA BARAT', nominal: 2000000 },
+            { id: 'ID 16', nama_daerah: 'SUMATERA SELATAN', nominal: 2000000 },
+            { id: 'ID 18', nama_daerah: 'LAMPUNG', nominal: 2000000 },
+            { id: 'ID 19', nama_daerah: 'KEP. BANGKA BELITUNG', nominal: 2000000 },
+            { id: 'ID 21', nama_daerah: 'KEP. RIAU', nominal: 2000000 },
+            { id: 'ID 36', nama_daerah: 'BANTEN', nominal: 2000000 },
+            { id: 'ID 32', nama_daerah: 'JAWA BARAT', nominal: 2000000 },
+            { id: 'ID 31', nama_daerah: 'DKI JAKARTA', nominal: 2000000 },
+            { id: 'ID 33', nama_daerah: 'JAWA TENGAH', nominal: 2000000 },
+            { id: 'ID 35', nama_daerah: 'JAWA TIMUR', nominal: 2000000 },
+            { id: 'ID 34', nama_daerah: 'DI YOGYAKARTA', nominal: 2000000 },
+            { id: 'ID 51', nama_daerah: 'BALI', nominal: 2000000 },
+            { id: 'ID 52', nama_daerah: 'NUSA TENGGARA BARAT', nominal: 2000000 },
+            { id: 'ID 53', nama_daerah: 'NUSA TENGGARA TIMUR', nominal: 2000000 },
+            { id: 'ID 61', nama_daerah: 'KALIMANTAN BARAT', nominal: 2000000 },
+            { id: 'ID 63', nama_daerah: 'KALIMANTAN SELATAN', nominal: 2000000 },
+            { id: 'ID 62', nama_daerah: 'KALIMANTAN TENGAH', nominal: 2000000 },
+            { id: 'ID 64', nama_daerah: 'KALIMANTAN TIMUR', nominal: 2000000 },
+            { id: 'ID 75', nama_daerah: 'GORONTALO', nominal: 2000000 },
+            { id: 'ID 73', nama_daerah: 'SULAWESI SELATAN', nominal: 2000000 },
+            { id: 'ID 74', nama_daerah: 'SULAWESI TENGGARA', nominal: 2000000 },
+            { id: 'ID 72', nama_daerah: 'SULAWESI TENGAH', nominal: 2000000 },
+            { id: 'ID 71', nama_daerah: 'SULAWESI UTARA', nominal: 2000000 },
+            { id: 'ID 76', nama_daerah: 'SULAWESI BARAT', nominal: 2000000 },
+            { id: 'ID 81', nama_daerah: 'MALUKU', nominal: 2000000 },
+            { id: 'ID 82', nama_daerah: 'MALUKU UTARA', nominal: 2000000 },
+            { id: 'ID 91', nama_daerah: 'PAPUA', nominal: 1000000 },
+            { id: 'ID 92', nama_daerah: 'PAPUA BARAT', nominal: 2000000 },
+            { id: 'ID 65', nama_daerah: 'KALIMANTAN UTARA', nominal: 2000000 }
         ];
 
         // Data Default Kota Besar (UMK 2024 - Full Indonesia Eksak)
         const defaultUmk = [
-            {id: '1300000', nama_daerah: 'Jakarta', nominal: 7000000},
-            {id: 'ID 11.16', nama_daerah: 'KAB. ACEH TAMIANG', nominal: 1000000},
-            {id: 'ID 11.04', nama_daerah: 'KAB. ACEH TENGAH', nominal: 1000000},
-            {id: 'ID 11.03', nama_daerah: 'KAB. ACEH TIMUR', nominal: 1000000},
-            {id: 'ID 12.09', nama_daerah: 'KAB. ASAHAN', nominal: 1000000},
-            {id: 'ID 51.03', nama_daerah: 'KAB. BADUNG', nominal: 5000000},
-            {id: 'ID 32.04', nama_daerah: 'KAB. BANDUNG', nominal: 1000000},
-            {id: 'ID 32.17', nama_daerah: 'KAB. BANDUNG BARAT', nominal: 1000000},
-            {id: 'ID 72.01', nama_daerah: 'KAB. BANGGAI', nominal: 1000000},
-            {id: 'ID 35.26', nama_daerah: 'KAB. BANGKALAN', nominal: 1000000},
-            {id: 'ID 33.04', nama_daerah: 'KAB. BANJARNEGARA', nominal: 1000000},
-            {id: 'ID 73.03', nama_daerah: 'KAB. BANTAENG', nominal: 1000000},
-            {id: 'ID 34.02', nama_daerah: 'KAB. BANTUL', nominal: 1000000},
-            {id: 'ID 16.07', nama_daerah: 'KAB. BANYUASIN', nominal: 1000000},
-            {id: 'ID 33.02', nama_daerah: 'KAB. BANYUMAS', nominal: 1000000},
-            {id: 'ID 35.10', nama_daerah: 'KAB. BANYUWANGI', nominal: 1000000},
-            {id: 'ID 73.11', nama_daerah: 'KAB. BARRU', nominal: 1000000},
-            {id: 'ID 33.25', nama_daerah: 'KAB. BATANG', nominal: 1000000},
-            {id: 'ID 12.19', nama_daerah: 'KAB. BATU BARA', nominal: 1000000},
-            {id: 'ID 32.16', nama_daerah: 'KAB. BEKASI', nominal: 1000000},
-            {id: 'ID 19.02', nama_daerah: 'KAB. BELITUNG', nominal: 1000000},
-            {id: 'ID 14.03', nama_daerah: 'KAB. BENGKALIS', nominal: 1000000},
-            {id: 'ID 17.01', nama_daerah: 'KAB. BENGKULU SELATAN', nominal: 1000000},
-            {id: 'ID 64.03', nama_daerah: 'KAB. BERAU', nominal: 1000000},
-            {id: 'ID 11.11', nama_daerah: 'KAB. BIREUEN', nominal: 1000000},
-            {id: 'ID 33.16', nama_daerah: 'KAB. BLORA', nominal: 1000000},
-            {id: 'ID 32.01', nama_daerah: 'KAB. BOGOR', nominal: 1000000},
-            {id: 'ID 35.22', nama_daerah: 'KAB. BOJONEGORO', nominal: 1000000},
-            {id: 'ID 35.11', nama_daerah: 'KAB. BONDOWOSO', nominal: 1000000},
-            {id: 'ID 73.08', nama_daerah: 'KAB. BONE', nominal: 1000000},
-            {id: 'ID 33.09', nama_daerah: 'KAB. BOYOLALI', nominal: 1000000},
-            {id: 'ID 33.29', nama_daerah: 'KAB. BREBES', nominal: 1000000},
-            {id: 'ID 51.08', nama_daerah: 'KAB. BULELENG', nominal: 1000000},
-            {id: 'ID 73.02', nama_daerah: 'KAB. BULUKUMBA', nominal: 1000000},
-            {id: 'ID 65.01', nama_daerah: 'KAB. BULUNGAN', nominal: 1000000},
-            {id: 'ID 15.08', nama_daerah: 'KAB. BUNGO', nominal: 1000000},
-            {id: 'ID 32.07', nama_daerah: 'KAB. CIAMIS', nominal: 1000000},
-            {id: 'ID 32.03', nama_daerah: 'KAB. CIANJUR', nominal: 1000000},
-            {id: 'ID 33.01', nama_daerah: 'KAB. CILACAP', nominal: 1000000},
-            {id: 'ID 32.09', nama_daerah: 'KAB. CIREBON', nominal: 1000000},
-            {id: 'ID 12.07', nama_daerah: 'KAB. DELI SERDANG', nominal: 1000000},
-            {id: 'ID 33.21', nama_daerah: 'KAB. DEMAK', nominal: 1000000},
-            {id: 'ID 13.10', nama_daerah: 'KAB. DHARMASRAYA', nominal: 1000000},
-            {id: 'ID 53.08', nama_daerah: 'KAB. ENDE', nominal: 1000000},
-            {id: 'ID 73.16', nama_daerah: 'KAB. ENREKANG', nominal: 1000000},
-            {id: 'ID 32.05', nama_daerah: 'KAB. GARUT', nominal: 1000000},
-            {id: 'ID 51.04', nama_daerah: 'KAB. GIANYAR', nominal: 1000000},
-            {id: 'ID 75.01', nama_daerah: 'KAB. GORONTALO', nominal: 1000000},
-            {id: 'ID 73.06', nama_daerah: 'KAB. GOWA', nominal: 1000000},
-            {id: 'ID 35.25', nama_daerah: 'KAB. GRESIK', nominal: 1000000},
-            {id: 'ID 33.15', nama_daerah: 'KAB. GROBOGAN', nominal: 1000000},
-            {id: 'ID 63.07', nama_daerah: 'KAB. HULU SUNGAI TENGAH', nominal: 1000000},
-            {id: 'ID 63.08', nama_daerah: 'KAB. HULU SUNGAI UTARA', nominal: 1000000},
-            {id: 'ID 14.04', nama_daerah: 'KAB. INDRAGIRI HILIR', nominal: 1000000},
-            {id: 'ID 14.02', nama_daerah: 'KAB. INDRAGIRI HULU', nominal: 1000000},
-            {id: 'ID 32.12', nama_daerah: 'KAB. INDRAMAYU', nominal: 1000000},
-            {id: 'ID 91.03', nama_daerah: 'KAB. JAYAPURA', nominal: 1000000},
-            {id: 'ID 35.09', nama_daerah: 'KAB. JEMBER', nominal: 1000000},
-            {id: 'ID 51.01', nama_daerah: 'KAB. JEMBRANA', nominal: 1000000},
-            {id: 'ID 73.04', nama_daerah: 'KAB. JENEPONTO', nominal: 1000000},
-            {id: 'ID 33.20', nama_daerah: 'KAB. JEPARA', nominal: 1000000},
-            {id: 'ID 35.17', nama_daerah: 'KAB. JOMBANG', nominal: 1000000},
-            {id: 'ID 14.01', nama_daerah: 'KAB. KAMPAR', nominal: 1000000},
-            {id: 'ID 62.03', nama_daerah: 'KAB. KAPUAS', nominal: 1000000},
-            {id: 'ID 61.06', nama_daerah: 'KAB. KAPUAS HULU', nominal: 1000000},
-            {id: 'ID 33.13', nama_daerah: 'KAB. KARANGANYAR', nominal: 1000000},
-            {id: 'ID 32.15', nama_daerah: 'KAB. KARAWANG', nominal: 1000000},
-            {id: 'ID 12.06', nama_daerah: 'KAB. KARO', nominal: 1000000},
-            {id: 'ID 33.05', nama_daerah: 'KAB. KEBUMEN', nominal: 1000000},
-            {id: 'ID 33.24', nama_daerah: 'KAB. KENDAL', nominal: 1000000},
-            {id: 'ID 17.08', nama_daerah: 'KAB. KEPAHIANG', nominal: 1000000},
-            {id: 'ID 61.04', nama_daerah: 'KAB. KETAPANG', nominal: 1000000},
-            {id: 'ID 33.10', nama_daerah: 'KAB. KLATEN', nominal: 1000000},
-            {id: 'ID 74.01', nama_daerah: 'KAB. KOLAKA', nominal: 1000000},
-            {id: 'ID 63.02', nama_daerah: 'KAB. KOTABARU', nominal: 1000000},
-            {id: 'ID 62.01', nama_daerah: 'KAB. KOTAWARINGIN BARAT', nominal: 1000000},
-            {id: 'ID 62.02', nama_daerah: 'KAB. KOTAWARINGIN TIMUR', nominal: 1000000},
-            {id: 'ID 61.12', nama_daerah: 'KAB. KUBU RAYA', nominal: 1000000},
-            {id: 'ID 33.19', nama_daerah: 'KAB. KUDUS', nominal: 1000000},
-            {id: 'ID 34.01', nama_daerah: 'KAB. KULON PROGO', nominal: 1000000},
-            {id: 'ID 32.08', nama_daerah: 'KAB. KUNINGAN', nominal: 1000000},
-            {id: 'ID 64.07', nama_daerah: 'KAB. KUTAI BARAT', nominal: 1000000},
-            {id: 'ID 64.02', nama_daerah: 'KAB. KUTAI KARTANEGARA', nominal: 1000000},
-            {id: 'ID 64.08', nama_daerah: 'KAB. KUTAI TIMUR', nominal: 1000000},
-            {id: 'ID 12.10', nama_daerah: 'KAB. LABUHANBATU', nominal: 1000000},
-            {id: 'ID 12.23', nama_daerah: 'KAB. LABUHANBATU UTARA', nominal: 1000000},
-            {id: 'ID 16.04', nama_daerah: 'KAB. LAHAT', nominal: 1000000},
-            {id: 'ID 35.24', nama_daerah: 'KAB. LAMONGAN', nominal: 1000000},
-            {id: 'ID 18.04', nama_daerah: 'KAB. LAMPUNG BARAT', nominal: 1000000},
-            {id: 'ID 18.01', nama_daerah: 'KAB. LAMPUNG SELATAN', nominal: 1000000},
-            {id: 'ID 18.02', nama_daerah: 'KAB. LAMPUNG TENGAH', nominal: 1000000},
-            {id: 'ID 18.07', nama_daerah: 'KAB. LAMPUNG TIMUR', nominal: 1000000},
-            {id: 'ID 18.03', nama_daerah: 'KAB. LAMPUNG UTARA', nominal: 1000000},
-            {id: 'ID 61.08', nama_daerah: 'KAB. LANDAK', nominal: 1000000},
-            {id: 'ID 12.05', nama_daerah: 'KAB. LANGKAT', nominal: 1000000},
-            {id: 'ID 36.02', nama_daerah: 'KAB. LEBAK', nominal: 1000000},
-            {id: 'ID 52.01', nama_daerah: 'KAB. LOMBOK BARAT', nominal: 1000000},
-            {id: 'ID 52.02', nama_daerah: 'KAB. LOMBOK TENGAH', nominal: 1000000},
-            {id: 'ID 52.03', nama_daerah: 'KAB. LOMBOK TIMUR', nominal: 1000000},
-            {id: 'ID 35.08', nama_daerah: 'KAB. LUMAJANG', nominal: 1000000},
-            {id: 'ID 73.17', nama_daerah: 'KAB. LUWU', nominal: 1000000},
-            {id: 'ID 73.24', nama_daerah: 'KAB. LUWU TIMUR', nominal: 1000000},
-            {id: 'ID 73.22', nama_daerah: 'KAB. LUWU UTARA', nominal: 1000000},
-            {id: 'ID 35.19', nama_daerah: 'KAB. MADIUN', nominal: 1000000},
-            {id: 'ID 33.08', nama_daerah: 'KAB. MAGELANG', nominal: 1000000},
-            {id: 'ID 35.20', nama_daerah: 'KAB. MAGETAN', nominal: 1000000},
-            {id: 'ID 32.10', nama_daerah: 'KAB. MAJALENGKA', nominal: 1000000},
-            {id: 'ID 76.05', nama_daerah: 'KAB. MAJENE', nominal: 1000000},
-            {id: 'ID 35.07', nama_daerah: 'KAB. MALANG', nominal: 1000000},
-            {id: 'ID 76.02', nama_daerah: 'KAB. MAMUJU', nominal: 1000000},
-            {id: 'ID 12.13', nama_daerah: 'KAB. MANDAILING NATAL', nominal: 1000000},
-            {id: 'ID 53.15', nama_daerah: 'KAB. MANGGARAI BARAT', nominal: 1000000},
-            {id: 'ID 92.02', nama_daerah: 'KAB. MANOKWARI', nominal: 1000000},
-            {id: 'ID 73.09', nama_daerah: 'KAB. MAROS', nominal: 1000000},
-            {id: 'ID 61.10', nama_daerah: 'KAB. MELAWI', nominal: 1000000},
-            {id: 'ID 15.02', nama_daerah: 'KAB. MERANGIN', nominal: 1000000},
-            {id: 'ID 91.01', nama_daerah: 'KAB. MERAUKE', nominal: 1000000},
-            {id: 'ID 91.09', nama_daerah: 'KAB. MIMIKA', nominal: 1000000},
-            {id: 'ID 71.05', nama_daerah: 'KAB. MINAHASA SELATAN', nominal: 1000000},
-            {id: 'ID 71.06', nama_daerah: 'KAB. MINAHASA UTARA', nominal: 1000000},
-            {id: 'ID 35.16', nama_daerah: 'KAB. MOJOKERTO', nominal: 1000000},
-            {id: 'ID 72.06', nama_daerah: 'KAB. MOROWALI', nominal: 1000000},
-            {id: 'ID 16.03', nama_daerah: 'KAB. MUARA ENIM', nominal: 1000000},
-            {id: 'ID 16.06', nama_daerah: 'KAB. MUSI BANYUASIN', nominal: 1000000},
-            {id: 'ID 91.04', nama_daerah: 'KAB. NABIRE', nominal: 1000000},
-            {id: 'ID 35.18', nama_daerah: 'KAB. NGANJUK', nominal: 1000000},
-            {id: 'ID 35.21', nama_daerah: 'KAB. NGAWI', nominal: 1000000},
-            {id: 'ID 16.10', nama_daerah: 'KAB. OGAN ILIR', nominal: 1000000},
-            {id: 'ID 16.02', nama_daerah: 'KAB. OGAN KOMERING ILIR', nominal: 1000000},
-            {id: 'ID 16.01', nama_daerah: 'KAB. OGAN KOMERING ULU', nominal: 1000000},
-            {id: 'ID 16.09', nama_daerah: 'KAB. OGAN KOMERING ULU SELATAN', nominal: 1000000},
-            {id: 'ID 16.08', nama_daerah: 'KAB. OGAN KOMERING ULU TIMUR', nominal: 1000000},
-            {id: 'ID 35.01', nama_daerah: 'KAB. PACITAN', nominal: 1000000},
-            {id: 'ID 35.28', nama_daerah: 'KAB. PAMEKASAN', nominal: 1000000},
-            {id: 'ID 36.01', nama_daerah: 'KAB. PANDEGLANG', nominal: 1000000},
-            {id: 'ID 32.18', nama_daerah: 'KAB. PANGANDARAN', nominal: 1000000},
-            {id: 'ID 73.10', nama_daerah: 'KAB. PANGKAJENE KEPULAUAN', nominal: 1000000},
-            {id: 'ID 13.12', nama_daerah: 'KAB. PASAMAN BARAT', nominal: 1000000},
-            {id: 'ID 35.14', nama_daerah: 'KAB. PASURUAN', nominal: 1000000},
-            {id: 'ID 33.18', nama_daerah: 'KAB. PATI', nominal: 1000000},
-            {id: 'ID 33.26', nama_daerah: 'KAB. PEKALONGAN', nominal: 1000000},
-            {id: 'ID 14.05', nama_daerah: 'KAB. PELALAWAN', nominal: 1000000},
-            {id: 'ID 33.27', nama_daerah: 'KAB. PEMALANG', nominal: 1000000},
-            {id: 'ID 64.09', nama_daerah: 'KAB. PENAJAM PASER UTARA', nominal: 1000000},
-            {id: 'ID 18.09', nama_daerah: 'KAB. PESAWARAN', nominal: 1000000},
-            {id: 'ID 13.01', nama_daerah: 'KAB. PESISIR SELATAN', nominal: 1000000},
-            {id: 'ID 11.07', nama_daerah: 'KAB. PIDIE', nominal: 1000000},
-            {id: 'ID 73.15', nama_daerah: 'KAB. PINRANG', nominal: 1000000},
-            {id: 'ID 76.04', nama_daerah: 'KAB. POLEWALI MANDAR', nominal: 1000000},
-            {id: 'ID 35.02', nama_daerah: 'KAB. PONOROGO', nominal: 1000000},
-            {id: 'ID 18.10', nama_daerah: 'KAB. PRINGSEWU', nominal: 1000000},
-            {id: 'ID 35.13', nama_daerah: 'KAB. PROBOLINGGO', nominal: 1000000},
-            {id: 'ID 33.03', nama_daerah: 'KAB. PURBALINGGA', nominal: 1000000},
-            {id: 'ID 32.14', nama_daerah: 'KAB. PURWAKARTA', nominal: 1000000},
-            {id: 'ID 33.06', nama_daerah: 'KAB. PURWOREJO', nominal: 1000000},
-            {id: 'ID 17.02', nama_daerah: 'KAB. REJANG LEBONG', nominal: 1000000},
-            {id: 'ID 33.17', nama_daerah: 'KAB. REMBANG', nominal: 1000000},
-            {id: 'ID 14.07', nama_daerah: 'KAB. ROKAN HILIR', nominal: 1000000},
-            {id: 'ID 14.06', nama_daerah: 'KAB. ROKAN HULU', nominal: 1000000},
-            {id: 'ID 61.03', nama_daerah: 'KAB. SANGGAU', nominal: 1000000},
-            {id: 'ID 15.03', nama_daerah: 'KAB. SAROLANGUN', nominal: 1000000},
-            {id: 'ID 33.22', nama_daerah: 'KAB. SEMARANG', nominal: 1000000},
-            {id: 'ID 36.04', nama_daerah: 'KAB. SERANG', nominal: 1000000},
-            {id: 'ID 12.18', nama_daerah: 'KAB. SERDANG BEDAGAI', nominal: 1000000},
-            {id: 'ID 14.08', nama_daerah: 'KAB. SIAK', nominal: 1000000},
-            {id: 'ID 73.14', nama_daerah: 'KAB. SIDENRENG RAPPANG', nominal: 1000000},
-            {id: 'ID 35.15', nama_daerah: 'KAB. SIDOARJO', nominal: 1000000},
-            {id: 'ID 72.10', nama_daerah: 'KAB. SIGI', nominal: 1000000},
-            {id: 'ID 73.07', nama_daerah: 'KAB. SINJAI', nominal: 1000000},
-            {id: 'ID 61.05', nama_daerah: 'KAB. SINTANG', nominal: 1000000},
-            {id: 'ID 35.12', nama_daerah: 'KAB. SITUBONDO', nominal: 1000000},
-            {id: 'ID 34.04', nama_daerah: 'KAB. SLEMAN', nominal: 1000000},
-            {id: 'ID 73.12', nama_daerah: 'KAB. SOPPENG', nominal: 1000000},
-            {id: 'ID 92.01', nama_daerah: 'KAB. SORONG', nominal: 1000000},
-            {id: 'ID 33.14', nama_daerah: 'KAB. SRAGEN', nominal: 1000000},
-            {id: 'ID 32.13', nama_daerah: 'KAB. SUBANG', nominal: 1000000},
-            {id: 'ID 32.02', nama_daerah: 'KAB. SUKABUMI', nominal: 1000000},
-            {id: 'ID 33.11', nama_daerah: 'KAB. SUKOHARJO', nominal: 1000000},
-            {id: 'ID 52.04', nama_daerah: 'KAB. SUMBAWA', nominal: 1000000},
-            {id: 'ID 32.11', nama_daerah: 'KAB. SUMEDANG', nominal: 1000000},
-            {id: 'ID 35.29', nama_daerah: 'KAB. SUMENEP', nominal: 1000000},
-            {id: 'ID 63.09', nama_daerah: 'KAB. TABALONG', nominal: 1000000},
-            {id: 'ID 51.02', nama_daerah: 'KAB. TABANAN', nominal: 1000000},
-            {id: 'ID 73.05', nama_daerah: 'KAB. TAKALAR', nominal: 1000000},
-            {id: 'ID 73.18', nama_daerah: 'KAB. TANA TORAJA', nominal: 1000000},
-            {id: 'ID 63.10', nama_daerah: 'KAB. TANAH BUMBU', nominal: 1000000},
-            {id: 'ID 63.01', nama_daerah: 'KAB. TANAH LAUT', nominal: 1000000},
-            {id: 'ID 36.03', nama_daerah: 'KAB. TANGERANG', nominal: 1000000},
-            {id: 'ID 18.06', nama_daerah: 'KAB. TANGGAMUS', nominal: 1000000},
-            {id: 'ID 12.02', nama_daerah: 'KAB. TAPANULI UTARA', nominal: 1000000},
-            {id: 'ID 63.05', nama_daerah: 'KAB. TAPIN', nominal: 1000000},
-            {id: 'ID 32.06', nama_daerah: 'KAB. TASIKMALAYA', nominal: 1000000},
-            {id: 'ID 15.09', nama_daerah: 'KAB. TEBO', nominal: 1000000},
-            {id: 'ID 33.28', nama_daerah: 'KAB. TEGAL', nominal: 1000000},
-            {id: 'ID 33.23', nama_daerah: 'KAB. TEMANGGUNG', nominal: 1000000},
-            {id: 'ID 12.12', nama_daerah: 'KAB. TOBA SAMOSIR', nominal: 1000000},
-            {id: 'ID 73.26', nama_daerah: 'KAB. TORAJA UTARA', nominal: 1000000},
-            {id: 'ID 35.23', nama_daerah: 'KAB. TUBAN', nominal: 1000000},
-            {id: 'ID 18.05', nama_daerah: 'KAB. TULANG BAWANG', nominal: 1000000},
-            {id: 'ID 35.04', nama_daerah: 'KAB. TULUNGAGUNG', nominal: 1000000},
-            {id: 'ID 73.13', nama_daerah: 'KAB. WAJO', nominal: 1000000},
-            {id: 'ID 33.12', nama_daerah: 'KAB. WONOGIRI', nominal: 1000000},
-            {id: 'ID 33.07', nama_daerah: 'KAB. WONOSOBO', nominal: 1000000},
-            {id: 'ID 31.73', nama_daerah: 'KOTA ADM. JAKARTA BARAT', nominal: 1000000},
-            {id: 'ID 31.71', nama_daerah: 'KOTA ADM. JAKARTA PUSAT', nominal: 1000000},
-            {id: 'ID 31.74', nama_daerah: 'KOTA ADM. JAKARTA SELATAN', nominal: 1000000},
-            {id: 'ID 31.75', nama_daerah: 'KOTA ADM. JAKARTA TIMUR', nominal: 1000000},
-            {id: 'ID 31.72', nama_daerah: 'KOTA ADM. JAKARTA UTARA', nominal: 1000000},
-            {id: 'ID 81.71', nama_daerah: 'KOTA AMBON', nominal: 1000000},
-            {id: 'ID 64.71', nama_daerah: 'KOTA BALIKPAPAN', nominal: 1000000},
-            {id: 'ID 11.71', nama_daerah: 'KOTA BANDA ACEH', nominal: 1000000},
-            {id: 'ID 18.71', nama_daerah: 'KOTA BANDAR LAMPUNG', nominal: 1000000},
-            {id: 'ID 32.73', nama_daerah: 'KOTA BANDUNG', nominal: 1000000},
-            {id: 'ID 32.79', nama_daerah: 'KOTA BANJAR', nominal: 1000000},
-            {id: 'ID 63.72', nama_daerah: 'KOTA BANJARBARU', nominal: 1000000},
-            {id: 'ID 63.71', nama_daerah: 'KOTA BANJARMASIN', nominal: 1000000},
-            {id: 'ID 21.71', nama_daerah: 'KOTA BATAM', nominal: 1000000},
-            {id: 'ID 35.79', nama_daerah: 'KOTA BATU', nominal: 1000000},
-            {id: 'ID 74.72', nama_daerah: 'KOTA BAU BAU', nominal: 1000000},
-            {id: 'ID 32.75', nama_daerah: 'KOTA BEKASI', nominal: 1000000},
-            {id: 'ID 17.71', nama_daerah: 'KOTA BENGKULU', nominal: 1000000},
-            {id: 'ID 12.75', nama_daerah: 'KOTA BINJAI', nominal: 1000000},
-            {id: 'ID 71.72', nama_daerah: 'KOTA BITUNG', nominal: 1000000},
-            {id: 'ID 35.72', nama_daerah: 'KOTA BLITAR', nominal: 1000000},
-            {id: 'ID 32.71', nama_daerah: 'KOTA BOGOR', nominal: 1000000},
-            {id: 'ID 64.74', nama_daerah: 'KOTA BONTANG', nominal: 1000000},
-            {id: 'ID 13.75', nama_daerah: 'KOTA BUKITTINGGI', nominal: 1000000},
-            {id: 'ID 36.72', nama_daerah: 'KOTA CILEGON', nominal: 1000000},
-            {id: 'ID 32.77', nama_daerah: 'KOTA CIMAHI', nominal: 1000000},
-            {id: 'ID 32.74', nama_daerah: 'KOTA CIREBON', nominal: 1000000},
-            {id: 'ID 51.71', nama_daerah: 'KOTA DENPASAR', nominal: 1000000},
-            {id: 'ID 32.76', nama_daerah: 'KOTA DEPOK', nominal: 1000000},
-            {id: 'ID 14.72', nama_daerah: 'KOTA DUMAI', nominal: 1000000},
-            {id: 'ID 75.71', nama_daerah: 'KOTA GORONTALO', nominal: 1000000},
-            {id: 'ID 15.71', nama_daerah: 'KOTA JAMBI', nominal: 1000000},
-            {id: 'ID 91.71', nama_daerah: 'KOTA JAYAPURA', nominal: 1000000},
-            {id: 'ID 35.71', nama_daerah: 'KOTA KEDIRI', nominal: 1000000},
-            {id: 'ID 74.71', nama_daerah: 'KOTA KENDARI', nominal: 1000000},
-            {id: 'ID 71.74', nama_daerah: 'KOTA KOTAMOBAGU', nominal: 1000000},
-            {id: 'ID 53.71', nama_daerah: 'KOTA KUPANG', nominal: 1000000},
-            {id: 'ID 11.74', nama_daerah: 'KOTA LANGSA', nominal: 1000000},
-            {id: 'ID 11.73', nama_daerah: 'KOTA LHOKSEUMAWE', nominal: 1000000},
-            {id: 'ID 16.73', nama_daerah: 'KOTA LUBUK LINGGAU', nominal: 1000000},
-            {id: 'ID 35.77', nama_daerah: 'KOTA MADIUN', nominal: 1000000},
-            {id: 'ID 33.71', nama_daerah: 'KOTA MAGELANG', nominal: 1000000},
-            {id: 'ID 73.71', nama_daerah: 'KOTA MAKASSAR', nominal: 1000000},
-            {id: 'ID 35.73', nama_daerah: 'KOTA MALANG', nominal: 1000000},
-            {id: 'ID 71.71', nama_daerah: 'KOTA MANADO', nominal: 1000000},
-            {id: 'ID 52.71', nama_daerah: 'KOTA MATARAM', nominal: 1000000},
-            {id: 'ID 12.71', nama_daerah: 'KOTA MEDAN', nominal: 1000000},
-            {id: 'ID 18.72', nama_daerah: 'KOTA METRO', nominal: 1000000},
-            {id: 'ID 35.76', nama_daerah: 'KOTA MOJOKERTO', nominal: 1000000},
-            {id: 'ID 13.71', nama_daerah: 'KOTA PADANG', nominal: 1000000},
-            {id: 'ID 13.74', nama_daerah: 'KOTA PADANG PANJANG', nominal: 1000000},
-            {id: 'ID 12.77', nama_daerah: 'KOTA PADANG SIDEMPUAN', nominal: 1000000},
-            {id: 'ID 16.72', nama_daerah: 'KOTA PAGAR ALAM', nominal: 1000000},
-            {id: 'ID 62.71', nama_daerah: 'KOTA PALANGKARAYA', nominal: 1000000},
-            {id: 'ID 16.71', nama_daerah: 'KOTA PALEMBANG', nominal: 1000000},
-            {id: 'ID 73.73', nama_daerah: 'KOTA PALOPO', nominal: 1000000},
-            {id: 'ID 72.71', nama_daerah: 'KOTA PALU', nominal: 1000000},
-            {id: 'ID 19.71', nama_daerah: 'KOTA PANGKAL PINANG', nominal: 1000000},
-            {id: 'ID 73.72', nama_daerah: 'KOTA PARE PARE', nominal: 1000000},
-            {id: 'ID 13.77', nama_daerah: 'KOTA PARIAMAN', nominal: 1000000},
-            {id: 'ID 35.75', nama_daerah: 'KOTA PASURUAN', nominal: 1000000},
-            {id: 'ID 13.76', nama_daerah: 'KOTA PAYAKUMBUH', nominal: 1000000},
-            {id: 'ID 33.75', nama_daerah: 'KOTA PEKALONGAN', nominal: 1000000},
-            {id: 'ID 14.71', nama_daerah: 'KOTA PEKANBARU', nominal: 1000000},
-            {id: 'ID 12.72', nama_daerah: 'KOTA PEMATANGSIANTAR', nominal: 1000000},
-            {id: 'ID 61.71', nama_daerah: 'KOTA PONTIANAK', nominal: 1000000},
-            {id: 'ID 16.74', nama_daerah: 'KOTA PRABUMULIH', nominal: 1000000},
-            {id: 'ID 35.74', nama_daerah: 'KOTA PROBOLINGGO', nominal: 1000000},
-            {id: 'ID 33.73', nama_daerah: 'KOTA SALATIGA', nominal: 1000000},
-            {id: 'ID 64.72', nama_daerah: 'KOTA SAMARINDA', nominal: 1000000},
-            {id: 'ID 33.74', nama_daerah: 'KOTA SEMARANG', nominal: 1000000},
-            {id: 'ID 36.73', nama_daerah: 'KOTA SERANG', nominal: 1000000},
-            {id: 'ID 12.73', nama_daerah: 'KOTA SIBOLGA', nominal: 1000000},
-            {id: 'ID 61.72', nama_daerah: 'KOTA SINGKAWANG', nominal: 1000000},
-            {id: 'ID 13.72', nama_daerah: 'KOTA SOLOK', nominal: 1000000},
-            {id: 'ID 92.71', nama_daerah: 'KOTA SORONG', nominal: 1000000},
-            {id: 'ID 32.72', nama_daerah: 'KOTA SUKABUMI', nominal: 1000000},
-            {id: 'ID 15.72', nama_daerah: 'KOTA SUNGAI PENUH', nominal: 1000000},
-            {id: 'ID 35.78', nama_daerah: 'KOTA SURABAYA', nominal: 1000000},
-            {id: 'ID 33.72', nama_daerah: 'KOTA SURAKARTA', nominal: 1000000},
-            {id: 'ID 36.71', nama_daerah: 'KOTA TANGERANG', nominal: 1000000},
-            {id: 'ID 36.74', nama_daerah: 'KOTA TANGERANG SELATAN', nominal: 1000000},
-            {id: 'ID 12.74', nama_daerah: 'KOTA TANJUNG BALAI', nominal: 1000000},
-            {id: 'ID 21.72', nama_daerah: 'KOTA TANJUNG PINANG', nominal: 1000000},
-            {id: 'ID 65.71', nama_daerah: 'KOTA TARAKAN', nominal: 1000000},
-            {id: 'ID 32.78', nama_daerah: 'KOTA TASIKMALAYA', nominal: 1000000},
-            {id: 'ID 12.76', nama_daerah: 'KOTA TEBING TINGGI', nominal: 1000000},
-            {id: 'ID 33.76', nama_daerah: 'KOTA TEGAL', nominal: 1000000},
-            {id: 'ID 82.71', nama_daerah: 'KOTA TERNATE', nominal: 1000000},
-            {id: 'ID 71.73', nama_daerah: 'KOTA TOMOHON', nominal: 1000000},
-            {id: 'ID 34.71', nama_daerah: 'KOTA YOGYAKARTA', nominal: 1000000},
-            {id: 'MYS-00001', nama_daerah: 'Malaysia', nominal: 1000000},
-            {id: 'SIN-01001', nama_daerah: 'Singapore', nominal: 1000000}
+            { id: '1300000', nama_daerah: 'Jakarta', nominal: 7000000 },
+            { id: 'ID 11.16', nama_daerah: 'KAB. ACEH TAMIANG', nominal: 1000000 },
+            { id: 'ID 11.04', nama_daerah: 'KAB. ACEH TENGAH', nominal: 1000000 },
+            { id: 'ID 11.03', nama_daerah: 'KAB. ACEH TIMUR', nominal: 1000000 },
+            { id: 'ID 12.09', nama_daerah: 'KAB. ASAHAN', nominal: 1000000 },
+            { id: 'ID 51.03', nama_daerah: 'KAB. BADUNG', nominal: 5000000 },
+            { id: 'ID 32.04', nama_daerah: 'KAB. BANDUNG', nominal: 1000000 },
+            { id: 'ID 32.17', nama_daerah: 'KAB. BANDUNG BARAT', nominal: 1000000 },
+            { id: 'ID 72.01', nama_daerah: 'KAB. BANGGAI', nominal: 1000000 },
+            { id: 'ID 35.26', nama_daerah: 'KAB. BANGKALAN', nominal: 1000000 },
+            { id: 'ID 33.04', nama_daerah: 'KAB. BANJARNEGARA', nominal: 1000000 },
+            { id: 'ID 73.03', nama_daerah: 'KAB. BANTAENG', nominal: 1000000 },
+            { id: 'ID 34.02', nama_daerah: 'KAB. BANTUL', nominal: 1000000 },
+            { id: 'ID 16.07', nama_daerah: 'KAB. BANYUASIN', nominal: 1000000 },
+            { id: 'ID 33.02', nama_daerah: 'KAB. BANYUMAS', nominal: 1000000 },
+            { id: 'ID 35.10', nama_daerah: 'KAB. BANYUWANGI', nominal: 1000000 },
+            { id: 'ID 73.11', nama_daerah: 'KAB. BARRU', nominal: 1000000 },
+            { id: 'ID 33.25', nama_daerah: 'KAB. BATANG', nominal: 1000000 },
+            { id: 'ID 12.19', nama_daerah: 'KAB. BATU BARA', nominal: 1000000 },
+            { id: 'ID 32.16', nama_daerah: 'KAB. BEKASI', nominal: 1000000 },
+            { id: 'ID 19.02', nama_daerah: 'KAB. BELITUNG', nominal: 1000000 },
+            { id: 'ID 14.03', nama_daerah: 'KAB. BENGKALIS', nominal: 1000000 },
+            { id: 'ID 17.01', nama_daerah: 'KAB. BENGKULU SELATAN', nominal: 1000000 },
+            { id: 'ID 64.03', nama_daerah: 'KAB. BERAU', nominal: 1000000 },
+            { id: 'ID 11.11', nama_daerah: 'KAB. BIREUEN', nominal: 1000000 },
+            { id: 'ID 33.16', nama_daerah: 'KAB. BLORA', nominal: 1000000 },
+            { id: 'ID 32.01', nama_daerah: 'KAB. BOGOR', nominal: 1000000 },
+            { id: 'ID 35.22', nama_daerah: 'KAB. BOJONEGORO', nominal: 1000000 },
+            { id: 'ID 35.11', nama_daerah: 'KAB. BONDOWOSO', nominal: 1000000 },
+            { id: 'ID 73.08', nama_daerah: 'KAB. BONE', nominal: 1000000 },
+            { id: 'ID 33.09', nama_daerah: 'KAB. BOYOLALI', nominal: 1000000 },
+            { id: 'ID 33.29', nama_daerah: 'KAB. BREBES', nominal: 1000000 },
+            { id: 'ID 51.08', nama_daerah: 'KAB. BULELENG', nominal: 1000000 },
+            { id: 'ID 73.02', nama_daerah: 'KAB. BULUKUMBA', nominal: 1000000 },
+            { id: 'ID 65.01', nama_daerah: 'KAB. BULUNGAN', nominal: 1000000 },
+            { id: 'ID 15.08', nama_daerah: 'KAB. BUNGO', nominal: 1000000 },
+            { id: 'ID 32.07', nama_daerah: 'KAB. CIAMIS', nominal: 1000000 },
+            { id: 'ID 32.03', nama_daerah: 'KAB. CIANJUR', nominal: 1000000 },
+            { id: 'ID 33.01', nama_daerah: 'KAB. CILACAP', nominal: 1000000 },
+            { id: 'ID 32.09', nama_daerah: 'KAB. CIREBON', nominal: 1000000 },
+            { id: 'ID 12.07', nama_daerah: 'KAB. DELI SERDANG', nominal: 1000000 },
+            { id: 'ID 33.21', nama_daerah: 'KAB. DEMAK', nominal: 1000000 },
+            { id: 'ID 13.10', nama_daerah: 'KAB. DHARMASRAYA', nominal: 1000000 },
+            { id: 'ID 53.08', nama_daerah: 'KAB. ENDE', nominal: 1000000 },
+            { id: 'ID 73.16', nama_daerah: 'KAB. ENREKANG', nominal: 1000000 },
+            { id: 'ID 32.05', nama_daerah: 'KAB. GARUT', nominal: 1000000 },
+            { id: 'ID 51.04', nama_daerah: 'KAB. GIANYAR', nominal: 1000000 },
+            { id: 'ID 75.01', nama_daerah: 'KAB. GORONTALO', nominal: 1000000 },
+            { id: 'ID 73.06', nama_daerah: 'KAB. GOWA', nominal: 1000000 },
+            { id: 'ID 35.25', nama_daerah: 'KAB. GRESIK', nominal: 1000000 },
+            { id: 'ID 33.15', nama_daerah: 'KAB. GROBOGAN', nominal: 1000000 },
+            { id: 'ID 63.07', nama_daerah: 'KAB. HULU SUNGAI TENGAH', nominal: 1000000 },
+            { id: 'ID 63.08', nama_daerah: 'KAB. HULU SUNGAI UTARA', nominal: 1000000 },
+            { id: 'ID 14.04', nama_daerah: 'KAB. INDRAGIRI HILIR', nominal: 1000000 },
+            { id: 'ID 14.02', nama_daerah: 'KAB. INDRAGIRI HULU', nominal: 1000000 },
+            { id: 'ID 32.12', nama_daerah: 'KAB. INDRAMAYU', nominal: 1000000 },
+            { id: 'ID 91.03', nama_daerah: 'KAB. JAYAPURA', nominal: 1000000 },
+            { id: 'ID 35.09', nama_daerah: 'KAB. JEMBER', nominal: 1000000 },
+            { id: 'ID 51.01', nama_daerah: 'KAB. JEMBRANA', nominal: 1000000 },
+            { id: 'ID 73.04', nama_daerah: 'KAB. JENEPONTO', nominal: 1000000 },
+            { id: 'ID 33.20', nama_daerah: 'KAB. JEPARA', nominal: 1000000 },
+            { id: 'ID 35.17', nama_daerah: 'KAB. JOMBANG', nominal: 1000000 },
+            { id: 'ID 14.01', nama_daerah: 'KAB. KAMPAR', nominal: 1000000 },
+            { id: 'ID 62.03', nama_daerah: 'KAB. KAPUAS', nominal: 1000000 },
+            { id: 'ID 61.06', nama_daerah: 'KAB. KAPUAS HULU', nominal: 1000000 },
+            { id: 'ID 33.13', nama_daerah: 'KAB. KARANGANYAR', nominal: 1000000 },
+            { id: 'ID 32.15', nama_daerah: 'KAB. KARAWANG', nominal: 1000000 },
+            { id: 'ID 12.06', nama_daerah: 'KAB. KARO', nominal: 1000000 },
+            { id: 'ID 33.05', nama_daerah: 'KAB. KEBUMEN', nominal: 1000000 },
+            { id: 'ID 33.24', nama_daerah: 'KAB. KENDAL', nominal: 1000000 },
+            { id: 'ID 17.08', nama_daerah: 'KAB. KEPAHIANG', nominal: 1000000 },
+            { id: 'ID 61.04', nama_daerah: 'KAB. KETAPANG', nominal: 1000000 },
+            { id: 'ID 33.10', nama_daerah: 'KAB. KLATEN', nominal: 1000000 },
+            { id: 'ID 74.01', nama_daerah: 'KAB. KOLAKA', nominal: 1000000 },
+            { id: 'ID 63.02', nama_daerah: 'KAB. KOTABARU', nominal: 1000000 },
+            { id: 'ID 62.01', nama_daerah: 'KAB. KOTAWARINGIN BARAT', nominal: 1000000 },
+            { id: 'ID 62.02', nama_daerah: 'KAB. KOTAWARINGIN TIMUR', nominal: 1000000 },
+            { id: 'ID 61.12', nama_daerah: 'KAB. KUBU RAYA', nominal: 1000000 },
+            { id: 'ID 33.19', nama_daerah: 'KAB. KUDUS', nominal: 1000000 },
+            { id: 'ID 34.01', nama_daerah: 'KAB. KULON PROGO', nominal: 1000000 },
+            { id: 'ID 32.08', nama_daerah: 'KAB. KUNINGAN', nominal: 1000000 },
+            { id: 'ID 64.07', nama_daerah: 'KAB. KUTAI BARAT', nominal: 1000000 },
+            { id: 'ID 64.02', nama_daerah: 'KAB. KUTAI KARTANEGARA', nominal: 1000000 },
+            { id: 'ID 64.08', nama_daerah: 'KAB. KUTAI TIMUR', nominal: 1000000 },
+            { id: 'ID 12.10', nama_daerah: 'KAB. LABUHANBATU', nominal: 1000000 },
+            { id: 'ID 12.23', nama_daerah: 'KAB. LABUHANBATU UTARA', nominal: 1000000 },
+            { id: 'ID 16.04', nama_daerah: 'KAB. LAHAT', nominal: 1000000 },
+            { id: 'ID 35.24', nama_daerah: 'KAB. LAMONGAN', nominal: 1000000 },
+            { id: 'ID 18.04', nama_daerah: 'KAB. LAMPUNG BARAT', nominal: 1000000 },
+            { id: 'ID 18.01', nama_daerah: 'KAB. LAMPUNG SELATAN', nominal: 1000000 },
+            { id: 'ID 18.02', nama_daerah: 'KAB. LAMPUNG TENGAH', nominal: 1000000 },
+            { id: 'ID 18.07', nama_daerah: 'KAB. LAMPUNG TIMUR', nominal: 1000000 },
+            { id: 'ID 18.03', nama_daerah: 'KAB. LAMPUNG UTARA', nominal: 1000000 },
+            { id: 'ID 61.08', nama_daerah: 'KAB. LANDAK', nominal: 1000000 },
+            { id: 'ID 12.05', nama_daerah: 'KAB. LANGKAT', nominal: 1000000 },
+            { id: 'ID 36.02', nama_daerah: 'KAB. LEBAK', nominal: 1000000 },
+            { id: 'ID 52.01', nama_daerah: 'KAB. LOMBOK BARAT', nominal: 1000000 },
+            { id: 'ID 52.02', nama_daerah: 'KAB. LOMBOK TENGAH', nominal: 1000000 },
+            { id: 'ID 52.03', nama_daerah: 'KAB. LOMBOK TIMUR', nominal: 1000000 },
+            { id: 'ID 35.08', nama_daerah: 'KAB. LUMAJANG', nominal: 1000000 },
+            { id: 'ID 73.17', nama_daerah: 'KAB. LUWU', nominal: 1000000 },
+            { id: 'ID 73.24', nama_daerah: 'KAB. LUWU TIMUR', nominal: 1000000 },
+            { id: 'ID 73.22', nama_daerah: 'KAB. LUWU UTARA', nominal: 1000000 },
+            { id: 'ID 35.19', nama_daerah: 'KAB. MADIUN', nominal: 1000000 },
+            { id: 'ID 33.08', nama_daerah: 'KAB. MAGELANG', nominal: 1000000 },
+            { id: 'ID 35.20', nama_daerah: 'KAB. MAGETAN', nominal: 1000000 },
+            { id: 'ID 32.10', nama_daerah: 'KAB. MAJALENGKA', nominal: 1000000 },
+            { id: 'ID 76.05', nama_daerah: 'KAB. MAJENE', nominal: 1000000 },
+            { id: 'ID 35.07', nama_daerah: 'KAB. MALANG', nominal: 1000000 },
+            { id: 'ID 76.02', nama_daerah: 'KAB. MAMUJU', nominal: 1000000 },
+            { id: 'ID 12.13', nama_daerah: 'KAB. MANDAILING NATAL', nominal: 1000000 },
+            { id: 'ID 53.15', nama_daerah: 'KAB. MANGGARAI BARAT', nominal: 1000000 },
+            { id: 'ID 92.02', nama_daerah: 'KAB. MANOKWARI', nominal: 1000000 },
+            { id: 'ID 73.09', nama_daerah: 'KAB. MAROS', nominal: 1000000 },
+            { id: 'ID 61.10', nama_daerah: 'KAB. MELAWI', nominal: 1000000 },
+            { id: 'ID 15.02', nama_daerah: 'KAB. MERANGIN', nominal: 1000000 },
+            { id: 'ID 91.01', nama_daerah: 'KAB. MERAUKE', nominal: 1000000 },
+            { id: 'ID 91.09', nama_daerah: 'KAB. MIMIKA', nominal: 1000000 },
+            { id: 'ID 71.05', nama_daerah: 'KAB. MINAHASA SELATAN', nominal: 1000000 },
+            { id: 'ID 71.06', nama_daerah: 'KAB. MINAHASA UTARA', nominal: 1000000 },
+            { id: 'ID 35.16', nama_daerah: 'KAB. MOJOKERTO', nominal: 1000000 },
+            { id: 'ID 72.06', nama_daerah: 'KAB. MOROWALI', nominal: 1000000 },
+            { id: 'ID 16.03', nama_daerah: 'KAB. MUARA ENIM', nominal: 1000000 },
+            { id: 'ID 16.06', nama_daerah: 'KAB. MUSI BANYUASIN', nominal: 1000000 },
+            { id: 'ID 91.04', nama_daerah: 'KAB. NABIRE', nominal: 1000000 },
+            { id: 'ID 35.18', nama_daerah: 'KAB. NGANJUK', nominal: 1000000 },
+            { id: 'ID 35.21', nama_daerah: 'KAB. NGAWI', nominal: 1000000 },
+            { id: 'ID 16.10', nama_daerah: 'KAB. OGAN ILIR', nominal: 1000000 },
+            { id: 'ID 16.02', nama_daerah: 'KAB. OGAN KOMERING ILIR', nominal: 1000000 },
+            { id: 'ID 16.01', nama_daerah: 'KAB. OGAN KOMERING ULU', nominal: 1000000 },
+            { id: 'ID 16.09', nama_daerah: 'KAB. OGAN KOMERING ULU SELATAN', nominal: 1000000 },
+            { id: 'ID 16.08', nama_daerah: 'KAB. OGAN KOMERING ULU TIMUR', nominal: 1000000 },
+            { id: 'ID 35.01', nama_daerah: 'KAB. PACITAN', nominal: 1000000 },
+            { id: 'ID 35.28', nama_daerah: 'KAB. PAMEKASAN', nominal: 1000000 },
+            { id: 'ID 36.01', nama_daerah: 'KAB. PANDEGLANG', nominal: 1000000 },
+            { id: 'ID 32.18', nama_daerah: 'KAB. PANGANDARAN', nominal: 1000000 },
+            { id: 'ID 73.10', nama_daerah: 'KAB. PANGKAJENE KEPULAUAN', nominal: 1000000 },
+            { id: 'ID 13.12', nama_daerah: 'KAB. PASAMAN BARAT', nominal: 1000000 },
+            { id: 'ID 35.14', nama_daerah: 'KAB. PASURUAN', nominal: 1000000 },
+            { id: 'ID 33.18', nama_daerah: 'KAB. PATI', nominal: 1000000 },
+            { id: 'ID 33.26', nama_daerah: 'KAB. PEKALONGAN', nominal: 1000000 },
+            { id: 'ID 14.05', nama_daerah: 'KAB. PELALAWAN', nominal: 1000000 },
+            { id: 'ID 33.27', nama_daerah: 'KAB. PEMALANG', nominal: 1000000 },
+            { id: 'ID 64.09', nama_daerah: 'KAB. PENAJAM PASER UTARA', nominal: 1000000 },
+            { id: 'ID 18.09', nama_daerah: 'KAB. PESAWARAN', nominal: 1000000 },
+            { id: 'ID 13.01', nama_daerah: 'KAB. PESISIR SELATAN', nominal: 1000000 },
+            { id: 'ID 11.07', nama_daerah: 'KAB. PIDIE', nominal: 1000000 },
+            { id: 'ID 73.15', nama_daerah: 'KAB. PINRANG', nominal: 1000000 },
+            { id: 'ID 76.04', nama_daerah: 'KAB. POLEWALI MANDAR', nominal: 1000000 },
+            { id: 'ID 35.02', nama_daerah: 'KAB. PONOROGO', nominal: 1000000 },
+            { id: 'ID 18.10', nama_daerah: 'KAB. PRINGSEWU', nominal: 1000000 },
+            { id: 'ID 35.13', nama_daerah: 'KAB. PROBOLINGGO', nominal: 1000000 },
+            { id: 'ID 33.03', nama_daerah: 'KAB. PURBALINGGA', nominal: 1000000 },
+            { id: 'ID 32.14', nama_daerah: 'KAB. PURWAKARTA', nominal: 1000000 },
+            { id: 'ID 33.06', nama_daerah: 'KAB. PURWOREJO', nominal: 1000000 },
+            { id: 'ID 17.02', nama_daerah: 'KAB. REJANG LEBONG', nominal: 1000000 },
+            { id: 'ID 33.17', nama_daerah: 'KAB. REMBANG', nominal: 1000000 },
+            { id: 'ID 14.07', nama_daerah: 'KAB. ROKAN HILIR', nominal: 1000000 },
+            { id: 'ID 14.06', nama_daerah: 'KAB. ROKAN HULU', nominal: 1000000 },
+            { id: 'ID 61.03', nama_daerah: 'KAB. SANGGAU', nominal: 1000000 },
+            { id: 'ID 15.03', nama_daerah: 'KAB. SAROLANGUN', nominal: 1000000 },
+            { id: 'ID 33.22', nama_daerah: 'KAB. SEMARANG', nominal: 1000000 },
+            { id: 'ID 36.04', nama_daerah: 'KAB. SERANG', nominal: 1000000 },
+            { id: 'ID 12.18', nama_daerah: 'KAB. SERDANG BEDAGAI', nominal: 1000000 },
+            { id: 'ID 14.08', nama_daerah: 'KAB. SIAK', nominal: 1000000 },
+            { id: 'ID 73.14', nama_daerah: 'KAB. SIDENRENG RAPPANG', nominal: 1000000 },
+            { id: 'ID 35.15', nama_daerah: 'KAB. SIDOARJO', nominal: 1000000 },
+            { id: 'ID 72.10', nama_daerah: 'KAB. SIGI', nominal: 1000000 },
+            { id: 'ID 73.07', nama_daerah: 'KAB. SINJAI', nominal: 1000000 },
+            { id: 'ID 61.05', nama_daerah: 'KAB. SINTANG', nominal: 1000000 },
+            { id: 'ID 35.12', nama_daerah: 'KAB. SITUBONDO', nominal: 1000000 },
+            { id: 'ID 34.04', nama_daerah: 'KAB. SLEMAN', nominal: 1000000 },
+            { id: 'ID 73.12', nama_daerah: 'KAB. SOPPENG', nominal: 1000000 },
+            { id: 'ID 92.01', nama_daerah: 'KAB. SORONG', nominal: 1000000 },
+            { id: 'ID 33.14', nama_daerah: 'KAB. SRAGEN', nominal: 1000000 },
+            { id: 'ID 32.13', nama_daerah: 'KAB. SUBANG', nominal: 1000000 },
+            { id: 'ID 32.02', nama_daerah: 'KAB. SUKABUMI', nominal: 1000000 },
+            { id: 'ID 33.11', nama_daerah: 'KAB. SUKOHARJO', nominal: 1000000 },
+            { id: 'ID 52.04', nama_daerah: 'KAB. SUMBAWA', nominal: 1000000 },
+            { id: 'ID 32.11', nama_daerah: 'KAB. SUMEDANG', nominal: 1000000 },
+            { id: 'ID 35.29', nama_daerah: 'KAB. SUMENEP', nominal: 1000000 },
+            { id: 'ID 63.09', nama_daerah: 'KAB. TABALONG', nominal: 1000000 },
+            { id: 'ID 51.02', nama_daerah: 'KAB. TABANAN', nominal: 1000000 },
+            { id: 'ID 73.05', nama_daerah: 'KAB. TAKALAR', nominal: 1000000 },
+            { id: 'ID 73.18', nama_daerah: 'KAB. TANA TORAJA', nominal: 1000000 },
+            { id: 'ID 63.10', nama_daerah: 'KAB. TANAH BUMBU', nominal: 1000000 },
+            { id: 'ID 63.01', nama_daerah: 'KAB. TANAH LAUT', nominal: 1000000 },
+            { id: 'ID 36.03', nama_daerah: 'KAB. TANGERANG', nominal: 1000000 },
+            { id: 'ID 18.06', nama_daerah: 'KAB. TANGGAMUS', nominal: 1000000 },
+            { id: 'ID 12.02', nama_daerah: 'KAB. TAPANULI UTARA', nominal: 1000000 },
+            { id: 'ID 63.05', nama_daerah: 'KAB. TAPIN', nominal: 1000000 },
+            { id: 'ID 32.06', nama_daerah: 'KAB. TASIKMALAYA', nominal: 1000000 },
+            { id: 'ID 15.09', nama_daerah: 'KAB. TEBO', nominal: 1000000 },
+            { id: 'ID 33.28', nama_daerah: 'KAB. TEGAL', nominal: 1000000 },
+            { id: 'ID 33.23', nama_daerah: 'KAB. TEMANGGUNG', nominal: 1000000 },
+            { id: 'ID 12.12', nama_daerah: 'KAB. TOBA SAMOSIR', nominal: 1000000 },
+            { id: 'ID 73.26', nama_daerah: 'KAB. TORAJA UTARA', nominal: 1000000 },
+            { id: 'ID 35.23', nama_daerah: 'KAB. TUBAN', nominal: 1000000 },
+            { id: 'ID 18.05', nama_daerah: 'KAB. TULANG BAWANG', nominal: 1000000 },
+            { id: 'ID 35.04', nama_daerah: 'KAB. TULUNGAGUNG', nominal: 1000000 },
+            { id: 'ID 73.13', nama_daerah: 'KAB. WAJO', nominal: 1000000 },
+            { id: 'ID 33.12', nama_daerah: 'KAB. WONOGIRI', nominal: 1000000 },
+            { id: 'ID 33.07', nama_daerah: 'KAB. WONOSOBO', nominal: 1000000 },
+            { id: 'ID 31.73', nama_daerah: 'KOTA ADM. JAKARTA BARAT', nominal: 1000000 },
+            { id: 'ID 31.71', nama_daerah: 'KOTA ADM. JAKARTA PUSAT', nominal: 1000000 },
+            { id: 'ID 31.74', nama_daerah: 'KOTA ADM. JAKARTA SELATAN', nominal: 1000000 },
+            { id: 'ID 31.75', nama_daerah: 'KOTA ADM. JAKARTA TIMUR', nominal: 1000000 },
+            { id: 'ID 31.72', nama_daerah: 'KOTA ADM. JAKARTA UTARA', nominal: 1000000 },
+            { id: 'ID 81.71', nama_daerah: 'KOTA AMBON', nominal: 1000000 },
+            { id: 'ID 64.71', nama_daerah: 'KOTA BALIKPAPAN', nominal: 1000000 },
+            { id: 'ID 11.71', nama_daerah: 'KOTA BANDA ACEH', nominal: 1000000 },
+            { id: 'ID 18.71', nama_daerah: 'KOTA BANDAR LAMPUNG', nominal: 1000000 },
+            { id: 'ID 32.73', nama_daerah: 'KOTA BANDUNG', nominal: 1000000 },
+            { id: 'ID 32.79', nama_daerah: 'KOTA BANJAR', nominal: 1000000 },
+            { id: 'ID 63.72', nama_daerah: 'KOTA BANJARBARU', nominal: 1000000 },
+            { id: 'ID 63.71', nama_daerah: 'KOTA BANJARMASIN', nominal: 1000000 },
+            { id: 'ID 21.71', nama_daerah: 'KOTA BATAM', nominal: 1000000 },
+            { id: 'ID 35.79', nama_daerah: 'KOTA BATU', nominal: 1000000 },
+            { id: 'ID 74.72', nama_daerah: 'KOTA BAU BAU', nominal: 1000000 },
+            { id: 'ID 32.75', nama_daerah: 'KOTA BEKASI', nominal: 1000000 },
+            { id: 'ID 17.71', nama_daerah: 'KOTA BENGKULU', nominal: 1000000 },
+            { id: 'ID 12.75', nama_daerah: 'KOTA BINJAI', nominal: 1000000 },
+            { id: 'ID 71.72', nama_daerah: 'KOTA BITUNG', nominal: 1000000 },
+            { id: 'ID 35.72', nama_daerah: 'KOTA BLITAR', nominal: 1000000 },
+            { id: 'ID 32.71', nama_daerah: 'KOTA BOGOR', nominal: 1000000 },
+            { id: 'ID 64.74', nama_daerah: 'KOTA BONTANG', nominal: 1000000 },
+            { id: 'ID 13.75', nama_daerah: 'KOTA BUKITTINGGI', nominal: 1000000 },
+            { id: 'ID 36.72', nama_daerah: 'KOTA CILEGON', nominal: 1000000 },
+            { id: 'ID 32.77', nama_daerah: 'KOTA CIMAHI', nominal: 1000000 },
+            { id: 'ID 32.74', nama_daerah: 'KOTA CIREBON', nominal: 1000000 },
+            { id: 'ID 51.71', nama_daerah: 'KOTA DENPASAR', nominal: 1000000 },
+            { id: 'ID 32.76', nama_daerah: 'KOTA DEPOK', nominal: 1000000 },
+            { id: 'ID 14.72', nama_daerah: 'KOTA DUMAI', nominal: 1000000 },
+            { id: 'ID 75.71', nama_daerah: 'KOTA GORONTALO', nominal: 1000000 },
+            { id: 'ID 15.71', nama_daerah: 'KOTA JAMBI', nominal: 1000000 },
+            { id: 'ID 91.71', nama_daerah: 'KOTA JAYAPURA', nominal: 1000000 },
+            { id: 'ID 35.71', nama_daerah: 'KOTA KEDIRI', nominal: 1000000 },
+            { id: 'ID 74.71', nama_daerah: 'KOTA KENDARI', nominal: 1000000 },
+            { id: 'ID 71.74', nama_daerah: 'KOTA KOTAMOBAGU', nominal: 1000000 },
+            { id: 'ID 53.71', nama_daerah: 'KOTA KUPANG', nominal: 1000000 },
+            { id: 'ID 11.74', nama_daerah: 'KOTA LANGSA', nominal: 1000000 },
+            { id: 'ID 11.73', nama_daerah: 'KOTA LHOKSEUMAWE', nominal: 1000000 },
+            { id: 'ID 16.73', nama_daerah: 'KOTA LUBUK LINGGAU', nominal: 1000000 },
+            { id: 'ID 35.77', nama_daerah: 'KOTA MADIUN', nominal: 1000000 },
+            { id: 'ID 33.71', nama_daerah: 'KOTA MAGELANG', nominal: 1000000 },
+            { id: 'ID 73.71', nama_daerah: 'KOTA MAKASSAR', nominal: 1000000 },
+            { id: 'ID 35.73', nama_daerah: 'KOTA MALANG', nominal: 1000000 },
+            { id: 'ID 71.71', nama_daerah: 'KOTA MANADO', nominal: 1000000 },
+            { id: 'ID 52.71', nama_daerah: 'KOTA MATARAM', nominal: 1000000 },
+            { id: 'ID 12.71', nama_daerah: 'KOTA MEDAN', nominal: 1000000 },
+            { id: 'ID 18.72', nama_daerah: 'KOTA METRO', nominal: 1000000 },
+            { id: 'ID 35.76', nama_daerah: 'KOTA MOJOKERTO', nominal: 1000000 },
+            { id: 'ID 13.71', nama_daerah: 'KOTA PADANG', nominal: 1000000 },
+            { id: 'ID 13.74', nama_daerah: 'KOTA PADANG PANJANG', nominal: 1000000 },
+            { id: 'ID 12.77', nama_daerah: 'KOTA PADANG SIDEMPUAN', nominal: 1000000 },
+            { id: 'ID 16.72', nama_daerah: 'KOTA PAGAR ALAM', nominal: 1000000 },
+            { id: 'ID 62.71', nama_daerah: 'KOTA PALANGKARAYA', nominal: 1000000 },
+            { id: 'ID 16.71', nama_daerah: 'KOTA PALEMBANG', nominal: 1000000 },
+            { id: 'ID 73.73', nama_daerah: 'KOTA PALOPO', nominal: 1000000 },
+            { id: 'ID 72.71', nama_daerah: 'KOTA PALU', nominal: 1000000 },
+            { id: 'ID 19.71', nama_daerah: 'KOTA PANGKAL PINANG', nominal: 1000000 },
+            { id: 'ID 73.72', nama_daerah: 'KOTA PARE PARE', nominal: 1000000 },
+            { id: 'ID 13.77', nama_daerah: 'KOTA PARIAMAN', nominal: 1000000 },
+            { id: 'ID 35.75', nama_daerah: 'KOTA PASURUAN', nominal: 1000000 },
+            { id: 'ID 13.76', nama_daerah: 'KOTA PAYAKUMBUH', nominal: 1000000 },
+            { id: 'ID 33.75', nama_daerah: 'KOTA PEKALONGAN', nominal: 1000000 },
+            { id: 'ID 14.71', nama_daerah: 'KOTA PEKANBARU', nominal: 1000000 },
+            { id: 'ID 12.72', nama_daerah: 'KOTA PEMATANGSIANTAR', nominal: 1000000 },
+            { id: 'ID 61.71', nama_daerah: 'KOTA PONTIANAK', nominal: 1000000 },
+            { id: 'ID 16.74', nama_daerah: 'KOTA PRABUMULIH', nominal: 1000000 },
+            { id: 'ID 35.74', nama_daerah: 'KOTA PROBOLINGGO', nominal: 1000000 },
+            { id: 'ID 33.73', nama_daerah: 'KOTA SALATIGA', nominal: 1000000 },
+            { id: 'ID 64.72', nama_daerah: 'KOTA SAMARINDA', nominal: 1000000 },
+            { id: 'ID 33.74', nama_daerah: 'KOTA SEMARANG', nominal: 1000000 },
+            { id: 'ID 36.73', nama_daerah: 'KOTA SERANG', nominal: 1000000 },
+            { id: 'ID 12.73', nama_daerah: 'KOTA SIBOLGA', nominal: 1000000 },
+            { id: 'ID 61.72', nama_daerah: 'KOTA SINGKAWANG', nominal: 1000000 },
+            { id: 'ID 13.72', nama_daerah: 'KOTA SOLOK', nominal: 1000000 },
+            { id: 'ID 92.71', nama_daerah: 'KOTA SORONG', nominal: 1000000 },
+            { id: 'ID 32.72', nama_daerah: 'KOTA SUKABUMI', nominal: 1000000 },
+            { id: 'ID 15.72', nama_daerah: 'KOTA SUNGAI PENUH', nominal: 1000000 },
+            { id: 'ID 35.78', nama_daerah: 'KOTA SURABAYA', nominal: 1000000 },
+            { id: 'ID 33.72', nama_daerah: 'KOTA SURAKARTA', nominal: 1000000 },
+            { id: 'ID 36.71', nama_daerah: 'KOTA TANGERANG', nominal: 1000000 },
+            { id: 'ID 36.74', nama_daerah: 'KOTA TANGERANG SELATAN', nominal: 1000000 },
+            { id: 'ID 12.74', nama_daerah: 'KOTA TANJUNG BALAI', nominal: 1000000 },
+            { id: 'ID 21.72', nama_daerah: 'KOTA TANJUNG PINANG', nominal: 1000000 },
+            { id: 'ID 65.71', nama_daerah: 'KOTA TARAKAN', nominal: 1000000 },
+            { id: 'ID 32.78', nama_daerah: 'KOTA TASIKMALAYA', nominal: 1000000 },
+            { id: 'ID 12.76', nama_daerah: 'KOTA TEBING TINGGI', nominal: 1000000 },
+            { id: 'ID 33.76', nama_daerah: 'KOTA TEGAL', nominal: 1000000 },
+            { id: 'ID 82.71', nama_daerah: 'KOTA TERNATE', nominal: 1000000 },
+            { id: 'ID 71.73', nama_daerah: 'KOTA TOMOHON', nominal: 1000000 },
+            { id: 'ID 34.71', nama_daerah: 'KOTA YOGYAKARTA', nominal: 1000000 },
+            { id: 'MYS-00001', nama_daerah: 'Malaysia', nominal: 1000000 },
+            { id: 'SIN-01001', nama_daerah: 'Singapore', nominal: 1000000 }
         ];
 
         // Ambil data dari DB (jika ada) atau gunakan default
@@ -2830,7 +3309,7 @@ async function loadSimulasiRegions() {
 
         const select = document.getElementById('simulasiRegion');
         const placeholderText = type === 'UMP' ? '-- Pilih Provinsi --' : '-- Pilih Kota/Kabupaten --';
-        select.innerHTML = `<option value="">${placeholderText}</option>` + 
+        select.innerHTML = `<option value="">${placeholderText}</option>` +
             simulasiAllData.map(r => `<option value="${r.id}">${r.nama_daerah}</option>`).join('');
     } catch (err) { console.error(err); }
 }
@@ -2876,7 +3355,7 @@ function simpanNominalManual() {
         showToast('Masukkan nominal gaji yang valid!', 'error');
         return;
     }
-    
+
     showToast('Nominal Rp ' + inputVal + ' berhasil disimpan untuk simulasi.', 'success');
     // Here you can integrate with backend API if needed to save the user's manual nominal preference
     document.getElementById('inputUmrNominal').value = '';
@@ -2894,7 +3373,7 @@ async function renderManajemenKaryawan(list = null) {
         }
         const tbody = document.getElementById('tabelKaryawanGlobalBody');
         if (!tbody) return;
-        
+
         tbody.innerHTML = list.map(emp => `
             <tr>
                 <td style="font-weight: 600; color: #64748b;">${emp.nik || '-'}</td>
@@ -2927,11 +3406,11 @@ function cariKaryawanGlobalAktif() {
     }
     const filtered = allEmployeesGlobal.filter(emp => {
         return (emp.nama && emp.nama.toLowerCase().includes(q)) ||
-               (emp.nik && emp.nik.toLowerCase().includes(q)) ||
-               (emp.nama_klien && emp.nama_klien.toLowerCase().includes(q)) ||
-               (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
-               (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
-               (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q));
+            (emp.nik && emp.nik.toLowerCase().includes(q)) ||
+            (emp.nama_klien && emp.nama_klien.toLowerCase().includes(q)) ||
+            (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
+            (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
+            (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q));
     });
     renderManajemenKaryawan(filtered);
 }
@@ -2966,25 +3445,25 @@ async function hapusKaryawanGlobal(id) {
 async function renderLogAktivitas() {
     const tableBody = document.getElementById('logAktivitasTableBody');
     if (!tableBody) return;
-    
+
     tableBody.innerHTML = `<tr><td colspan="3" class="text-center">Memuat data...</td></tr>`;
-    
+
     try {
         const res = await fetch(`${API_URL}/logs`);
         if (!res.ok) throw new Error('Gagal mengambil data log');
         const logs = await res.json();
-        
+
         if (logs.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="3" class="text-center" style="font-style: italic; color: #888;">Belum ada log aktivitas.</td></tr>`;
             return;
         }
-        
+
         tableBody.innerHTML = logs.map(log => {
             const dateStr = log.created_at ? new Date(log.created_at).toLocaleString('id-ID', {
                 dateStyle: 'medium',
                 timeStyle: 'short'
             }) : '-';
-            
+
             return `
                 <tr>
                     <td style="font-weight: 500; color: #1e293b;">${log.action || '-'}</td>
@@ -3004,4 +3483,6 @@ window.cariKaryawanGlobalAktif = cariKaryawanGlobalAktif;
 window.bukaModalKaryawanGlobal = bukaModalKaryawanGlobal;
 window.bukaModalKaryawanGlobalEdit = bukaModalKaryawanGlobalEdit;
 window.hapusKaryawanGlobal = hapusKaryawanGlobal;
-window.renderLogAktivitas = renderLogAktivitas;
+window.renderLogAktivitas = renderLogAktivitas;
+window.togglePayrollSubmenu = togglePayrollSubmenu;
+window.switchPayrollSub = switchPayrollSub;
