@@ -46,9 +46,6 @@
             <li id="menuMasterKompensasi" onclick="switchView('masterKompensasi')">
                 <i class="fas fa-coins"></i> <span>Master Skema Kompensasi</span>
             </li>
-            <li id="menuLogAktivitas" onclick="switchView('logAktivitas')">
-                <i class="fas fa-history"></i> <span>Log Aktivitas</span>
-            </li>
         </ul>
     </div>
 
@@ -99,12 +96,7 @@
                     </div>
                 </div>
 
-                <div class="content-card" style="margin-top: 30px;">
-                    <h3 style="font-size: 16px; margin-bottom: 20px; font-weight: 700; color: #1e293b;">Aktivitas Terbaru</h3>
-                    <div id="latestActivitiesContainer" style="display: flex; flex-direction: column; gap: 16px;">
-                        <p style="color: var(--text-muted); font-size: 14px;">Memuat aktivitas terbaru...</p>
-                    </div>
-                </div>
+
             </div>
 
             <!-- Section: Klien -->
@@ -730,34 +722,7 @@
             </div>
         </div>
 
-        <!-- Section: Log Aktivitas -->
-        <div id="viewLogAktivitas" class="view-section">
-            <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
-                <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
-                    <div>
-                        <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Log Aktivitas</h3>
-                        <p style="color: #64748b; font-size: 13px; margin: 0;">Riwayat tindakan yang dilakukan pada sistem.</p>
-                    </div>
-                </div>
-
-                <div class="table-responsive" style="overflow-x: auto;">
-                    <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid #e2e8f0;">
-                                <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 13px;">TINDAKAN / AKTIVITAS</th>
-                                <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 13px; width: 180px;">PENGGUNA</th>
-                                <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 13px; width: 220px;">WAKTU DIAKTIFKAN</th>
-                            </tr>
-                        </thead>
-                        <tbody id="logAktivitasTableBody">
-                            <!-- Logs will be dynamically rendered here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
+</div>
 
     <!-- Modal Slip Gaji -->
     <div id="overlay" onclick="tutupSemuaModal()"></div>

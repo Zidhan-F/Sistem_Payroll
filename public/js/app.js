@@ -150,35 +150,7 @@ async function updateDashboardStats() {
             document.getElementById('statTotalDivisi').innerText = od.length || 0;
         }
 
-        // Fetch and display latest activities (top 5)
-        const rl = await fetch(`${API_URL}/logs`);
-        if (rl.ok) {
-            const logs = await rl.json();
-            const container = document.getElementById('latestActivitiesContainer');
-            if (container) {
-                if (logs.length === 0) {
-                    container.innerHTML = `<p style="color: var(--text-muted); font-size: 13px; font-style: italic; margin: 0;">Belum ada aktivitas terbaru.</p>`;
-                } else {
-                    const latestLogs = logs.slice(0, 5); // get top 5
-                    container.innerHTML = latestLogs.map(log => {
-                        const timeAgo = formatTimeAgo(log.created_at);
-                        return `
-                            <div style="display: flex; gap: 12px; align-items: flex-start; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
-                                <div style="width: 32px; height: 32px; background: rgba(52,152,219,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                    <i class="fas fa-history" style="font-size: 14px; color: #3498db;"></i>
-                                </div>
-                                <div style="flex: 1;">
-                                    <p style="margin: 0; font-size: 13px; font-weight: 600; color: #1e293b;">${log.action || '-'}</p>
-                                    <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">
-                                        Oleh <span style="font-weight: 600; color: #64748b;">${log.user_action || '-'}</span> &bull; ${timeAgo}
-                                    </p>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            }
-        }
+
     } catch (err) {
         console.error('Error updating dashboard stats:', err);
     }

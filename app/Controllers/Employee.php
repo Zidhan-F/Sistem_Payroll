@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\EmployeeModel;
+use App\Models\SystemLogModel;
 use CodeIgniter\RESTful\ResourceController;
 
 class Employee extends ResourceController
@@ -48,6 +49,9 @@ class Employee extends ResourceController
             ];
             $contractModel->insert($contractData);
 
+            $logModel = new SystemLogModel();
+            $logModel->logAction('CREATE_EMPLOYEE', 'Menambahkan data karyawan baru bernama ' . ($data['nama'] ?? 'Unknown'), $data['client_id'] ?? null, session()->get('user_id') ?? 1);
+
             return $this->respondCreated($data);
         }
         return $this->fail($this->model->errors());
@@ -66,6 +70,10 @@ class Employee extends ResourceController
                     $contractModel->update($contract['id'], ['gaji_pokok' => $data['gaji_pokok']]);
                 }
             }
+            
+            $emp = $this->model->find($id);
+            $logModel = new SystemLogModel();
+            $logModel->logAction('UPDATE_EMPLOYEE', 'Memperbarui data karyawan bernama ' . ($emp['nama'] ?? 'ID '.$id), $emp['client_id'] ?? null, session()->get('user_id') ?? 1);
 
             return $this->respond($data);
         }
@@ -74,7 +82,10 @@ class Employee extends ResourceController
 
     public function delete($id = null)
     {
-        if ($this->model->delete($id)) {
+        $emp = $this->model->find($id);
+        if ($emp && $this->model->delete($id)) {
+            $logModel = new SystemLogModel();
+            $logModel->logAction('DELETE_EMPLOYEE', 'Menghapus data karyawan bernama ' . ($emp['nama'] ?? 'ID '.$id), $emp['client_id'] ?? null, session()->get('user_id') ?? 1);
             return $this->respondDeleted(['id' => $id]);
         }
         return $this->failNotFound();
