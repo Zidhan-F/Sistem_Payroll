@@ -1,4 +1,21 @@
 let workLocations = [];
+let nextWorkLocationId = 1;
+
+async function fetchNextWorkLocationId() {
+    try {
+        const r = await fetch('/api/work-locations');
+        const data = await r.json();
+        if (data && data.length > 0) {
+            const maxId = Math.max(...data.map(l => parseInt(l.id) || 0));
+            nextWorkLocationId = maxId + 1;
+        } else {
+            nextWorkLocationId = 1;
+        }
+    } catch (e) {
+        console.error(e);
+        nextWorkLocationId = 1;
+    }
+}
 
 function switchClientKaryawanSubTab(tab) {
     document.querySelectorAll('.client-karyawan-subpanel').forEach(p => p.style.display = 'none');
@@ -136,6 +153,7 @@ function bukaModalLokasiKerja() {
     document.getElementById('modalLokasiKerjaTitle').innerText = 'Tambah Lokasi Kerja';
     
     resetCascadingSelects();
+    fetchNextWorkLocationId();
 }
 
 function tutupModalLokasiKerja() {
@@ -241,6 +259,31 @@ document.getElementById('locDepartmentId')?.addEventListener('change', async (e)
     } catch (err) {
         console.error(err);
     }
+});
+
+document.getElementById('locName')?.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (!val) {
+        document.getElementById('locCode').value = '';
+        return;
+    }
+    const words = val.trim().split(/\s+/);
+    const initials = words
+        .map(w => w.replace(/[^a-zA-Z0-9]/g, '').charAt(0).toUpperCase())
+        .filter(c => c !== '')
+        .join('');
+    
+    let id = document.getElementById('workLocationId').value;
+    if (!id) {
+        if (nextWorkLocationId) {
+            id = nextWorkLocationId;
+        } else if (workLocations && workLocations.length > 0) {
+            id = Math.max(...workLocations.map(l => parseInt(l.id) || 0)) + 1;
+        } else {
+            id = 1;
+        }
+    }
+    document.getElementById('locCode').value = initials + id;
 });
 
 async function editLokasiKerja(id) {

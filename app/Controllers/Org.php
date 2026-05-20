@@ -20,7 +20,9 @@ class Org extends ResourceController
         $empModel = new \App\Models\EmployeeModel();
 
         if (!$clientId) {
-            $divisions = $divModel->findAll();
+            $divisions = $divModel->select('divisions.*')
+                                  ->join('clients', 'clients.id = divisions.client_id')
+                                  ->findAll();
             return $this->respond($divisions);
         }
         // Ambil Divisi

@@ -1665,6 +1665,7 @@
                 <button type="submit" class="btn-save" style="background: var(--primary-color);">Simpan Data</button>
             </div>
         </form>
+    </div>
 
     <!-- Modal Skema Kompensasi (Master) -->
     <div id="modalSkemaKompensasi" class="modal-skema" style="display: none;">
