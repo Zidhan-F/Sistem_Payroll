@@ -206,6 +206,53 @@ function switchPayrollSubTab(tab) {
     }
 }
 
+let currentPayrollSub = 'setting'; // Default payroll sub menu
+
+function togglePayrollSubmenu(openOnly = false) {
+    const submenu = document.getElementById('submenuPayroll');
+    const arrow = document.querySelector('#menuPayroll .submenu-arrow');
+    if (!submenu) return;
+
+    const isHidden = submenu.style.display === 'none';
+    if (openOnly) {
+        submenu.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+        if (isHidden) {
+            submenu.style.display = 'block';
+            if (arrow) arrow.style.transform = 'rotate(180deg)';
+        } else {
+            submenu.style.display = 'none';
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+    }
+}
+
+function switchPayrollSub(sub) {
+    currentPayrollSub = sub;
+
+    // Toggle active classes on submenu elements
+    document.querySelectorAll('.sidebar-submenu li').forEach(el => el.classList.remove('active'));
+
+    // Make sure parent menu is active and open
+    const parentMenu = document.getElementById('menuPayroll');
+    if (parentMenu) parentMenu.classList.add('active');
+    togglePayrollSubmenu(true);
+
+    const subItem = document.getElementById('submenu_' + sub);
+    if (subItem) subItem.classList.add('active');
+
+    if (sub === 'uploadUmr') {
+        switchView('payroll');
+        switchPayrollSubTab('umr');
+    } else if (sub === 'kompensasi') {
+        switchView('masterKompensasi');
+    } else if (sub === 'setting') {
+        switchView('payroll');
+        switchPayrollSubTab('skema');
+    }
+}
+
 function switchView(view) {
     // Auto-close any open modals when switching views
     tutupSemuaModal();
@@ -262,6 +309,23 @@ function switchView(view) {
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Payroll System';
 
+    // Highlight and expand parent menu if we are in one of the payroll submenus
+    if (view === 'payroll' || view === 'masterKompensasi') {
+        const parentMenu = document.getElementById('menuPayroll');
+        if (parentMenu) parentMenu.classList.add('active');
+        togglePayrollSubmenu(true);
+        const subItem = document.getElementById('submenu_' + currentPayrollSub);
+        if (subItem) subItem.classList.add('active');
+    } else {
+        // Collapse submenu if switching to another section
+        const submenu = document.getElementById('submenuPayroll');
+        const arrow = document.querySelector('#menuPayroll .submenu-arrow');
+        if (submenu) {
+            submenu.style.display = 'none';
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+    }
+
     // Auto-collapse sidebar after clicking a menu item
     const sidebar = document.querySelector('.sidebar');
     if (sidebar && !sidebar.classList.contains('collapsed')) {
@@ -275,7 +339,13 @@ function switchView(view) {
     if (view === 'klien') renderTable();
     if (view === 'manajemenKaryawan') renderManajemenKaryawan();
     if (view === 'globalLokasiKerja') { if (typeof loadGlobalWorkLocations === 'function') loadGlobalWorkLocations(); }
-    if (view === 'payroll') switchPayrollSubTab('skema');
+    if (view === 'payroll') {
+        if (currentPayrollSub === 'uploadUmr') {
+            switchPayrollSubTab('umr');
+        } else {
+            switchPayrollSubTab('skema');
+        }
+    }
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
     if (view === 'logAktivitas') renderLogAktivitas();
@@ -557,16 +627,45 @@ window.filterKaryawan = filterKaryawan;
 // ===== 3. PAYROLL SCHEMES =====
 async function renderPayrollSchemes() {
     try {
+        if (!window.compensationSchemes) {
+            const compRes = await fetch(`${API_URL}/compensation-schemes`);
+            window.compensationSchemes = await compRes.json();
+        }
         const res = await fetch(`${API_URL}/payroll-schemes`);
         payrollSchemes = await res.json();
         const container = document.getElementById('payrollSchemesContainer');
         if(!container) return;
-        container.innerHTML = payrollSchemes.map(scheme => `
+        container.innerHTML = payrollSchemes.map(scheme => {
+            const basic = scheme.components ? scheme.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok')) : null;
+            let basicDetails = 'Belum dikonfigurasi';
+            if (basic) {
+                if (basic.sumber_nilai === 'ump') {
+                    basicDetails = `UMP (${basic.nilai}%)`;
+                } else if (basic.sumber_nilai === 'umk') {
+                    basicDetails = `UMK (${basic.nilai}%)`;
+                } else if (basic.sumber_nilai === 'kompensasi') {
+                    basicDetails = `Ambil dari Kompensasi (${basic.nilai}%)`;
+                } else {
+                    basicDetails = formatRupiah(basic.nilai);
+                }
+            }
+
+            const compScheme = window.compensationSchemes ? window.compensationSchemes.find(cs => cs.id == scheme.compensation_scheme_id) : null;
+            const compName = compScheme ? compScheme.nama : 'Tidak terhubung';
+
+            const absenceDetails = `Prorate: ${scheme.prorate == 1 ? 'Ya' : 'Tidak'} | Absen Tidak Potong Gaji: ${scheme.absen_tidak_potong == 1 ? 'Ya' : 'Tidak'} | Potongan: ${formatRupiah(scheme.nominal_potongan || 0)}/hari`;
+
+            return `
             <div class="scheme-card">
                 <div class="scheme-card-header">
                     <div class="scheme-card-info">
                         <h4><i class="fas fa-file-invoice-dollar"></i> ${scheme.nama}</h4>
-                        <div class="scheme-card-desc">${scheme.deskripsi || 'Tidak ada deskripsi'}</div>
+                            <div class="scheme-card-desc" style="margin-bottom: 8px;">${scheme.deskripsi || 'Tidak ada deskripsi'}</div>
+                            <div style="font-size: 12px; color: #475569; display: grid; gap: 4px; border-top: 1px solid #f1f5f9; padding-top: 8px;">
+                                <div><strong>Gaji Pokok:</strong> ${basicDetails}</div>
+                                <div><strong>Skema Kompensasi:</strong> ${compName}</div>
+                                <div><strong>Skema Absen:</strong> ${absenceDetails}</div>
+                            </div>
                     </div>
                     <div class="scheme-card-actions">
                         <button class="btn-icon btn-edit" onclick="bukaModalSkema('edit', ${scheme.id})"><i class="fas fa-edit"></i></button>
@@ -574,7 +673,8 @@ async function renderPayrollSchemes() {
                     </div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     } catch (err) { console.error(err); }
 }
 
@@ -1060,10 +1160,40 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('formSkema').addEventListener('submit', async (e) => {
             e.preventDefault();
             const id = document.getElementById('skemaId').value;
+            
+            // Gather selected compensation components
+            const selectedComponents = [];
+            document.querySelectorAll('.skema-comp-checkbox:checked').forEach(cb => {
+                try {
+                    const comp = JSON.parse(decodeURIComponent(cb.getAttribute('data-comp')));
+                    selectedComponents.push({
+                        nama: comp.nama,
+                        tipe: comp.tipe,
+                        nilai: parseFloat(comp.nilai) || 0,
+                        is_persentase: comp.is_persentase,
+                        jenis_komponen: 'kompensasi',
+                        sumber_nilai: comp.sumber_nilai || 'nominal',
+                        periode: comp.periode || 'bulan',
+                        sifat_kompensasi: comp.sifat_kompensasi || 'tetap'
+                    });
+                } catch (err) {
+                    console.error('Error parsing checkbox data-comp:', err);
+                }
+            });
+
             const data = {
                 nama: document.getElementById('skemaNama').value,
                 deskripsi: document.getElementById('skemaDeskripsi').value,
-                tipe: document.getElementById('skemaTipe').value
+                tipe: document.getElementById('skemaTipe').value,
+                compensation_scheme_id: null,
+                components: selectedComponents,
+                prorate: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'prorate') ? 1 : 0,
+                absen_tidak_potong: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'tidak_potong') ? 1 : 0,
+                nominal_potongan: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'potong_nominal') ? (parseFloat(document.getElementById('skemaNominalPotongan').value) || 0) : 0,
+                sumber_nilai: document.getElementById('skemaSumber').value,
+                periode: document.getElementById('skemaPeriode').value,
+                nilai: parseFloat(document.getElementById('skemaNilai').value) || 0,
+                is_persentase: parseInt(document.getElementById('skemaIsPersentase').value) || 0
             };
             const url = id ? `${API_URL}/payroll-schemes/${id}` : `${API_URL}/payroll-schemes`;
             const res = await fetch(url, {
@@ -1129,7 +1259,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 sumber_nilai: document.getElementById('skemaKompensasiSumber').value,
                 nilai: parseFloat(document.getElementById('skemaKompensasiNilai').value) || 0,
                 periode: document.getElementById('skemaKompensasiPeriode').value,
-                is_persentase: parseInt(document.getElementById('skemaKompensasiIsPersentase').value) || 0
+                is_persentase: parseInt(document.getElementById('skemaKompensasiIsPersentase').value) || 0,
+                sifat_kompensasi: document.getElementById('skemaKompensasiSifat').value
             };
             const url = id ? `${API_URL}/compensation-schemes/${id}` : `${API_URL}/compensation-schemes`;
             const res = await fetch(url, {
@@ -1523,13 +1654,23 @@ async function renderMasterKompensasi() {
                 }
             }
 
+            let sifatDisplay = '';
+            if (comp) {
+                sifatDisplay = comp.sifat_kompensasi === 'tidak_tetap' ? 'Kompensasi Tidak Tetap' : 'Kompensasi Tetap';
+            }
+
             return `
                 <tr id="comp-scheme-row-${scheme.id}" style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s;">
                     <td style="text-align: center; padding: 16px; color: #475569;">${index + 1}</td>
                     <td style="padding: 16px; font-weight: 600; color: #1e293b;">
+                        <div style="display: flex; flex-direction: column;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i class="fas fa-coins" style="color: #10b981;"></i>
                             ${scheme.nama}
+                        </div>
+                            <span style="font-size: 11px; color: #64748b; font-weight: normal; margin-left: 22px; margin-top: 4px;">
+                                ${sifatDisplay}
+                            </span>
                         </div>
                     </td>
                     <td style="text-align: center; padding: 16px; font-weight: 600; color: #1e293b;">${nilaiDisplay}</td>
@@ -1588,6 +1729,37 @@ function handleSchemeSumberNilaiChange() {
     }
 }
 
+window.handlePayrollSchemeSumberNilaiChange = function() {
+    const sumber = document.getElementById('skemaSumber').value;
+    const labelNilai = document.getElementById('labelNilaiSkemaPayroll');
+    const inputNilai = document.getElementById('skemaNilai');
+    const isPersentase = document.getElementById('skemaIsPersentase');
+    const selectPeriode = document.getElementById('skemaPeriode');
+
+    if (sumber === 'ump' || sumber === 'umk') {
+        if (isPersentase) isPersentase.value = '1';
+        if (labelNilai) labelNilai.innerText = `Nilai Persentase (%) dari ${sumber.toUpperCase()}`;
+        if (inputNilai) {
+            inputNilai.placeholder = 'Contoh: 100';
+            if (inputNilai.value === '') inputNilai.value = '100';
+        }
+        if (selectPeriode) {
+            selectPeriode.value = 'bulan';
+            selectPeriode.disabled = true;
+        }
+    } else {
+        if (isPersentase) isPersentase.value = '0';
+        if (labelNilai) labelNilai.innerText = 'Nominal Custom (Rp)';
+        if (inputNilai) {
+            inputNilai.placeholder = 'Contoh: 5000000';
+            if (inputNilai.value === '100') inputNilai.value = '';
+        }
+        if (selectPeriode) {
+            selectPeriode.disabled = false;
+        }
+    }
+}
+
 function bukaModalSkemaKompensasi(mode, id = null) {
     document.getElementById('modalSkemaKompensasi').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
@@ -1605,11 +1777,13 @@ function bukaModalSkemaKompensasi(mode, id = null) {
                 document.getElementById('skemaKompensasiPeriode').value = comp.periode || 'bulan';
                 document.getElementById('skemaKompensasiNilai').value = comp.nilai || '0';
                 document.getElementById('skemaKompensasiIsPersentase').value = comp.is_persentase || '0';
+                document.getElementById('skemaKompensasiSifat').value = comp.sifat_kompensasi || 'tetap';
             } else {
                 document.getElementById('skemaKompensasiSumber').value = 'nominal';
                 document.getElementById('skemaKompensasiPeriode').value = 'bulan';
                 document.getElementById('skemaKompensasiNilai').value = '0';
                 document.getElementById('skemaKompensasiIsPersentase').value = '0';
+                document.getElementById('skemaKompensasiSifat').value = 'tetap';
             }
             handleSchemeSumberNilaiChange();
         }
@@ -1617,12 +1791,13 @@ function bukaModalSkemaKompensasi(mode, id = null) {
         document.getElementById('modalSkemaKompensasiTitle').innerText = 'Tambah Skema Kompensasi';
         document.getElementById('formSkemaKompensasi').reset();
         document.getElementById('skemaKompensasiId').value = '';
-        document.getElementById('skemaKompensasiNama').value = 'Basic Salary';
+        document.getElementById('skemaKompensasiNama').value = '';
         document.getElementById('skemaKompensasiDeskripsi').value = '';
         document.getElementById('skemaKompensasiSumber').value = 'nominal';
         document.getElementById('skemaKompensasiPeriode').value = 'bulan';
         document.getElementById('skemaKompensasiNilai').value = '';
         document.getElementById('skemaKompensasiIsPersentase').value = '0';
+        document.getElementById('skemaKompensasiSifat').value = 'tetap';
         handleSchemeSumberNilaiChange();
     }
 }
@@ -1852,9 +2027,22 @@ Object.assign(window, {
     handleJenisKomponenChange, handleSumberNilaiChange
 });
 
-function bukaModalSkema(mode, id = null) {
+async function bukaModalSkema(mode, id = null) {
     document.getElementById('modalSkema').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
+
+    try {
+        const compRes = await fetch(`${API_URL}/compensation-schemes`);
+        window.compensationSchemes = await compRes.json();
+    } catch (err) {
+        console.error('Error fetching compensation schemes in bukaModalSkema:', err);
+    }
+
+    const tetapBody = document.getElementById('tabelKompensasiTetapBody');
+    const tidakTetapBody = document.getElementById('tabelKompensasiTidakTetapBody');
+    if (tetapBody) tetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
+    if (tidakTetapBody) tidakTetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
+
     if(mode === 'edit' && id) {
         const s = payrollSchemes.find(x => x.id == id);
         if(s) {
@@ -1863,13 +2051,297 @@ function bukaModalSkema(mode, id = null) {
             document.getElementById('skemaNama').value = s.nama;
             document.getElementById('skemaDeskripsi').value = s.deskripsi;
             document.getElementById('skemaTipe').value = s.tipe;
+            
+            // Set absence radio buttons and nominal
+            const radioProrate = document.querySelector('input[name="skemaAbsenRule"][value="prorate"]');
+            const radioTidakPotong = document.querySelector('input[name="skemaAbsenRule"][value="tidak_potong"]');
+            const radioPotongNominal = document.querySelector('input[name="skemaAbsenRule"][value="potong_nominal"]');
+
+            if (radioProrate) radioProrate.checked = false;
+            if (radioTidakPotong) radioTidakPotong.checked = false;
+            if (radioPotongNominal) radioPotongNominal.checked = false;
+            document.getElementById('skemaNominalPotongan').value = '';
+
+            if (s.prorate == 1) {
+                if (radioProrate) radioProrate.checked = true;
+            } else if (s.absen_tidak_potong == 1) {
+                if (radioTidakPotong) radioTidakPotong.checked = true;
+            } else if (s.nominal_potongan > 0) {
+                if (radioPotongNominal) radioPotongNominal.checked = true;
+                document.getElementById('skemaNominalPotongan').value = s.nominal_potongan;
+            }
+            handleSkemaAbsenRuleChange();
+
+            // Find basic salary component
+            const basic = s.components ? s.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok')) : null;
+            if (basic) {
+                document.getElementById('skemaSumber').value = basic.sumber_nilai || 'nominal';
+                document.getElementById('skemaPeriode').value = basic.periode || 'bulan';
+                document.getElementById('skemaNilai').value = basic.nilai || 0;
+                document.getElementById('skemaIsPersentase').value = basic.is_persentase || '0';
+            } else {
+                document.getElementById('skemaSumber').value = 'nominal';
+                document.getElementById('skemaPeriode').value = 'bulan';
+                document.getElementById('skemaNilai').value = 0;
+                document.getElementById('skemaIsPersentase').value = '0';
+            }
+            handlePayrollSchemeSumberNilaiChange();
+
+            const savedComponents = s.components || [];
+
+            const fixedSaved = savedComponents.filter(c => c.jenis_komponen !== 'basic_salary' && c.sifat_kompensasi === 'tetap');
+            const variableSaved = savedComponents.filter(c => c.jenis_komponen !== 'basic_salary' && c.sifat_kompensasi === 'tidak_tetap');
+
+            if (fixedSaved.length > 0 && tetapBody) {
+                tetapBody.innerHTML = fixedSaved.map(c => {
+                    let valStr = '';
+                    if (c.sumber_nilai === 'ump') {
+                        valStr = `${c.nilai}% UMP`;
+                    } else if (c.sumber_nilai === 'umk') {
+                        valStr = `${c.nilai}% UMK`;
+                    } else if (c.sumber_nilai === 'ump_umk') {
+                        valStr = `${c.nilai}% UMP/UMK`;
+                    } else {
+                        valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                    }
+                    const dataAttr = encodeURIComponent(JSON.stringify(c));
+                    return `
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px 12px; font-size: 13px; color: #334155; text-align: left; display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" class="skema-comp-checkbox" checked data-comp="${dataAttr}" style="cursor: pointer; width: 16px; height: 16px;">
+                                <div><span style="font-weight: 500;">${c.nama}</span></div>
+                            </td>
+                            <td style="padding: 10px 12px; font-size: 13px; color: #1e293b; font-weight: 600; text-align: right; vertical-align: middle;">${valStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            if (variableSaved.length > 0 && tidakTetapBody) {
+                tidakTetapBody.innerHTML = variableSaved.map(c => {
+                    let valStr = '';
+                    if (c.sumber_nilai === 'ump') {
+                        valStr = `${c.nilai}% UMP`;
+                    } else if (c.sumber_nilai === 'umk') {
+                        valStr = `${c.nilai}% UMK`;
+                    } else if (c.sumber_nilai === 'ump_umk') {
+                        valStr = `${c.nilai}% UMP/UMK`;
+                    } else {
+                        valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                    }
+                    const dataAttr = encodeURIComponent(JSON.stringify(c));
+                    return `
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px 12px; font-size: 13px; color: #334155; text-align: left; display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" class="skema-comp-checkbox" checked data-comp="${dataAttr}" style="cursor: pointer; width: 16px; height: 16px;">
+                                <div><span style="font-weight: 500;">${c.nama}</span></div>
+                            </td>
+                            <td style="padding: 10px 12px; font-size: 13px; color: #1e293b; font-weight: 600; text-align: right; vertical-align: middle;">${valStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
         }
     } else {
         document.getElementById('modalSkemaTitle').innerText = 'Tambah Skema Payroll';
         document.getElementById('formSkema').reset();
         document.getElementById('skemaId').value = '';
+        const radioProrate = document.querySelector('input[name="skemaAbsenRule"][value="prorate"]');
+        const radioTidakPotong = document.querySelector('input[name="skemaAbsenRule"][value="tidak_potong"]');
+        const radioPotongNominal = document.querySelector('input[name="skemaAbsenRule"][value="potong_nominal"]');
+        if (radioProrate) radioProrate.checked = false;
+        if (radioTidakPotong) radioTidakPotong.checked = false;
+        if (radioPotongNominal) radioPotongNominal.checked = false;
+        document.getElementById('skemaNominalPotongan').value = '';
+        handleSkemaAbsenRuleChange();
+        document.getElementById('skemaSumber').value = 'nominal';
+        document.getElementById('skemaPeriode').value = 'bulan';
+        document.getElementById('skemaNilai').value = '';
+        document.getElementById('skemaIsPersentase').value = '0';
+        handlePayrollSchemeSumberNilaiChange();
     }
 }
+
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+});
+
+function formatRupiahVal(val) {
+    return rupiahFormatter.format(val);
+}
+
+function bukaModalPilihSkema(sifat) {
+    window.activePilihSkemaSifat = sifat;
+    
+    const titleEl = document.getElementById('modalPilihSkemaTitle');
+    const bodyEl = document.getElementById('modalPilihSkemaBody');
+    if (!titleEl || !bodyEl) return;
+
+    titleEl.innerText = sifat === 'tetap' ? 'Pilih Skema Kompensasi Tetap' : 'Pilih Skema Kompensasi Tidak Tetap';
+
+    const filteredSchemes = (window.compensationSchemes || []).filter(s => 
+        (s.components || []).some(c => c.sifat_kompensasi === sifat)
+    );
+
+    if (filteredSchemes.length === 0) {
+        bodyEl.innerHTML = `<tr><td colspan="3" style="padding: 15px; text-align: center; color: #64748b;">Tidak ada skema kompensasi tersedia</td></tr>`;
+    } else {
+        const mainCompNames = Array.from(document.querySelectorAll(`#tabelKompensasi${sifat === 'tetap' ? 'Tetap' : 'TidakTetap'}Body .skema-comp-checkbox`))
+            .map(cb => {
+                try {
+                    return JSON.parse(decodeURIComponent(cb.getAttribute('data-comp'))).nama;
+                } catch (e) {
+                    return null;
+                }
+            }).filter(Boolean);
+
+        bodyEl.innerHTML = filteredSchemes.map(s => {
+            const compsList = (s.components || []).filter(c => c.sifat_kompensasi === sifat).map(c => {
+                let valStr = '';
+                if (c.sumber_nilai === 'ump') {
+                    valStr = `${c.nilai}% UMP`;
+                } else if (c.sumber_nilai === 'umk') {
+                    valStr = `${c.nilai}% UMK`;
+                } else if (c.sumber_nilai === 'ump_umk') {
+                    valStr = `${c.nilai}% UMP/UMK`;
+                } else {
+                    valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                }
+                return `<span style="display: inline-block; background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; margin-bottom: 4px;">${c.nama}: ${valStr}</span>`;
+            }).join('');
+
+            const isChecked = (s.components || []).some(c => c.sifat_kompensasi === sifat && mainCompNames.includes(c.nama));
+            const checkedAttr = isChecked ? 'checked' : '';
+
+            return `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 10px 8px; text-align: center; vertical-align: middle;">
+                        <input type="checkbox" class="modal-choice-scheme-checkbox" value="${s.id}" ${checkedAttr} style="cursor: pointer; width: 16px; height: 16px;">
+                    </td>
+                    <td style="padding: 10px 8px; font-weight: 600; color: #1e293b; vertical-align: middle;">${s.nama}</td>
+                    <td style="padding: 10px 8px; vertical-align: middle; line-height: 1.5;">${compsList}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    document.getElementById('overlayPilihSkema').style.display = 'block';
+    document.getElementById('modalPilihSkema').style.display = 'block';
+}
+
+function tutupModalPilihSkema() {
+    document.getElementById('overlayPilihSkema').style.display = 'none';
+    document.getElementById('modalPilihSkema').style.display = 'none';
+}
+
+function terapkanPilihanSkema() {
+    const sifat = window.activePilihSkemaSifat;
+    const body = sifat === 'tetap' ? document.getElementById('tabelKompensasiTetapBody') : document.getElementById('tabelKompensasiTidakTetapBody');
+    if (!body) return;
+
+    const checkedCheckboxes = document.querySelectorAll('.modal-choice-scheme-checkbox:checked');
+    const checkedSchemeIds = Array.from(checkedCheckboxes).map(cb => cb.value);
+
+    const existingComps = [];
+    body.querySelectorAll('.skema-comp-checkbox').forEach(cb => {
+        try {
+            const data = JSON.parse(decodeURIComponent(cb.getAttribute('data-comp')));
+            existingComps.push({
+                data: data,
+                checked: cb.checked
+            });
+        } catch (e) {}
+    });
+
+    const componentsToRender = [];
+    const addedNames = new Set();
+
+    checkedSchemeIds.forEach(sid => {
+        const cs = (window.compensationSchemes || []).find(s => s.id == sid);
+        if (cs && cs.components) {
+            cs.components.forEach(c => {
+                if (c.sifat_kompensasi === sifat && c.jenis_komponen !== 'basic_salary') {
+                    if (!addedNames.has(c.nama)) {
+                        addedNames.add(c.nama);
+                        componentsToRender.push({
+                            data: c,
+                            checked: true
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    existingComps.forEach(ec => {
+        if (!addedNames.has(ec.data.nama)) {
+            addedNames.add(ec.data.nama);
+            componentsToRender.push(ec);
+        } else {
+            const idx = componentsToRender.findIndex(x => x.data.nama === ec.data.nama);
+            if (idx !== -1) {
+                componentsToRender[idx].checked = ec.checked;
+            }
+        }
+    });
+
+    if (componentsToRender.length === 0) {
+        body.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
+        tutupModalPilihSkema();
+        return;
+    }
+
+    body.innerHTML = componentsToRender.map(item => {
+        const c = item.data;
+        let valStr = '';
+        if (c.sumber_nilai === 'ump') {
+            valStr = `${c.nilai}% UMP`;
+        } else if (c.sumber_nilai === 'umk') {
+            valStr = `${c.nilai}% UMK`;
+        } else if (c.sumber_nilai === 'ump_umk') {
+            valStr = `${c.nilai}% UMP/UMK`;
+        } else {
+            valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+        }
+
+        const checkedAttr = item.checked ? 'checked' : '';
+        const dataAttr = encodeURIComponent(JSON.stringify(c));
+
+        return `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 12px; font-size: 13px; color: #334155; text-align: left; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" class="skema-comp-checkbox" ${checkedAttr} data-comp="${dataAttr}" style="cursor: pointer; width: 16px; height: 16px;">
+                    <div>
+                        <span style="font-weight: 500;">${c.nama}</span>
+                    </div>
+                </td>
+                <td style="padding: 10px 12px; font-size: 13px; color: #1e293b; font-weight: 600; text-align: right; vertical-align: middle;">${valStr}</td>
+            </tr>
+        `;
+    }).join('');
+
+    tutupModalPilihSkema();
+}
+
+window.bukaModalPilihSkema = bukaModalPilihSkema;
+window.tutupModalPilihSkema = tutupModalPilihSkema;
+window.terapkanPilihanSkema = terapkanPilihanSkema;
+
+function handleSkemaAbsenRuleChange() {
+    const selectedRule = document.querySelector('input[name="skemaAbsenRule"]:checked')?.value;
+    const container = document.getElementById('containerNominalPotonganSkema');
+    if (!container) return;
+    if (selectedRule === 'potong_nominal') {
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+        document.getElementById('skemaNominalPotongan').value = '';
+    }
+}
+window.handleSkemaAbsenRuleChange = handleSkemaAbsenRuleChange;
 
 function bukaModalKomponen(schemeId) {
     document.getElementById('modalKomponen').style.display = 'block';
@@ -2001,7 +2473,6 @@ async function renderUmrTable() {
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateCode</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateName</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">umr_amount</th>
                         </tr>
                     `;
                 } else {
@@ -2010,8 +2481,7 @@ async function renderUmrTable() {
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyId</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyCode</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyName</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">umr_amount</th>
+                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
                         </tr>
                     `;
                 }
@@ -2086,7 +2556,6 @@ function renderUmrPage() {
                         <td class="td-code">${stateId}</td>
                         <td class="td-code">${row.kode_daerah}</td>
                         <td class="td-name">${row.nama_daerah}</td>
-                        <td class="td-nominal">${formatNominal(row.nominal)}</td>
                     </tr>
                 `;
             } else {
@@ -2099,13 +2568,12 @@ function renderUmrPage() {
                         <td class="td-code">${row.kode_daerah}</td>
                         <td class="td-name">${row.nama_daerah}</td>
                         <td class="td-code">${stateId}</td>
-                        <td class="td-nominal">${formatNominal(row.nominal)}</td>
                     </tr>
                 `;
             }
         }).join('');
     } else {
-        const colSpan = currentUmrType === 'UMP' ? 4 : 5;
+        const colSpan = currentUmrType === 'UMP' ? 3 : 4;
         tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center; padding:40px; color:#aaa;">
                 <i class="fas fa-database" style="font-size:28px; margin-bottom:10px; display:block;"></i>
                 Belum ada data ${currentUmrType}. Klik <b>Upload</b> untuk menambah data.
@@ -2217,9 +2685,9 @@ function downloadTemplateUmr() {
     let csvContent = '';
     
     if (tipe === 'UMP') {
-        csvContent = 'StateId,StateCode,StateName,umr_amount\n';
+        csvContent = 'StateId,StateCode,StateName\n';
     } else {
-        csvContent = 'RegencyId,RegencyCode,RegencyName,StateId,umr_amount\n';
+        csvContent = 'RegencyId,RegencyCode,RegencyName,StateId\n';
     }
 
     const stateIdMap = {
@@ -2236,73 +2704,73 @@ function downloadTemplateUmr() {
         umrAllData.forEach(row => {
             if (tipe === 'UMP') {
                 const stateId = stateIdMap[row.kode_daerah] || (row.provinsi || idCounter++);
-                csvContent += `${stateId},${row.kode_daerah},${row.nama_daerah},${row.nominal}\n`;
+                csvContent += `${stateId},${row.kode_daerah},${row.nama_daerah}\n`;
             } else {
                 const regencyId = idCounter++;
                 const prefix = row.kode_daerah.split('.')[0] || '';
                 const stateId = stateIdMap[prefix] || (row.provinsi || 17);
-                csvContent += `${regencyId},${row.kode_daerah},${row.nama_daerah},${stateId},${row.nominal}\n`;
+                csvContent += `${regencyId},${row.kode_daerah},${row.nama_daerah},${stateId}\n`;
             }
         });
     } else {
         // Fallback ke data contoh jika tabel kosong
         if (tipe === 'UMP') {
             const defaultUmpData = [
-                {code: 'ID 11', name: 'ACEH', nominal: 3000000},
-                {code: 'ID 12', name: 'SUMATERA UTARA', nominal: 4000000},
-                {code: 'ID 17', name: 'BENGKULU', nominal: 2000000},
-                {code: 'ID 15', name: 'JAMBI', nominal: 2000000},
-                {code: 'ID 14', name: 'RIAU', nominal: 2000000},
-                {code: 'ID 13', name: 'SUMATERA BARAT', nominal: 2000000},
-                {code: 'ID 16', name: 'SUMATERA SELATAN', nominal: 2000000},
-                {code: 'ID 18', name: 'LAMPUNG', nominal: 2000000},
-                {code: 'ID 19', name: 'KEP. BANGKA BELITUNG', nominal: 2000000},
-                {code: 'ID 21', name: 'KEP. RIAU', nominal: 2000000},
-                {code: 'ID 36', name: 'BANTEN', nominal: 2000000},
-                {code: 'ID 32', name: 'JAWA BARAT', nominal: 2000000},
-                {code: 'ID 31', name: 'DKI JAKARTA', nominal: 2000000},
-                {code: 'ID 33', name: 'JAWA TENGAH', nominal: 2000000},
-                {code: 'ID 35', name: 'JAWA TIMUR', nominal: 2000000},
-                {code: 'ID 34', name: 'DI YOGYAKARTA', nominal: 2000000},
-                {code: 'ID 51', name: 'BALI', nominal: 2000000},
-                {code: 'ID 52', name: 'NUSA TENGGARA BARAT', nominal: 2000000},
-                {code: 'ID 53', name: 'NUSA TENGGARA TIMUR', nominal: 2000000},
-                {code: 'ID 61', name: 'KALIMANTAN BARAT', nominal: 2000000},
-                {code: 'ID 63', name: 'KALIMANTAN SELATAN', nominal: 2000000},
-                {code: 'ID 62', name: 'KALIMANTAN TENGAH', nominal: 2000000},
-                {code: 'ID 64', name: 'KALIMANTAN TIMUR', nominal: 2000000},
-                {code: 'ID 75', name: 'GORONTALO', nominal: 2000000},
-                {code: 'ID 73', name: 'SULAWESI SELATAN', nominal: 2000000},
-                {code: 'ID 74', name: 'SULAWESI TENGGARA', nominal: 2000000},
-                {code: 'ID 72', name: 'SULAWESI TENGAH', nominal: 2000000},
-                {code: 'ID 71', name: 'SULAWESI UTARA', nominal: 2000000},
-                {code: 'ID 76', name: 'SULAWESI BARAT', nominal: 2000000},
-                {code: 'ID 81', name: 'MALUKU', nominal: 2000000},
-                {code: 'ID 82', name: 'MALUKU UTARA', nominal: 2000000},
-                {code: 'ID 91', name: 'PAPUA', nominal: 1000000},
-                {code: 'ID 92', name: 'PAPUA BARAT', nominal: 2000000},
-                {code: 'ID 65', name: 'KALIMANTAN UTARA', nominal: 2000000}
+                { code: 'ID 11', name: 'ACEH' },
+                { code: 'ID 12', name: 'SUMATERA UTARA' },
+                { code: 'ID 17', name: 'BENGKULU' },
+                { code: 'ID 15', name: 'JAMBI' },
+                { code: 'ID 14', name: 'RIAU' },
+                { code: 'ID 13', name: 'SUMATERA BARAT' },
+                { code: 'ID 16', name: 'SUMATERA SELATAN' },
+                { code: 'ID 18', name: 'LAMPUNG' },
+                { code: 'ID 19', name: 'KEP. BANGKA BELITUNG' },
+                { code: 'ID 21', name: 'KEP. RIAU' },
+                { code: 'ID 36', name: 'BANTEN' },
+                { code: 'ID 32', name: 'JAWA BARAT' },
+                { code: 'ID 31', name: 'DKI JAKARTA' },
+                { code: 'ID 33', name: 'JAWA TENGAH' },
+                { code: 'ID 35', name: 'JAWA TIMUR' },
+                { code: 'ID 34', name: 'DI YOGYAKARTA' },
+                { code: 'ID 51', name: 'BALI' },
+                { code: 'ID 52', name: 'NUSA TENGGARA BARAT' },
+                { code: 'ID 53', name: 'NUSA TENGGARA TIMUR' },
+                { code: 'ID 61', name: 'KALIMANTAN BARAT' },
+                { code: 'ID 63', name: 'KALIMANTAN SELATAN' },
+                { code: 'ID 62', name: 'KALIMANTAN TENGAH' },
+                { code: 'ID 64', name: 'KALIMANTAN TIMUR' },
+                { code: 'ID 75', name: 'GORONTALO' },
+                { code: 'ID 73', name: 'SULAWESI SELATAN' },
+                { code: 'ID 74', name: 'SULAWESI TENGGARA' },
+                { code: 'ID 72', name: 'SULAWESI TENGAH' },
+                { code: 'ID 71', name: 'SULAWESI UTARA' },
+                { code: 'ID 76', name: 'SULAWESI BARAT' },
+                { code: 'ID 81', name: 'MALUKU' },
+                { code: 'ID 82', name: 'MALUKU UTARA' },
+                { code: 'ID 91', name: 'PAPUA' },
+                { code: 'ID 92', name: 'PAPUA BARAT' },
+                { code: 'ID 65', name: 'KALIMANTAN UTARA' }
             ];
             
             defaultUmpData.forEach(row => {
                 const stateId = stateIdMap[row.code] || 17;
-                csvContent += `${stateId},${row.code},${row.name},${row.nominal}\n`;
+                csvContent += `${stateId},${row.code},${row.name}\n`;
             });
         } else {
             const defaultUmkData = [
-                {code: 'ID 11.01', name: 'KAB. ACEH BARAT', nominal: 2000000},
-                {code: 'ID 11.02', name: 'KAB. ACEH BARAT DAYA', nominal: 2000000},
-                {code: 'ID 11.03', name: 'KAB. ACEH BESAR', nominal: 2000000},
-                {code: 'ID 31.71', name: 'KOTA JAKARTA PUSAT', nominal: 5000000},
-                {code: 'ID 32.71', name: 'KOTA BOGOR', nominal: 4500000},
-                {code: 'ID 32.73', name: 'KOTA BANDUNG', nominal: 4200000}
+                { code: 'ID 11.01', name: 'KAB. ACEH BARAT' },
+                { code: 'ID 11.02', name: 'KAB. ACEH BARAT DAYA' },
+                { code: 'ID 11.03', name: 'KAB. ACEH BESAR' },
+                { code: 'ID 31.71', name: 'KOTA JAKARTA PUSAT' },
+                { code: 'ID 32.71', name: 'KOTA BOGOR' },
+                { code: 'ID 32.73', name: 'KOTA BANDUNG' }
             ];
             
             let regId = 1;
             defaultUmkData.forEach(row => {
                 const prefix = row.code.split('.')[0] || '';
                 const stateId = stateIdMap[prefix] || 17;
-                csvContent += `${regId++},${row.code},${row.name},${stateId},${row.nominal}\n`;
+                csvContent += `${regId++},${row.code},${row.name},${stateId}\n`;
             });
         }
     }
@@ -3132,4 +3600,5 @@ function switchKaryawanSubMenu(action, event) {
 
 window.toggleSubmenu = toggleSubmenu;
 window.switchKaryawanSubMenu = switchKaryawanSubMenu;
-
+window.togglePayrollSubmenu = togglePayrollSubmenu;
+window.switchPayrollSub = switchPayrollSub;

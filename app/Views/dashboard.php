@@ -46,17 +46,28 @@
                     </li>
                 </ul>
             </li>
-            <li id="menuPayroll" onclick="switchView('payroll')">
+            <li id="menuPayroll" onclick="togglePayrollSubmenu()">
                 <i class="fas fa-file-invoice-dollar"></i>
                 <span>Master Skema Payroll</span>
+                <i class="fas fa-chevron-down submenu-arrow"></i>
             </li>
+            <ul id="submenuPayroll" class="sidebar-submenu" style="display: none;">
+                <li id="submenu_uploadUmr" onclick="switchPayrollSub('uploadUmr')">
+                    <i class="fas fa-file-upload"></i>
+                    <span>Upload UMK dan UMP</span>
+                </li>
+                <li id="submenu_kompensasi" onclick="switchPayrollSub('kompensasi')">
+                    <i class="fas fa-coins"></i>
+                    <span>Skema Kompensasi</span>
+                </li>
+                <li id="submenu_setting" onclick="switchPayrollSub('setting')">
+                    <i class="fas fa-cog"></i>
+                    <span>Setting Skema</span>
+                </li>
+            </ul>
             <li id="menuPajak" onclick="switchView('pajak')">
                 <i class="fas fa-percent"></i>
                 <span>Master Skema Pajak</span>
-            </li>
-
-            <li id="menuMasterKompensasi" onclick="switchView('masterKompensasi')">
-                <i class="fas fa-coins"></i> <span>Master Skema Kompensasi</span>
             </li>
         </ul>
     </div>
@@ -146,7 +157,7 @@
             <div id="viewManajemenKaryawan" class="view-section">
                 <div class="content-card">
                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Karyawan (Global)</h3>
+                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Karyawan</h3>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <input type="text" id="cariKaryawanGlobal" placeholder="Cari nama, nik, posisi..." oninput="cariKaryawanGlobalAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
                             <button class="btn-add" onclick="bukaModalKaryawanGlobal()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
@@ -491,6 +502,7 @@
                                             <option value="UMP">UMP (Upah Minimum Provinsi)</option>
                                             <option value="UMK">UMK (Upah Minimum Kota/Kabupaten)</option>
                                             <option value="Nominal">Nominal Custom</option>
+                                            <option value="Template">Template Skema Payroll</option>
                                         </select>
 
                                         <div id="pilihanSkemaPayrollWilayahContainer" style="display: none; margin-bottom: 12px;">
@@ -608,7 +620,7 @@
             <!-- Section: Skema Payroll (Master) -->
             <div id="viewPayroll" class="view-section">
                 <!-- Custom Sub-Tabs for Skema Payroll & UMP/UMK -->
-                <div class="payroll-main-tabs" style="display: flex; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; background: #f8fafc; padding: 10px 10px 0 10px; border-radius: 8px 8px 0 0;">
+                <div class="payroll-main-tabs" style="display: none; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; background: #f8fafc; padding: 10px 10px 0 10px; border-radius: 8px 8px 0 0;">
                     <button id="subTabSkema" class="payroll-subtab-btn active" onclick="switchPayrollSubTab('skema')" style="background: white; border: 1px solid #e2e8f0; border-bottom: 1px solid white; padding: 12px 24px; font-weight: 600; font-size: 14px; cursor: pointer; color: #0d6efd; margin-bottom: -1px; border-radius: 6px 6px 0 0; z-index: 2; display: flex; align-items: center; gap: 8px; outline: none;">
                         <i class="fas fa-file-invoice-dollar"></i> Skema Payroll
                     </button>
@@ -637,7 +649,7 @@
                         <div class="umr-tabs" style="display: flex; gap: 0; border-bottom: 1px solid #ddd; padding: 15px 20px 0 20px; background: #fafafa;">
                             <button id="tabUmp" class="umr-tab-btn active" onclick="switchUmrTab('UMP')" style="background: white; border: 1px solid #ddd; border-bottom: 1px solid white; padding: 12px 25px; font-weight: 500; font-size: 14px; cursor: pointer; color: #0d6efd; margin-bottom: -1px; border-radius: 4px 4px 0 0; z-index: 2;">UMP</button>
                             <button id="tabUmk" class="umr-tab-btn" onclick="switchUmrTab('UMK')" style="background: transparent; border: 1px solid transparent; border-bottom: none; padding: 12px 25px; font-weight: 500; font-size: 14px; cursor: pointer; color: #0d6efd; margin-bottom: -1px; border-radius: 4px 4px 0 0; z-index: 1;">UMK</button>
-                            <button id="tabNominal" class="umr-tab-btn" onclick="switchUmrTab('NOMINAL')" style="background: transparent; border: 1px solid transparent; border-bottom: none; padding: 12px 25px; font-weight: 500; font-size: 14px; cursor: pointer; color: #0d6efd; margin-bottom: -1px; border-radius: 4px 4px 0 0; z-index: 1;">Nominal</button>
+                            <button id="tabNominal" class="umr-tab-btn" onclick="switchUmrTab('NOMINAL')" style="display: none;">Nominal</button>
                         </div>
 
                         <!-- Main Container below tabs -->
@@ -869,33 +881,145 @@
     <div id="overlay" onclick="tutupSemuaModal()"></div>
 
     <!-- Modal Form Skema Payroll -->
-    <div id="modalSkema" class="modal-skema">
-        <div class="modal-header">
+    <div id="modalSkema" class="modal-skema" style="width: 1100px; max-width: 95%;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalSkemaTitle">Tambah Skema Payroll</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalSkema()"></i>
         </div>
         <form id="formSkema">
-            <div class="modal-body">
+            <div class="modal-body" style="padding: 25px;">
                 <input type="hidden" id="skemaId">
-                <div class="form-group">
-                    <label>Nama Skema</label>
-                    <input type="text" id="skemaNama" placeholder="Contoh: Skema Gaji Staff" required>
+                <input type="hidden" id="skemaIsPersentase" value="0">
+                <input type="hidden" id="skemaTipe" value="bulanan">
+
+                <!-- Nama Skema (Full Width) -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; font-size: 14px; color: #475569; display: block; margin-bottom: 8px;">Nama Skema</label>
+                    <input type="text" id="skemaNama" placeholder="Masukkan Nama Skema" required style="width: 100%; padding: 12px 15px; border-radius: 10px; border: 1px solid #ddd; outline: none; font-size: 14px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
                 </div>
-                <div class="form-group">
-                    <label>Deskripsi</label>
-                    <textarea id="skemaDeskripsi" rows="2" placeholder="Deskripsi singkat skema payroll"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Tipe</label>
-                    <select id="skemaTipe" required>
-                        <option value="bulanan">Bulanan</option>
-                        <option value="rutin">Rutin</option>
+
+                <!-- Two Column Layout: Left (Kompensasi), Right (Skema Absen & Deskripsi) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px;">
+                    
+                    <!-- Left Column: Kompensasi -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Kompensasi</h4>
+                        
+                        <!-- Gaji Pokok -->
+                        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Sumber Gaji Pokok</label>
+                                <select id="skemaSumber" onchange="handlePayrollSchemeSumberNilaiChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
+                                    <option value="ump">UMP (Provinsi)</option>
+                                    <option value="umk">UMK (Kota/Kabupaten)</option>
+                                    <option value="nominal" selected>Nominal Custom</option>
                     </select>
                 </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label id="labelNilaiSkemaPayroll" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Gaji Pokok (Rp)</label>
+                                <input type="number" id="skemaNilai" placeholder="Masukkan Gaji Pokok" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="tutupModalSkema()">Batal</button>
-                <button type="submit" class="btn-save">Simpan</button>
+                        </div>
+
+                        <!-- Periode Gaji -->
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Periode Gaji</label>
+                            <select id="skemaPeriode" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
+                                <option value="bulan" selected>Per Bulan</option>
+                                <option value="minggu">Per Minggu</option>
+                                <option value="hari_kerja">Per Hari Kerja</option>
+                                <option value="tahun">Per Tahun</option>
+                            </select>
+                        </div>
+
+                        <!-- Kompensasi Tetap Table -->
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Kompensasi Tetap</label>
+                                <button type="button" onclick="bukaModalPilihSkema('tetap')" style="background: none; border: none; color: #0d6efd; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Pilih Skema</button>
+                            </div>
+                            
+                            <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #0d6efd; color: white;">
+                                            <th style="padding: 8px 12px; font-size: 12px; text-align: left; font-weight: 600; width: 60%;">Name</th>
+                                            <th style="padding: 8px 12px; font-size: 12px; text-align: right; font-weight: 600; width: 40%;">Nilai</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelKompensasiTetapBody">
+                                        <tr>
+                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Kompensasi Tidak Tetap Table -->
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Kompensasi Tidak Tetap</label>
+                                <button type="button" onclick="bukaModalPilihSkema('tidak_tetap')" style="background: none; border: none; color: #0d6efd; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Pilih Skema</button>
+                            </div>
+                            
+                            <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #0d6efd; color: white;">
+                                            <th style="padding: 8px 12px; font-size: 12px; text-align: left; font-weight: 600; width: 60%;">Name</th>
+                                            <th style="padding: 8px 12px; font-size: 12px; text-align: right; font-weight: 600; width: 40%;">Nilai</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabelKompensasiTidakTetapBody">
+                                        <tr>
+                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                    <!-- Right Column: Skema Absen & Deskripsi -->
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Skema Absen</h4>
+                        
+                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; cursor: pointer; color: #1e293b; margin: 0;">
+                                <input type="radio" name="skemaAbsenRule" value="prorate" onchange="handleSkemaAbsenRuleChange()" style="cursor: pointer; width: 18px; height: 18px;">
+                                Prorate
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; cursor: pointer; color: #1e293b; margin: 0;">
+                                <input type="radio" name="skemaAbsenRule" value="tidak_potong" onchange="handleSkemaAbsenRuleChange()" style="cursor: pointer; width: 18px; height: 18px;">
+                                Absen Tidak Memotong Gaji
+                            </label>
+                            
+                            <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; cursor: pointer; color: #1e293b; margin: 0;">
+                                <input type="radio" name="skemaAbsenRule" value="potong_nominal" onchange="handleSkemaAbsenRuleChange()" style="cursor: pointer; width: 18px; height: 18px;">
+                                Absen Potong Nominal
+                            </label>
+                            
+                            <div id="containerNominalPotonganSkema" class="form-group" style="display: none; margin: 8px 0 0 0;">
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Nominal Potongan Absen per Hari (Rp)</label>
+                                <input type="number" id="skemaNominalPotongan" placeholder="Contoh: 100000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                            </div>
+                        </div>
+
+                        <!-- Deskripsi -->
+                        <div class="form-group" style="margin: 0; flex-grow: 1; display: flex; flex-direction: column;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Deskripsi / Catatan</label>
+                            <textarea id="skemaDeskripsi" rows="8" placeholder="Masukkan deskripsi singkat skema payroll atau catatan tambahan di sini..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: none; font-family: inherit; flex-grow: 1; min-height: 180px;"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                <button type="button" class="btn-cancel" onclick="tutupModalSkema()" style="padding: 10px 24px; border-radius: 8px;">Batal</button>
+                <button type="submit" class="btn-save" style="background: var(--primary-color); box-shadow: 0 4px 6px rgba(243, 156, 18, 0.2); padding: 10px 24px; border-radius: 8px;">Simpan</button>
             </div>
         </form>
     </div>
@@ -1117,6 +1241,7 @@
                         <option value="UMP">UMP (Upah Minimum Provinsi)</option>
                         <option value="UMK">UMK (Upah Minimum Kota/Kabupaten)</option>
                         <option value="Nominal">Nominal Custom</option>
+                        <option value="Template">Template Skema Payroll</option>
                     </select>
                 </div>
                 <div class="form-group" id="setupPayrollSchemeWilayahContainer" style="display: none; margin-bottom: 10px;">
@@ -1368,17 +1493,12 @@
                     <input type="text" id="manualUmrProvinsi" placeholder="Contoh: JAWA BARAT (kosongkan jika UMP)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none;">
                 </div>
 
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Nominal (Rupiah)</label>
-                        <input type="number" id="manualUmrNominal" placeholder="Contoh: 5067381" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
+                <input type="hidden" id="manualUmrNominal" value="0">
+                <div class="form-group" style="margin-bottom: 15px;">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Tahun</label>
                         <input type="number" id="manualUmrTahun" placeholder="2026" required value="2026" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none;">
                     </div>
                 </div>
-            </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="tutupModalManualUmr()">Batal</button>
                 <button type="submit" class="btn-save" style="background: #2c3e50;">Simpan Data</button>
@@ -1559,11 +1679,14 @@
                 <input type="hidden" id="skemaKompensasiIsPersentase" value="0">
                 
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label>Tipe Skema</label>
-                    <select id="skemaKompensasiNama" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
-                        <option value="Basic Salary">Basic Salary</option>
-                        <option value="Kompensasi Tetap">Kompensasi Tetap</option>
-                        <option value="Kompensasi Tidak Tetap">Kompensasi Tidak Tetap</option>
+                    <label>Nama Skema Kompensasi</label>
+                    <input type="text" id="skemaKompensasiNama" placeholder="Contoh: Tunjangan Makan" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Sifat Kompensasi</label>
+                    <select id="skemaKompensasiSifat" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
+                        <option value="tetap">Kompensasi Tetap</option>
+                        <option value="tidak_tetap">Kompensasi Tidak Tetap</option>
                     </select>
                 </div>
 
@@ -1669,6 +1792,33 @@
                 <button type="submit" class="btn-save" style="background: #10b981;">Simpan Komponen</button>
             </div>
         </form>
+    </div>
+
+    <!-- Modal Pilih Skema (Pop-up Baru) -->
+    <div id="overlayPilihSkema" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000;" onclick="tutupModalPilihSkema()"></div>
+    <div id="modalPilihSkema" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; max-width: 90%; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 2001; overflow: hidden; font-family: 'Inter', sans-serif;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+            <h3 id="modalPilihSkemaTitle" style="margin: 0; font-size: 18px; font-weight: 600; color: white;">Pilih Skema</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalPilihSkema()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px; max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #cbd5e1; color: #475569; background: #e2e8f0;">
+                        <th style="padding: 10px 8px; text-align: center; width: 60px;">Pilih</th>
+                        <th style="padding: 10px 8px; text-align: left; width: 35%;">Nama Skema</th>
+                        <th style="padding: 10px 8px; text-align: left; width: 60%;">Komponen</th>
+                    </tr>
+                </thead>
+                <tbody id="modalPilihSkemaBody">
+                    <!-- Dynamically populated -->
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-footer" style="padding: 15px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+            <button type="button" class="btn-cancel" onclick="tutupModalPilihSkema()" style="margin: 0; padding: 10px 20px;">Batal</button>
+            <button type="button" class="btn-save" onclick="terapkanPilihanSkema()" style="margin: 0; padding: 10px 20px; background: #0d6efd; color: white;">Terapkan</button>
+        </div>
     </div>
 
     <!-- Custom Confirm Dialog -->

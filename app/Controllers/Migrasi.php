@@ -206,7 +206,27 @@ class Migrasi extends BaseController
                 created_at DATETIME DEFAULT GETDATE()
             )");
 
-        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, dan tabel status log)";
+        // 14. Pastikan kolom-kolom baru ada di payroll_components untuk sinkronisasi UMP/UMK
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_components') AND name = 'jenis_komponen')
+            ALTER TABLE payroll_components ADD jenis_komponen NVARCHAR(50) DEFAULT 'basic_salary'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_components') AND name = 'sumber_nilai')
+            ALTER TABLE payroll_components ADD sumber_nilai NVARCHAR(50) DEFAULT 'nominal'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_components') AND name = 'periode')
+            ALTER TABLE payroll_components ADD periode NVARCHAR(20) DEFAULT 'bulan'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_components') AND name = 'sifat_kompensasi')
+            ALTER TABLE payroll_components ADD sifat_kompensasi NVARCHAR(20) DEFAULT 'tetap'");
+
+        // 15. Pastikan kolom-kolom baru ada di payroll_schemes untuk kompensasi & absen
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'compensation_scheme_id')
+            ALTER TABLE payroll_schemes ADD compensation_scheme_id INT NULL");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'prorate')
+            ALTER TABLE payroll_schemes ADD prorate INT DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'absen_tidak_potong')
+            ALTER TABLE payroll_schemes ADD absen_tidak_potong INT DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'nominal_potongan')
+            ALTER TABLE payroll_schemes ADD nominal_potongan DECIMAL(15,2) DEFAULT 0");
+
+        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, dan kolom baru payroll_schemes)";
     }
 
     /**
