@@ -201,10 +201,16 @@ class Migrasi extends BaseController
         // 13. Tambah tabel status_logs (tanpa primary key)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'status_logs')
             CREATE TABLE status_logs (
-                action NVARCHAR(255),
+                description NVARCHAR(255),
                 user_action NVARCHAR(100),
                 created_at DATETIME DEFAULT GETDATE()
             )");
+        
+        // Fix column naming for existing tables
+        $db->query("IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('status_logs') AND name = 'action')
+            EXEC sp_rename 'status_logs.action', 'description', 'COLUMN'");
+        $db->query("IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('system_logs') AND name = 'status_log')
+            EXEC sp_rename 'system_logs.status_log', 'description', 'COLUMN'");
 
         // 14. Pastikan kolom-kolom baru ada di payroll_components untuk sinkronisasi UMP/UMK
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_components') AND name = 'jenis_komponen')

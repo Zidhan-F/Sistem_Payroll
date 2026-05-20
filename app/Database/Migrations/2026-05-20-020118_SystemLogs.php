@@ -15,7 +15,7 @@ class SystemLogs extends Migration
                 'unsigned'       => true,
                 'auto_increment' => true,
             ],
-            'status_log'  => [
+            'description'  => [
                 'type' => 'TEXT',
                 'null' => true,
             ],

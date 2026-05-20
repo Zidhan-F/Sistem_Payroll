@@ -1341,7 +1341,7 @@ class Api extends ResourceController
         }
         
         $this->db->table('status_logs')->insert([
-            'action' => $action,
+            'description' => $action,
             'user_action' => $username,
             'created_at' => date('Y-m-d H:i:s')
         ]);

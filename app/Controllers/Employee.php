@@ -49,8 +49,19 @@ class Employee extends ResourceController
             ];
             $contractModel->insert($contractData);
 
+            $desc = 'Menambahkan karyawan baru: Nama: ' . ($data['nama'] ?? 'Unknown');
+            $fields = [];
+            foreach ($data as $key => $val) {
+                if ($key !== 'id' && $key !== 'nama' && !is_array($val) && !is_object($val)) {
+                    $fields[] = "$key: $val";
+                }
+            }
+            if (count($fields) > 0) {
+                $desc .= "\nDetail: " . implode(", ", $fields);
+            }
+
             $logModel = new SystemLogModel();
-            $logModel->logAction('CREATE_EMPLOYEE', 'Menambahkan data karyawan baru bernama ' . ($data['nama'] ?? 'Unknown'), $data['client_id'] ?? null, session()->get('user_id') ?? 1);
+            $logModel->logAction('CREATE_EMPLOYEE', $desc, $data['client_id'] ?? null, session()->get('user_id') ?? 1);
 
             return $this->respondCreated($data);
         }
@@ -60,6 +71,8 @@ class Employee extends ResourceController
     public function update($id = null)
     {
         $data = $this->request->getJSON(true);
+        $oldEmp = $this->model->find($id);
+        
         if ($this->model->update($id, $data)) {
             
             // Sync Contract / PKWT Gaji Pokok if updated
@@ -72,8 +85,24 @@ class Employee extends ResourceController
             }
             
             $emp = $this->model->find($id);
+            
+            $changes = [];
+            if ($oldEmp) {
+                foreach ($data as $key => $val) {
+                    if (array_key_exists($key, $oldEmp) && $oldEmp[$key] != $val && !is_array($val) && !is_object($val)) {
+                        $changes[] = "- $key diubah dari '{$oldEmp[$key]}' menjadi '$val'";
+                    }
+                }
+            }
+            $desc = 'Memperbarui data karyawan bernama ' . ($emp['nama'] ?? 'ID '.$id) . " (ID: $id)";
+            if (count($changes) > 0) {
+                $desc .= ".\nPerubahan:\n" . implode("\n", $changes);
+            } else {
+                $desc .= " (Tidak ada perubahan kolom)";
+            }
+            
             $logModel = new SystemLogModel();
-            $logModel->logAction('UPDATE_EMPLOYEE', 'Memperbarui data karyawan bernama ' . ($emp['nama'] ?? 'ID '.$id), $emp['client_id'] ?? null, session()->get('user_id') ?? 1);
+            $logModel->logAction('UPDATE_EMPLOYEE', $desc, $emp['client_id'] ?? null, session()->get('user_id') ?? 1);
 
             return $this->respond($data);
         }
@@ -84,8 +113,19 @@ class Employee extends ResourceController
     {
         $emp = $this->model->find($id);
         if ($emp && $this->model->delete($id)) {
+            $desc = 'Menghapus data karyawan: Nama: ' . ($emp['nama'] ?? 'ID '.$id);
+            $fields = [];
+            foreach ($emp as $key => $val) {
+                if ($key !== 'id' && $key !== 'nama' && !is_array($val) && !is_object($val)) {
+                    $fields[] = "$key: $val";
+                }
+            }
+            if (count($fields) > 0) {
+                $desc .= "\nData terakhir: " . implode(", ", $fields);
+            }
+            
             $logModel = new SystemLogModel();
-            $logModel->logAction('DELETE_EMPLOYEE', 'Menghapus data karyawan bernama ' . ($emp['nama'] ?? 'ID '.$id), $emp['client_id'] ?? null, session()->get('user_id') ?? 1);
+            $logModel->logAction('DELETE_EMPLOYEE', $desc, $emp['client_id'] ?? null, session()->get('user_id') ?? 1);
             return $this->respondDeleted(['id' => $id]);
         }
         return $this->failNotFound();
