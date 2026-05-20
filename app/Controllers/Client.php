@@ -36,8 +36,20 @@ class Client extends ResourceController
 
         if ($id = $this->model->insert($data)) {
             $data['id'] = $id;
+            
+            $desc = 'Menambahkan Klien baru: ' . ($data['nama'] ?? $data['no_klien']);
+            $fields = [];
+            foreach ($data as $key => $val) {
+                if ($key !== 'id' && $key !== 'nama' && !is_array($val) && !is_object($val)) {
+                    $fields[] = "$key: $val";
+                }
+            }
+            if (count($fields) > 0) {
+                $desc .= "\nDetail: " . implode(", ", $fields);
+            }
+            
             $log = new SystemLogModel();
-            $log->logAction('CREATE_CLIENT', 'Menambahkan Klien baru: ' . ($data['nama'] ?? $data['no_klien']), $id, session()->get('user_id') ?? 1);
+            $log->logAction('CREATE_CLIENT', $desc, $id, session()->get('user_id') ?? 1);
             return $this->respondCreated($data);
         }
         return $this->fail($this->model->errors());
@@ -49,10 +61,30 @@ class Client extends ResourceController
         if (isset($data['npwp'])) {
             $data['npwp'] = (string)$data['npwp'];
         }
+        $oldClient = $this->model->find($id);
+        
         if ($this->model->update($id, $data)) {
             $data['id'] = $id;
+            
+            $changes = [];
+            if ($oldClient) {
+                foreach ($data as $key => $val) {
+                    if (array_key_exists($key, $oldClient) && $oldClient[$key] != $val && !is_array($val) && !is_object($val)) {
+                        $changes[] = "- $key diubah dari '{$oldClient[$key]}' menjadi '$val'";
+                    }
+                }
+            }
+            
+            $clientName = $oldClient['nama'] ?? 'ID '.$id;
+            $desc = "Memperbarui data Klien $clientName (ID: $id)";
+            if (count($changes) > 0) {
+                $desc .= ".\nPerubahan:\n" . implode("\n", $changes);
+            } else {
+                $desc .= " (Tidak ada perubahan kolom)";
+            }
+            
             $log = new SystemLogModel();
-            $log->logAction('UPDATE_CLIENT', 'Memperbarui data Klien ID: ' . $id, $id, session()->get('user_id') ?? 1);
+            $log->logAction('UPDATE_CLIENT', $desc, $id, session()->get('user_id') ?? 1);
             return $this->respond($data);
         }
         return $this->fail($this->model->errors());
@@ -62,8 +94,19 @@ class Client extends ResourceController
     {
         $client = $this->model->find($id);
         if ($client && $this->model->delete($id)) {
+            $desc = 'Menghapus data Klien: ' . ($client['nama'] ?? 'ID '.$id);
+            $fields = [];
+            foreach ($client as $key => $val) {
+                if ($key !== 'id' && $key !== 'nama' && !is_array($val) && !is_object($val)) {
+                    $fields[] = "$key: $val";
+                }
+            }
+            if (count($fields) > 0) {
+                $desc .= "\nData terakhir: " . implode(", ", $fields);
+            }
+            
             $log = new SystemLogModel();
-            $log->logAction('DELETE_CLIENT', 'Menghapus data Klien: ' . ($client['nama'] ?? 'ID '.$id), $id, session()->get('user_id') ?? 1);
+            $log->logAction('DELETE_CLIENT', $desc, $id, session()->get('user_id') ?? 1);
             return $this->respondDeleted(['message' => 'Client dihapus']);
         }
         return $this->failNotFound('Client tidak ditemukan');
