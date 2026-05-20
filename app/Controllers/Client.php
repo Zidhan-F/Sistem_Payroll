@@ -14,12 +14,21 @@ class Client extends ResourceController
 
     public function index()
     {
-        return $this->respond($this->model->orderBy('id', 'DESC')->findAll());
+        $data = $this->model->orderBy('id', 'DESC')->findAll();
+        foreach ($data as &$client) {
+            if (isset($client['npwp'])) {
+                $client['npwp'] = (string)$client['npwp'];
+            }
+        }
+        return $this->respond($data);
     }
 
     public function create()
     {
         $data = $this->request->getJSON(true);
+        if (isset($data['npwp'])) {
+            $data['npwp'] = (string)$data['npwp'];
+        }
         
         // Generate No Klien Otomatis (Format: CLI-001)
         $count = $this->model->countAllResults();
@@ -37,6 +46,9 @@ class Client extends ResourceController
     public function update($id = null)
     {
         $data = $this->request->getJSON(true);
+        if (isset($data['npwp'])) {
+            $data['npwp'] = (string)$data['npwp'];
+        }
         if ($this->model->update($id, $data)) {
             $data['id'] = $id;
             $log = new SystemLogModel();

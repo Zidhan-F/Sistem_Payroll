@@ -15,4 +15,5 @@ class ContractModel extends Model
         'tgl_mulai', 'tgl_berakhir', 'gaji_pokok', 'status_pkwt'
     ];
     protected $useTimestamps    = true;
+    protected $updatedField     = '';
 }

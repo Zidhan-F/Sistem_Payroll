@@ -29,9 +29,22 @@
                 <i class="fas fa-users"></i>
                 <span>Manajemen Klien</span>
             </li>
-            <li id="menuManajemenKaryawan" onclick="switchView('manajemenKaryawan')">
-                <i class="fas fa-user-friends"></i>
-                <span>Manajemen Karyawan</span>
+            <li id="menuManajemenKaryawan" class="has-submenu">
+                <div class="menu-item-header" onclick="toggleSubmenu(event, 'submenuKaryawan')">
+                    <i class="fas fa-user-friends"></i>
+                    <span>Manajemen Karyawan</span>
+                    <i class="fas fa-chevron-down submenu-arrow" style="margin-left: auto; font-size: 11px; transition: transform 0.3s ease;"></i>
+                </div>
+                <ul id="submenuKaryawan" class="sidebar-submenu" style="display: none;">
+                    <li id="submenuLokasiKerja" onclick="switchKaryawanSubMenu('lokasi_kerja', event)">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Lokasi Kerja</span>
+                    </li>
+                    <li id="submenuTambahKaryawan" onclick="switchKaryawanSubMenu('tambah_karyawan', event)">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Tambah Karyawan</span>
+                    </li>
+                </ul>
             </li>
             <li id="menuPayroll" onclick="switchView('payroll')">
                 <i class="fas fa-file-invoice-dollar"></i>
@@ -145,18 +158,50 @@
                     <table style="width: 100%;">
                         <thead>
                             <tr>
-                                <th>NIK</th>
-                                <th>Nama Karyawan</th>
-                                <th>Perusahaan / Klien</th>
-                                <th>Posisi</th>
-                                <th>Department</th>
-                                <th>Alamat (UMP/UMK)</th>
-                                <th>Email</th>
-                                <th>Action</th>
+                                                    <th>NIK</th>
+                                                    <th>Nama Karyawan</th>
+                                                    <th>Lahir</th>
+                                                    <th>NPWP</th>
+                                                    <th>Perusahaan / Klien</th>
+                                                    <th>Kontrak</th>
+                                                    <th>Lokasi Kerja</th>
+                                                    <th>Status Nikah</th>
+                                                    <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="tabelKaryawanGlobalBody">
                             <!-- Injected by app.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Section: Global Lokasi Kerja -->
+            <div id="viewGlobalLokasiKerja" class="view-section">
+                <div class="content-card">
+                    <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Lokasi Kerja</h3>
+                        <button class="btn-add" onclick="bukaModalLokasiKerja()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                            <i class="fas fa-plus"></i> Tambah Lokasi Kerja
+                        </button>
+                    </div>
+
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Lokasi Kerja</th>
+                                <th>Location Code</th>
+                                <th>Klien / Perusahaan</th>
+                                <th>Divisi</th>
+                                <th>Department</th>
+                                <th>Posisi / Jabatan</th>
+                                <th>Provinsi</th>
+                                <th>Kota/Kabupaten</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelGlobalLokasiKerjaBody">
+                            <!-- Injected by JS -->
                         </tbody>
                     </table>
                 </div>
@@ -193,31 +238,73 @@
                 <div class="workspace-content">
                         <!-- Panel: Karyawan -->
                         <div id="viewKaryawan" class="w-tab-panel active">
-                            <div class="content-card">
-                                <div class="section-header">
-                                    <h3 style="font-size: 16px; color: var(--secondary-color);">Data Karyawan</h3>
-                                    <div style="display: flex; gap: 12px; align-items: center;">
+                            <!-- Sub Tabs for Workspace Karyawan -->
+                            <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
+                                <button class="sub-tab-btn active" id="subTabLokasiKerja" onclick="switchClientKaryawanSubTab('lokasi_kerja')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Lokasi Kerja</button>
+                                <button class="sub-tab-btn" id="subTabKaryawanData" onclick="switchClientKaryawanSubTab('karyawan_data')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Data Karyawan</button>
+                            </div>
+
+                            <!-- Sub Panel 1: Lokasi Kerja (Active by default) -->
+                            <div id="panelLokasiKerja" class="client-karyawan-subpanel">
+                                <div class="content-card">
+                                    <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Daftar Lokasi Kerja</h3>
+                                        <button class="btn-add" onclick="bukaModalLokasiKerja()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                                            <i class="fas fa-plus"></i> Tambah Lokasi Kerja
+                                        </button>
+                                    </div>
+                                    <div class="table-container">
+                                        <table style="width: 100%;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Lokasi Kerja</th>
+                                                    <th>Location Code</th>
+                                                    <th>Divisi</th>
+                                                    <th>Department</th>
+                                                    <th>Posisi / Jabatan</th>
+                                                    <th>Provinsi</th>
+                                                    <th>Kota/Kabupaten</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelLokasiKerjaBody">
+                                                <!-- Injected by JS -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sub Panel 2: Data Karyawan -->
+                            <div id="panelKaryawanData" class="client-karyawan-subpanel" style="display: none;">
+                                <div class="content-card">
+                                    <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Karyawan</h3>
                                         <div class="search-box" style="margin-bottom: 0;">
                                             <i class="fas fa-search"></i>
                                             <input type="text" id="searchKaryawan" placeholder="Cari nama atau posisi..." onkeyup="filterKaryawan()">
                                         </div>
                                     </div>
-                                </div>
-                                <div class="table-container">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Nama Karyawan</th>
-                                                <th>Posisi</th>
-                                                <th>Department</th>
-                                                <th>Alamat (UMP/UMK)</th>
-                                                <th>Kontak</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tabelKaryawanBody">
-                                            <!-- Data injected by app.js -->
-                                        </tbody>
-                                    </table>
+                                    <div class="table-container">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>NIK</th>
+                                                    <th>Nama Karyawan</th>
+                                                    <th>Lahir</th>
+                                                    <th>NPWP</th>
+                                                    <th>Perusahaan / Klien</th>
+                                                    <th>Kontrak</th>
+                                                    <th>Lokasi Kerja</th>
+                                                    <th>Status Nikah</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelKaryawanBody">
+                                                <!-- Data injected by app.js -->
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -625,6 +712,11 @@
                                 <button class="btn-save" onclick="simpanNominalManual()" style="width: 100%; padding: 14px 15px; background: #0d6efd; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; transition: all 0.3s; box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);">
                                     <i class="fas fa-save"></i> Simpan Nominal
                                 </button>
+
+                                <div id="displayNominalTersimpan" style="margin-top: 25px; padding: 15px; border-radius: 8px; background: #e8fdf0; border: 1px solid #d4edda; text-align: center; display: none;">
+                                    <span style="font-size: 14px; color: #155724; font-weight: 500;">Nominal Aktif Saat Ini:</span>
+                                    <h4 id="valNominalTersimpan" style="font-size: 22px; color: #2ecc71; margin: 5px 0 0 0; font-weight: 700;">-</h4>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1313,7 +1405,7 @@
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">NIK Karyawan</label>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">NIK Karyawan (NIK-KTP)</label>
                         <input type="text" id="empNik" placeholder="Contoh: 317301XXXXXXXXXX" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </div>
                     <div class="form-group">
@@ -1324,102 +1416,61 @@
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Email</label>
-                        <input type="email" id="empEmail" placeholder="email@domain.com" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Tempat Lahir</label>
+                        <input type="text" id="empTempatLahir" placeholder="Contoh: Jakarta" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Tanggal Masuk</label>
-                        <input type="date" id="empTglMasuk" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Tanggal Lahir</label>
+                        <input type="date" id="empTanggalLahir" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </div>
                 </div>
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Pilih Divisi</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <select id="empDivisionId" required style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                                <option value="">-- Pilih Divisi --</option>
-                            </select>
-                            <button type="button" onclick="bukaModalOrg('divisi','tambah')" style="background: var(--primary-color); border: none; color: white; width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;" title="Tambah Divisi Baru"><i class="fas fa-plus"></i></button>
-                        </div>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">NPWP</label>
+                        <input type="text" id="empNpwp" placeholder="Contoh: 00.000.000.0-000.000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Pilih Department</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <select id="empDepartmentId" required style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                                <option value="">-- Pilih Department --</option>
-                            </select>
-                            <button type="button" onclick="tambahDeptInline()" style="background: var(--primary-color); border: none; color: white; width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;" title="Tambah Department Baru"><i class="fas fa-plus"></i></button>
-                        </div>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Status Pernikahan</label>
+                        <select id="empStatusPernikahan" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Status --</option>
+                            <option value="Belum">Belum</option>
+                            <option value="Sudah">Sudah</option>
+                            <option value="Cerai">Cerai</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group" id="empJumlahAnakContainer" style="margin-bottom: 15px; display: none;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Jumlah Anak</label>
+                    <input type="number" id="empJumlahAnak" min="0" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Pilih Posisi / Jabatan</label>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <select id="empPositionId" required style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                                <option value="">-- Pilih Posisi --</option>
-                            </select>
-                            <button type="button" onclick="tambahPosisiInline()" style="background: var(--primary-color); border: none; color: white; width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;" title="Tambah Posisi Baru"><i class="fas fa-plus"></i></button>
-                        </div>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Mulai Kontrak (Start)</label>
+                        <input type="date" id="empStartContract" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Gaji Pokok (Rp)</label>
-                        <input type="number" id="empGaji" placeholder="Contoh: 5000000" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Selesai Kontrak (End)</label>
+                        <input type="date" id="empEndContract" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Tipe Perjanjian</label>
+                        <select id="empTipePerjanjian" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Tipe --</option>
+                            <option value="PKWT">PKWT</option>
+                            <option value="PKWTT">PKWTT</option>
+                            <option value="PKHL">PKHL</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Nama Bank</label>
-                        <input type="text" id="empBankName" placeholder="Contoh: BCA, Mandiri, BRI" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">No. Rekening</label>
-                        <input type="text" id="empRekening" placeholder="Contoh: 1234567890" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Status PTKP Pajak</label>
-                    <select id="empPtkp" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                        <option value="TK/0">TK/0 (Tidak Kawin, 0 Tanggungan)</option>
-                        <option value="TK/1">TK/1 (Tidak Kawin, 1 Tanggungan)</option>
-                        <option value="TK/2">TK/2 (Tidak Kawin, 2 Tanggungan)</option>
-                        <option value="TK/3">TK/3 (Tidak Kawin, 3 Tanggungan)</option>
-                        <option value="K/0">K/0 (Kawin, 0 Tanggungan)</option>
-                        <option value="K/1">K/1 (Kawin, 1 Tanggungan)</option>
-                        <option value="K/2">K/2 (Kawin, 2 Tanggungan)</option>
-                        <option value="K/3">K/3 (Kawin, 3 Tanggungan)</option>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Lokasi Kerja</label>
+                    <select id="empWorkLocationId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="">-- Pilih Lokasi Kerja --</option>
                     </select>
-                </div>
-
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Tipe Minimum Wage</label>
-                        <select id="empWageType" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="">-- Pilih UMP/UMK --</option>
-                            <option value="UMP">UMP (Provinsi)</option>
-                            <option value="UMK">UMK (Kota/Kabupaten)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Wilayah Minimum Wage</label>
-                        <select id="empMinimumWageId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="">-- Pilih Wilayah --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group" style="margin-top: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <label style="font-weight: 600; margin: 0;">Alamat Lengkap (Bisa Diedit Bebas)</label>
-                        <button type="button" id="btnSyncAlamat" style="background: var(--info); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Salin wilayah UMP/UMK terpilih ke input Alamat">
-                            <i class="fas fa-sync-alt"></i> Salin Wilayah ke Alamat
-                        </button>
-                    </div>
-                    <textarea id="empAlamat" placeholder="Masukkan alamat lengkap karyawan" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; font-family: inherit; resize: vertical;" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1428,6 +1479,72 @@
             </div>
         </form>
     </div>
+
+    <!-- Modal Lokasi Kerja -->
+    <div id="modalLokasiKerja" class="modal-skema" style="display: none; z-index: 1000;">
+        <div class="modal-header" style="background: var(--primary-color);">
+            <h3 id="modalLokasiKerjaTitle">Tambah Lokasi Kerja</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalLokasiKerja()"></i>
+        </div>
+        <form id="formLokasiKerja">
+            <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
+                <input type="hidden" id="workLocationId">
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Pilih Perusahaan / Klien</label>
+                    <select id="locClientId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="">-- Pilih Klien --</option>
+                    </select>
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Lokasi Kerja</label>
+                        <input type="text" id="locName" placeholder="Contoh: Kantor Cabang Bandung" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Location Code</label>
+                        <input type="text" id="locCode" placeholder="Contoh: L001" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Divisi</label>
+                        <select id="locDivisionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Divisi --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Departmen</label>
+                        <select id="locDepartmentId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Departemen --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Posisi/Jabatan</label>
+                        <select id="locPositionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Jabatan --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Provinsi</label>
+                        <input type="text" id="locProvinsi" placeholder="Contoh: Jawa Barat" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Kota/Kabupaten</label>
+                        <input type="text" id="locKotaKabupaten" placeholder="Contoh: Bandung" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="tutupModalLokasiKerja()">Batal</button>
+                <button type="submit" class="btn-save" style="background: var(--primary-color);">Simpan Data</button>
+            </div>
+        </form>
 
     <!-- Modal Skema Kompensasi (Master) -->
     <div id="modalSkemaKompensasi" class="modal-skema" style="display: none;">
@@ -1571,6 +1688,7 @@
     </script>
     <script src="<?= base_url('js/app.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/app-org.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/app-location.js?v=' . time()) ?>"></script>
 </body>
 
 </html>

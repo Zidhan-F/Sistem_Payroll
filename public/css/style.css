@@ -2096,3 +2096,42 @@ tbody tr:hover {
 .confirm-actions button:active {
     transform: translateY(0);
 }
+
+/* ===== Sidebar Submenu Styles ===== */
+.sidebar-menu li.has-submenu {
+    display: block;
+    padding: 0;
+}
+
+.sidebar-menu li.has-submenu .menu-item-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 25px;
+    width: 100%;
+}
+
+.sidebar-submenu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.sidebar-submenu li {
+    padding: 10px 25px 10px 45px !important;
+    font-size: 14px !important;
+    border-left: 4px solid transparent !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+.sidebar-submenu li:hover {
+    background: linear-gradient(90deg, rgba(243, 156, 18, 0.08), rgba(243, 156, 18, 0.02)) !important;
+}
+
+.sidebar-submenu li.active {
+    background: linear-gradient(90deg, rgba(243, 156, 18, 0.12), rgba(243, 156, 18, 0.03)) !important;
+    border-left: 4px solid var(--primary-color) !important;
+    font-weight: 600;
+}
+

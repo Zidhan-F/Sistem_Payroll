@@ -98,7 +98,7 @@ function bukaModal(mode, id=null) {
     if(mode==='edit' && id){
         document.getElementById('modalTitle').innerText='Edit Data Client'; btn.innerText='Edit';
         const c = clients.find(x=>x.id==id);
-        if(c){document.getElementById('clientId').value=c.id;document.getElementById('noKlien').value=c.no_klien||'';document.getElementById('namaKlien').value=c.nama||'';document.getElementById('emailKlien').value=c.email||'';document.getElementById('teleponKlien').value=c.telepon||'';document.getElementById('sektorKlien').value=c.sektor||'';document.getElementById('nib').value=c.nib||'';document.getElementById('npwp').value=c.npwp||'';document.getElementById('tanggalBergabung').value=c.tgl_gabung?c.tgl_gabung.split('T')[0]:'';document.getElementById('alamat').value=c.alamat||'';document.getElementById('statusKlien').value=c.status||'Aktif';}
+        if(c){document.getElementById('clientId').value=c.id;document.getElementById('noKlien').value=c.no_klien||'';document.getElementById('namaKlien').value=c.nama||'';document.getElementById('emailKlien').value=c.email||'';document.getElementById('teleponKlien').value=c.telepon||'';document.getElementById('sektorKlien').value=c.sektor||'';document.getElementById('nib').value=c.nib||'';document.getElementById('npwp').value=c.npwp?String(c.npwp):'';document.getElementById('tanggalBergabung').value=c.tgl_gabung?c.tgl_gabung.split('T')[0]:'';document.getElementById('alamat').value=c.alamat||'';document.getElementById('statusKlien').value=c.status||'Aktif';}
     } else {
         document.getElementById('modalTitle').innerText='Tambah Data Client'; btn.innerText='Simpan';
         formKlien.reset();document.getElementById('clientId').value='';document.getElementById('noKlien').value='Otomatis';document.getElementById('statusKlien').value='Aktif';
@@ -106,14 +106,7 @@ function bukaModal(mode, id=null) {
 }
 function tutupModal(){modal.style.display='none';overlay.style.display='none';}
 
-formKlien?.addEventListener('submit', async(e)=>{
-    e.preventDefault();
-    const id = document.getElementById('clientId').value;
-    const d = {nama:document.getElementById('namaKlien').value,email:document.getElementById('emailKlien').value,telepon:document.getElementById('teleponKlien').value,sektor:document.getElementById('sektorKlien').value,nib:document.getElementById('nib').value,npwp:document.getElementById('npwp').value,tgl_gabung:document.getElementById('tanggalBergabung').value,alamat:document.getElementById('alamat').value,status:document.getElementById('statusKlien').value};
-    const r = await fetch(id?`${API}/clients/${id}`:`${API}/clients`,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
-    if(r.ok){tutupModal();renderTable();showToast('Data berhasil disimpan!');}
-});
-
+    // formKlien listener moved to app.js
 async function hapusKlien(id){
     if(!await showConfirm('Yakin ingin menghapus klien ini?'))return;
     const r=await fetch(`${API}/clients/${id}`,{method:'DELETE'});

@@ -112,6 +112,9 @@ $routes->group('api', function($routes) {
     // Employees
     $routes->resource('employees', ['controller' => 'Employee']);
 
+    // Work Locations
+    $routes->resource('work-locations', ['controller' => 'WorkLocation']);
+
     // PKWT / Contracts
     $routes->get('contracts/client/(:num)', 'Contract::getByClient/$1');
     $routes->get('contracts/(:num)', 'Contract::show/$1');

@@ -88,12 +88,20 @@ class Api extends ResourceController
     public function getClients()
     {
         $clients = $this->db->table('clients')->get()->getResult();
+        foreach ($clients as &$client) {
+            if (isset($client->npwp)) {
+                $client->npwp = (string)$client->npwp;
+            }
+        }
         return $this->respond($clients);
     }
 
     public function createClient()
     {
         $data = $this->request->getJSON(true);
+        if (isset($data['npwp'])) {
+            $data['npwp'] = (string)$data['npwp'];
+        }
         $this->db->table('clients')->insert($data);
         $this->logActivity("Membuat klien baru: " . ($data['nama'] ?? ''));
         return $this->respondCreated(['message' => 'Klien berhasil ditambahkan']);
@@ -102,6 +110,9 @@ class Api extends ResourceController
     public function updateClient($id)
     {
         $data = $this->request->getJSON(true);
+        if (isset($data['npwp'])) {
+            $data['npwp'] = (string)$data['npwp'];
+        }
         $this->db->table('clients')->where('id', $id)->update($data);
         $this->logActivity("Mengupdate klien ID: " . $id . " (" . ($data['nama'] ?? '') . ")");
         return $this->respond(['message' => 'Klien berhasil diupdate']);

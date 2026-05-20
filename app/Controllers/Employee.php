@@ -15,12 +15,13 @@ class Employee extends ResourceController
     {
         $clientId = $this->request->getGet('client_id');
         if ($clientId) {
-            $data = $this->model->select('employees.*, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, clients.nama as nama_klien, positions.department_id as department_id, departments.division_id as division_id, COALESCE(NULLIF(employees.alamat, \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal')
+            $data = $this->model->select('employees.*, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, clients.nama as nama_klien, positions.department_id as department_id, departments.division_id as division_id, COALESCE(NULLIF(CAST(employees.alamat AS VARCHAR(MAX)), \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal, work_locations.lokasi_kerja as nama_lokasi')
                         ->join('positions', 'positions.id = employees.position_id', 'left')
                         ->join('departments', 'departments.id = positions.department_id', 'left')
                         ->join('divisions', 'divisions.id = departments.division_id', 'left')
                         ->join('clients', 'clients.id = employees.client_id', 'left')
                         ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                        ->join('work_locations', 'work_locations.id = employees.work_location_id', 'left')
                         ->where('employees.client_id', $clientId)
                         ->findAll();
             return $this->respond($data);
@@ -31,6 +32,33 @@ class Employee extends ResourceController
     public function create()
     {
         $data = $this->request->getJSON(true);
+        
+        $db = \Config\Database::connect();
+        if (isset($data['umr_tipe']) && $data['umr_tipe'] === 'NOMINAL' && isset($data['custom_nominal']) && floatval($data['custom_nominal']) > 0) {
+            $customNominal = floatval($data['custom_nominal']);
+            $exist = $db->table('minimum_wages')
+                        ->where('tipe', 'NOMINAL')
+                        ->where('nominal', $customNominal)
+                        ->get()
+                        ->getRow();
+            if ($exist) {
+                $data['minimum_wage_id'] = $exist->id;
+            } else {
+                $db->table('minimum_wages')->insert([
+                    'tipe' => 'NOMINAL',
+                    'nama_daerah' => 'Nominal Kesepakatan',
+                    'nominal' => $customNominal,
+                    'tahun' => (int)date('Y'),
+                    'kode_daerah' => 'NOMINAL',
+                    'provinsi' => ''
+                ]);
+                $data['minimum_wage_id'] = $db->insertID();
+            }
+        }
+        
+        unset($data['umr_tipe']);
+        unset($data['custom_nominal']);
+
         if ($id = $this->model->insert($data)) {
             $data['id'] = $id;
 
@@ -60,6 +88,33 @@ class Employee extends ResourceController
     public function update($id = null)
     {
         $data = $this->request->getJSON(true);
+        
+        $db = \Config\Database::connect();
+        if (isset($data['umr_tipe']) && $data['umr_tipe'] === 'NOMINAL' && isset($data['custom_nominal']) && floatval($data['custom_nominal']) > 0) {
+            $customNominal = floatval($data['custom_nominal']);
+            $exist = $db->table('minimum_wages')
+                        ->where('tipe', 'NOMINAL')
+                        ->where('nominal', $customNominal)
+                        ->get()
+                        ->getRow();
+            if ($exist) {
+                $data['minimum_wage_id'] = $exist->id;
+            } else {
+                $db->table('minimum_wages')->insert([
+                    'tipe' => 'NOMINAL',
+                    'nama_daerah' => 'Nominal Kesepakatan',
+                    'nominal' => $customNominal,
+                    'tahun' => (int)date('Y'),
+                    'kode_daerah' => 'NOMINAL',
+                    'provinsi' => ''
+                ]);
+                $data['minimum_wage_id'] = $db->insertID();
+            }
+        }
+        
+        unset($data['umr_tipe']);
+        unset($data['custom_nominal']);
+
         if ($this->model->update($id, $data)) {
             
             // Sync Contract / PKWT Gaji Pokok if updated

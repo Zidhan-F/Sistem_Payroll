@@ -274,6 +274,31 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     }
 }
 
+async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
+    const locSel = document.getElementById('empWorkLocationId');
+    if (!locSel) return;
+    locSel.innerHTML = '<option value="">Loading...</option>';
+    try {
+        const r = await fetch(`${API}/work-locations?client_id=${clientId}`);
+        const locations = await r.json();
+        locSel.innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+        if (Array.isArray(locations)) {
+            locations.forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc.id;
+                opt.innerText = `${loc.lokasi_kerja} (${loc.location_code || ''})`;
+                if (activeLocationId && activeLocationId == loc.id) {
+                    opt.selected = true;
+                }
+                locSel.appendChild(opt);
+            });
+        }
+    } catch (e) {
+        console.error('Error loading work locations:', e);
+        locSel.innerHTML = '<option value="">-- Gagal memuat lokasi --</option>';
+    }
+}
+
 async function bukaModalKaryawan(mode,id=null){
     const m=document.getElementById('modalKaryawan'),cs=document.getElementById('empClientId');
     m.style.display='block';document.getElementById('overlay').style.display='block';
@@ -281,88 +306,39 @@ async function bukaModalKaryawan(mode,id=null){
     // Reset form first so it doesn't overwrite values set below!
     document.getElementById('formKaryawan').reset();
     document.getElementById('employeeId').value='';
+    document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
     
-    cs.innerHTML='<option value="">-- Pilih Klien --</option>';
-    clients.forEach(c=>{cs.innerHTML+=`<option value="${c.id}">${c.nama}</option>`;});
+    const statusPernikahanSel = document.getElementById('empStatusPernikahan');
+    const jumlahAnakContainer = document.getElementById('empJumlahAnakContainer');
+    const jumlahAnakInput = document.getElementById('empJumlahAnak');
     
-    // Fetch and filter UMP/UMK based on type select
-    let umpData = [];
-    let umkData = [];
-    
-    const wageTypeSel = document.getElementById('empWageType');
-    const umrSel = document.getElementById('empMinimumWageId');
-    const alamatTextarea = document.getElementById('empAlamat');
-    const gajiInput = document.getElementById('empGaji');
-    const btnSync = document.getElementById('btnSyncAlamat');
+    if (jumlahAnakContainer) jumlahAnakContainer.style.display = 'none';
+    if (jumlahAnakInput) jumlahAnakInput.value = '0';
 
-    const updateWageRegions = () => {
-        const selectedType = wageTypeSel ? wageTypeSel.value : '';
-        if (umrSel) {
-            umrSel.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
-            const list = selectedType === 'UMP' ? umpData : (selectedType === 'UMK' ? umkData : []);
-            list.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u.id;
-                opt.innerText = `${u.nama_daerah} (Rp ${formatNominal(u.nominal)})`;
-                opt.setAttribute('data-nominal', u.nominal);
-                opt.setAttribute('data-nama', u.nama_daerah);
-                umrSel.appendChild(opt);
-            });
+    const updateJumlahAnakVisibility = () => {
+        if (!statusPernikahanSel || !jumlahAnakContainer) return;
+        const val = statusPernikahanSel.value;
+        if (val === 'Sudah' || val === 'Cerai') {
+            jumlahAnakContainer.style.display = 'block';
+        } else {
+            jumlahAnakContainer.style.display = 'none';
+            if (jumlahAnakInput) jumlahAnakInput.value = '0';
         }
     };
 
-    if (wageTypeSel) {
-        wageTypeSel.onchange = updateWageRegions;
+    if (statusPernikahanSel) {
+        statusPernikahanSel.onchange = updateJumlahAnakVisibility;
     }
-
-    if (umrSel) {
-        umrSel.onchange = () => {
-            const selectedOpt = umrSel.options[umrSel.selectedIndex];
-            if (selectedOpt && selectedOpt.value) {
-                const nominal = selectedOpt.getAttribute('data-nominal');
-                const nama = selectedOpt.getAttribute('data-nama');
-                if (nominal && gajiInput) {
-                    gajiInput.value = nominal;
-                }
-                if (alamatTextarea && !alamatTextarea.value.trim()) {
-                    alamatTextarea.value = nama;
-                }
-            }
-        };
-    }
-
-    if (btnSync) {
-        btnSync.onclick = () => {
-            const selectedOpt = umrSel ? umrSel.options[umrSel.selectedIndex] : null;
-            if (selectedOpt && selectedOpt.value) {
-                const nama = selectedOpt.getAttribute('data-nama');
-                if (alamatTextarea) {
-                    alamatTextarea.value = nama;
-                    showToast('Wilayah disalin ke alamat!');
-                }
-            } else {
-                showToast('Pilih wilayah UMP/UMK terlebih dahulu!', 'error');
-            }
-        };
-    }
-
-    try {
-        const rUMP = await fetch(`${API}/minimum-wages?tipe=UMP`);
-        umpData = await rUMP.json();
-        const rUMK = await fetch(`${API}/minimum-wages?tipe=UMK`);
-        umkData = await rUMK.json();
-    } catch(e) {
-        console.error('Error loading UMP/UMK', e);
-    }
+    
+    cs.innerHTML='<option value="">-- Pilih Klien --</option>';
+    clients.forEach(c=>{cs.innerHTML+=`<option value="${c.id}">${c.nama}</option>`;});
 
     cs.onchange = async () => {
         const cid = cs.value;
         if (cid) {
-            await loadOrgSelects(cid);
+            await loadWorkLocationsForSelect(cid);
         } else {
-            document.getElementById('empDivisionId').innerHTML = '<option value="">-- Pilih Divisi --</option>';
-            document.getElementById('empDepartmentId').innerHTML = '<option value="">-- Pilih Department --</option>';
-            document.getElementById('empPositionId').innerHTML = '<option value="">-- Pilih Posisi --</option>';
+            document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
         }
     };
 
@@ -371,44 +347,59 @@ async function bukaModalKaryawan(mode,id=null){
         cs.value=selectedClientId;
         cs.disabled=true;
         if(clientContainer) clientContainer.style.display = 'none';
-        await loadOrgSelects(selectedClientId);
+        await loadWorkLocationsForSelect(selectedClientId);
     }else{
         cs.disabled=false;
         if(clientContainer) clientContainer.style.display = 'block';
     }
     
     if(mode==='edit'&&id){
-        const emp=(window.employees || []).find(e=>e.id==id);
+        const emp=(window.employees || []).find(e=>e.id==id) || (window.allEmployeesGlobal || []).find(e=>e.id==id);
         document.getElementById('employeeId').value=emp.id;
         document.getElementById('empNik').value=emp.nik;
         document.getElementById('empNama').value=emp.nama;
-        document.getElementById('empEmail').value=emp.email;
-        document.getElementById('empRekening').value=emp.no_rekening;
-        document.getElementById('empBankName').value=emp.bank_name||'';
-        document.getElementById('empPtkp').value=emp.ptkp||'TK/0';
-        document.getElementById('empGaji').value=emp.gaji_pokok;
         document.getElementById('empClientId').value=emp.client_id;
-        document.getElementById('empTglMasuk').value=emp.tgl_masuk;
-        if(alamatTextarea) alamatTextarea.value = emp.alamat || '';
         
-        if (wageTypeSel && emp.umr_tipe) {
-            wageTypeSel.value = emp.umr_tipe;
-            updateWageRegions();
-            if (umrSel) umrSel.value = emp.minimum_wage_id || '';
-        }
-        await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
+        // Populating new fields
+        document.getElementById('empTempatLahir').value = emp.tempat_lahir || '';
+        document.getElementById('empTanggalLahir').value = emp.tanggal_lahir || '';
+        document.getElementById('empNpwp').value = emp.npwp || '';
+        document.getElementById('empStatusPernikahan').value = emp.status_pernikahan || '';
+        if (jumlahAnakInput) jumlahAnakInput.value = emp.jumlah_anak || 0;
+        updateJumlahAnakVisibility();
+
+        document.getElementById('empStartContract').value = emp.start_contract || '';
+        document.getElementById('empEndContract').value = emp.end_contract || '';
+        document.getElementById('empTipePerjanjian').value = emp.tipe_perjanjian || '';
+        
+        await loadWorkLocationsForSelect(emp.client_id, emp.work_location_id);
     }
 }
 
 async function loadPositions(cid){
-    if(!cid)return;const ps=document.getElementById('empPositionId');ps.innerHTML='<option>Loading...</option>';
+    if(!cid)return;const ps=document.getElementById('empPositionId');
+    if(!ps) return;
+    ps.innerHTML='<option>Loading...</option>';
     try{const r=await fetch(`${API}/positions/client/${cid}`);const p=await r.json();ps.innerHTML='<option value="">-- Pilih Posisi --</option>';if(Array.isArray(p))p.forEach(x=>{ps.innerHTML+=`<option value="${x.id}">${x.nama}</option>`;});}catch(e){console.error(e);}
 }
 
 document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     e.preventDefault();
     const id=document.getElementById('employeeId').value;
-    const d={nik:document.getElementById('empNik').value,nama:document.getElementById('empNama').value,email:document.getElementById('empEmail').value,no_rekening:document.getElementById('empRekening').value,bank_name:document.getElementById('empBankName').value,ptkp:document.getElementById('empPtkp').value,gaji_pokok:document.getElementById('empGaji').value,client_id:document.getElementById('empClientId').value,position_id:document.getElementById('empPositionId').value,tgl_masuk:document.getElementById('empTglMasuk').value, minimum_wage_id:document.getElementById('empMinimumWageId')?.value||null, alamat:document.getElementById('empAlamat')?.value.trim()||''};
+    const d={
+        nik:document.getElementById('empNik').value,
+        nama:document.getElementById('empNama').value,
+        client_id:document.getElementById('empClientId').value,
+        tempat_lahir:document.getElementById('empTempatLahir').value,
+        tanggal_lahir:document.getElementById('empTanggalLahir').value,
+        npwp:document.getElementById('empNpwp').value,
+        status_pernikahan:document.getElementById('empStatusPernikahan').value,
+        jumlah_anak: parseInt(document.getElementById('empJumlahAnak')?.value || 0, 10),
+        start_contract:document.getElementById('empStartContract').value,
+        end_contract:document.getElementById('empEndContract').value,
+        tipe_perjanjian:document.getElementById('empTipePerjanjian').value,
+        work_location_id:document.getElementById('empWorkLocationId').value || null
+    };
     const r=await fetch(id?`${API}/employees/${id}`:`${API}/employees`,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
     if(r.ok){
         tutupModalKaryawan();
@@ -420,6 +411,12 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
             renderManajemenKaryawan();
         }
         showToast('Data karyawan berhasil disimpan');
+    } else {
+        const err = await r.json().catch(() => ({}));
+        let msg = 'Gagal menyimpan data karyawan';
+        if (err.messages) msg = Object.values(err.messages).join(', ');
+        else if (err.message) msg = err.message;
+        showToast(msg, 'error');
     }
 });
 

@@ -225,12 +225,30 @@ function switchView(view) {
 
     document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.sidebar-menu li').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.sidebar-submenu li').forEach(l => l.classList.remove('active'));
 
     const sectionId = 'view' + view.charAt(0).toUpperCase() + view.slice(1);
-    const menuId = 'menu' + view.charAt(0).toUpperCase() + view.slice(1);
+    let menuId = 'menu' + view.charAt(0).toUpperCase() + view.slice(1);
+    
+    if (view === 'globalLokasiKerja') {
+        menuId = 'menuManajemenKaryawan';
+        const subItem = document.getElementById('submenuLokasiKerja');
+        if (subItem) subItem.classList.add('active');
+    }
     
     if(document.getElementById(sectionId)) document.getElementById(sectionId).classList.add('active');
     if(document.getElementById(menuId)) document.getElementById(menuId).classList.add('active');
+
+    // Auto expand/collapse submenu based on active menu
+    const submenu = document.getElementById('submenuKaryawan');
+    const arrow = document.querySelector('#menuManajemenKaryawan .submenu-arrow');
+    if (menuId === 'menuManajemenKaryawan') {
+        if (submenu) submenu.style.display = 'block';
+        if (arrow) arrow.style.transform = 'rotate(180deg)';
+    } else {
+        if (submenu) submenu.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
 
     const titles = {
         dashboard: 'Dashboard',
@@ -256,6 +274,7 @@ function switchView(view) {
     if (view === 'dashboard') updateDashboardStats();
     if (view === 'klien') renderTable();
     if (view === 'manajemenKaryawan') renderManajemenKaryawan();
+    if (view === 'globalLokasiKerja') { if (typeof loadGlobalWorkLocations === 'function') loadGlobalWorkLocations(); }
     if (view === 'payroll') switchPayrollSubTab('skema');
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
@@ -279,7 +298,7 @@ async function renderTable() {
                 <tr style="cursor: pointer;" onclick="event.target.closest('button') ? null : selectClient(${client.id}, '${client.nama.replace(/'/g, "\\'")}', '${client.sektor.replace(/'/g, "\\'")}')">
                     <td style="font-weight: 600; color: var(--primary-color);">${client.nama}</td>
                     <td>${client.sektor}</td>
-                    <td>${client.npwp || '-'}</td>
+                    <td>${client.npwp ? `'${client.npwp}'` : '-'}</td>
                     <td>${client.nib || '-'}</td>
                     <td>${dateJoined}</td>
                     <td>${client.alamat}</td>
@@ -329,7 +348,11 @@ function switchWorkspaceTab(tab) {
     if (activePanel) activePanel.classList.add('active');
 
     if (tab === 'karyawan') {
-        renderAllEmployees();
+        if (typeof switchClientKaryawanSubTab === 'function') {
+            switchClientKaryawanSubTab('lokasi_kerja');
+        } else {
+            renderAllEmployees();
+        }
     } else if (tab === 'struktur') {
         if (typeof renderClientOrg === 'function') {
             renderClientOrg(window.selectedClientId);
@@ -448,7 +471,7 @@ function bukaModal(mode, id = null) {
             document.getElementById('emailKlien').value = client.email;
             document.getElementById('sektorKlien').value = client.sektor;
             document.getElementById('nib').value = client.nib;
-            document.getElementById('npwp').value = client.npwp;
+            document.getElementById('npwp').value = client.npwp ? String(client.npwp) : '';
             document.getElementById('tanggalBergabung').value = client.tgl_gabung ? client.tgl_gabung.split('T')[0] : '';
             document.getElementById('alamat').value = client.alamat;
         }
@@ -467,7 +490,39 @@ async function hapusKlien(id) {
     } catch (err) { console.error(err); }
 }
 
-// ===== 2. STRUKTUR ORGANISASI & KARYAWAN =====
+function rowHtmlForEmployee(emp) {
+    return `
+        <tr>
+            <td style="font-weight: 600; color: #64748b;">${emp.nik || '-'}</td>
+            <td style="font-weight: 600; color: var(--primary-color);">
+                <i class="fas fa-user" style="margin-right: 8px; opacity: 0.6;"></i>${emp.nama}
+            </td>
+            <td>
+                <div style="font-size: 13px;">${emp.tempat_lahir || '-'}</div>
+                <div style="font-size: 11px; color: #64748b;">${emp.tanggal_lahir || '-'}</div>
+            </td>
+            <td>${emp.npwp || '-'}</td>
+            <td style="font-weight: 600; color: var(--secondary-color);">${emp.nama_klien || '-'}</td>
+            <td>
+                <div style="font-weight: 600; color: #0284c7;">${emp.tipe_perjanjian || '-'}</div>
+                <div style="font-size: 11px; color: #64748b;">${emp.start_contract || '-'} s/d ${emp.end_contract || '-'}</div>
+            </td>
+            <td>
+                <div style="font-weight:600;color:#0f766e;">
+                    <i class="fas fa-map-marker-alt" style="margin-right: 4px; opacity: 0.7;"></i>${emp.nama_lokasi || '-'}
+                </div>
+            </td>
+            <td>${emp.status_pernikahan || '-'}</td>
+            <td>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-icon btn-edit" onclick="bukaModalKaryawanGlobalEdit(${emp.id}, ${emp.client_id})" title="Edit Karyawan" style="color: var(--primary-color); background: rgba(41, 128, 185, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-user-edit"></i></button>
+                    <button class="btn-icon btn-delete" onclick="hapusKaryawanGlobal(${emp.id})" title="Hapus Karyawan" style="color: var(--danger); background: rgba(231, 76, 60, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
 async function renderAllEmployees() {
     try {
         const url = window.selectedClientId ? `${API_URL}/employees?client_id=${window.selectedClientId}` : `${API_URL}/employees`;
@@ -476,17 +531,28 @@ async function renderAllEmployees() {
         window.employees = employees; // Expose globally for app-org.js
         const tbody = document.getElementById('tabelKaryawanBody');
         if(!tbody) return;
-        tbody.innerHTML = employees.map(emp => `
-            <tr>
-                <td style="font-weight:600;"><i class="fas fa-user" style="margin-right: 8px; opacity: 0.6;"></i>${emp.nama}</td>
-                <td>${emp.nama_posisi || '-'}</td>
-                <td>${emp.nama_dept || '-'}</td>
-                <td>${emp.alamat || '-'}</td>
-                <td>${emp.email || '-'}</td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = employees.map(emp => rowHtmlForEmployee(emp)).join('');
     } catch (err) { console.error(err); }
 }
+
+function filterKaryawan() {
+    const q = document.getElementById('searchKaryawan').value.toLowerCase();
+    const tbody = document.getElementById('tabelKaryawanBody');
+    if (!tbody || !window.employees) return;
+    
+    const filtered = window.employees.filter(emp => {
+        return (emp.nama && emp.nama.toLowerCase().includes(q)) ||
+               (emp.nik && emp.nik.toLowerCase().includes(q)) ||
+               (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
+               (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
+               (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q)) ||
+               (emp.email && emp.email.toLowerCase().includes(q)) ||
+               (emp.nama_lokasi && emp.nama_lokasi.toLowerCase().includes(q));
+    });
+    
+    tbody.innerHTML = filtered.map(emp => rowHtmlForEmployee(emp)).join('');
+}
+window.filterKaryawan = filterKaryawan;
 
 // ===== 3. PAYROLL SCHEMES =====
 async function renderPayrollSchemes() {
@@ -895,7 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 email: document.getElementById('emailKlien').value,
                 sektor: document.getElementById('sektorKlien').value,
                 nib: document.getElementById('nib').value,
-                npwp: document.getElementById('npwp').value,
+                npwp: String(document.getElementById('npwp').value || ''),
                 tgl_gabung: document.getElementById('tanggalBergabung').value,
                 alamat: document.getElementById('alamat').value
             };
@@ -904,7 +970,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            if (res.ok) { tutupSemuaModal(); renderTable(); showToast('Data berhasil disimpan!', 'success'); }
+            if (res.ok) { 
+                tutupSemuaModal(); renderTable(); showToast('Data berhasil disimpan!', 'success'); 
+            } else {
+                const err = await res.json().catch(() => ({}));
+                let msg = 'Gagal menyimpan data';
+                if (err.messages) msg = Object.values(err.messages).join(', ');
+                else if (err.message) msg = err.message;
+                showToast(msg, 'error');
+            }
         });
     }
 
@@ -1903,6 +1977,7 @@ async function renderUmrTable() {
             setActiveTab(tabNominal);
             if (tableArea) tableArea.style.display = 'none';
             if (nominalArea) nominalArea.style.display = 'block';
+            updateNominalDisplay();
         } else {
             if (tableArea) tableArea.style.display = 'block';
             if (nominalArea) nominalArea.style.display = 'none';
@@ -2473,6 +2548,19 @@ if (formManualUmr) {
 
 async function loadSimulasiRegions() {
     const type = document.getElementById('simulasiType').value;
+    if (type === 'NOMINAL') {
+        const savedNominal = localStorage.getItem('simulasi_nominal');
+        const select = document.getElementById('simulasiRegion');
+        if (savedNominal) {
+            const formatted = new Intl.NumberFormat('id-ID').format(savedNominal);
+            select.innerHTML = `<option value="NOMINAL">Nominal Kesepakatan (Rp ${formatted})</option>`;
+            simulasiAllData = [{id: 'NOMINAL', nama_daerah: 'Nominal Kesepakatan', nominal: savedNominal}];
+        } else {
+            select.innerHTML = `<option value="">Belum ada nominal disimpan</option>`;
+            simulasiAllData = [];
+        }
+        return;
+    }
     try {
         const res = await fetch(`${API_URL}/minimum-wages?tipe=${type}`);
         let dbData = await res.json();
@@ -2871,9 +2959,24 @@ function simpanNominalManual() {
         return;
     }
     
+    localStorage.setItem('simulasi_nominal', nominal);
     showToast('Nominal Rp ' + inputVal + ' berhasil disimpan untuk simulasi.', 'success');
-    // Here you can integrate with backend API if needed to save the user's manual nominal preference
     document.getElementById('inputUmrNominal').value = '';
+    updateNominalDisplay();
+}
+
+function updateNominalDisplay() {
+    const savedNominal = localStorage.getItem('simulasi_nominal');
+    const displayDiv = document.getElementById('displayNominalTersimpan');
+    const valSpan = document.getElementById('valNominalTersimpan');
+    if (displayDiv && valSpan) {
+        if (savedNominal) {
+            valSpan.innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(parseInt(savedNominal));
+            displayDiv.style.display = 'block';
+        } else {
+            displayDiv.style.display = 'none';
+        }
+    }
 }
 
 // ===== 3. GLOBAL MANAJEMEN KARYAWAN =====
@@ -2884,30 +2987,13 @@ async function renderManajemenKaryawan(list = null) {
         if (!list) {
             const res = await fetch(`${API_URL}/employees`);
             allEmployeesGlobal = await res.json();
+            window.allEmployeesGlobal = allEmployeesGlobal;
             list = allEmployeesGlobal;
         }
         const tbody = document.getElementById('tabelKaryawanGlobalBody');
         if (!tbody) return;
         
-        tbody.innerHTML = list.map(emp => `
-            <tr>
-                <td style="font-weight: 600; color: #64748b;">${emp.nik || '-'}</td>
-                <td style="font-weight: 600; color: var(--primary-color);">
-                    <i class="fas fa-user" style="margin-right: 8px; opacity: 0.6;"></i>${emp.nama}
-                </td>
-                <td style="font-weight: 600; color: var(--secondary-color);">${emp.nama_klien || '-'}</td>
-                <td>${emp.nama_posisi || '-'}</td>
-                <td>${emp.nama_dept || '-'}</td>
-                <td>${emp.alamat || '-'}</td>
-                <td>${emp.email || '-'}</td>
-                <td>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-icon btn-edit" onclick="bukaModalKaryawanGlobalEdit(${emp.id}, ${emp.client_id})" title="Edit Karyawan" style="color: var(--primary-color); background: rgba(41, 128, 185, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-user-edit"></i></button>
-                        <button class="btn-icon btn-delete" onclick="hapusKaryawanGlobal(${emp.id})" title="Hapus Karyawan" style="color: var(--danger); background: rgba(231, 76, 60, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-trash"></i></button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = list.map(emp => rowHtmlForEmployee(emp)).join('');
     } catch (err) {
         console.error(err);
     }
@@ -2925,7 +3011,8 @@ function cariKaryawanGlobalAktif() {
                (emp.nama_klien && emp.nama_klien.toLowerCase().includes(q)) ||
                (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
                (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
-               (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q));
+               (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q)) ||
+               (emp.nama_lokasi && emp.nama_lokasi.toLowerCase().includes(q));
     });
     renderManajemenKaryawan(filtered);
 }
@@ -2998,4 +3085,51 @@ window.cariKaryawanGlobalAktif = cariKaryawanGlobalAktif;
 window.bukaModalKaryawanGlobal = bukaModalKaryawanGlobal;
 window.bukaModalKaryawanGlobalEdit = bukaModalKaryawanGlobalEdit;
 window.hapusKaryawanGlobal = hapusKaryawanGlobal;
-window.renderLogAktivitas = renderLogAktivitas;
+window.renderLogAktivitas = renderLogAktivitas;
+
+function toggleSubmenu(event, id) {
+    if (event) event.stopPropagation();
+    const submenu = document.getElementById(id);
+    if (!submenu) return;
+    
+    const isVisible = submenu.style.display === 'block';
+    
+    // Hide all other submenus first (if there are any)
+    document.querySelectorAll('.sidebar-submenu').forEach(sub => {
+        if (sub.id !== id) {
+            sub.style.display = 'none';
+            const arr = sub.parentElement.querySelector('.submenu-arrow');
+            if (arr) arr.style.transform = 'rotate(0deg)';
+        }
+    });
+
+    submenu.style.display = isVisible ? 'none' : 'block';
+    
+    const arrow = event.currentTarget.querySelector('.submenu-arrow');
+    if (arrow) {
+        arrow.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+}
+
+function switchKaryawanSubMenu(action, event) {
+    if (event) event.stopPropagation();
+    
+    document.querySelectorAll('.sidebar-submenu li').forEach(l => l.classList.remove('active'));
+    
+    if (action === 'lokasi_kerja') {
+        switchView('globalLokasiKerja');
+        if (typeof loadGlobalWorkLocations === 'function') {
+            loadGlobalWorkLocations();
+        }
+        const subItem = document.getElementById('submenuLokasiKerja');
+        if (subItem) subItem.classList.add('active');
+    } else if (action === 'tambah_karyawan') {
+        switchView('manajemenKaryawan');
+        const subItem = document.getElementById('submenuTambahKaryawan');
+        if (subItem) subItem.classList.add('active');
+    }
+}
+
+window.toggleSubmenu = toggleSubmenu;
+window.switchKaryawanSubMenu = switchKaryawanSubMenu;
+
