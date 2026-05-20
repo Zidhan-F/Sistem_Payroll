@@ -472,12 +472,6 @@ async function renderAllEmployees() {
                 <td>${emp.nama_dept || '-'}</td>
                 <td>${emp.alamat || '-'}</td>
                 <td>${emp.email || '-'}</td>
-                <td>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-icon btn-edit" onclick="bukaModalKaryawan('edit', ${emp.id})" title="Edit Karyawan" style="color: var(--primary-color); background: rgba(41, 128, 185, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-user-edit"></i></button>
-                        <button class="btn-icon btn-delete" onclick="hapusKaryawan(${emp.id})" title="Hapus Karyawan" style="color: var(--danger); background: rgba(231, 76, 60, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-trash"></i></button>
-                    </div>
-                </td>
             </tr>
         `).join('');
     } catch (err) { console.error(err); }

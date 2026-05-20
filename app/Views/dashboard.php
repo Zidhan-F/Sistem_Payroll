@@ -211,7 +211,6 @@
                                                 <th>Department</th>
                                                 <th>Alamat (UMP/UMK)</th>
                                                 <th>Kontak</th>
-                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tabelKaryawanBody">
