@@ -14,12 +14,11 @@
 
     <!-- Sidebar -->
     <div class="sidebar">
-        <div style="padding: 0 25px; display: flex; align-items: center; gap: 10px;">
-            <div
-                style="width: 35px; height: 35px; background: var(--primary-color); border-radius: 8px; display: grid; place-items: center; color: white;">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon">
                 <i class="fas fa-building"></i>
             </div>
-            <h3 style="color: var(--primary-dark)">Payroll App</h3>
+            <h3>Payroll App</h3>
         </div>
         <ul class="sidebar-menu">
             <li id="menuDashboard" class="active" onclick="switchView('dashboard')">
@@ -53,13 +52,15 @@
     <div class="main-content">
         <header>
             <div class="header-left">
-                <i class="fas fa-bars" style="cursor: pointer;"></i>
-                <h2 id="viewTitle" style="font-size: 18px;">Client</h2>
+                <button class="header-hamburger" aria-label="Toggle Sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h2 id="viewTitle">Client</h2>
             </div>
-            <div class="user-profile" style="cursor: pointer;" onclick="logout()">
-                <i class="fas fa-user-circle" style="font-size: 20px;"></i>
-                <span id="headerUserName" style="font-size: 14px; font-weight: 500;">User</span>
-                <i class="fas fa-sign-out-alt" style="font-size: 14px; margin-left: 10px;" title="Logout"></i>
+            <div class="user-profile" onclick="logout()">
+                <i class="fas fa-user-circle"></i>
+                <span id="headerUserName">User</span>
+                <i class="fas fa-sign-out-alt" title="Logout"></i>
             </div>
         </header>
 
@@ -332,7 +333,7 @@
                                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
                                         <div>
                                             <h4 id="activePeriodName" style="margin:0; color: var(--primary-color);">Pilih Periode</h4>
-                                            <span class="status-badge success">Periode Terbuka</span>
+                                            <span id="activePeriodStatus" class="status-badge success">Periode Terbuka</span>
                                         </div>
                                         <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color);">
                                             <i class="fas fa-sync-alt"></i> Generate Gaji
@@ -464,6 +465,42 @@
                                         </div>
                                         <div id="pilihanKompensasiSummary" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; min-height: 60px;">
                                             <p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema kompensasi di atas untuk melihat detailnya.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Skema Absensi Card -->
+                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                                            <div style="width: 40px; height: 40px; background: rgba(231, 76, 60, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-calendar-times" style="font-size: 18px; color: #e74c3c;"></i>
+                                            </div>
+                                            <div>
+                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Absensi</h4>
+                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Aturan prorate dan pemotongan absen</p>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                                            <label class="absen-config-item" style="cursor: pointer;">
+                                                <div>
+                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Prorate Gaji</strong>
+                                                    <span style="font-size: 12px; color: #94a3b8;">Hitung gaji secara proporsional sesuai hari kerja</span>
+                                                </div>
+                                                <input type="checkbox" id="cfgProrate" style="width: 20px; height: 20px; cursor: pointer;">
+                                            </label>
+                                            <label class="absen-config-item" style="cursor: pointer;">
+                                                <div>
+                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Absen Tidak Potong Gaji</strong>
+                                                    <span style="font-size: 12px; color: #94a3b8;">Absensi ketidakhadiran tidak memotong gaji bulanan</span>
+                                                </div>
+                                                <input type="checkbox" id="cfgAbsenTidakPotong" style="width: 20px; height: 20px; cursor: pointer;">
+                                            </label>
+                                            <div class="absen-config-item" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 24px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                                                <div>
+                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Nominal Potongan Absen</strong>
+                                                    <span style="font-size: 12px; color: #94a3b8;">Jumlah potongan per hari absen</span>
+                                                </div>
+                                                <input type="text" id="cfgNominalPotongan" onkeyup="formatRupiahInput(this)" placeholder="0" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 150px; text-align: right; font-size: 14px; font-weight: 600; outline: none;">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -715,8 +752,21 @@
                     </div>
                 </div>
 
-                <div id="compensationSchemesContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
-                    <!-- Cards will be dynamically rendered here -->
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 800px;">
+                        <thead>
+                            <tr style="background: #f8fafc;">
+                                <th style="width: 60px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">No</th>
+                                <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Nama / Tipe</th>
+                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Sumber & Nilai</th>
+                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Periode</th>
+                                <th style="width: 150px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="compensationSchemesContainer">
+                            <!-- Rows will be dynamically rendered here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1388,13 +1438,41 @@
         <form id="formSkemaKompensasi">
             <div class="modal-body">
                 <input type="hidden" id="skemaKompensasiId">
-                <div class="form-group">
-                    <label>Nama Skema</label>
-                    <input type="text" id="skemaKompensasiNama" placeholder="Contoh: Staff Kantor, Operator Pabrik" required>
+                <input type="hidden" id="skemaKompensasiDeskripsi" value="">
+                <input type="hidden" id="skemaKompensasiIsPersentase" value="0">
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Tipe Skema</label>
+                    <select id="skemaKompensasiNama" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
+                        <option value="Basic Salary">Basic Salary</option>
+                        <option value="Kompensasi Tetap">Kompensasi Tetap</option>
+                        <option value="Kompensasi Tidak Tetap">Kompensasi Tidak Tetap</option>
+                    </select>
                 </div>
-                <div class="form-group">
-                    <label>Deskripsi</label>
-                    <textarea id="skemaKompensasiDeskripsi" placeholder="Tulis deskripsi skema di sini..." style="width:100%; height:80px; resize:none; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-family: inherit; font-size: 14px;"></textarea>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label>Sumber Nilai</label>
+                        <select id="skemaKompensasiSumber" onchange="handleSchemeSumberNilaiChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
+                            <option value="ump">UMP (Provinsi)</option>
+                            <option value="umk">UMK (Kota/Kabupaten)</option>
+                            <option value="nominal" selected>Nominal Custom</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Periode</label>
+                        <select id="skemaKompensasiPeriode" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
+                            <option value="bulan" selected>Per Bulan</option>
+                            <option value="minggu">Per Minggu</option>
+                            <option value="hari_kerja">Per Hari Kerja</option>
+                            <option value="tahun">Per Tahun</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label id="labelNilaiSkema">Nominal Custom (Rp)</label>
+                    <input type="number" id="skemaKompensasiNilai" placeholder="Contoh: 200000" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                 </div>
             </div>
             <div class="modal-footer">
@@ -1437,7 +1515,8 @@
                     <div class="form-group">
                         <label>Sumber Nilai</label>
                         <select id="komponenKompensasiSumber" onchange="handleSumberNilaiChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="ump_umk">UMP / UMK</option>
+                            <option value="ump">UMP (Provinsi)</option>
+                            <option value="umk">UMK (Kota/Kabupaten)</option>
                             <option value="nominal" selected>Nominal Custom</option>
                         </select>
                     </div>

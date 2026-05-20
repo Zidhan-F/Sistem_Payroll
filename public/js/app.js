@@ -207,6 +207,9 @@ function switchPayrollSubTab(tab) {
 }
 
 function switchView(view) {
+    // Auto-close any open modals when switching views
+    tutupSemuaModal();
+
     const clientScopedViews = ['karyawan', 'struktur', 'setup', 'pkwt', 'proses'];
     if (clientScopedViews.includes(view.toLowerCase())) {
         if (window.selectedClientId) {
@@ -240,6 +243,14 @@ function switchView(view) {
         logAktivitas: 'Log Aktivitas'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Payroll System';
+
+    // Auto-collapse sidebar after clicking a menu item
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar && !sidebar.classList.contains('collapsed')) {
+        sidebar.classList.add('collapsed');
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) mainContent.classList.add('expanded');
+    }
 
     // Auto load data based on view
     if (view === 'dashboard') updateDashboardStats();
@@ -644,7 +655,7 @@ async function renderPKWTTable() {
                     <td>${row.client_name}</td>
                     <td>${row.position_name}</td>
                     <td>${new Date(row.start_date).toLocaleDateString()}</td>
-                    <td><span class="status-badge success">${row.status}</span></td>
+                    <td><span class="status-badge ${row.status && row.status.toLowerCase() === 'aktif' ? 'success' : 'danger'}">${row.status}</span></td>
                     <td>${formatRupiah(basicComp ? basicComp.nilai : 0)}</td>
                     <td><button class="btn-icon btn-delete" onclick="hapusPKWT(${row.id})"><i class="fas fa-trash"></i></button></td>
                 </tr>
@@ -689,6 +700,7 @@ async function loadActivePeriod() {
     try {
         const response = await fetch(`${API_URL}/periods`);
         const periods = await response.json();
+        window.loadedPeriods = periods;
         
         // 1. Render dropdown selector on the main page
         const select = document.getElementById('selectPeriodInput');
@@ -704,7 +716,7 @@ async function loadActivePeriod() {
             list.innerHTML = periods.map(p => `
                 <div class="period-item ${p.id == currentPeriodId ? 'active' : ''}" onclick="selectPeriod(${p.id}, '${p.nama}')" style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: ${p.id == currentPeriodId ? '#f0fdf4' : 'transparent'};">
                     <span style="font-weight: 500;">${p.nama}</span>
-                    <span class="status-badge success" style="font-size: 11px;">${p.status}</span>
+                    <span class="status-badge ${p.status && (p.status.toLowerCase().includes('open') || p.status.toLowerCase().includes('terbuka')) ? 'success' : 'danger'}" style="font-size: 11px;">${p.status}</span>
                 </div>
             `).join('');
         }
@@ -732,6 +744,16 @@ function selectPeriod(id, name) {
         return;
     }
     document.getElementById('activePeriodName').innerText = name;
+    
+    // Update active period status badge dynamically
+    const statusBadge = document.getElementById('activePeriodStatus');
+    if (statusBadge && window.loadedPeriods) {
+        const period = window.loadedPeriods.find(p => p.id == id);
+        const status = period ? period.status : 'Open';
+        statusBadge.innerText = status;
+        statusBadge.className = 'status-badge ' + (status.toLowerCase().includes('open') || status.toLowerCase().includes('terbuka') ? 'success' : 'danger');
+    }
+
     document.getElementById('prosesActions').style.display = 'block';
     document.getElementById('prosesEmptyState').style.display = 'none';
     renderCutOffTable();
@@ -751,7 +773,7 @@ async function renderCutOffTable() {
             <td>${row.jam_lembur || 0} Jam</td>
             <td>${formatRupiah(row.potongan_absensi)}</td>
             <td>${formatRupiah(row.bonus_tambahan)}</td>
-            <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}')"><i class="fas fa-edit"></i></button></td>
+            <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${row.hari_kerja || 22}, ${row.jam_lembur || 0}, ${row.potongan_absensi || 0}, ${row.bonus_tambahan || 0})"><i class="fas fa-edit"></i></button></td>
         </tr>
     `).join('');
 }
@@ -1016,7 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSimulasiRegions();
 
     // Sidebar toggle button
-    const sidebarToggleBtn = document.querySelector('.header-left .fa-bars');
+    const sidebarToggleBtn = document.querySelector('.header-hamburger');
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', toggleSidebar);
     }
@@ -1028,7 +1050,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = document.getElementById('skemaKompensasiId').value;
             const data = {
                 nama: document.getElementById('skemaKompensasiNama').value,
-                deskripsi: document.getElementById('skemaKompensasiDeskripsi').value
+                deskripsi: document.getElementById('skemaKompensasiDeskripsi').value || '',
+                tipe: 'pendapatan',
+                sumber_nilai: document.getElementById('skemaKompensasiSumber').value,
+                nilai: parseFloat(document.getElementById('skemaKompensasiNilai').value) || 0,
+                periode: document.getElementById('skemaKompensasiPeriode').value,
+                is_persentase: parseInt(document.getElementById('skemaKompensasiIsPersentase').value) || 0
             };
             const url = id ? `${API_URL}/compensation-schemes/${id}` : `${API_URL}/compensation-schemes`;
             const res = await fetch(url, {
@@ -1117,6 +1144,58 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 console.error(err);
                 showToast('Gagal membuat PKWT', 'error');
+            }
+        });
+    }
+
+    // Form Cut-Off submit handler
+    if (document.getElementById('formCutOff')) {
+        document.getElementById('formCutOff').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentPeriodId) {
+                showToast('Periode aktif tidak ditemukan!', 'error');
+                return;
+            }
+            const data = {
+                period_id: parseInt(currentPeriodId),
+                pkwt_id: parseInt(document.getElementById('cutoffPkwtId').value),
+                hari_kerja: parseInt(document.getElementById('cutoffHariKerja').value) || 0,
+                jam_lembur: parseFloat(document.getElementById('cutoffJamLembur').value) || 0,
+                potongan_absensi: parseFloat(document.getElementById('cutoffPotongan').value) || 0,
+                bonus_tambahan: parseFloat(document.getElementById('cutoffBonus').value) || 0
+            };
+            try {
+                const res = await fetch(`${API_URL}/attendance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    tutupSemuaModal();
+                    renderCutOffTable();
+                    showToast('Data cut-off berhasil disimpan!', 'success');
+                } else {
+                    showToast('Gagal menyimpan data cut-off!', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal menyimpan data cut-off!', 'error');
+            }
+        });
+    }
+
+    // Dynamic recalculation of CutOff Potongan based on hari_kerja
+    const cutoffHariKerjaInput = document.getElementById('cutoffHariKerja');
+    if (cutoffHariKerjaInput) {
+        cutoffHariKerjaInput.addEventListener('input', () => {
+            if (window.currentAbsenceConfig && window.currentAbsenceConfig.nominal_potongan > 0) {
+                const nominal = parseFloat(window.currentAbsenceConfig.nominal_potongan) || 0;
+                const hariKerja = parseInt(cutoffHariKerjaInput.value) || 0;
+                const missingDays = 21 - hariKerja;
+                const potonganInput = document.getElementById('cutoffPotongan');
+                if (potonganInput) {
+                    potonganInput.value = missingDays > 0 ? (missingDays * nominal) : 0;
+                }
             }
         });
     }
@@ -1250,6 +1329,7 @@ async function loadPilihanSkema() {
                 handlePilihanSkemaPayrollTipeChange();
             }
         }
+        await loadAbsenConfig();
     } catch (err) {
         console.error('Error loading pilihan skema:', err);
     }
@@ -1297,6 +1377,7 @@ async function simpanPilihanSkema() {
         });
 
         if (res.ok) {
+            await simpanKonfigAbsen(false);
             showToast('Pilihan skema berhasil disimpan!', 'success');
             // Also update the Setup Payroll tab data
             loadWorkspaceSetup();
@@ -1324,81 +1405,68 @@ async function renderMasterKompensasi() {
         
         if (window.compensationSchemes.length === 0) {
             container.innerHTML = `
-                <div class="empty-schemes" style="grid-column: span 3; text-align: center; padding: 40px; border: 2px dashed #cbd5e1; border-radius: 12px; background: white;">
-                    <i class="fas fa-coins" style="font-size: 40px; color: #94a3b8; margin-bottom: 12px; display: block;"></i>
-                    <p style="color: #64748b; font-weight: 600; margin-bottom: 15px;">Belum ada skema kompensasi global.</p>
-                    <button class="btn-add" onclick="bukaModalSkemaKompensasi('tambah')" style="margin: 0 auto; background: var(--primary-color);">
-                        <i class="fas fa-plus"></i> Tambah Skema Pertama
-                    </button>
-                </div>
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 40px;">
+                        <div class="empty-schemes" style="border: 2px dashed #cbd5e1; border-radius: 12px; background: white; padding: 30px; margin: 0 auto; max-width: 500px;">
+                            <i class="fas fa-coins" style="font-size: 40px; color: #94a3b8; margin-bottom: 12px; display: block;"></i>
+                            <p style="color: #64748b; font-weight: 600; margin-bottom: 15px;">Belum ada skema kompensasi global.</p>
+                            <button class="btn-add" onclick="bukaModalSkemaKompensasi('tambah')" style="margin: 0 auto; background: var(--primary-color);">
+                                <i class="fas fa-plus"></i> Tambah Skema Pertama
+                            </button>
+                        </div>
+                    </td>
+                </tr>
             `;
             return;
         }
 
-        container.innerHTML = window.compensationSchemes.map(scheme => {
-            const comps = scheme.components || [];
-            const earningsCount = comps.filter(c => c.tipe === 'pendapatan').length;
-            const deductionsCount = comps.filter(c => c.tipe === 'potongan').length;
+        container.innerHTML = window.compensationSchemes.map((scheme, index) => {
+            const comp = (scheme.components && scheme.components.length > 0) ? scheme.components[0] : null;
+
+            let nilaiDisplay = '-';
+            if (comp) {
+                if (comp.sumber_nilai === 'ump') {
+                    nilaiDisplay = `${comp.nilai}% UMP`;
+                } else if (comp.sumber_nilai === 'umk') {
+                    nilaiDisplay = `${comp.nilai}% UMK`;
+                } else if (comp.sumber_nilai === 'ump_umk') {
+                    nilaiDisplay = `${comp.nilai}% UMP/UMK`;
+                } else {
+                    nilaiDisplay = comp.is_persentase == 1 ? `${comp.nilai}%` : formatRupiah(comp.nilai);
+                }
+            }
+
+            let periodeDisplay = '-';
+            if (comp) {
+                if (comp.periode === 'hari_kerja') {
+                    periodeDisplay = 'Per Hari Kerja';
+                } else if (comp.periode === 'minggu') {
+                    periodeDisplay = 'Per Minggu';
+                } else if (comp.periode === 'tahun') {
+                    periodeDisplay = 'Per Tahun';
+                } else {
+                    periodeDisplay = 'Per Bulan';
+                }
+            }
 
             return `
-                <div class="scheme-card" id="comp-scheme-card-${scheme.id}" style="margin-bottom: 20px;">
-                    <div class="scheme-card-header" onclick="toggleSchemeCardBody(${scheme.id})">
-                        <div class="scheme-card-info">
-                            <h4><i class="fas fa-coins" style="color: #10b981;"></i> ${scheme.nama}</h4>
-                            <div class="scheme-card-desc" style="margin-top: 5px; color: #64748b;">${scheme.deskripsi || 'Tidak ada deskripsi'}</div>
-                            <div class="scheme-card-meta" style="margin-top: 10px; display: flex; gap: 15px;">
-                                <span><i class="fas fa-plus-circle" style="color: #10b981;"></i> <strong class="meta-earning">${earningsCount} Pendapatan</strong></span>
-                                <span><i class="fas fa-minus-circle" style="color: #ef4444;"></i> <strong class="meta-deduction">${deductionsCount} Potongan</strong></span>
-                            </div>
+                <tr id="comp-scheme-row-${scheme.id}" style="border-bottom: 1px solid #e2e8f0; transition: background 0.2s;">
+                    <td style="text-align: center; padding: 16px; color: #475569;">${index + 1}</td>
+                    <td style="padding: 16px; font-weight: 600; color: #1e293b;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-coins" style="color: #10b981;"></i>
+                            ${scheme.nama}
                         </div>
-                        <div class="scheme-card-actions" onclick="event.stopPropagation()">
-                            <button class="btn-icon btn-edit" onclick="bukaModalSkemaKompensasi('edit', ${scheme.id})"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon btn-delete" onclick="hapusSkemaKompensasi(${scheme.id})"><i class="fas fa-trash"></i></button>
-                            <div class="scheme-toggle" id="comp-scheme-toggle-${scheme.id}" onclick="toggleSchemeCardBody(${scheme.id}); event.stopPropagation();"><i class="fas fa-chevron-down"></i></div>
+                    </td>
+                    <td style="text-align: center; padding: 16px; font-weight: 600; color: #1e293b;">${nilaiDisplay}</td>
+                    <td style="text-align: center; padding: 16px; color: #475569;">${periodeDisplay}</td>
+                    <td style="text-align: center; padding: 16px;">
+                        <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
+                            <button class="btn-icon btn-edit" onclick="bukaModalSkemaKompensasi('edit', ${scheme.id})" title="Edit Skema"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon btn-delete" onclick="hapusSkemaKompensasi(${scheme.id})" title="Hapus Skema"><i class="fas fa-trash"></i></button>
                         </div>
-                    </div>
-                    <div class="scheme-card-body" id="comp-scheme-body-${scheme.id}" style="display: none; padding: 20px; border-top: 1px solid #f1f5f9; background: #fafbfc;">
-                        <div class="scheme-card-body-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                            <h5 style="margin: 0; font-size: 13px; font-weight: 600; color: #475569;">KOMPONEN KOMPENSASI</h5>
-                            <button class="btn-add-komponen" onclick="bukaModalKomponenKompensasi(${scheme.id}, 'tambah')" style="padding: 6px 12px; font-size: 12px;">
-                                <i class="fas fa-plus"></i> Tambah Komponen
-                            </button>
-                        </div>
-                        <div class="component-list" style="display: flex; flex-direction: column; gap: 10px;">
-                            ${comps.length === 0 ? `
-                                <div class="empty-component" style="text-align: center; padding: 20px; color: #94a3b8; border: 2px dashed #cbd5e1; border-radius: 8px; background: white;">
-                                    <i class="fas fa-info-circle"></i> Belum ada komponen dalam skema ini.
-                                </div>
-                            ` : comps.map(k => `
-                                <div class="component-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 8px; background: white; border: 1px solid #e2e8f0;">
-                                    <div class="component-item-left" style="display: flex; align-items: center; gap: 12px;">
-                                        <div class="component-kategori-icon ${k.tipe === 'pendapatan' ? 'kat-insentif' : 'kat-absensi'}" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px;">
-                                            <i class="fas ${k.tipe === 'pendapatan' ? 'fa-plus' : 'fa-minus'}"></i>
-                                        </div>
-                                        <div class="component-info" style="display: flex; flex-direction: column;">
-                                            <span class="comp-name" style="font-weight: 600; font-size: 14px; color: #1e293b;">${k.nama}</span>
-                                            <span class="comp-kategori" style="color: #64748b; font-weight: 500; font-size: 11px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px;">
-                                                <span style="background: ${k.tipe === 'pendapatan' ? '#d1fae5' : '#fee2e2'}; color: ${k.tipe === 'pendapatan' ? '#065f46' : '#991b1b'}; padding: 1px 6px; border-radius: 4px; font-weight: 600; font-size: 10px;">${k.tipe.toUpperCase()}</span>
-                                                <span style="background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">${k.jenis_komponen === 'basic_salary' ? 'Basic Salary' : (k.sifat_kompensasi === 'tidak_tetap' ? 'Kompensasi Tidak Tetap' : 'Kompensasi Tetap')}</span>
-                                                <span style="background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">${k.sumber_nilai === 'ump_umk' ? 'Persentase UMP/UMK' : 'Nominal Custom'}</span>
-                                                <span style="background: #f1f5f9; padding: 1px 6px; border-radius: 4px;">/ ${k.periode ? k.periode.toUpperCase() : 'BULAN'}</span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="component-item-right" style="display: flex; align-items: center; gap: 15px;">
-                                        <div class="component-value ${k.tipe}" style="font-weight: 700; font-size: 14px; padding: 4px 10px; border-radius: 6px; background: ${k.tipe === 'pendapatan' ? '#d1fae5' : '#fee2e2'}; color: ${k.tipe === 'pendapatan' ? '#059669' : '#dc2626'};">
-                                            ${k.sumber_nilai === 'ump_umk' ? k.nilai + '% UMP/UMK' : (k.is_persentase == 1 ? k.nilai + '%' : formatRupiah(k.nilai))}
-                                        </div>
-                                        <div class="component-item-actions" style="display: flex; gap: 5px;">
-                                            <button class="btn-icon btn-edit" onclick="bukaModalKomponenKompensasi(${scheme.id}, 'edit', ${k.id})" style="width: 28px; height: 28px; background: var(--info); border-radius: 4px; border: none; color: white; cursor: pointer;"><i class="fas fa-edit" style="font-size: 11px;"></i></button>
-                                            <button class="btn-icon btn-delete" onclick="hapusKomponenKompensasi(${k.id})" style="width: 28px; height: 28px; background: var(--danger); border-radius: 4px; border: none; color: white; cursor: pointer;"><i class="fas fa-trash" style="font-size: 11px;"></i></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
+                    </td>
+                </tr>
             `;
         }).join('');
     } catch (err) {
@@ -1412,11 +1480,36 @@ function toggleSchemeCardBody(schemeId) {
     if (body) {
         body.classList.toggle('expanded');
         if (body.classList.contains('expanded')) {
-            body.style.display = 'block';
+            body.style.display = 'table-row';
             if (toggle) toggle.classList.add('expanded');
         } else {
             body.style.display = 'none';
             if (toggle) toggle.classList.remove('expanded');
+        }
+    }
+}
+
+function handleSchemeSumberNilaiChange() {
+    const sumber = document.getElementById('skemaKompensasiSumber').value;
+    const labelNilai = document.getElementById('labelNilaiSkema');
+    const inputNilai = document.getElementById('skemaKompensasiNilai');
+    const isPersentase = document.getElementById('skemaKompensasiIsPersentase');
+    const selectPeriode = document.getElementById('skemaKompensasiPeriode');
+
+    if (sumber === 'ump' || sumber === 'umk') {
+        if (isPersentase) isPersentase.value = '1';
+        if (labelNilai) labelNilai.innerText = `Nilai Persentase (%) dari ${sumber.toUpperCase()}`;
+        if (inputNilai) inputNilai.placeholder = 'Contoh: 100';
+        if (selectPeriode) {
+            selectPeriode.value = 'bulan';
+            selectPeriode.disabled = true;
+        }
+    } else {
+        if (isPersentase) isPersentase.value = '0';
+        if (labelNilai) labelNilai.innerText = 'Nominal Custom (Rp)';
+        if (inputNilai) inputNilai.placeholder = 'Contoh: 200000';
+        if (selectPeriode) {
+            selectPeriode.disabled = false;
         }
     }
 }
@@ -1427,15 +1520,36 @@ function bukaModalSkemaKompensasi(mode, id = null) {
     if (mode === 'edit' && id) {
         const scheme = window.compensationSchemes.find(s => s.id == id);
         if (scheme) {
+            const comp = (scheme.components && scheme.components.length > 0) ? scheme.components[0] : null;
             document.getElementById('modalSkemaKompensasiTitle').innerText = 'Edit Skema Kompensasi';
             document.getElementById('skemaKompensasiId').value = scheme.id;
             document.getElementById('skemaKompensasiNama').value = scheme.nama;
-            document.getElementById('skemaKompensasiDeskripsi').value = scheme.deskripsi || '';
+            document.getElementById('skemaKompensasiDeskripsi').value = '';
+            
+            if (comp) {
+                document.getElementById('skemaKompensasiSumber').value = comp.sumber_nilai || 'nominal';
+                document.getElementById('skemaKompensasiPeriode').value = comp.periode || 'bulan';
+                document.getElementById('skemaKompensasiNilai').value = comp.nilai || '0';
+                document.getElementById('skemaKompensasiIsPersentase').value = comp.is_persentase || '0';
+            } else {
+                document.getElementById('skemaKompensasiSumber').value = 'nominal';
+                document.getElementById('skemaKompensasiPeriode').value = 'bulan';
+                document.getElementById('skemaKompensasiNilai').value = '0';
+                document.getElementById('skemaKompensasiIsPersentase').value = '0';
+            }
+            handleSchemeSumberNilaiChange();
         }
     } else {
         document.getElementById('modalSkemaKompensasiTitle').innerText = 'Tambah Skema Kompensasi';
         document.getElementById('formSkemaKompensasi').reset();
         document.getElementById('skemaKompensasiId').value = '';
+        document.getElementById('skemaKompensasiNama').value = 'Basic Salary';
+        document.getElementById('skemaKompensasiDeskripsi').value = '';
+        document.getElementById('skemaKompensasiSumber').value = 'nominal';
+        document.getElementById('skemaKompensasiPeriode').value = 'bulan';
+        document.getElementById('skemaKompensasiNilai').value = '';
+        document.getElementById('skemaKompensasiIsPersentase').value = '0';
+        handleSchemeSumberNilaiChange();
     }
 }
 
@@ -1475,7 +1589,17 @@ function handleSumberNilaiChange() {
     const inputNilai = document.getElementById('komponenKompensasiNilai');
     const selectIsPersentase = document.getElementById('komponenKompensasiIsPersentase');
 
-    if (sumber === 'ump_umk') {
+    if (sumber === 'ump') {
+        if (formatContainer) formatContainer.style.display = 'none';
+        if (selectIsPersentase) selectIsPersentase.value = '1';
+        if (labelNilai) labelNilai.innerText = 'Nilai Persentase (%) dari UMP';
+        if (inputNilai) inputNilai.placeholder = 'Contoh: 100';
+    } else if (sumber === 'umk') {
+        if (formatContainer) formatContainer.style.display = 'none';
+        if (selectIsPersentase) selectIsPersentase.value = '1';
+        if (labelNilai) labelNilai.innerText = 'Nilai Persentase (%) dari UMK';
+        if (inputNilai) inputNilai.placeholder = 'Contoh: 100';
+    } else if (sumber === 'ump_umk') {
         if (formatContainer) formatContainer.style.display = 'none';
         if (selectIsPersentase) selectIsPersentase.value = '1';
         if (labelNilai) labelNilai.innerText = 'Nilai Persentase (%) dari UMP/UMK';
@@ -1558,19 +1682,30 @@ async function loadAbsenConfig() {
         if (data && data.id) {
             document.getElementById('cfgProrate').checked = data.prorate == 1;
             document.getElementById('cfgAbsenTidakPotong').checked = data.absen_tidak_potong == 1;
+            const nominalInput = document.getElementById('cfgNominalPotongan');
+            if (nominalInput) {
+                const val = data.nominal_potongan ? parseFloat(data.nominal_potongan) : 0;
+                nominalInput.value = val > 0 ? new Intl.NumberFormat('id-ID').format(val) : '';
+            }
         } else {
             document.getElementById('cfgProrate').checked = false;
             document.getElementById('cfgAbsenTidakPotong').checked = false;
+            const nominalInput = document.getElementById('cfgNominalPotongan');
+            if (nominalInput) nominalInput.value = '';
         }
     } catch (err) { console.error(err); }
 }
 
-async function simpanKonfigAbsen() {
+async function simpanKonfigAbsen(showToastOnSuccess = true) {
     if (!window.selectedClientId) return;
+    const nominalRaw = document.getElementById('cfgNominalPotongan').value;
+    const nominalClean = parseFloat(nominalRaw.replace(/\./g, '').replace(/,/g, '.')) || 0;
+    
     const data = {
         client_id: window.selectedClientId,
         prorate: document.getElementById('cfgProrate').checked ? 1 : 0,
-        absen_tidak_potong: document.getElementById('cfgAbsenTidakPotong').checked ? 1 : 0
+        absen_tidak_potong: document.getElementById('cfgAbsenTidakPotong').checked ? 1 : 0,
+        nominal_potongan: nominalClean
     };
     try {
         const res = await fetch(`${API_URL}/client-absence-config`, {
@@ -1578,8 +1713,8 @@ async function simpanKonfigAbsen() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (res.ok) { showToast('Konfigurasi absen berhasil disimpan!', 'success'); }
-    } catch (err) { console.error(err); showToast('Gagal menyimpan konfigurasi', 'error'); }
+        if (res.ok && showToastOnSuccess) { showToast('Konfigurasi absen berhasil disimpan!', 'success'); }
+    } catch (err) { console.error(err); if (showToastOnSuccess) showToast('Gagal menyimpan konfigurasi', 'error'); }
 }
 
 // ===== HAPUS SKEMA PAYROLL & PAJAK =====
@@ -1680,11 +1815,25 @@ function bukaModalPeriode() {
     document.getElementById('overlay').style.display = 'block';
 }
 
-function bukaModalCutOff(pkwtId, empName) {
+function bukaModalCutOff(pkwtId, empName, hariKerja = 22, jamLembur = 0, potongan = 0, bonus = 0) {
     document.getElementById('modalCutOff').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('cutoffPkwtId').value = pkwtId;
     document.getElementById('cutoffEmployeeName').value = empName;
+    document.getElementById('cutoffHariKerja').value = hariKerja;
+    document.getElementById('cutoffJamLembur').value = jamLembur;
+    
+    // Calculate default potongan if nominal_potongan is set and no manual potongan exists yet
+    let finalPotongan = potongan;
+    if (potongan == 0 && window.currentAbsenceConfig && window.currentAbsenceConfig.nominal_potongan > 0) {
+        const nominal = parseFloat(window.currentAbsenceConfig.nominal_potongan) || 0;
+        const missingDays = 21 - hariKerja;
+        if (missingDays > 0) {
+            finalPotongan = missingDays * nominal;
+        }
+    }
+    document.getElementById('cutoffPotongan').value = finalPotongan;
+    document.getElementById('cutoffBonus').value = bonus;
 }
 
 // Global Closing Handlers

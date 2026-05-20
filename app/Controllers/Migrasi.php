@@ -187,6 +187,9 @@ class Migrasi extends BaseController
                 created_at DATETIME DEFAULT GETDATE()
             )");
 
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_absence_configs') AND name = 'nominal_potongan')
+            ALTER TABLE client_absence_configs ADD nominal_potongan DECIMAL(15,2) DEFAULT 0");
+
         // 11. Tambah kolom level pada positions (jika belum ada)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('positions') AND name = 'level')
             ALTER TABLE positions ADD level NVARCHAR(50) DEFAULT ''");

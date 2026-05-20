@@ -292,17 +292,65 @@ class Api extends ResourceController
 
     public function createCompensationScheme()
     {
-        $data = $this->request->getJSON(true);
-        $this->db->table('compensation_schemes')->insert($data);
-        $this->logActivity("Membuat skema kompensasi baru: " . ($data['nama'] ?? ''));
+        $requestData = $this->request->getJSON(true);
+        
+        $schemeData = [
+            'nama' => $requestData['nama'] ?? '',
+            'deskripsi' => $requestData['deskripsi'] ?? ''
+        ];
+        
+        $this->db->table('compensation_schemes')->insert($schemeData);
+        $schemeId = $this->db->insertID();
+        
+        $componentData = [
+            'scheme_id' => $schemeId,
+            'nama' => $requestData['nama'] ?? '',
+            'tipe' => $requestData['tipe'] ?? 'pendapatan',
+            'nilai' => $requestData['nilai'] ?? 0,
+            'is_persentase' => isset($requestData['is_persentase']) ? intval($requestData['is_persentase']) : 0,
+            'jenis_komponen' => ($requestData['nama'] === 'Basic Salary' ? 'basic_salary' : ($requestData['sifat_kompensasi'] === 'tidak_tetap' ? 'tidak_tetap' : 'tetap')),
+            'sumber_nilai' => $requestData['sumber_nilai'] ?? 'nominal',
+            'periode' => $requestData['periode'] ?? 'bulan',
+            'sifat_kompensasi' => $requestData['sifat_kompensasi'] ?? 'tetap'
+        ];
+        
+        $this->db->table('compensation_components')->insert($componentData);
+        
+        $this->logActivity("Membuat skema kompensasi baru: " . ($schemeData['nama'] ?? ''));
         return $this->respondCreated(['message' => 'Skema kompensasi berhasil ditambahkan']);
     }
 
     public function updateCompensationScheme($id)
     {
-        $data = $this->request->getJSON(true);
-        $this->db->table('compensation_schemes')->where('id', $id)->update($data);
-        $this->logActivity("Mengupdate skema kompensasi ID: " . $id . " (" . ($data['nama'] ?? '') . ")");
+        $requestData = $this->request->getJSON(true);
+        
+        $schemeData = [
+            'nama' => $requestData['nama'] ?? '',
+            'deskripsi' => $requestData['deskripsi'] ?? ''
+        ];
+        
+        $this->db->table('compensation_schemes')->where('id', $id)->update($schemeData);
+        
+        $componentData = [
+            'nama' => $requestData['nama'] ?? '',
+            'tipe' => $requestData['tipe'] ?? 'pendapatan',
+            'nilai' => $requestData['nilai'] ?? 0,
+            'is_persentase' => isset($requestData['is_persentase']) ? intval($requestData['is_persentase']) : 0,
+            'jenis_komponen' => ($requestData['nama'] === 'Basic Salary' ? 'basic_salary' : ($requestData['sifat_kompensasi'] === 'tidak_tetap' ? 'tidak_tetap' : 'tetap')),
+            'sumber_nilai' => $requestData['sumber_nilai'] ?? 'nominal',
+            'periode' => $requestData['periode'] ?? 'bulan',
+            'sifat_kompensasi' => $requestData['sifat_kompensasi'] ?? 'tetap'
+        ];
+        
+        $existing = $this->db->table('compensation_components')->where('scheme_id', $id)->get()->getRow();
+        if ($existing) {
+            $this->db->table('compensation_components')->where('id', $existing->id)->update($componentData);
+        } else {
+            $componentData['scheme_id'] = $id;
+            $this->db->table('compensation_components')->insert($componentData);
+        }
+        
+        $this->logActivity("Mengupdate skema kompensasi ID: " . $id . " (" . ($schemeData['nama'] ?? '') . ")");
         return $this->respond(['message' => 'Skema kompensasi berhasil diupdate']);
     }
 
@@ -536,6 +584,11 @@ class Api extends ResourceController
         $pkwts = $query->get()->getResult();
 
         foreach ($pkwts as $pkwt) {
+            // Load client absence config
+            $absenceConfig = $this->db->table('client_absence_configs')->where('client_id', $pkwt->client_id)->get()->getRow();
+            $isProrate = ($absenceConfig && $absenceConfig->prorate == 1);
+            $isAbsenTidakPotong = ($absenceConfig && $absenceConfig->absen_tidak_potong == 1);
+
             // 2. Get Fixed Components from PKWT
             $components = $this->db->table('pkwt_components')->where('pkwt_id', $pkwt->id)->get()->getResult();
             
@@ -547,27 +600,35 @@ class Api extends ResourceController
             
             // 4. Resolve Employee / Client UMR (Minimum Wage)
             $emp = $this->db->table('employees')
-                            ->select('employees.*, minimum_wages.nominal as umr_nominal')
+                            ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id')
                             ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
                             ->where('employees.nama', $pkwt->employee_name)
                             ->get()
                             ->getRow();
             
             $minimumWage = 0;
+            $mwId = null;
             if ($emp && isset($emp->umr_nominal) && $emp->umr_nominal > 0) {
                 $minimumWage = floatval($emp->umr_nominal);
+                $mwId = $emp->mw_id;
             } else {
                 // Fallback to client config's minimum wage
                 $clientConfig = $this->db->table('client_payroll_configs')
-                                         ->select('client_payroll_configs.*, minimum_wages.nominal as umr_nominal')
+                                         ->select('client_payroll_configs.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id')
                                          ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
                                          ->where('client_id', $pkwt->client_id)
                                          ->get()
                                          ->getRow();
                 if ($clientConfig && isset($clientConfig->umr_nominal) && $clientConfig->umr_nominal > 0) {
                     $minimumWage = floatval($clientConfig->umr_nominal);
+                    $mwId = $clientConfig->mw_id;
                 }
             }
+
+            // Resolve UMP and UMK values
+            $resolvedWages = $this->resolveUmpUmk($mwId);
+            $umpWageValue = $resolvedWages['ump'];
+            $umkWageValue = $resolvedWages['umk'];
 
             // 5. First pass: Find and calculate Gaji Pokok (Basic Salary)
             $gajiPokok = 0;
@@ -583,8 +644,14 @@ class Api extends ResourceController
                     $base_nilai = floatval($comp->nilai);
                     
                     // Check source
-                    if (isset($comp->sumber_nilai) && $comp->sumber_nilai === 'ump_umk') {
-                        $base_nilai = $minimumWage * ($base_nilai / 100);
+                    if (isset($comp->sumber_nilai)) {
+                        if ($comp->sumber_nilai === 'ump') {
+                            $base_nilai = $umpWageValue * ($base_nilai / 100);
+                        } else if ($comp->sumber_nilai === 'umk') {
+                            $base_nilai = $umkWageValue * ($base_nilai / 100);
+                        } else if ($comp->sumber_nilai === 'ump_umk') {
+                            $base_nilai = $minimumWage * ($base_nilai / 100);
+                        }
                     }
                     
                     // Scale by period
@@ -596,6 +663,12 @@ class Api extends ResourceController
                             $base_nilai = $base_nilai * 4;
                         } elseif ($comp->periode === 'tahun') {
                             $base_nilai = $base_nilai / 12;
+                        } else {
+                            // bulanan
+                            if ($isProrate) {
+                                $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                                $base_nilai = $base_nilai * ($days / 21);
+                            }
                         }
                     }
                     
@@ -606,6 +679,10 @@ class Api extends ResourceController
 
             if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
                 $gajiPokok = floatval($emp->gaji_pokok);
+                if ($isProrate) {
+                    $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                    $gajiPokok = $gajiPokok * ($days / 21);
+                }
             }
 
             // 6. Second pass: Calculate all components
@@ -629,8 +706,14 @@ class Api extends ResourceController
                         // New Master Compensation component logic
                         $base_nilai = floatval($comp->nilai);
                         
-                        if ($comp->sumber_nilai === 'ump_umk') {
-                            $base_nilai = $minimumWage * ($base_nilai / 100);
+                        if (isset($comp->sumber_nilai)) {
+                            if ($comp->sumber_nilai === 'ump') {
+                                $base_nilai = $umpWageValue * ($base_nilai / 100);
+                            } else if ($comp->sumber_nilai === 'umk') {
+                                $base_nilai = $umkWageValue * ($base_nilai / 100);
+                            } else if ($comp->sumber_nilai === 'ump_umk') {
+                                $base_nilai = $minimumWage * ($base_nilai / 100);
+                            }
                         }
                         
                         // Scale by period
@@ -643,7 +726,12 @@ class Api extends ResourceController
                             $nilai = $base_nilai / 12;
                         } else {
                             // bulanan
-                            $nilai = $base_nilai;
+                            if ($isProrate) {
+                                $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                                $nilai = $base_nilai * ($days / 21);
+                            } else {
+                                $nilai = $base_nilai;
+                            }
                         }
                     } else {
                         // Legacy component logic
@@ -663,7 +751,17 @@ class Api extends ResourceController
 
             // 7. Add Variable Data from Attendance
             if ($att) {
-                $totalPotongan += $att->potongan_absensi;
+                if (!$isAbsenTidakPotong) {
+                    $potongan_absen = floatval($att->potongan_absensi);
+                    $nominalPotongan = ($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0;
+                    if ($nominalPotongan > 0 && $potongan_absen == 0) {
+                        $missingDays = 21 - intval($att->hari_kerja);
+                        if ($missingDays > 0) {
+                            $potongan_absen = $missingDays * $nominalPotongan;
+                        }
+                    }
+                    $totalPotongan += $potongan_absen;
+                }
                 $totalPendapatan += $att->bonus_tambahan;
                 
                 // Simplified Overtime Calculation (e.g., 20.000 per hour)
@@ -748,6 +846,11 @@ class Api extends ResourceController
         
         if (!$final) return $this->failNotFound('Data tidak ditemukan');
 
+        // Get absence config
+        $absenceConfig = $this->db->table('client_absence_configs')->where('client_id', $final['client_id'])->get()->getRow();
+        $isProrate = ($absenceConfig && $absenceConfig->prorate == 1);
+        $isAbsenTidakPotong = ($absenceConfig && $absenceConfig->absen_tidak_potong == 1);
+
         // Get Fixed Components
         $fixed = $this->db->table('pkwt_components')
                           ->where('pkwt_id', $final['pkwt_id'])
@@ -763,27 +866,35 @@ class Api extends ResourceController
 
         // 1. Resolve Employee / Client UMR (Minimum Wage)
         $emp = $this->db->table('employees')
-                        ->select('employees.*, minimum_wages.nominal as umr_nominal')
+                        ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id')
                         ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
                         ->where('employees.nama', $final['employee_name'])
                         ->get()
                         ->getRow();
         
         $minimumWage = 0;
+        $mwId = null;
         if ($emp && isset($emp->umr_nominal) && $emp->umr_nominal > 0) {
             $minimumWage = floatval($emp->umr_nominal);
+            $mwId = $emp->mw_id;
         } else {
             // Fallback to client config's minimum wage
             $clientConfig = $this->db->table('client_payroll_configs')
-                                     ->select('client_payroll_configs.*, minimum_wages.nominal as umr_nominal')
+                                     ->select('client_payroll_configs.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id')
                                      ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
                                      ->where('client_id', $final['client_id'])
                                      ->get()
                                      ->getRow();
             if ($clientConfig && isset($clientConfig->umr_nominal) && $clientConfig->umr_nominal > 0) {
                 $minimumWage = floatval($clientConfig->umr_nominal);
+                $mwId = $clientConfig->mw_id;
             }
         }
+
+        // Resolve UMP and UMK values
+        $resolvedWages = $this->resolveUmpUmk($mwId);
+        $umpWageValue = $resolvedWages['ump'];
+        $umkWageValue = $resolvedWages['umk'];
 
         // 2. First pass: Find and calculate Gaji Pokok (Basic Salary)
         $gajiPokok = 0;
@@ -799,8 +910,14 @@ class Api extends ResourceController
                 $base_nilai = floatval($comp['nilai']);
                 
                 // Check source
-                if (isset($comp['sumber_nilai']) && $comp['sumber_nilai'] === 'ump_umk') {
-                    $base_nilai = $minimumWage * ($base_nilai / 100);
+                if (isset($comp['sumber_nilai'])) {
+                    if ($comp['sumber_nilai'] === 'ump') {
+                        $base_nilai = $umpWageValue * ($base_nilai / 100);
+                    } else if ($comp['sumber_nilai'] === 'umk') {
+                        $base_nilai = $umkWageValue * ($base_nilai / 100);
+                    } else if ($comp['sumber_nilai'] === 'ump_umk') {
+                        $base_nilai = $minimumWage * ($base_nilai / 100);
+                    }
                 }
                 
                 // Scale by period
@@ -812,6 +929,12 @@ class Api extends ResourceController
                         $base_nilai = $base_nilai * 4;
                     } elseif ($comp['periode'] === 'tahun') {
                         $base_nilai = $base_nilai / 12;
+                    } else {
+                        // bulanan
+                        if ($isProrate) {
+                            $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
+                            $base_nilai = $base_nilai * ($days / 21);
+                        }
                     }
                 }
                 
@@ -822,6 +945,10 @@ class Api extends ResourceController
 
         if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
             $gajiPokok = floatval($emp->gaji_pokok);
+            if ($isProrate) {
+                $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
+                $gajiPokok = $gajiPokok * ($days / 21);
+            }
         }
 
         $earnings = [];
@@ -845,8 +972,14 @@ class Api extends ResourceController
                     // New Master Compensation component logic
                     $base_nilai = floatval($comp['nilai']);
                     
-                    if ($comp['sumber_nilai'] === 'ump_umk') {
-                        $base_nilai = $minimumWage * ($base_nilai / 100);
+                    if (isset($comp['sumber_nilai'])) {
+                        if ($comp['sumber_nilai'] === 'ump') {
+                            $base_nilai = $umpWageValue * ($base_nilai / 100);
+                        } else if ($comp['sumber_nilai'] === 'umk') {
+                            $base_nilai = $umkWageValue * ($base_nilai / 100);
+                        } else if ($comp['sumber_nilai'] === 'ump_umk') {
+                            $base_nilai = $minimumWage * ($base_nilai / 100);
+                        }
                     }
                     
                     // Scale by period
@@ -859,7 +992,12 @@ class Api extends ResourceController
                         $nilai = $base_nilai / 12;
                     } else {
                         // bulanan
-                        $nilai = $base_nilai;
+                        if ($isProrate) {
+                            $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
+                            $nilai = $base_nilai * ($days / 21);
+                        } else {
+                            $nilai = $base_nilai;
+                        }
                     }
                 } else {
                     // Legacy component logic
@@ -880,7 +1018,20 @@ class Api extends ResourceController
         if ($att) {
             if ($att['jam_lembur'] > 0) $earnings[] = ['nama' => 'Lembur', 'nilai' => $att['jam_lembur'] * 20000];
             if ($att['bonus_tambahan'] > 0) $earnings[] = ['nama' => 'Bonus/Lainnya', 'nilai' => $att['bonus_tambahan']];
-            if ($att['potongan_absensi'] > 0) $deductions[] = ['nama' => 'Potongan Absen', 'nilai' => $att['potongan_absensi']];
+            
+            $potongan_absen = floatval($att['potongan_absensi']);
+            if (!$isAbsenTidakPotong) {
+                $nominalPotongan = ($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0;
+                if ($nominalPotongan > 0 && $potongan_absen == 0) {
+                    $missingDays = 21 - intval($att['hari_kerja']);
+                    if ($missingDays > 0) {
+                        $potongan_absen = $missingDays * $nominalPotongan;
+                    }
+                }
+                if ($potongan_absen > 0) {
+                    $deductions[] = ['nama' => 'Potongan Absen', 'nilai' => $potongan_absen];
+                }
+            }
         }
 
         return $this->respond([
@@ -988,5 +1139,42 @@ class Api extends ResourceController
             'user_action' => $username,
             'created_at' => date('Y-m-d H:i:s')
         ]);
+    }
+
+    protected function resolveUmpUmk($minimumWageId, $tahun = null)
+    {
+        $res = ['ump' => 0, 'umk' => 0];
+        if (!$minimumWageId) return $res;
+
+        $currentWage = $this->db->table('minimum_wages')->where('id', $minimumWageId)->get()->getRow();
+        if (!$currentWage) return $res;
+
+        $year = $tahun ?: $currentWage->tahun ?: date('Y');
+
+        if ($currentWage->tipe === 'UMP') {
+            $res['ump'] = floatval($currentWage->nominal);
+            // Fallback UMK to the same value
+            $res['umk'] = floatval($currentWage->nominal);
+        } else if ($currentWage->tipe === 'UMK') {
+            $res['umk'] = floatval($currentWage->nominal);
+            
+            // Find corresponding UMP for the province
+            $provinceName = $currentWage->provinsi ?: $currentWage->nama_daerah;
+            $umpWage = $this->db->table('minimum_wages')
+                                ->where('tipe', 'UMP')
+                                ->where('tahun', $year)
+                                ->groupStart()
+                                    ->where('nama_daerah', $provinceName)
+                                    ->orWhere('provinsi', $provinceName)
+                                ->groupEnd()
+                                ->get()
+                                ->getRow();
+            if ($umpWage) {
+                $res['ump'] = floatval($umpWage->nominal);
+            } else {
+                $res['ump'] = floatval($currentWage->nominal); // fallback
+            }
+        }
+        return $res;
     }
 }
