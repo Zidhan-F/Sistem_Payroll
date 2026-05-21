@@ -60,10 +60,45 @@ if (typeof window.pkwtData === 'undefined') window.pkwtData = [];
 if (typeof window.currentPeriodId === 'undefined') window.currentPeriodId = null;
 
 
-// ===== Helpers =====
 function formatRupiah(val) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val || 0);
 }
+
+function formatRupiahInput(element) {
+    let value = element.value.replace(/[^,\d]/g, '').toString();
+    let split = value.split(',');
+    let sisa = split[0].length % 3;
+    let rupiah = split[0].substr(0, sisa);
+    let ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+    if (ribuan) {
+        let separator = sisa ? '.' : '';
+        rupiah += separator + ribuan.join('.');
+    }
+
+    rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+    element.value = rupiah ? rupiah : '';
+}
+
+function parseFormattedNumber(val) {
+    if (!val) return 0;
+    return parseFloat(String(val).replace(/\./g, '').replace(/,/g, '.')) || 0;
+}
+
+function handleKomponenKompensasiNilaiInput(element) {
+    const isPersentase = document.getElementById('komponenKompensasiIsPersentase')?.value === '1';
+    if (!isPersentase) {
+        formatRupiahInput(element);
+    }
+}
+
+function handleKomponenNilaiInput(element) {
+    const isPersentase = document.getElementById('komponenIsPersentase')?.value === 'true';
+    if (!isPersentase) {
+        formatRupiahInput(element);
+    }
+}
+
 
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toastContainer');
@@ -304,7 +339,7 @@ function switchView(view) {
         clientWorkspace: 'Workspace Klien',
         payroll: 'Master Skema Payroll',
         pajak: 'Master Skema Pajak',
-        masterKompensasi: 'Master Skema Kompensasi',
+        masterKompensasi: 'Master Skema Komponen',
         logAktivitas: 'Log Aktivitas'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Payroll System';
@@ -369,7 +404,7 @@ function toggleSidebar() {
 
 // Expose defined local core functions to window if needed
 Object.assign(window, {
-    switchView, logout, tutupSemuaModal, toggleSidebar
+    switchView, logout, tutupSemuaModal, toggleSidebar, formatRupiah, formatRupiahInput, parseFormattedNumber, handleKomponenKompensasiNilaiInput, handleKomponenNilaiInput
 });
 
 
@@ -379,4 +414,7 @@ Object.assign(window, {
     if (sidebarToggleBtn) {
         sidebarToggleBtn.addEventListener('click', toggleSidebar);
     }
+
+// ===== Initial Load: Dashboard Stats =====
+updateDashboardStats();
 

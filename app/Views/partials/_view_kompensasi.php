@@ -1,9 +1,9 @@
-﻿        <!-- Section: Master Skema Kompensasi -->
+        <!-- Section: Master Skema Kompensasi -->
         <div id="viewMasterKompensasi" class="view-section">
             <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
                 <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
                     <div>
-                        <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Skema Kompensasi</h3>
+                        <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Skema Komponen</h3>
                         <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola komponen pendapatan dan potongan secara global.</p>
                     </div>
                     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">

@@ -1,4 +1,4 @@
-﻿            <!-- Section: Skema Payroll (Master) -->
+            <!-- Section: Skema Payroll (Master) -->
             <div id="viewPayroll" class="view-section">
                 <!-- Custom Sub-Tabs for Skema Payroll & UMP/UMK -->
                 <div class="payroll-main-tabs" style="display: none; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; background: #f8fafc; padding: 10px 10px 0 10px; border-radius: 8px 8px 0 0;">

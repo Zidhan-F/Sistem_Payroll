@@ -1,4 +1,4 @@
-﻿// ===== UMR (UMP/UMK) MODULE =====
+// ===== UMR (UMP/UMK) MODULE =====
 // Extracted from app.js for modular monolith architecture
 
 // ===== UMP / UMK MODULE =====
@@ -82,6 +82,7 @@ async function renderUmrTable() {
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateCode</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateName</th>
+                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;" class="col-nominal">Nominal UMP</th>
                         </tr>
                     `;
                 } else {
@@ -90,7 +91,8 @@ async function renderUmrTable() {
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyId</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyCode</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyName</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
+                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
+                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;" class="col-nominal">Nominal UMK</th>
                         </tr>
                     `;
                 }
@@ -165,6 +167,7 @@ function renderUmrPage() {
                         <td class="td-code">${stateId}</td>
                         <td class="td-code">${row.kode_daerah}</td>
                         <td class="td-name">${row.nama_daerah}</td>
+                        <td class="td-nominal">${formatRupiah(row.nominal)}</td>
                     </tr>
                 `;
             } else {
@@ -177,12 +180,13 @@ function renderUmrPage() {
                         <td class="td-code">${row.kode_daerah}</td>
                         <td class="td-name">${row.nama_daerah}</td>
                         <td class="td-code">${stateId}</td>
+                        <td class="td-nominal">${formatRupiah(row.nominal)}</td>
                     </tr>
                 `;
             }
         }).join('');
     } else {
-        const colSpan = currentUmrType === 'UMP' ? 3 : 4;
+        const colSpan = currentUmrType === 'UMP' ? 4 : 5;
         tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center; padding:40px; color:#aaa;">
                 <i class="fas fa-database" style="font-size:28px; margin-bottom:10px; display:block;"></i>
                 Belum ada data ${currentUmrType}. Klik <b>Upload</b> untuk menambah data.
@@ -253,6 +257,13 @@ function bukaModalUploadUmr() {
     document.getElementById('modalUploadUmr').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('uploadUmrTipe').value = currentUmrType;
+    
+    // Change modal title based on type (UMP or UMK)
+    const titleEl = document.querySelector('#modalUploadUmr .modal-header h3');
+    if (titleEl) {
+        titleEl.textContent = `Upload Data ${currentUmrType}`;
+    }
+    
     // Reset file input
     const fileInput = document.getElementById('fileUmr');
     if (fileInput) fileInput.value = '';
@@ -294,9 +305,9 @@ function downloadTemplateUmr() {
     let csvContent = '';
     
     if (tipe === 'UMP') {
-        csvContent = 'StateId,StateCode,StateName\n';
+        csvContent = 'StateId,StateCode,StateName,UMP\n';
     } else {
-        csvContent = 'RegencyId,RegencyCode,RegencyName,StateId\n';
+        csvContent = 'RegencyId,RegencyCode,RegencyName,StateId,UMK\n';
     }
 
     const stateIdMap = {
@@ -313,12 +324,12 @@ function downloadTemplateUmr() {
         umrAllData.forEach(row => {
             if (tipe === 'UMP') {
                 const stateId = stateIdMap[row.kode_daerah] || (row.provinsi || idCounter++);
-                csvContent += `${stateId},${row.kode_daerah},${row.nama_daerah}\n`;
+                csvContent += `${stateId},${row.kode_daerah},${row.nama_daerah},${row.nominal || 0}\n`;
             } else {
                 const regencyId = idCounter++;
                 const prefix = row.kode_daerah.split('.')[0] || '';
                 const stateId = stateIdMap[prefix] || (row.provinsi || 17);
-                csvContent += `${regencyId},${row.kode_daerah},${row.nama_daerah},${stateId}\n`;
+                csvContent += `${regencyId},${row.kode_daerah},${row.nama_daerah},${stateId},${row.nominal || 0}\n`;
             }
         });
     } else {
@@ -363,7 +374,7 @@ function downloadTemplateUmr() {
             
             defaultUmpData.forEach(row => {
                 const stateId = stateIdMap[row.code] || 17;
-                csvContent += `${stateId},${row.code},${row.name}\n`;
+                csvContent += `${stateId},${row.code},${row.name},0\n`;
             });
         } else {
             const defaultUmkData = [
@@ -379,7 +390,7 @@ function downloadTemplateUmr() {
             defaultUmkData.forEach(row => {
                 const prefix = row.code.split('.')[0] || '';
                 const stateId = stateIdMap[prefix] || 17;
-                csvContent += `${regId++},${row.code},${row.name},${stateId}\n`;
+                csvContent += `${regId++},${row.code},${row.name},${stateId},0\n`;
             });
         }
     }
@@ -480,9 +491,29 @@ if (formUploadUmr) {
                 const tipe = document.getElementById('uploadUmrTipe').value;
                 const tahun = document.getElementById('uploadUmrTahun').value;
                 
+                // Helper to split CSV line respecting double quotes
+                const parseCsvLine = (text) => {
+                    const cols = [];
+                    let inQuote = false;
+                    let cell = '';
+                    for (let i = 0; i < text.length; i++) {
+                        const char = text[i];
+                        if (char === '"') {
+                            inQuote = !inQuote;
+                        } else if (char === ',' && !inQuote) {
+                            cols.push(cell.trim().replace(/^"|"$/g, ''));
+                            cell = '';
+                        } else {
+                            cell += char;
+                        }
+                    }
+                    cols.push(cell.trim().replace(/^"|"$/g, ''));
+                    return cols;
+                };
+
                 // Dynamically detect column indices based on header names for extreme robustness
                 const headerLine = lines[0];
-                const headers = headerLine.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                const headers = parseCsvLine(headerLine);
                 
                 let codeIdx = -1;
                 let nameIdx = -1;
@@ -497,7 +528,7 @@ if (formUploadUmr) {
                         if (!cleanH.includes('kode')) {
                             nameIdx = idx;
                         }
-                    } else if (cleanH.includes('amount') || cleanH.includes('nominal') || cleanH.includes('gaji')) {
+                    } else if (cleanH.includes('amount') || cleanH.includes('nominal') || cleanH.includes('gaji') || cleanH === 'ump' || cleanH === 'umk') {
                         nominalIdx = idx;
                     } else if (cleanH === 'stateid' || cleanH === 'provinsi_id') {
                         stateIdIdx = idx;
@@ -521,7 +552,7 @@ if (formUploadUmr) {
                 
                 const items = dataLines.map(line => {
                     // Handle CSV with commas inside quotes
-                    const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                    const cols = parseCsvLine(line);
                     let rawNominal = cols[nominalIdx] || '0';
                     rawNominal = rawNominal.trim();
                     

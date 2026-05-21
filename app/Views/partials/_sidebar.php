@@ -1,9 +1,6 @@
 <!-- Sidebar -->
 <div class="sidebar">
     <div class="sidebar-brand">
-        <div class="sidebar-brand-icon">
-            <i class="fas fa-building"></i>
-        </div>
         <h3>Payroll App</h3>
     </div>
     <ul class="sidebar-menu">
