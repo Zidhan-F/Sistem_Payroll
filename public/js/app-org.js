@@ -83,6 +83,15 @@ function tambahPosisiInline() {
 function bukaModalOrg(type,mode,id=null,parentId=null){
     const m=document.getElementById('modalOrg'),o=document.getElementById('overlay');
     m.style.display='block';o.style.display='block';
+    
+    // Reset semua field terlebih dahulu (agar tidak ada sisa data lama)
+    document.getElementById('orgName').value='';
+    if(document.getElementById('posEmployeeName'))document.getElementById('posEmployeeName').value='';
+    if(document.getElementById('posNik'))document.getElementById('posNik').value='';
+    if(document.getElementById('posEmail'))document.getElementById('posEmail').value='';
+    if(document.getElementById('posPhone'))document.getElementById('posPhone').value='';
+    if(document.getElementById('posLevel'))document.getElementById('posLevel').value='';
+    
     document.getElementById('orgType').value=type;document.getElementById('orgId').value=id;document.getElementById('orgParentId').value=parentId;
     const lbl=type==='divisi'?'Divisi':type==='department'?'Departemen':'Posisi/Jabatan';
     document.getElementById('modalOrgTitle').innerText=(mode==='edit'?'Edit ':'Tambah ')+lbl;
