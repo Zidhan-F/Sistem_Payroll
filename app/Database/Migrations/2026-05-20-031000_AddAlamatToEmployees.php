@@ -8,13 +8,15 @@ class AddAlamatToEmployees extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('employees', [
-            'alamat' => [
-                'type'       => 'VARCHAR',
-                'constraint' => '1000',
-                'null'       => true,
-            ],
-        ]);
+        if (!$this->db->fieldExists('alamat', 'employees')) {
+            $this->forge->addColumn('employees', [
+                'alamat' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => '1000',
+                    'null'       => true,
+                ],
+            ]);
+        }
     }
 
     public function down()

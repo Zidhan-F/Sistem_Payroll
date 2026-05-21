@@ -211,6 +211,8 @@ class Migrasi extends BaseController
             EXEC sp_rename 'status_logs.action', 'description', 'COLUMN'");
         $db->query("IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('system_logs') AND name = 'status_log')
             EXEC sp_rename 'system_logs.status_log', 'description', 'COLUMN'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('system_logs') AND name = 'user_name')
+            ALTER TABLE system_logs ADD user_name NVARCHAR(100) NULL");
 
         // 14. Pastikan kolom-kolom baru ada di payroll_components untuk sinkronisasi UMP/UMK
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_components') AND name = 'jenis_komponen')

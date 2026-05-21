@@ -68,7 +68,7 @@ class CreateWorkLocations extends Migration
             ],
         ]);
         $this->forge->addKey('id', true);
-        $this->forge->createTable('work_locations');
+        $this->forge->createTable('work_locations', true);
     }
 
     public function down()

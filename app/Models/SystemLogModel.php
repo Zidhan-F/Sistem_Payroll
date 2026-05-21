@@ -11,7 +11,7 @@ class SystemLogModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
     protected $allowedFields    = [
-        'description', 'client_id', 'action', 'created_by', 'created_at'
+        'description', 'client_id', 'action', 'created_by', 'user_name', 'created_at'
     ];
     
     // Gunakan useTimestamps true tapi hanya untuk created_at, kita bisa override
@@ -19,12 +19,16 @@ class SystemLogModel extends Model
 
     public function logAction($action, $description, $clientId = null, $createdBy = null)
     {
+        $createdBy = $createdBy ?? session()->get('user_id') ?? 1;
+        $userName = session()->get('username') ?? 'Sistem/Unknown';
+
         return $this->insert([
             'action'      => $action,
             'description' => $description,
             'client_id'   => $clientId,
-            'created_by' => $createdBy,
-            'created_at' => date('Y-m-d H:i:s')
+            'created_by'  => $createdBy,
+            'user_name'   => $userName,
+            'created_at'  => date('Y-m-d H:i:s')
         ]);
     }
 }

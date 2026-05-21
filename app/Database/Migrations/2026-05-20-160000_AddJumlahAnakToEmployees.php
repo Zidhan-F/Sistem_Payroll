@@ -17,7 +17,9 @@ class AddJumlahAnakToEmployees extends Migration
                 'after'      => 'status_pernikahan'
             ]
         ];
-        $this->forge->addColumn('employees', $fields);
+        if (!$this->db->fieldExists('jumlah_anak', 'employees')) {
+            $this->forge->addColumn('employees', $fields);
+        }
     }
 
     public function down()

@@ -406,4 +406,9 @@ async function hapusLokasiKerja(id) {
 }
 
 window.loadGlobalWorkLocations = loadGlobalWorkLocations;
+window.switchClientKaryawanSubTab = switchClientKaryawanSubTab;
+window.bukaModalLokasiKerja = bukaModalLokasiKerja;
+window.tutupModalLokasiKerja = tutupModalLokasiKerja;
+window.editLokasiKerja = editLokasiKerja;
+window.hapusLokasiKerja = hapusLokasiKerja;
 

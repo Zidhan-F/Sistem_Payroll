@@ -8,7 +8,7 @@ class AddDetailedEmployeeFields extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('employees', [
+        $newFields = [
             'tempat_lahir' => [
                 'type'       => 'VARCHAR',
                 'constraint' => '100',
@@ -47,7 +47,18 @@ class AddDetailedEmployeeFields extends Migration
                 'unsigned'   => true,
                 'null'       => true,
             ],
-        ]);
+        ];
+
+        $fieldsToAdd = [];
+        foreach ($newFields as $name => $definition) {
+            if (!$this->db->fieldExists($name, 'employees')) {
+                $fieldsToAdd[$name] = $definition;
+            }
+        }
+
+        if (!empty($fieldsToAdd)) {
+            $this->forge->addColumn('employees', $fieldsToAdd);
+        }
     }
 
     public function down()

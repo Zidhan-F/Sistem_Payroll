@@ -54,7 +54,16 @@ class MakeEmployeeFieldsNullable extends Migration
             ],
         ];
 
-        $this->forge->modifyColumn('employees', $fields);
+        $fieldsToModify = [];
+        foreach ($fields as $name => $definition) {
+            if ($this->db->fieldExists($name, 'employees')) {
+                $fieldsToModify[$name] = $definition;
+            }
+        }
+
+        if (!empty($fieldsToModify)) {
+            $this->forge->modifyColumn('employees', $fieldsToModify);
+        }
     }
 
     public function down()

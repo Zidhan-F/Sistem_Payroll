@@ -1,0 +1,212 @@
+﻿// ===== CLIENT MODULE =====
+// Extracted from app.js for modular monolith architecture
+
+// ===== 1. KLIEN MODULE =====
+async function renderTable() {
+    try {
+        const response = await fetch(`${API_URL}/clients`);
+        clients = await response.json();
+        const tbody = document.getElementById('tabelKlienBody');
+        if (!tbody) return;
+        tbody.innerHTML = clients.map(client => {
+            const dateJoined = client.tgl_gabung ? new Date(client.tgl_gabung).toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }) : '-';
+            return `
+                <tr style="cursor: pointer;" onclick="event.target.closest('button') ? null : selectClient(${client.id}, '${client.nama.replace(/'/g, "\\'")}', '${client.sektor.replace(/'/g, "\\'")}')">
+                    <td style="font-weight: 600; color: var(--primary-color);">${client.nama}</td>
+                    <td>${client.sektor}</td>
+                    <td>${client.npwp ? `'${client.npwp}'` : '-'}</td>
+                    <td>${client.nib || '-'}</td>
+                    <td>${dateJoined}</td>
+                    <td>${client.alamat}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn-icon btn-edit" onclick="bukaModal('edit', ${client.id})"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon btn-delete" onclick="hapusKlien(${client.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) { console.error(err); }
+}
+
+// ===== CLIENT WORKSPACE WORKFLOW =====
+window.selectedClientId = null;
+window.selectedClientName = null;
+window.selectedClientSektor = null;
+
+function selectClient(id, name, sektor) {
+    window.selectedClientId = id;
+    window.selectedClientName = name;
+    window.selectedClientSektor = sektor;
+    
+    document.getElementById('clientWorkspaceTitle').innerText = name;
+    document.getElementById('clientWorkspaceSektor').innerText = sektor;
+    
+    switchView('clientWorkspace');
+    switchWorkspaceTab('karyawan');
+}
+
+function backToClientList() {
+    window.selectedClientId = null;
+    window.selectedClientName = null;
+    window.selectedClientSektor = null;
+    switchView('klien');
+}
+
+function switchWorkspaceTab(tab) {
+    document.querySelectorAll('.ws-tab').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.querySelector(`.ws-tab[data-wtab="${tab}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    document.querySelectorAll('.w-tab-panel').forEach(panel => panel.classList.remove('active'));
+    const activePanel = document.getElementById('view' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (activePanel) activePanel.classList.add('active');
+
+    if (tab === 'karyawan') {
+        if (typeof switchClientKaryawanSubTab === 'function') {
+            switchClientKaryawanSubTab('lokasi_kerja');
+        } else {
+            renderAllEmployees();
+        }
+    } else if (tab === 'struktur') {
+        if (typeof renderClientOrg === 'function') {
+            renderClientOrg(window.selectedClientId);
+        }
+    } else if (tab === 'kompensasi') {
+        loadPilihanSkema();
+    } else if (tab === 'setup') {
+        loadWorkspaceSetup();
+    } else if (tab === 'pkwt') {
+        renderPKWTTable();
+    } else if (tab === 'proses') {
+        loadActivePeriod();
+    }
+}
+
+async function populateMinimumWageDropdown(tipe, selectElementId) {
+    try {
+        const res = await fetch(`${API_URL}/minimum-wages?tipe=${tipe}`);
+        const data = await res.json();
+        const select = document.getElementById(selectElementId);
+        if (select) {
+            select.innerHTML = '<option value="">-- Pilih Wilayah --</option>' +
+                data.map(item => `<option value="${item.id}">${item.nama_daerah} (Rp ${parseFloat(item.nominal).toLocaleString('id-ID')})</option>`).join('');
+        }
+    } catch (err) {
+        console.error('Error fetching minimum wages:', err);
+    }
+}
+
+async function handlePilihanSkemaPayrollTipeChange() {
+    const tipe = document.getElementById('pilihanSkemaPayrollTipe').value;
+    const wilContainer = document.getElementById('pilihanSkemaPayrollWilayahContainer');
+    const nomContainer = document.getElementById('pilihanSkemaPayrollNominalContainer');
+    const tplContainer = document.getElementById('pilihanSkemaPayrollTemplateContainer');
+
+    wilContainer.style.display = 'none';
+    nomContainer.style.display = 'none';
+    tplContainer.style.display = 'none';
+
+    if (tipe === 'UMP' || tipe === 'UMK') {
+        wilContainer.style.display = 'block';
+        await populateMinimumWageDropdown(tipe, 'pilihanSkemaPayrollWilayah');
+    } else if (tipe === 'Nominal') {
+        nomContainer.style.display = 'block';
+    } else if (tipe === 'Template') {
+        tplContainer.style.display = 'block';
+    }
+}
+
+async function handleSetupPayrollSchemeTipeChange() {
+    const tipe = document.getElementById('setupPayrollSchemeTipe').value;
+    const wilContainer = document.getElementById('setupPayrollSchemeWilayahContainer');
+    const nomContainer = document.getElementById('setupPayrollSchemeNominalContainer');
+    const tplContainer = document.getElementById('setupPayrollSchemeTemplateContainer');
+
+    wilContainer.style.display = 'none';
+    nomContainer.style.display = 'none';
+    tplContainer.style.display = 'none';
+
+    if (tipe === 'UMP' || tipe === 'UMK') {
+        wilContainer.style.display = 'block';
+        await populateMinimumWageDropdown(tipe, 'setupPayrollSchemeWilayah');
+    } else if (tipe === 'Nominal') {
+        nomContainer.style.display = 'block';
+    } else if (tipe === 'Template') {
+        tplContainer.style.display = 'block';
+    }
+}
+
+async function loadWorkspaceSetup() {
+    if (!window.selectedClientId) return;
+    try {
+        const response = await fetch(`${API_URL}/client-configs`);
+        const configs = await response.json();
+        const conf = configs.find(c => c.client_id == window.selectedClientId);
+        
+        document.getElementById('wSetupClientName').innerText = window.selectedClientName || '-';
+        
+        if (conf) {
+            let payrollSchemeText = 'Belum Set';
+            if (conf.payroll_type === 'UMP') {
+                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+            } else if (conf.payroll_type === 'UMK') {
+                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+            } else if (conf.payroll_type === 'Nominal') {
+                payrollSchemeText = `Nominal: Rp ${conf.custom_nominal ? parseFloat(conf.custom_nominal).toLocaleString('id-ID') : '-'}`;
+            } else if (conf.payroll_type === 'Template') {
+                payrollSchemeText = conf.payroll_scheme_name || 'Belum Set';
+            }
+            document.getElementById('wSetupPayrollScheme').innerText = payrollSchemeText;
+            document.getElementById('wSetupTaxScheme').innerText = conf.tax_scheme_name || 'Belum Set';
+            document.getElementById('wSetupPayDate').innerText = conf.pay_date ? `Tgl ${conf.pay_date}` : 'Belum Set';
+            document.getElementById('wSetupCutoff').innerText = conf.cutoff_start ? `${conf.cutoff_start} s/d ${(conf.cutoff_start - 1)}` : 'Belum Set';
+        } else {
+            document.getElementById('wSetupPayrollScheme').innerText = 'Belum Set';
+            document.getElementById('wSetupTaxScheme').innerText = 'Belum Set';
+            document.getElementById('wSetupPayDate').innerText = 'Belum Set';
+            document.getElementById('wSetupCutoff').innerText = 'Belum Set';
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+function bukaModal(mode, id = null) {
+    const modal = document.getElementById('modalClient');
+    const overlay = document.getElementById('overlay');
+    modal.style.display = 'block';
+    overlay.style.display = 'block';
+    if (mode === 'edit' && id) {
+        const client = clients.find(c => c.id == id);
+        if (client) {
+            document.getElementById('modalTitle').innerText = 'Edit Data Client';
+            document.getElementById('clientId').value = client.id;
+            document.getElementById('namaKlien').value = client.nama;
+            document.getElementById('emailKlien').value = client.email;
+            document.getElementById('sektorKlien').value = client.sektor;
+            document.getElementById('nib').value = client.nib;
+            document.getElementById('npwp').value = client.npwp ? String(client.npwp) : '';
+            document.getElementById('tanggalBergabung').value = client.tgl_gabung ? client.tgl_gabung.split('T')[0] : '';
+            document.getElementById('alamat').value = client.alamat;
+        }
+    } else {
+        document.getElementById('modalTitle').innerText = 'Tambah Data Client';
+        document.getElementById('formKlien').reset();
+        document.getElementById('clientId').value = '';
+    }
+}
+
+async function hapusKlien(id) {
+    if (!await showConfirm('Hapus klien ini?')) return;
+    try {
+        const res = await fetch(`${API_URL}/clients/${id}`, { method: 'DELETE' });
+        if (res.ok) { renderTable(); showToast('Klien berhasil dihapus', 'success'); }
+    } catch (err) { console.error(err); }
+}
+

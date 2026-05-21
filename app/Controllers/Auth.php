@@ -21,6 +21,12 @@ class Auth extends ResourceController
                             ->first();
 
         if ($user) {
+            session()->set([
+                'user_id'  => $user['id'] ?? 1,
+                'username' => $user['username'],
+                'role'     => $user['role']
+            ]);
+
             return $this->respond([
                 'success' => true,
                 'message' => 'Login berhasil',
