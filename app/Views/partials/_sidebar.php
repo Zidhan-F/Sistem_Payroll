@@ -44,7 +44,7 @@
             </li>
             <li id="submenu_kompensasi" onclick="switchPayrollSub('kompensasi')">
                 <i class="fas fa-coins"></i>
-                <span>Skema Kompensasi</span>
+                <span>Struktur Gaji</span>
             </li>
             <li id="submenu_setting" onclick="switchPayrollSub('setting')">
                 <i class="fas fa-cog"></i>
