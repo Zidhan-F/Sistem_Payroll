@@ -59,6 +59,18 @@ class Employee extends ResourceController
         unset($data['umr_tipe']);
         unset($data['custom_nominal']);
 
+        // Auto-generate employ_id: {tahun_kontrak}{urutan_5digit}
+        $contractYear = date('Y');
+        if (!empty($data['start_contract'])) {
+            $contractYear = date('Y', strtotime($data['start_contract']));
+        }
+        $db2 = \Config\Database::connect();
+        $countInYear = $db2->table('employees')
+                           ->where("employ_id LIKE '" . $contractYear . "%'")
+                           ->countAllResults();
+        $nextSeq = $countInYear + 1;
+        $data['employ_id'] = $contractYear . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+
         if ($id = $this->model->insert($data)) {
             $data['id'] = $id;
 
@@ -183,5 +195,17 @@ class Employee extends ResourceController
             return $this->respondDeleted(['id' => $id]);
         }
         return $this->failNotFound();
+    }
+
+    public function nextEmployId()
+    {
+        $year = $this->request->getGet('year') ?? date('Y');
+        $db = \Config\Database::connect();
+        $countInYear = $db->table('employees')
+                          ->where("employ_id LIKE '" . $year . "%'")
+                          ->countAllResults();
+        $nextSeq = $countInYear + 1;
+        $employId = $year . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+        return $this->respond(['employ_id' => $employId]);
     }
 }

@@ -316,6 +316,7 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('formKaryawan').reset();
     document.getElementById('employeeId').value='';
     document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+    document.getElementById('empEmployId').value = '';
     
     const statusPernikahanSel = document.getElementById('empStatusPernikahan');
     const jumlahAnakContainer = document.getElementById('empJumlahAnakContainer');
@@ -365,7 +366,7 @@ async function bukaModalKaryawan(mode,id=null){
     if(mode==='edit'&&id){
         const emp=(window.employees || []).find(e=>e.id==id) || (window.allEmployeesGlobal || []).find(e=>e.id==id);
         document.getElementById('employeeId').value=emp.id;
-        document.getElementById('empNik').value=emp.nik;
+        document.getElementById('empEmployId').value = emp.employ_id || '';
         document.getElementById('empNama').value=emp.nama;
         document.getElementById('empClientId').value=emp.client_id;
         
@@ -396,7 +397,6 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     e.preventDefault();
     const id=document.getElementById('employeeId').value;
     const d={
-        nik:document.getElementById('empNik').value,
         nama:document.getElementById('empNama').value,
         client_id:document.getElementById('empClientId').value,
         tempat_lahir:document.getElementById('empTempatLahir').value,
@@ -409,6 +409,10 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         tipe_perjanjian:document.getElementById('empTipePerjanjian').value,
         work_location_id:document.getElementById('empWorkLocationId').value || null
     };
+    // For new employees, generate a dummy nik from employ_id (nik is required by DB)
+    if (!id) {
+        d.nik = document.getElementById('empEmployId').value || ('EMP-' + Date.now());
+    }
     const r=await fetch(id?`${API}/employees/${id}`:`${API}/employees`,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
     if(r.ok){
         tutupModalKaryawan();
@@ -441,6 +445,28 @@ async function hapusKaryawan(id){
     if(r.ok){if(selectedClientId){renderTableKaryawanClient();renderClientOrg(selectedClientId);}showToast('Karyawan dihapus');}
 }
 function bukaModalKaryawanSpecific(){bukaModalKaryawan('tambah');const cs=document.getElementById('empClientId');if(cs){cs.value=selectedClientId;cs.closest('.form-group').style.display='none';}}
+
+// Auto-fetch Employ ID when contract start date is set
+document.getElementById('empStartContract')?.addEventListener('change', async (e) => {
+    const dateVal = e.target.value;
+    const employeeId = document.getElementById('employeeId').value;
+    // Only auto-generate for new employees (not edit)
+    if (employeeId) return;
+    if (!dateVal) {
+        document.getElementById('empEmployId').value = '';
+        return;
+    }
+    const year = dateVal.substring(0, 4);
+    try {
+        const r = await fetch(`${API}/employees/next-employ-id?year=${year}`);
+        const data = await r.json();
+        if (data && data.employ_id) {
+            document.getElementById('empEmployId').value = data.employ_id;
+        }
+    } catch (err) {
+        console.error('Error fetching next employ ID:', err);
+    }
+});
 
 window.renderClientOrg=renderClientOrg;window.bukaModalOrg=bukaModalOrg;window.tutupModalOrg=tutupModalOrg;window.hapusOrg=hapusOrg;window.toggleNode=toggleNode;window.renderTableKaryawanClient=renderTableKaryawanClient;window.bukaModalKaryawan=bukaModalKaryawan;window.bukaModalKaryawanSpecific=bukaModalKaryawanSpecific;window.tutupModalKaryawan=tutupModalKaryawan;window.hapusKaryawan=hapusKaryawan;window.loadPositions=loadPositions;
 window.tambahDeptInline=tambahDeptInline;window.tambahPosisiInline=tambahPosisiInline;
