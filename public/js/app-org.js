@@ -15,7 +15,7 @@ async function renderClientOrg(clientId){
         const r=await fetch(`${API}/org?client_id=${clientId}`);
         orgData=await r.json();
         container.innerHTML='';
-        if(!Array.isArray(orgData)||orgData.length===0){container.innerHTML+='<div class="empty-state" style="padding:40px;border:2px dashed #eee;border-radius:12px;background:#fff;">Belum ada struktur. Klik tombol di atas untuk menambah Divisi.</div>';return;}
+        if(!Array.isArray(orgData)||orgData.length===0){container.innerHTML+='<div class="payroll-empty-state"><i class="fas fa-sitemap"></i><h4>Belum Ada Struktur</h4><p>Silakan klik tombol <b>Tambah Divisi</b> di atas untuk menyusun struktur.</p></div>';return;}
         orgData.forEach(div=>{
             let h=`<div class="org-level" style="margin-bottom:30px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;">
                 <div class="level-header" style="background:#f1f5f9;padding:12px 20px;cursor:pointer;border-bottom:1px solid #e2e8f0;" onclick="toggleNode(this)">
@@ -286,7 +286,7 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
 async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
     const locSel = document.getElementById('empWorkLocationId');
     if (!locSel) return;
-    locSel.innerHTML = '<option value="">Loading...</option>';
+    locSel.innerHTML = '<option value="">-- Memuat Lokasi... --</option>';
     try {
         const r = await fetch(`${API}/work-locations?client_id=${clientId}`);
         const locations = await r.json();
@@ -317,6 +317,16 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('employeeId').value='';
     document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
     document.getElementById('empEmployId').value = '';
+    
+    const empEmployIdContainer = document.getElementById('empEmployIdContainer');
+    const empNikNamaGrid = document.getElementById('empNikNamaGrid');
+    if (mode === 'edit') {
+        if (empEmployIdContainer) empEmployIdContainer.style.display = 'block';
+        if (empNikNamaGrid) empNikNamaGrid.style.gridTemplateColumns = '1fr 2fr';
+    } else {
+        if (empEmployIdContainer) empEmployIdContainer.style.display = 'none';
+        if (empNikNamaGrid) empNikNamaGrid.style.gridTemplateColumns = '1fr';
+    }
     
     const statusPernikahanSel = document.getElementById('empStatusPernikahan');
 
@@ -414,7 +424,7 @@ async function bukaModalKaryawan(mode,id=null){
 async function loadPositions(cid){
     if(!cid)return;const ps=document.getElementById('empPositionId');
     if(!ps) return;
-    ps.innerHTML='<option>Loading...</option>';
+    ps.innerHTML='<option value="">-- Memuat Posisi... --</option>';
     try{const r=await fetch(`${API}/positions/client/${cid}`);const p=await r.json();ps.innerHTML='<option value="">-- Pilih Posisi --</option>';if(Array.isArray(p))p.forEach(x=>{ps.innerHTML+=`<option value="${x.id}">${x.nama}</option>`;});}catch(e){console.error(e);}
 }
 

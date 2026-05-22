@@ -52,6 +52,103 @@
                     </div>
                 </div>
 
+                <!-- Quick Actions Panel -->
+                <div class="content-card" style="margin-top: 30px; padding: 25px;">
+                    <div style="margin-bottom: 20px;">
+                        <h3 style="font-size: 16px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Menu Aksi Cepat</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Pintas navigasi untuk melakukan tugas administratif utama secara instan.</p>
+                    </div>
+                    
+                    <div class="quick-actions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                        <!-- Action 0: Dashboard -->
+                        <div class="quick-action-card" onclick="quickAction('dashboard')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(63, 81, 181, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1828/1828765.png" alt="Dashboard" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Dashboard</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Kembali ke halaman utama.</p>
+                            </div>
+                        </div>
+
+                        <!-- Action 1: Tambah Klien -->
+                        <div class="quick-action-card" onclick="quickAction('tambah-klien')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(243, 156, 18, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/4300/4300058.png" alt="Klien" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Tambah Klien</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Daftarkan perusahaan baru.</p>
+                            </div>
+                        </div>
+
+                        <!-- Action 2: Tambah Karyawan -->
+                        <div class="quick-action-card" onclick="quickAction('tambah-karyawan')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(52, 152, 219, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Karyawan" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Tambah Karyawan</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Daftarkan karyawan baru.</p>
+                            </div>
+                        </div>
+
+                        <!-- Action 3: Proses Payroll -->
+                        <div class="quick-action-card" onclick="quickAction('proses-payroll')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(46, 204, 113, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135706.png" alt="Payroll" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Proses Payroll</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Generate & hitung gaji bulanan.</p>
+                            </div>
+                        </div>
+
+                        <!-- Action 4: Pengaturan Skema -->
+                        <div class="quick-action-card" onclick="quickAction('pengaturan-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(155, 89, 182, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2040/2040504.png" alt="Skema" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Pengaturan Skema</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Atur skema BPJS & pajak.</p>
+                            </div>
+                        </div>
+
+                        <!-- Action 5: Lokasi Kerja -->
+                        <div class="quick-action-card" onclick="quickAction('lokasi-kerja')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(26, 188, 156, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1865/1865269.png" alt="Lokasi Kerja" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Lokasi Kerja</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Kelola wilayah & kantor kerja.</p>
+                            </div>
+                        </div>
+
+                        <!-- Action 6: Upload UMK UMP -->
+                        <div class="quick-action-card" onclick="quickAction('upload-umk-ump')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(231, 76, 60, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/1091/1091210.png" alt="Upload UMK UMP" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Upload UMK UMP</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Unggah ketetapan UMP & UMK.</p>
+                            </div>
+                        </div>
+
+                        <!-- Action 7: Struktur Gaji -->
+                        <div class="quick-action-card" onclick="quickAction('struktur-gaji')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(39, 174, 96, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2489/2489756.png" alt="Struktur Gaji" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Struktur Gaji</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Skema komponen pendapatan.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             </div>
 
@@ -473,7 +570,7 @@
                                         </select>
                                     </div>
 
-                                    <!-- Skema Kompensasi Card -->
+                                    <!-- Skema Komponen Card -->
                                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
                                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                                             <div style="display: flex; align-items: center; gap: 12px;">
@@ -481,7 +578,7 @@
                                                     <i class="fas fa-coins" style="font-size: 18px; color: #10b981;"></i>
                                                 </div>
                                                 <div>
-                                                    <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Kompensasi</h4>
+                                                    <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Komponen</h4>
                                                     <p style="font-size: 12px; color: #94a3b8; margin: 0;">Komponen pendapatan & potongan</p>
                                                 </div>
                                             </div>
@@ -491,11 +588,11 @@
                                         </div>
                                         <div style="margin-bottom: 12px;">
                                             <select id="pilihanSkemaKompensasi" onchange="renderPilihanKompensasiSummary(this.value)" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                                <option value="">-- Pilih Skema Kompensasi --</option>
+                                                <option value="">-- Pilih Skema Komponen --</option>
                                             </select>
                                         </div>
                                         <div id="pilihanKompensasiSummary" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; min-height: 60px;">
-                                            <p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema kompensasi di atas untuk melihat detailnya.</p>
+                                            <p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema komponen di atas untuk melihat detailnya.</p>
                                         </div>
                                     </div>
 
@@ -773,12 +870,12 @@
 
 
 
-        <!-- Section: Master Skema Kompensasi -->
+        <!-- Section: Master Skema Komponen -->
         <div id="viewMasterKompensasi" class="view-section">
             <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
                 <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
                     <div>
-                        <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Skema Kompensasi</h3>
+                        <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Skema Komponen</h3>
                         <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola komponen pendapatan dan potongan secara global.</p>
                     </div>
                     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
@@ -810,13 +907,6 @@
 
     <?= view('partials/_modals') ?>
     <?= view('partials/_scripts') ?>
-
-    <script>
-        const BASE_URL = "<?= base_url() ?>";
-    </script>
-    <script src="<?= base_url('js/app.js?v=' . time()) ?>"></script>
-    <script src="<?= base_url('js/app-org.js?v=' . time()) ?>"></script>
-    <script src="<?= base_url('js/app-location.js?v=' . time()) ?>"></script>
 
 </body>
 

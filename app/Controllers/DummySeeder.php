@@ -10,6 +10,19 @@ class DummySeeder extends Controller
     {
         $db = \Config\Database::connect();
 
+        // ========== CLEAN TABLES FIRST ==========
+        $db->table('contracts')->where('1=1')->delete();
+        $db->table('attendances')->where('1=1')->delete();
+        $db->table('payroll_details')->where('1=1')->delete();
+        $db->table('payrolls')->where('1=1')->delete();
+        $db->table('employees')->where('1=1')->delete();
+        $db->table('work_locations')->where('1=1')->delete();
+        $db->table('positions')->where('1=1')->delete();
+        $db->table('departments')->where('1=1')->delete();
+        $db->table('divisions')->where('1=1')->delete();
+        $db->table('clients')->where('1=1')->delete();
+        $db->table('employee_sequences')->where('1=1')->delete();
+
         // ========== HELPER DATA ==========
         $namaDepan = ['Andi','Budi','Citra','Dewi','Eko','Fani','Gita','Hendra','Irma','Joko',
             'Kartini','Lukman','Maya','Nanda','Oscar','Putri','Rudi','Sari','Tono','Umar',
@@ -59,6 +72,57 @@ class DummySeeder extends Controller
                 'status'     => 'Aktif',
             ]);
             $clientIds[] = $db->insertID();
+        }
+
+        // ========== 20 WORK LOCATIONS (4 per client) ==========
+        $workLocationsTemplates = [
+            [
+                ['lokasi_kerja' => 'Maju Bersama HQ Jakarta', 'location_code' => 'MBD-HQ-JKT', 'provinsi' => 'DKI Jakarta', 'kota_kabupaten' => 'Jakarta Selatan'],
+                ['lokasi_kerja' => 'MBD R&D Bandung', 'location_code' => 'MBD-RD-BDG', 'provinsi' => 'Jawa Barat', 'kota_kabupaten' => 'Bandung'],
+                ['lokasi_kerja' => 'MBD Dev Center Yogyakarta', 'location_code' => 'MBD-DC-YOG', 'provinsi' => 'DI Yogyakarta', 'kota_kabupaten' => 'Yogyakarta'],
+                ['lokasi_kerja' => 'MBD Support Surabaya', 'location_code' => 'MBD-SP-SBY', 'provinsi' => 'Jawa Timur', 'kota_kabupaten' => 'Surabaya'],
+            ],
+            [
+                ['lokasi_kerja' => 'KMS Factory Karawang', 'location_code' => 'KMS-FAC-KRW', 'provinsi' => 'Jawa Barat', 'kota_kabupaten' => 'Karawang'],
+                ['lokasi_kerja' => 'KMS Warehouse Bekasi', 'location_code' => 'KMS-WH-BKS', 'provinsi' => 'Jawa Barat', 'kota_kabupaten' => 'Bekasi'],
+                ['lokasi_kerja' => 'KMS Assembly Tangerang', 'location_code' => 'KMS-ASM-TNG', 'provinsi' => 'Banten', 'kota_kabupaten' => 'Tangerang'],
+                ['lokasi_kerja' => 'KMS Sales Jakarta', 'location_code' => 'KMS-SLS-JKT', 'provinsi' => 'DKI Jakarta', 'kota_kabupaten' => 'Jakarta Pusat'],
+            ],
+            [
+                ['lokasi_kerja' => 'BAT Dist Center Surabaya', 'location_code' => 'BAT-DC-SBY', 'provinsi' => 'Jawa Timur', 'kota_kabupaten' => 'Surabaya'],
+                ['lokasi_kerja' => 'BAT Warehouse Semarang', 'location_code' => 'BAT-WH-SMG', 'provinsi' => 'Jawa Tengah', 'kota_kabupaten' => 'Semarang'],
+                ['lokasi_kerja' => 'BAT Branch Office Medan', 'location_code' => 'BAT-BO-MDN', 'provinsi' => 'Sumatera Utara', 'kota_kabupaten' => 'Medan'],
+                ['lokasi_kerja' => 'BAT Branch Office Makassar', 'location_code' => 'BAT-BO-MKS', 'provinsi' => 'Sulawesi Selatan', 'kota_kabupaten' => 'Makassar'],
+            ],
+            [
+                ['lokasi_kerja' => 'Finansia HQ Jakarta', 'location_code' => 'FG-HQ-JKT', 'provinsi' => 'DKI Jakarta', 'kota_kabupaten' => 'Jakarta Selatan'],
+                ['lokasi_kerja' => 'Finansia Surabaya Branch', 'location_code' => 'FG-BR-SBY', 'provinsi' => 'Jawa Timur', 'kota_kabupaten' => 'Surabaya'],
+                ['lokasi_kerja' => 'Finansia Bandung Branch', 'location_code' => 'FG-BR-BDG', 'provinsi' => 'Jawa Barat', 'kota_kabupaten' => 'Bandung'],
+                ['lokasi_kerja' => 'Finansia Medan Branch', 'location_code' => 'FG-BR-MDN', 'provinsi' => 'Sumatera Utara', 'kota_kabupaten' => 'Medan'],
+            ],
+            [
+                ['lokasi_kerja' => 'GKN Project Site Jakarta', 'location_code' => 'GKN-PRJ-JKT', 'provinsi' => 'DKI Jakarta', 'kota_kabupaten' => 'Jakarta Utara'],
+                ['lokasi_kerja' => 'GKN Resort Project Bali', 'location_code' => 'GKN-PRJ-BAL', 'provinsi' => 'Bali', 'kota_kabupaten' => 'Badung'],
+                ['lokasi_kerja' => 'GKN IKN Site Office', 'location_code' => 'GKN-IKN-PEN', 'provinsi' => 'Kalimantan Timur', 'kota_kabupaten' => 'Penajam Paser Utara'],
+                ['lokasi_kerja' => 'GKN Residential Bandung', 'location_code' => 'GKN-PRJ-BDG', 'provinsi' => 'Jawa Barat', 'kota_kabupaten' => 'Bandung'],
+            ],
+        ];
+
+        $clientWorkLocations = [];
+        foreach ($clientIds as $idx => $cid) {
+            $clientWorkLocations[$cid] = [];
+            foreach ($workLocationsTemplates[$idx] as $wl) {
+                $db->table('work_locations')->insert([
+                    'client_id'      => $cid,
+                    'lokasi_kerja'   => $wl['lokasi_kerja'],
+                    'location_code'  => $wl['location_code'],
+                    'provinsi'       => $wl['provinsi'],
+                    'kota_kabupaten' => $wl['kota_kabupaten'],
+                    'created_at'     => date('Y-m-d H:i:s'),
+                    'updated_at'     => date('Y-m-d H:i:s'),
+                ]);
+                $clientWorkLocations[$cid][] = $db->insertID();
+            }
         }
 
         // ========== 20 DIVISIONS (4 per client) ==========
@@ -153,12 +217,6 @@ class DummySeeder extends Controller
             } while (in_array($fullName, $usedNames));
             $usedNames[] = $fullName;
 
-            // Unique NIK (16 digits)
-            do {
-                $nik = '32' . str_pad(rand(0, 99999999999999), 14, '0', STR_PAD_LEFT);
-            } while (in_array($nik, $usedNik));
-            $usedNik[] = $nik;
-
             // Unique email
             $emailBase = strtolower($first) . '.' . strtolower($last);
             $email = $emailBase . '@company.com';
@@ -188,17 +246,21 @@ class DummySeeder extends Controller
             $bank = $bankList[array_rand($bankList)];
             $noRek = rand(1000000000, 9999999999);
 
-            // Employ ID
+            // Employ ID / NIK (sequential)
             if (!isset($seqCounters[$contractYear])) {
                 $seqCounters[$contractYear] = 0;
             }
             $seqCounters[$contractYear]++;
             $employId = $contractYear . str_pad($seqCounters[$contractYear], 5, '0', STR_PAD_LEFT);
 
+            // Pick a work location
+            $workLocs = $clientWorkLocations[$clientId] ?? [];
+            $workLocationId = !empty($workLocs) ? $workLocs[array_rand($workLocs)] : null;
+
             $alamatEmp = $jalan[array_rand($jalan)] . ' No. ' . rand(1, 150) . ' RT ' . str_pad(rand(1,20),2,'0',STR_PAD_LEFT) . '/RW ' . str_pad(rand(1,10),2,'0',STR_PAD_LEFT) . ', ' . $kota[array_rand($kota)];
 
             $db->table('employees')->insert([
-                'nik'               => $nik,
+                'nik'               => $employId,
                 'nama'              => $fullName,
                 'email'             => $email,
                 'no_rekening'       => $noRek,
@@ -219,6 +281,7 @@ class DummySeeder extends Controller
                 'status_pernikahan' => $statusNk,
                 'jumlah_anak'       => $jumlahAnak,
                 'employ_id'         => $employId,
+                'work_location_id'  => $workLocationId,
                 'created_at'        => date('Y-m-d H:i:s'),
                 'updated_at'        => date('Y-m-d H:i:s'),
             ]);
@@ -252,11 +315,12 @@ class DummySeeder extends Controller
             'status'  => 'success',
             'message' => 'Dummy data berhasil di-seed!',
             'summary' => [
-                'clients'     => count($clientIds),
-                'divisions'   => count($divisionIds),
-                'departments' => count($departmentIds),
-                'positions'   => count($positionIds),
-                'employees'   => 100,
+                'clients'        => count($clientIds),
+                'divisions'      => count($divisionIds),
+                'departments'    => count($departmentIds),
+                'positions'      => count($positionIds),
+                'work_locations' => 20,
+                'employees'      => 100,
             ]
         ]);
     }

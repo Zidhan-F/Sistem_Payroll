@@ -86,6 +86,7 @@ class Employee extends ResourceController
         }
         $db2->transComplete();
         $data['employ_id'] = $contractYear . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
+        $data['nik'] = $data['employ_id'];
 
         if ($id = $this->model->insert($data)) {
             $data['id'] = $id;

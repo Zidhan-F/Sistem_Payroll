@@ -644,9 +644,9 @@
                     </select>
                 </div>
 
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group" style="display: none;">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Employ ID (NIK)</label>
+                <div class="form-grid" id="empNikNamaGrid" style="display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group" id="empEmployIdContainer">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">NIK (Nomor Induk Karyawan)</label>
                         <input type="text" id="empEmployId" readonly placeholder="Terisi Otomatis" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; color: #475569; font-weight: 700; letter-spacing: 1px;">
                     </div>
                     <div class="form-group">
@@ -787,7 +787,7 @@
         </form>
     </div>
 
-    <!-- Modal Skema Kompensasi (Master) -->
+    <!-- Modal Skema Komponen (Master) -->
     <div id="modalSkemaKompensasi" class="modal-skema" style="display: none;">
         <div class="modal-header" style="background: var(--primary-color);">
             <h3 id="modalSkemaKompensasiTitle">Tambah Skema Komponen</h3>

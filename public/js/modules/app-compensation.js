@@ -25,7 +25,7 @@
             if (res.ok) {
                 tutupSemuaModal();
                 renderMasterKompensasi();
-                showToast(id ? 'Skema kompensasi berhasil diupdate!' : 'Skema kompensasi berhasil ditambahkan!', 'success');
+                showToast(id ? 'Skema komponen berhasil diupdate!' : 'Skema komponen berhasil ditambahkan!', 'success');
             } else {
                 showToast('Gagal menyimpan skema!', 'error');
             }
@@ -241,7 +241,7 @@ function bukaModalSkemaKompensasi(mode, id = null) {
         const scheme = window.compensationSchemes.find(s => s.id == id);
         if (scheme) {
             const comp = (scheme.components && scheme.components.length > 0) ? scheme.components[0] : null;
-            document.getElementById('modalSkemaKompensasiTitle').innerText = 'Edit Skema Kompensasi';
+            document.getElementById('modalSkemaKompensasiTitle').innerText = 'Edit Skema Komponen';
             document.getElementById('skemaKompensasiId').value = scheme.id;
             document.getElementById('skemaKompensasiNama').value = scheme.nama;
             document.getElementById('skemaKompensasiDeskripsi').value = '';
@@ -266,7 +266,7 @@ function bukaModalSkemaKompensasi(mode, id = null) {
             handleSchemeSumberNilaiChange();
         }
     } else {
-        document.getElementById('modalSkemaKompensasiTitle').innerText = 'Tambah Skema Kompensasi';
+        document.getElementById('modalSkemaKompensasiTitle').innerText = 'Tambah Skema Komponen';
         document.getElementById('formSkemaKompensasi').reset();
         document.getElementById('skemaKompensasiId').value = '';
         document.getElementById('skemaKompensasiNama').value = '';
@@ -285,12 +285,12 @@ function tutupModalSkemaKompensasi() {
 }
 
 async function hapusSkemaKompensasi(id) {
-    if (!await showConfirm('Apakah Anda yakin ingin menghapus skema kompensasi ini beserta seluruh komponen di dalamnya?')) return;
+    if (!await showConfirm('Apakah Anda yakin ingin menghapus skema komponen ini beserta seluruh komponen di dalamnya?')) return;
     try {
         const res = await fetch(`${API_URL}/compensation-schemes/${id}`, { method: 'DELETE' });
         if (res.ok) {
             renderMasterKompensasi();
-            showToast('Skema kompensasi berhasil dihapus!', 'success');
+            showToast('Skema komponen berhasil dihapus!', 'success');
         } else {
             showToast('Gagal menghapus skema!', 'error');
         }

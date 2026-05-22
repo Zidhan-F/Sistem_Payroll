@@ -166,28 +166,38 @@ function formatTimeAgo(dateString) {
 }
 
 async function updateDashboardStats() {
+    const statKlien = document.getElementById('statTotalKlien');
+    const statKaryawan = document.getElementById('statTotalKaryawan');
+    const statDivisi = document.getElementById('statTotalDivisi');
+
+    // Show skeleton shimmer animation immediately
+    if (statKlien) statKlien.innerHTML = '<span class="skeleton skeleton-text"></span>';
+    if (statKaryawan) statKaryawan.innerHTML = '<span class="skeleton skeleton-text"></span>';
+    if (statDivisi) statDivisi.innerHTML = '<span class="skeleton skeleton-text"></span>';
+
     try {
-        const rc = await fetch(`${API_URL}/clients`);
-        const cd = await rc.json();
-        if (document.getElementById('statTotalKlien')) {
-            document.getElementById('statTotalKlien').innerText = cd.length || 0;
-        }
+        // Fetch in parallel using Promise.all
+        const [rc, re, ro] = await Promise.all([
+            fetch(`${API_URL}/clients`),
+            fetch(`${API_URL}/employees`),
+            fetch(`${API_URL}/org`)
+        ]);
 
-        const re = await fetch(`${API_URL}/employees`);
-        const ed = await re.json();
-        if (document.getElementById('statTotalKaryawan')) {
-            document.getElementById('statTotalKaryawan').innerText = ed.length || 0;
-        }
+        const [cd, ed, od] = await Promise.all([
+            rc.json(),
+            re.json(),
+            ro.json()
+        ]);
 
-        const ro = await fetch(`${API_URL}/org`);
-        const od = await ro.json();
-        if (document.getElementById('statTotalDivisi')) {
-            document.getElementById('statTotalDivisi').innerText = od.length || 0;
-        }
-
+        if (statKlien) statKlien.innerText = cd.length || 0;
+        if (statKaryawan) statKaryawan.innerText = ed.length || 0;
+        if (statDivisi) statDivisi.innerText = od.length || 0;
 
     } catch (err) {
         console.error('Error updating dashboard stats:', err);
+        if (statKlien) statKlien.innerText = '0';
+        if (statKaryawan) statKaryawan.innerText = '0';
+        if (statDivisi) statDivisi.innerText = '0';
     }
 }
 
@@ -389,7 +399,7 @@ function switchView(view) {
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal() {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     if(document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
 }
@@ -419,4 +429,76 @@ Object.assign(window, {
 if (typeof updateDashboardStats === 'function') {
     updateDashboardStats();
 }
+
+// MutationObserver to automatically toggle 'modal-open' class (overflow: hidden) on body when overlay is active
+document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('overlay');
+    if (overlay) {
+        const observer = new MutationObserver(() => {
+            if (overlay.style.display === 'block') {
+                document.body.classList.add('modal-open');
+                document.documentElement.classList.add('modal-open');
+            } else {
+                document.body.classList.remove('modal-open');
+                document.documentElement.classList.remove('modal-open');
+            }
+        });
+        observer.observe(overlay, { attributes: true, attributeFilter: ['style'] });
+        
+        // Initial check
+        if (overlay.style.display === 'block') {
+            document.body.classList.add('modal-open');
+            document.documentElement.classList.add('modal-open');
+        }
+    }
+});
+
+// Quick Actions Handler
+function quickAction(type) {
+    if (type === 'dashboard') {
+        switchView('dashboard');
+        if (typeof updateDashboardStats === 'function') {
+            updateDashboardStats();
+        }
+    } else if (type === 'tambah-klien') {
+        switchView('klien');
+        setTimeout(() => {
+            if (typeof window.bukaModal === 'function') {
+                window.bukaModal('tambah');
+            }
+        }, 150);
+    } else if (type === 'tambah-karyawan') {
+        switchView('manajemenKaryawan');
+        setTimeout(() => {
+            if (typeof window.bukaModalKaryawanGlobal === 'function') {
+                window.bukaModalKaryawanGlobal();
+            }
+        }, 150);
+    } else if (type === 'proses-payroll') {
+        switchView('klien');
+        showToast('Pilih salah satu klien terlebih dahulu untuk memproses payroll', 'info');
+    } else if (type === 'pengaturan-skema') {
+        switchPayrollSub('setting');
+    } else if (type === 'lokasi-kerja') {
+        if (typeof window.switchKaryawanSubMenu === 'function') {
+            window.switchKaryawanSubMenu('lokasi_kerja');
+        } else {
+            switchView('globalLokasiKerja');
+        }
+    } else if (type === 'upload-umk-ump') {
+        if (typeof window.switchPayrollSub === 'function') {
+            window.switchPayrollSub('uploadUmr');
+        } else {
+            switchView('payroll');
+            switchPayrollSubTab('umr');
+        }
+    } else if (type === 'struktur-gaji') {
+        if (typeof window.switchPayrollSub === 'function') {
+            window.switchPayrollSub('kompensasi');
+        } else {
+            switchView('masterKompensasi');
+        }
+    }
+}
+window.quickAction = quickAction;
 
