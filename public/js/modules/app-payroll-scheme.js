@@ -29,8 +29,10 @@ async function renderPayrollSchemes() {
                 }
             }
 
-            const compScheme = window.compensationSchemes ? window.compensationSchemes.find(cs => cs.id == scheme.compensation_scheme_id) : null;
-            const compName = compScheme ? compScheme.nama : 'Tidak terhubung';
+            const linkedComps = (scheme.components || []).filter(c => c.jenis_komponen !== 'basic_salary');
+            const compName = linkedComps.length > 0 
+                ? linkedComps.map(c => c.nama).join(', ') 
+                : 'Tidak ada komponen';
 
             const absenceDetails = `Prorate: ${scheme.prorate == 1 ? 'Ya' : 'Tidak'} | Absen Tidak Potong Gaji: ${scheme.absen_tidak_potong == 1 ? 'Ya' : 'Tidak'} | Potongan: ${formatRupiah(scheme.nominal_potongan || 0)}/hari`;
 
