@@ -11,6 +11,7 @@ $routes->get('dashboard', 'Home::dashboard');
 $routes->get('calculator', 'Home::calculator');
 $routes->get('migrasi', 'Migrasi::index');
 $routes->get('migrasi/seed-ump', 'Migrasi::seedUmp');
+$routes->get('seed-dummy', 'DummySeeder::run');
 
 // API Routes
 $routes->group('api', function($routes) {

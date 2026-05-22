@@ -8,6 +8,9 @@ class CreateEmployeeSequencesTable extends Migration
 {
     public function up()
     {
+        if ($this->db->tableExists('employee_sequences')) {
+            return;
+        }
         $this->forge->addField([
             'id' => [
                 'type'           => 'INT',

@@ -8,7 +8,7 @@ class ModifyPayrollComponentsSchema extends Migration
 {
     public function up()
     {
-        $fields = [
+        $allFields = [
             'nama' => [
                 'type' => 'VARCHAR',
                 'constraint' => '255',
@@ -39,7 +39,15 @@ class ModifyPayrollComponentsSchema extends Migration
                 'null' => true,
             ],
         ];
-        $this->forge->addColumn('payroll_components', $fields);
+        $fieldsToAdd = [];
+        foreach ($allFields as $name => $def) {
+            if (!$this->db->fieldExists($name, 'payroll_components')) {
+                $fieldsToAdd[$name] = $def;
+            }
+        }
+        if (!empty($fieldsToAdd)) {
+            $this->forge->addColumn('payroll_components', $fieldsToAdd);
+        }
     }
 
     public function down()

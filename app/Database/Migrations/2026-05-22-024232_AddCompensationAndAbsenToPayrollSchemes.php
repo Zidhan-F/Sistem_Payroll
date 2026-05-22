@@ -8,7 +8,7 @@ class AddCompensationAndAbsenToPayrollSchemes extends Migration
 {
     public function up()
     {
-        $fields = [
+        $allFields = [
             'compensation_scheme_id' => [
                 'type' => 'INT',
                 'null' => true,
@@ -27,7 +27,15 @@ class AddCompensationAndAbsenToPayrollSchemes extends Migration
                 'default' => 0.00,
             ],
         ];
-        $this->forge->addColumn('payroll_schemes', $fields);
+        $fieldsToAdd = [];
+        foreach ($allFields as $name => $def) {
+            if (!$this->db->fieldExists($name, 'payroll_schemes')) {
+                $fieldsToAdd[$name] = $def;
+            }
+        }
+        if (!empty($fieldsToAdd)) {
+            $this->forge->addColumn('payroll_schemes', $fieldsToAdd);
+        }
     }
 
     public function down()

@@ -8,14 +8,16 @@ class AddEmployIdToEmployees extends Migration
 {
     public function up()
     {
-        $this->forge->addColumn('employees', [
-            'employ_id' => [
-                'type'       => 'NVARCHAR',
-                'constraint' => 20,
-                'null'       => true,
-                'after'      => 'id',
-            ],
-        ]);
+        if (!$this->db->fieldExists('employ_id', 'employees')) {
+            $this->forge->addColumn('employees', [
+                'employ_id' => [
+                    'type'       => 'NVARCHAR',
+                    'constraint' => 20,
+                    'null'       => true,
+                    'after'      => 'id',
+                ],
+            ]);
+        }
     }
 
     public function down()
