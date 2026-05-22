@@ -739,14 +739,11 @@
                 </div>
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
+                    <div class="form-group" style="grid-column: 1 / -1;">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Lokasi Kerja</label>
                         <input type="text" id="locName" placeholder="Contoh: Kantor Cabang Bandung" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Location Code</label>
-                        <input type="text" id="locCode" readonly placeholder="Terisi Otomatis" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; cursor: not-allowed; color: #64748b; font-weight: 600;">
-                    </div>
+                    <input type="hidden" id="locCode">
                 </div>
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">

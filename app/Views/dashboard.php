@@ -58,11 +58,14 @@
             <!-- Section: Klien -->
             <div id="viewKlien" class="view-section">
                 <div class="content-card">
-                    <div class="section-header">
-                        <h3 style="font-size: 16px; color: var(--secondary-color);">Data Klien</h3>
-                        <button class="btn-add" onclick="bukaModal('tambah')">
-                            <i class="fas fa-plus"></i> Tambah
-                        </button>
+                    <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Klien</h3>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="text" id="cariKlienGlobal" placeholder="Cari klien..." oninput="cariKlienAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <button class="btn-add" onclick="bukaModal('tambah')" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                                <i class="fas fa-plus"></i> Tambah
+                            </button>
+                        </div>
                     </div>
 
                     <table>
@@ -107,7 +110,6 @@
                                 <th>NPWP</th>
                                 <th>Lokasi Kerja</th>
                                 <th>Kontrak</th>
-                                <th>Status Menikah</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -238,7 +240,6 @@
                                                     <th>NPWP</th>
                                                     <th>Lokasi Kerja</th>
                                                     <th>Kontrak</th>
-                                                    <th>Status Menikah</th>
                                                     <th>Action</th>
                                                 </tr>
                                             </thead>

@@ -6,32 +6,52 @@ async function renderTable() {
     try {
         const response = await fetch(`${API_URL}/clients`);
         clients = await response.json();
-        const tbody = document.getElementById('tabelKlienBody');
-        if (!tbody) return;
-        tbody.innerHTML = clients.map(client => {
-            const dateJoined = client.tgl_gabung ? new Date(client.tgl_gabung).toLocaleDateString('id-ID', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            }) : '-';
-            return `
-                <tr style="cursor: pointer;" onclick="event.target.closest('button') ? null : selectClient(${client.id}, '${client.nama.replace(/'/g, "\\'")}', '${client.sektor.replace(/'/g, "\\'")}')">
-                    <td style="font-weight: 600; color: var(--primary-color);">${client.nama}</td>
-                    <td>${client.sektor}</td>
-                    <td>${client.npwp ? `'${client.npwp}'` : '-'}</td>
-                    <td>${client.nib || '-'}</td>
-                    <td>${dateJoined}</td>
-                    <td>${client.alamat}</td>
-                    <td>
-                        <div class="action-btns">
-                            <button class="btn-icon btn-edit" onclick="bukaModal('edit', ${client.id})"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon btn-delete" onclick="hapusKlien(${client.id})"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        renderClientTableData(clients);
     } catch (err) { console.error(err); }
+}
+
+function renderClientTableData(data) {
+    const tbody = document.getElementById('tabelKlienBody');
+    if (!tbody) return;
+    tbody.innerHTML = data.map(client => {
+        const dateJoined = client.tgl_gabung ? new Date(client.tgl_gabung).toLocaleDateString('id-ID', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }) : '-';
+        return `
+            <tr style="cursor: pointer;" onclick="event.target.closest('button') ? null : selectClient(${client.id}, '${client.nama.replace(/'/g, "\\'")}', '${client.sektor.replace(/'/g, "\\'")}')">
+                <td style="font-weight: 600; color: var(--primary-color);">${client.nama}</td>
+                <td>${client.sektor}</td>
+                <td>${client.npwp ? `'${client.npwp}'` : '-'}</td>
+                <td>${client.nib || '-'}</td>
+                <td>${dateJoined}</td>
+                <td>${client.alamat}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-icon btn-edit" onclick="bukaModal('edit', ${client.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon btn-delete" onclick="hapusKlien(${client.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.cariKlienAktif = function() {
+    const q = document.getElementById('cariKlienGlobal').value.toLowerCase();
+    if (!clients) return;
+    if (!q) {
+        renderClientTableData(clients);
+        return;
+    }
+    const filtered = clients.filter(c => 
+        (c.nama && c.nama.toLowerCase().includes(q)) || 
+        (c.sektor && c.sektor.toLowerCase().includes(q)) || 
+        (c.npwp && String(c.npwp).toLowerCase().includes(q)) || 
+        (c.nib && String(c.nib).toLowerCase().includes(q))
+    );
+    renderClientTableData(filtered);
 }
 
 // ===== CLIENT WORKSPACE WORKFLOW =====
