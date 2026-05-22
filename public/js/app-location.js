@@ -81,8 +81,8 @@ function renderGlobalWorkLocationsTable() {
     workLocations.forEach(loc => {
         tbody.innerHTML += `
             <tr>
-                <td style="font-weight:600; color: var(--primary-color);">${loc.lokasi_kerja}</td>
-                <td><span style="background:#e2e8f0; color:#475569; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600;">${loc.location_code || '-'}</span></td>
+                <td style="font-weight:600;">${loc.lokasi_kerja}</td>
+                <td style="font-weight:600;">${loc.location_code || '-'}</td>
                 <td>${loc.nama_klien || '-'}</td>
                 <td>${loc.nama_divisi || '-'}</td>
                 <td>${loc.nama_dept || '-'}</td>
@@ -124,8 +124,8 @@ function renderWorkLocationsTable() {
     workLocations.forEach(loc => {
         tbody.innerHTML += `
             <tr>
-                <td style="font-weight:600; color: var(--primary-color);">${loc.lokasi_kerja}</td>
-                <td><span style="background:#e2e8f0; color:#475569; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600;">${loc.location_code || '-'}</span></td>
+                <td style="font-weight:600;">${loc.lokasi_kerja}</td>
+                <td style="font-weight:600;">${loc.location_code || '-'}</td>
                 <td>${loc.nama_divisi || '-'}</td>
                 <td>${loc.nama_dept || '-'}</td>
                 <td>${loc.nama_posisi || '-'}</td>
@@ -147,6 +147,7 @@ function bukaModalLokasiKerja() {
     document.getElementById('overlay').style.display = 'block';
     
     populateLocClients();
+    populateProvinsiKotaLists();
     
     document.getElementById('formLokasiKerja').reset();
     document.getElementById('workLocationId').value = '';
@@ -161,12 +162,47 @@ function tutupModalLokasiKerja() {
     document.getElementById('overlay').style.display = 'none';
 }
 
+let umrDataCached = null;
+async function populateProvinsiKotaLists() {
+    try {
+        if (!umrDataCached) {
+            const r = await fetch('/api/minimum-wages?tipe=all');
+            umrDataCached = await r.json();
+        }
+        
+        const provList = document.getElementById('provinsiList');
+        const kotaList = document.getElementById('kotaList');
+        if (!provList || !kotaList) return;
+        
+        provList.innerHTML = '';
+        kotaList.innerHTML = '';
+        
+        // Populate Provinsi (UMP)
+        const provs = [...new Set(umrDataCached.filter(u => u.tipe === 'UMP').map(u => u.nama_daerah))];
+        provs.forEach(p => {
+            if (p) provList.innerHTML += `<option value="${p}"></option>`;
+        });
+        
+        // Populate Kota (UMK)
+        const kotas = [...new Set(umrDataCached.filter(u => u.tipe === 'UMK').map(u => u.nama_daerah))];
+        kotas.forEach(k => {
+            if (k) kotaList.innerHTML += `<option value="${k}"></option>`;
+        });
+    } catch (e) {
+        console.error('Error fetching minimum wages for datalist', e);
+    }
+}
+
 async function populateLocClients() {
     const clientSelect = document.getElementById('locClientId');
     if (!clientSelect) return;
     
     // Save current selection value
     const currentVal = clientSelect.value;
+    
+    if (window.locClientSelectInstance) {
+        window.locClientSelectInstance.destroy();
+    }
     
     clientSelect.innerHTML = '<option value="">-- Pilih Klien --</option>';
     
@@ -184,6 +220,15 @@ async function populateLocClients() {
         } else {
             clientSelect.parentElement.style.display = 'block';
             if (currentVal) clientSelect.value = currentVal;
+            
+            // Initialize TomSelect for "select search"
+            window.locClientSelectInstance = new TomSelect(clientSelect, {
+                create: false,
+                sortField: {
+                    field: "text",
+                    direction: "asc"
+                }
+            });
         }
     } catch (e) {
         console.error(e);
@@ -289,6 +334,9 @@ document.getElementById('locName')?.addEventListener('input', (e) => {
 async function editLokasiKerja(id) {
     bukaModalLokasiKerja();
     const loc = workLocations.find(l => l.id == id);
+    populateLocClients();
+    populateProvinsiKotaLists();
+    
     if (!loc) return;
     
     document.getElementById('modalLokasiKerjaTitle').innerText = 'Edit Lokasi Kerja';

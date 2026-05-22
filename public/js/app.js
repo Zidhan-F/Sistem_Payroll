@@ -380,3 +380,8 @@ Object.assign(window, {
         sidebarToggleBtn.addEventListener('click', toggleSidebar);
     }
 
+// Initialize default view
+if (typeof updateDashboardStats === 'function') {
+    updateDashboardStats();
+}
+

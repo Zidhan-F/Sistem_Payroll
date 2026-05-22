@@ -54,7 +54,8 @@ function switchView(view) {
 // === DASHBOARD STATS ===
 async function updateDashboardStats() {
     try {
-        if(currentUser) document.getElementById('welcomeName').innerText = currentUser.username;
+        const wn = document.getElementById('welcomeName');
+        if(currentUser && wn) wn.innerText = currentUser.username;
         const rc = await fetch(`${API}/clients`); const cd = await rc.json();
         document.getElementById('statTotalKlien').innerText = cd.length||0;
         const re = await fetch(`${API}/employees`); const ed = await re.json();

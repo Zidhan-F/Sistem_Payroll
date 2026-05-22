@@ -319,6 +319,7 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('empEmployId').value = '';
     
     const statusPernikahanSel = document.getElementById('empStatusPernikahan');
+
     const jumlahAnakContainer = document.getElementById('empJumlahAnakContainer');
     const jumlahAnakInput = document.getElementById('empJumlahAnak');
     
@@ -340,8 +341,21 @@ async function bukaModalKaryawan(mode,id=null){
         statusPernikahanSel.onchange = updateJumlahAnakVisibility;
     }
     
-    cs.innerHTML='<option value="">-- Pilih Klien --</option>';
-    clients.forEach(c=>{cs.innerHTML+=`<option value="${c.id}">${c.nama}</option>`;});
+    cs.innerHTML='<option value="">-- Memuat Klien... --</option>';
+    try {
+        const r = await fetch(API + '/clients');
+        const clientsData = await r.json();
+        cs.innerHTML = '<option value="">-- Pilih Klien --</option>';
+        clientsData.forEach(c => {
+            cs.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
+        });
+        
+        // Perbarui clients global jika diperlukan
+        if (typeof window.clients !== 'undefined') window.clients = clientsData;
+    } catch (err) {
+        console.error('Error fetching clients:', err);
+        cs.innerHTML = '<option value="">-- Gagal memuat --</option>';
+    }
 
     cs.onchange = async () => {
         const cid = cs.value;
@@ -356,7 +370,7 @@ async function bukaModalKaryawan(mode,id=null){
     if(selectedClientId){
         cs.value=selectedClientId;
         cs.disabled=true;
-        if(clientContainer) clientContainer.style.display = 'none';
+        if(clientContainer) clientContainer.style.display = 'block'; // Selalu tampilkan agar user tahu
         await loadWorkLocationsForSelect(selectedClientId);
     }else{
         cs.disabled=false;
@@ -374,9 +388,12 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empTempatLahir').value = emp.tempat_lahir || '';
         document.getElementById('empTanggalLahir').value = emp.tanggal_lahir || '';
         document.getElementById('empNpwp').value = emp.npwp || '';
-        document.getElementById('empStatusPernikahan').value = emp.status_pernikahan || '';
+        if (document.getElementById('empStatusPernikahan')) {
+            document.getElementById('empStatusPernikahan').value = emp.status_pernikahan || '';
+        }
+
         if (jumlahAnakInput) jumlahAnakInput.value = emp.jumlah_anak || 0;
-        updateJumlahAnakVisibility();
+        if (typeof updateJumlahAnakVisibility === 'function') updateJumlahAnakVisibility();
 
         document.getElementById('empStartContract').value = emp.start_contract || '';
         document.getElementById('empEndContract').value = emp.end_contract || '';
@@ -384,6 +401,14 @@ async function bukaModalKaryawan(mode,id=null){
         
         await loadWorkLocationsForSelect(emp.client_id, emp.work_location_id);
     }
+    
+    if (window.empClientSelectInstance) {
+        window.empClientSelectInstance.destroy();
+    }
+    window.empClientSelectInstance = new TomSelect(cs, {
+        create: false,
+        sortField: { field: "text", direction: "asc" }
+    });
 }
 
 async function loadPositions(cid){
@@ -402,7 +427,8 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         tempat_lahir:document.getElementById('empTempatLahir').value,
         tanggal_lahir:document.getElementById('empTanggalLahir').value,
         npwp:document.getElementById('empNpwp').value,
-        status_pernikahan:document.getElementById('empStatusPernikahan').value,
+        status_pernikahan:document.getElementById('empStatusPernikahan') ? document.getElementById('empStatusPernikahan').value : '',
+
         jumlah_anak: parseInt(document.getElementById('empJumlahAnak')?.value || 0, 10),
         start_contract:document.getElementById('empStartContract').value,
         end_contract:document.getElementById('empEndContract').value,

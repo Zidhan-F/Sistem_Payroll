@@ -65,10 +65,26 @@ class Employee extends ResourceController
             $contractYear = date('Y', strtotime($data['start_contract']));
         }
         $db2 = \Config\Database::connect();
-        $countInYear = $db2->table('employees')
+        $db2->transStart();
+        $seqRow = $db2->table('employee_sequences')->where('year', $contractYear)->get()->getRow();
+        if ($seqRow) {
+            $nextSeq = $seqRow->last_sequence + 1;
+            $db2->table('employee_sequences')->where('year', $contractYear)->update(['last_sequence' => $nextSeq]);
+        } else {
+            $lastEmp = $db2->table('employees')
+                           ->select('employ_id')
                            ->where("employ_id LIKE '" . $contractYear . "%'")
-                           ->countAllResults();
-        $nextSeq = $countInYear + 1;
+                           ->orderBy('employ_id', 'DESC')
+                           ->limit(1)
+                           ->get()
+                           ->getRow();
+            $nextSeq = 1;
+            if ($lastEmp && $lastEmp->employ_id) {
+                $nextSeq = ((int) substr($lastEmp->employ_id, 4)) + 1;
+            }
+            $db2->table('employee_sequences')->insert(['year' => $contractYear, 'last_sequence' => $nextSeq]);
+        }
+        $db2->transComplete();
         $data['employ_id'] = $contractYear . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
 
         if ($id = $this->model->insert($data)) {
@@ -201,10 +217,22 @@ class Employee extends ResourceController
     {
         $year = $this->request->getGet('year') ?? date('Y');
         $db = \Config\Database::connect();
-        $countInYear = $db->table('employees')
+        $seqRow = $db->table('employee_sequences')->where('year', $year)->get()->getRow();
+        if ($seqRow) {
+            $nextSeq = $seqRow->last_sequence + 1;
+        } else {
+            $lastEmp = $db->table('employees')
+                          ->select('employ_id')
                           ->where("employ_id LIKE '" . $year . "%'")
-                          ->countAllResults();
-        $nextSeq = $countInYear + 1;
+                          ->orderBy('employ_id', 'DESC')
+                          ->limit(1)
+                          ->get()
+                          ->getRow();
+            $nextSeq = 1;
+            if ($lastEmp && $lastEmp->employ_id) {
+                $nextSeq = ((int) substr($lastEmp->employ_id, 4)) + 1;
+            }
+        }
         $employId = $year . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
         return $this->respond(['employ_id' => $employId]);
     }

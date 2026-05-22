@@ -1,4 +1,4 @@
-﻿// ===== CLIENT MODULE =====
+// ===== CLIENT MODULE =====
 // Extracted from app.js for modular monolith architecture
 
 // ===== 1. KLIEN MODULE =====
@@ -210,3 +210,44 @@ async function hapusKlien(id) {
     } catch (err) { console.error(err); }
 }
 
+document.getElementById('formKlien')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('clientId').value;
+    const data = {
+        nama: document.getElementById('namaKlien').value,
+        email: document.getElementById('emailKlien').value,
+        sektor: document.getElementById('sektorKlien').value,
+        nib: document.getElementById('nib').value,
+        npwp: document.getElementById('npwp').value,
+        tgl_gabung: document.getElementById('tanggalBergabung').value,
+        alamat: document.getElementById('alamat').value,
+        status: 'Aktif'
+    };
+    
+    try {
+        let url = `${API_URL}/clients`;
+        let method = 'POST';
+        if (id) {
+            url += `/${id}`;
+            method = 'PUT';
+        }
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+            if (typeof tutupModal === 'function') tutupModal();
+            else if (document.getElementById('modalClient')) document.getElementById('modalClient').style.display = 'none';
+            if (document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
+            renderTable();
+            showToast(id ? 'Data Klien berhasil diubah!' : 'Data Klien berhasil ditambahkan!', 'success');
+        } else {
+            showToast('Gagal menyimpan data klien', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Terjadi kesalahan pada server', 'error');
+    }
+});
