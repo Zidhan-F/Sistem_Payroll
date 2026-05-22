@@ -1,4 +1,4 @@
-﻿// ===== WORKSPACE MODULE =====
+// ===== WORKSPACE MODULE =====
 // Extracted from app.js for modular monolith architecture
 
 async function populateMinimumWageDropdown(tipe, selectElementId) {
@@ -217,7 +217,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
     const summaryDiv = document.getElementById('pilihanKompensasiSummary');
     if (!summaryDiv) return;
     if (!schemeId) {
-        summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema kompensasi di atas untuk melihat detailnya.</p>`;
+        summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema komponen di atas untuk melihat detailnya.</p>`;
         return;
     }
     try {
@@ -234,7 +234,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
             summaryDiv.innerHTML = `
                 <div style="text-align: center; padding: 10px;">
                     <i class="fas fa-info-circle" style="color: #94a3b8; margin-right: 6px;"></i>
-                    <span style="color: #94a3b8; font-size: 13px;">Belum ada komponen kompensasi dalam skema ini.</span>
+                    <span style="color: #94a3b8; font-size: 13px;">Belum ada komponen dalam skema ini.</span>
                 </div>`;
             return;
         }
@@ -292,7 +292,7 @@ async function loadPilihanSkema() {
         const compensationSchemes = await compRes.json();
         const compSelect = document.getElementById('pilihanSkemaKompensasi');
         if (compSelect) {
-            compSelect.innerHTML = '<option value="">-- Pilih Skema Kompensasi --</option>' +
+            compSelect.innerHTML = '<option value="">-- Pilih Skema Komponen --</option>' +
                 compensationSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
         }
 
@@ -303,7 +303,7 @@ async function loadPilihanSkema() {
         
         const summaryDiv = document.getElementById('pilihanKompensasiSummary');
         if (summaryDiv) {
-            summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema kompensasi di atas untuk melihat detailnya.</p>`;
+            summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema komponen di atas untuk melihat detailnya.</p>`;
         }
 
         if (conf) {

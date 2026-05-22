@@ -22,9 +22,9 @@
                 <!-- Two Column Layout: Left (Kompensasi), Right (Skema Absen & Deskripsi) -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px;">
                     
-                    <!-- Left Column: Kompensasi -->
+                    <!-- Left Column: Komponen -->
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Kompensasi</h4>
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Komponen</h4>
                         
                         <!-- Gaji Pokok -->
                         <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -38,7 +38,7 @@
                 </div>
                             <div class="form-group" style="margin: 0;">
                                 <label id="labelNilaiSkemaPayroll" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Gaji Pokok (Rp)</label>
-                                <input type="number" id="skemaNilai" placeholder="Masukkan Gaji Pokok" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                 <input type="text" id="skemaNilai" placeholder="Masukkan Gaji Pokok" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
             </div>
                         </div>
 
@@ -53,10 +53,10 @@
                             </select>
                         </div>
 
-                        <!-- Kompensasi Tetap Table -->
+                        <!-- Komponen Tetap Table -->
                         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Kompensasi Tetap</label>
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Komponen Tetap</label>
                                 <button type="button" onclick="bukaModalPilihSkema('tetap')" style="background: none; border: none; color: #0d6efd; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Pilih Skema</button>
                             </div>
                             
@@ -70,17 +70,17 @@
                                     </thead>
                                     <tbody id="tabelKompensasiTetapBody">
                                         <tr>
-                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td>
+                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema komponen terpilih</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- Kompensasi Tidak Tetap Table -->
+                        <!-- Komponen Tidak Tetap Table -->
                         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Kompensasi Tidak Tetap</label>
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Komponen Tidak Tetap</label>
                                 <button type="button" onclick="bukaModalPilihSkema('tidak_tetap')" style="background: none; border: none; color: #0d6efd; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Pilih Skema</button>
                             </div>
                             
@@ -94,7 +94,7 @@
                                     </thead>
                                     <tbody id="tabelKompensasiTidakTetapBody">
                                         <tr>
-                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td>
+                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema komponen terpilih</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -126,7 +126,7 @@
                             
                             <div id="containerNominalPotonganSkema" class="form-group" style="display: none; margin: 8px 0 0 0;">
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Nominal Potongan Absen per Hari (Rp)</label>
-                                <input type="number" id="skemaNominalPotongan" placeholder="Contoh: 100000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                 <input type="text" id="skemaNominalPotongan" placeholder="Contoh: 100000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
                         </div>
 
@@ -182,11 +182,11 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Nilai (Rp atau %)</label>
-                        <input type="number" id="komponenNilai" placeholder="0" step="any" value="0" min="0">
+                         <input type="text" id="komponenNilai" placeholder="0" value="0" onkeyup="handleKomponenNilaiInput(this)">
                     </div>
                     <div class="form-group">
                         <label>Satuan</label>
-                        <select id="komponenIsPersentase">
+                        <select id="komponenIsPersentase" onchange="handleKomponenNilaiInput(document.getElementById('komponenNilai'))">
                             <option value="false">Rupiah (Rp)</option>
                             <option value="true">Persentase (%)</option>
                         </select>
@@ -793,7 +793,7 @@
     <!-- Modal Skema Kompensasi (Master) -->
     <div id="modalSkemaKompensasi" class="modal-skema" style="display: none;">
         <div class="modal-header" style="background: var(--primary-color);">
-            <h3 id="modalSkemaKompensasiTitle">Tambah Skema Kompensasi</h3>
+            <h3 id="modalSkemaKompensasiTitle">Tambah Skema Komponen</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalSkemaKompensasi()"></i>
         </div>
         <form id="formSkemaKompensasi">
@@ -803,14 +803,14 @@
                 <input type="hidden" id="skemaKompensasiIsPersentase" value="0">
                 
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label>Nama Skema Kompensasi</label>
+                    <label>Nama Skema Komponen</label>
                     <input type="text" id="skemaKompensasiNama" placeholder="Contoh: Tunjangan Makan" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                 </div>
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label>Sifat Kompensasi</label>
+                    <label>Sifat Komponen</label>
                     <select id="skemaKompensasiSifat" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
-                        <option value="tetap">Kompensasi Tetap</option>
-                        <option value="tidak_tetap">Kompensasi Tidak Tetap</option>
+                        <option value="tetap">Komponen Tetap</option>
+                        <option value="tidak_tetap">Komponen Tidak Tetap</option>
                     </select>
                 </div>
 
@@ -836,7 +836,7 @@
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label id="labelNilaiSkema">Nominal Custom (Rp)</label>
-                    <input type="number" id="skemaKompensasiNilai" placeholder="Contoh: 200000" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <input type="text" id="skemaKompensasiNilai" placeholder="Contoh: 200000" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                 </div>
             </div>
             <div class="modal-footer">
@@ -849,7 +849,7 @@
     <!-- Modal Komponen Kompensasi (Master) -->
     <div id="modalKomponenKompensasi" class="modal-skema" style="display: none;">
         <div class="modal-header" style="background: #10b981;">
-            <h3 id="modalKomponenKompensasiTitle">Tambah Komponen Kompensasi</h3>
+            <h3 id="modalKomponenKompensasiTitle">Tambah Komponen</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalKomponenKompensasi()"></i>
         </div>
         <form id="formKomponenKompensasi">
@@ -861,16 +861,16 @@
                     <label>Jenis Komponen</label>
                     <select id="komponenKompensasiJenis" onchange="handleJenisKomponenChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         <option value="basic_salary">Basic Salary</option>
-                        <option value="kompensasi" selected>Kompensasi Tetap / Tidak Tetap</option>
+                        <option value="kompensasi" selected>Komponen Tetap / Tidak Tetap</option>
                     </select>
                 </div>
 
                 <!-- Tampilkan Tipe Kompensasi jika jenisnya Kompensasi -->
                 <div class="form-group" id="containerSifatKompensasi" style="display: block; margin-bottom: 15px;">
-                    <label>Tipe Kompensasi</label>
+                    <label>Tipe Komponen</label>
                     <select id="komponenKompensasiSifat" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                        <option value="tetap">Kompensasi Tetap</option>
-                        <option value="tidak_tetap">Kompensasi Tidak Tetap</option>
+                        <option value="tetap">Komponen Tetap</option>
+                        <option value="tidak_tetap">Komponen Tidak Tetap</option>
                     </select>
                 </div>
 
@@ -887,17 +887,17 @@
                     
                     <div class="form-group" id="containerFormatNilai" style="display: none;">
                         <label>Format Nilai</label>
-                        <select id="komponenKompensasiIsPersentase" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="0" selected>Rupiah (Rp)</option>
-                            <option value="1">Persentase (%)</option>
-                        </select>
+                            <select id="komponenKompensasiIsPersentase" onchange="handleKomponenKompensasiNilaiInput(document.getElementById('komponenKompensasiNilai'))" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                             <option value="0" selected>Rupiah (Rp)</option>
+                             <option value="1">Persentase (%)</option>
+                         </select>
                     </div>
                 </div>
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
                         <label id="labelNilaiKompensasi">Nominal Custom (Rp)</label>
-                        <input type="number" id="komponenKompensasiNilai" placeholder="Contoh: 5000000" value="0" required>
+                        <input type="text" id="komponenKompensasiNilai" placeholder="Contoh: 5000000" value="0" onkeyup="handleKomponenKompensasiNilaiInput(this)" required>
                     </div>
 
                     <div class="form-group">

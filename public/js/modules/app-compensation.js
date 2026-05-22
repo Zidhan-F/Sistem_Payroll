@@ -1,4 +1,4 @@
-﻿// ===== COMPENSATION MODULE =====
+// ===== COMPENSATION MODULE =====
 // Extracted from app.js for modular monolith architecture
 
     // Form Skema Kompensasi submit handler
@@ -11,7 +11,7 @@
                 deskripsi: document.getElementById('skemaKompensasiDeskripsi').value || '',
                 tipe: 'pendapatan',
                 sumber_nilai: document.getElementById('skemaKompensasiSumber').value,
-                nilai: parseFloat(document.getElementById('skemaKompensasiNilai').value) || 0,
+                nilai: parseFormattedNumber(document.getElementById('skemaKompensasiNilai').value) || 0,
                 periode: document.getElementById('skemaKompensasiPeriode').value,
                 is_persentase: parseInt(document.getElementById('skemaKompensasiIsPersentase').value) || 0,
                 sifat_kompensasi: document.getElementById('skemaKompensasiSifat').value
@@ -44,14 +44,14 @@
             if (jenis === 'basic_salary') {
                 nama = 'Gaji Pokok';
             } else {
-                nama = sifat === 'tetap' ? 'Kompensasi Tetap' : 'Kompensasi Tidak Tetap';
+                nama = sifat === 'tetap' ? 'Komponen Tetap' : 'Komponen Tidak Tetap';
             }
 
             const data = {
                 scheme_id: parseInt(schemeId),
                 nama: nama,
                 tipe: 'pendapatan',
-                nilai: parseFloat(document.getElementById('komponenKompensasiNilai').value) || 0,
+                nilai: parseFormattedNumber(document.getElementById('komponenKompensasiNilai').value) || 0,
                 is_persentase: parseInt(document.getElementById('komponenKompensasiIsPersentase').value) || 0,
                 jenis_komponen: jenis,
                 sifat_kompensasi: sifat,
@@ -130,7 +130,7 @@ async function renderMasterKompensasi() {
 
             let sifatDisplay = '';
             if (comp) {
-                sifatDisplay = comp.sifat_kompensasi === 'tidak_tetap' ? 'Kompensasi Tidak Tetap' : 'Kompensasi Tetap';
+                sifatDisplay = comp.sifat_kompensasi === 'tidak_tetap' ? 'Komponen Tidak Tetap' : 'Komponen Tetap';
             }
 
             return `
@@ -249,13 +249,17 @@ function bukaModalSkemaKompensasi(mode, id = null) {
             if (comp) {
                 document.getElementById('skemaKompensasiSumber').value = comp.sumber_nilai || 'nominal';
                 document.getElementById('skemaKompensasiPeriode').value = comp.periode || 'bulan';
-                document.getElementById('skemaKompensasiNilai').value = comp.nilai || '0';
+                const elNilai = document.getElementById('skemaKompensasiNilai');
+                elNilai.value = comp.nilai || '0';
+                formatRupiahInput(elNilai);
                 document.getElementById('skemaKompensasiIsPersentase').value = comp.is_persentase || '0';
                 document.getElementById('skemaKompensasiSifat').value = comp.sifat_kompensasi || 'tetap';
             } else {
                 document.getElementById('skemaKompensasiSumber').value = 'nominal';
                 document.getElementById('skemaKompensasiPeriode').value = 'bulan';
-                document.getElementById('skemaKompensasiNilai').value = '0';
+                const elNilai = document.getElementById('skemaKompensasiNilai');
+                elNilai.value = '0';
+                formatRupiahInput(elNilai);
                 document.getElementById('skemaKompensasiIsPersentase').value = '0';
                 document.getElementById('skemaKompensasiSifat').value = 'tetap';
             }
@@ -349,7 +353,9 @@ function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
             if (nameEl) nameEl.value = k.nama;
             const tipeEl = document.getElementById('komponenKompensasiTipe');
             if (tipeEl) tipeEl.value = k.tipe;
-            document.getElementById('komponenKompensasiNilai').value = k.nilai;
+            const elNilai = document.getElementById('komponenKompensasiNilai');
+            elNilai.value = k.nilai;
+            handleKomponenKompensasiNilaiInput(elNilai);
             document.getElementById('komponenKompensasiIsPersentase').value = (k.is_persentase == 1 || k.is_persentase === true || k.is_persentase === '1') ? '1' : '0';
             
             // New fields

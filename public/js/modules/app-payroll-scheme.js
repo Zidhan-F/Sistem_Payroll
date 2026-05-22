@@ -1,7 +1,9 @@
-﻿// ===== PAYROLL SCHEME MODULE =====
+// ===== PAYROLL SCHEME MODULE =====
 // Extracted from app.js for modular monolith architecture
 
 // ===== 3. PAYROLL SCHEMES =====
+let payrollSchemes = [];
+
 async function renderPayrollSchemes() {
     try {
         if (!window.compensationSchemes) {
@@ -21,7 +23,7 @@ async function renderPayrollSchemes() {
                 } else if (basic.sumber_nilai === 'umk') {
                     basicDetails = `UMK (${basic.nilai}%)`;
                 } else if (basic.sumber_nilai === 'kompensasi') {
-                    basicDetails = `Ambil dari Kompensasi (${basic.nilai}%)`;
+                    basicDetails = `Ambil dari Komponen (${basic.nilai}%)`;
                 } else {
                     basicDetails = formatRupiah(basic.nilai);
                 }
@@ -40,13 +42,13 @@ async function renderPayrollSchemes() {
                             <div class="scheme-card-desc" style="margin-bottom: 8px;">${scheme.deskripsi || 'Tidak ada deskripsi'}</div>
                             <div style="font-size: 12px; color: #475569; display: grid; gap: 4px; border-top: 1px solid #f1f5f9; padding-top: 8px;">
                                 <div><strong>Gaji Pokok:</strong> ${basicDetails}</div>
-                                <div><strong>Skema Kompensasi:</strong> ${compName}</div>
+                                <div><strong>Skema Komponen:</strong> ${compName}</div>
                                 <div><strong>Skema Absen:</strong> ${absenceDetails}</div>
                             </div>
                     </div>
                     <div class="scheme-card-actions">
-                        <button class="btn-icon btn-edit" onclick="bukaModalSkema('edit', ${scheme.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon btn-delete" onclick="hapusSkema(${scheme.id})"><i class="fas fa-trash"></i></button>
+                        <button class="btn-icon btn-edit" onclick="window.bukaModalSkema('edit', ${scheme.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon btn-delete" onclick="window.hapusSkema(${scheme.id})"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             </div>
@@ -89,10 +91,10 @@ async function renderPayrollSchemes() {
                 components: selectedComponents,
                 prorate: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'prorate') ? 1 : 0,
                 absen_tidak_potong: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'tidak_potong') ? 1 : 0,
-                nominal_potongan: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'potong_nominal') ? (parseFloat(document.getElementById('skemaNominalPotongan').value) || 0) : 0,
+                nominal_potongan: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'potong_nominal') ? (parseFormattedNumber(document.getElementById('skemaNominalPotongan').value) || 0) : 0,
                 sumber_nilai: document.getElementById('skemaSumber').value,
                 periode: document.getElementById('skemaPeriode').value,
-                nilai: parseFloat(document.getElementById('skemaNilai').value) || 0,
+                nilai: parseFormattedNumber(document.getElementById('skemaNilai').value) || 0,
                 is_persentase: parseInt(document.getElementById('skemaIsPersentase').value) || 0
             };
             const url = id ? `${API_URL}/payroll-schemes/${id}` : `${API_URL}/payroll-schemes`;
@@ -124,8 +126,8 @@ async function bukaModalSkema(mode, id = null) {
 
     const tetapBody = document.getElementById('tabelKompensasiTetapBody');
     const tidakTetapBody = document.getElementById('tabelKompensasiTidakTetapBody');
-    if (tetapBody) tetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
-    if (tidakTetapBody) tidakTetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
+    if (tetapBody) tetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema komponen terpilih</td></tr>`;
+    if (tidakTetapBody) tidakTetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema komponen terpilih</td></tr>`;
 
     if(mode === 'edit' && id) {
         const s = payrollSchemes.find(x => x.id == id);
@@ -152,7 +154,9 @@ async function bukaModalSkema(mode, id = null) {
                 if (radioTidakPotong) radioTidakPotong.checked = true;
             } else if (s.nominal_potongan > 0) {
                 if (radioPotongNominal) radioPotongNominal.checked = true;
-                document.getElementById('skemaNominalPotongan').value = s.nominal_potongan;
+                const elPot = document.getElementById('skemaNominalPotongan');
+                elPot.value = s.nominal_potongan;
+                formatRupiahInput(elPot);
             }
             handleSkemaAbsenRuleChange();
 
@@ -161,12 +165,16 @@ async function bukaModalSkema(mode, id = null) {
             if (basic) {
                 document.getElementById('skemaSumber').value = basic.sumber_nilai || 'nominal';
                 document.getElementById('skemaPeriode').value = basic.periode || 'bulan';
-                document.getElementById('skemaNilai').value = basic.nilai || 0;
+                const elNilai = document.getElementById('skemaNilai');
+                elNilai.value = basic.nilai || 0;
+                formatRupiahInput(elNilai);
                 document.getElementById('skemaIsPersentase').value = basic.is_persentase || '0';
             } else {
                 document.getElementById('skemaSumber').value = 'nominal';
                 document.getElementById('skemaPeriode').value = 'bulan';
-                document.getElementById('skemaNilai').value = 0;
+                const elNilai = document.getElementById('skemaNilai');
+                elNilai.value = 0;
+                formatRupiahInput(elNilai);
                 document.getElementById('skemaIsPersentase').value = '0';
             }
             handlePayrollSchemeSumberNilaiChange();
@@ -426,3 +434,25 @@ function handleSkemaAbsenRuleChange() {
     }
 }
 window.handleSkemaAbsenRuleChange = handleSkemaAbsenRuleChange;
+
+window.bukaModalSkema = bukaModalSkema;
+
+async function hapusSkema(id) {
+    if (!await showConfirm('Apakah Anda yakin ingin menghapus skema payroll ini?')) return;
+    try {
+        const res = await fetch(`${API_URL}/payroll-schemes/${id}`, {
+            method: 'DELETE'
+        });
+        if (res.ok) {
+            renderPayrollSchemes();
+            showToast('Skema payroll berhasil dihapus!', 'success');
+        } else {
+            showToast('Gagal menghapus skema payroll!', 'error');
+        }
+    } catch (err) {
+        console.error('Error deleting payroll scheme:', err);
+        showToast('Gagal menghapus skema payroll!', 'error');
+    }
+}
+window.hapusSkema = hapusSkema;
+window.renderPayrollSchemes = renderPayrollSchemes;

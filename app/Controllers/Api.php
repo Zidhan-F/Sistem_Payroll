@@ -339,6 +339,7 @@ class Api extends ResourceController
     {
         $scheme = $this->db->table('payroll_schemes')->where('id', $id)->get()->getRow();
         $schemeName = $scheme ? $scheme->nama : 'Unknown';
+        $this->db->table('payroll_components')->where('scheme_id', $id)->delete();
         $this->db->table('payroll_schemes')->where('id', $id)->delete();
         $this->logActivity("Menghapus skema payroll ID: " . $id . " (" . $schemeName . ")");
         return $this->respondDeleted(['message' => 'Skema berhasil dihapus']);

@@ -1,9 +1,6 @@
 <!-- Sidebar -->
 <div class="sidebar">
     <div class="sidebar-brand">
-        <div class="sidebar-brand-icon">
-            <i class="fas fa-building"></i>
-        </div>
         <h3>Payroll App</h3>
     </div>
     <ul class="sidebar-menu">
@@ -44,7 +41,7 @@
             </li>
             <li id="submenu_kompensasi" onclick="switchPayrollSub('kompensasi')">
                 <i class="fas fa-coins"></i>
-                <span>Skema Kompensasi</span>
+                <span>Struktur Gaji</span>
             </li>
             <li id="submenu_setting" onclick="switchPayrollSub('setting')">
                 <i class="fas fa-cog"></i>

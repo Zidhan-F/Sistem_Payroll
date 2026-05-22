@@ -234,6 +234,12 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'nominal_potongan')
             ALTER TABLE payroll_schemes ADD nominal_potongan DECIMAL(15,2) DEFAULT 0");
 
+        // 16. Relaksasi kolom legacy payroll_components agar scheme-based insert berfungsi
+        $db->query("ALTER TABLE payroll_components ALTER COLUMN client_id INT NULL");
+        $db->query("ALTER TABLE payroll_components ALTER COLUMN nama_komponen VARCHAR(100) NULL");
+        $db->query("ALTER TABLE payroll_components ALTER COLUMN tipe VARCHAR(20) NULL");
+        $db->query("ALTER TABLE payroll_components ALTER COLUMN jenis_nilai VARCHAR(20) NULL");
+
         return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, dan kolom baru payroll_schemes)";
     }
 

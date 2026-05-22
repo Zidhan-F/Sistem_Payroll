@@ -1,4 +1,4 @@
-﻿            <!-- Section: Client Workspace -->
+            <!-- Section: Client Workspace -->
             <div id="viewClientWorkspace" class="view-section">
                 <!-- Header with Client Name and Back Button -->
                 <div class="workspace-header" style="margin-bottom: 25px;">
@@ -262,7 +262,7 @@
                                         <i class="fas fa-layer-group" style="font-size: 28px; color: var(--primary-color);"></i>
                                     </div>
                                     <h3 style="font-size: 18px; font-weight: 700; color: var(--secondary-color);">Pilihan Skema</h3>
-                                    <p style="color: #64748b; font-size: 13px;">Pilih skema payroll, pajak, dan kompensasi untuk klien ini.</p>
+                                    <p style="color: #64748b; font-size: 13px;">Pilih skema payroll, pajak, dan komponen untuk klien ini.</p>
                                 </div>
 
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -321,7 +321,7 @@
                                         </select>
                                     </div>
 
-                                    <!-- Skema Kompensasi Card -->
+                                    <!-- Skema Komponen Card -->
                                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
                                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                                             <div style="display: flex; align-items: center; gap: 12px;">
@@ -329,7 +329,7 @@
                                                     <i class="fas fa-coins" style="font-size: 18px; color: #10b981;"></i>
                                                 </div>
                                                 <div>
-                                                    <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Kompensasi</h4>
+                                                    <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Komponen</h4>
                                                     <p style="font-size: 12px; color: #94a3b8; margin: 0;">Komponen pendapatan & potongan</p>
                                                 </div>
                                             </div>
@@ -339,11 +339,11 @@
                                         </div>
                                         <div style="margin-bottom: 12px;">
                                             <select id="pilihanSkemaKompensasi" onchange="renderPilihanKompensasiSummary(this.value)" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                                <option value="">-- Pilih Skema Kompensasi --</option>
+                                                <option value="">-- Pilih Skema Komponen --</option>
                                             </select>
                                         </div>
                                         <div id="pilihanKompensasiSummary" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; min-height: 60px;">
-                                            <p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema kompensasi di atas untuk melihat detailnya.</p>
+                                            <p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema komponen di atas untuk melihat detailnya.</p>
                                         </div>
                                     </div>
 
