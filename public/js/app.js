@@ -415,6 +415,8 @@ Object.assign(window, {
         sidebarToggleBtn.addEventListener('click', toggleSidebar);
     }
 
-// ===== Initial Load: Dashboard Stats =====
-updateDashboardStats();
+// Initialize default view
+if (typeof updateDashboardStats === 'function') {
+    updateDashboardStats();
+}
 

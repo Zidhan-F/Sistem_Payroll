@@ -637,17 +637,17 @@
             <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
                 <input type="hidden" id="employeeId">
                 
-                <div class="form-group" id="empClientIdContainer" style="margin-bottom: 15px; display: none;">
+                <div class="form-group" id="empClientIdContainer" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Pilih Perusahaan / Klien</label>
-                    <select id="empClientId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <select id="empClientId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background-color: white;">
                         <option value="">-- Pilih Klien --</option>
                     </select>
                 </div>
 
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">NIK Karyawan (NIK-KTP)</label>
-                        <input type="text" id="empNik" placeholder="Contoh: 317301XXXXXXXXXX" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group" style="display: none;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Employ ID (NIK)</label>
+                        <input type="text" id="empEmployId" readonly placeholder="Terisi Otomatis" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; color: #475569; font-weight: 700; letter-spacing: 1px;">
                     </div>
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Nama Lengkap</label>
@@ -745,7 +745,7 @@
                     </div>
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Location Code</label>
-                        <input type="text" id="locCode" placeholder="Contoh: L001" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <input type="text" id="locCode" readonly placeholder="Terisi Otomatis" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; cursor: not-allowed; color: #64748b; font-weight: 600;">
                     </div>
                 </div>
 
@@ -773,11 +773,13 @@
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Provinsi</label>
-                        <input type="text" id="locProvinsi" placeholder="Contoh: Jawa Barat" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <input type="text" id="locProvinsi" list="provinsiList" placeholder="Ketik atau pilih Provinsi..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <datalist id="provinsiList"></datalist>
                     </div>
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Kota/Kabupaten</label>
-                        <input type="text" id="locKotaKabupaten" placeholder="Contoh: Bandung" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <input type="text" id="locKotaKabupaten" list="kotaList" placeholder="Ketik atau pilih Kota/Kabupaten..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <datalist id="kotaList"></datalist>
                     </div>
                 </div>
             </div>

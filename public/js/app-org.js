@@ -316,8 +316,10 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('formKaryawan').reset();
     document.getElementById('employeeId').value='';
     document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+    document.getElementById('empEmployId').value = '';
     
     const statusPernikahanSel = document.getElementById('empStatusPernikahan');
+
     const jumlahAnakContainer = document.getElementById('empJumlahAnakContainer');
     const jumlahAnakInput = document.getElementById('empJumlahAnak');
     
@@ -339,8 +341,21 @@ async function bukaModalKaryawan(mode,id=null){
         statusPernikahanSel.onchange = updateJumlahAnakVisibility;
     }
     
-    cs.innerHTML='<option value="">-- Pilih Klien --</option>';
-    clients.forEach(c=>{cs.innerHTML+=`<option value="${c.id}">${c.nama}</option>`;});
+    cs.innerHTML='<option value="">-- Memuat Klien... --</option>';
+    try {
+        const r = await fetch(API + '/clients');
+        const clientsData = await r.json();
+        cs.innerHTML = '<option value="">-- Pilih Klien --</option>';
+        clientsData.forEach(c => {
+            cs.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
+        });
+        
+        // Perbarui clients global jika diperlukan
+        if (typeof window.clients !== 'undefined') window.clients = clientsData;
+    } catch (err) {
+        console.error('Error fetching clients:', err);
+        cs.innerHTML = '<option value="">-- Gagal memuat --</option>';
+    }
 
     cs.onchange = async () => {
         const cid = cs.value;
@@ -355,7 +370,7 @@ async function bukaModalKaryawan(mode,id=null){
     if(selectedClientId){
         cs.value=selectedClientId;
         cs.disabled=true;
-        if(clientContainer) clientContainer.style.display = 'none';
+        if(clientContainer) clientContainer.style.display = 'block'; // Selalu tampilkan agar user tahu
         await loadWorkLocationsForSelect(selectedClientId);
     }else{
         cs.disabled=false;
@@ -365,7 +380,7 @@ async function bukaModalKaryawan(mode,id=null){
     if(mode==='edit'&&id){
         const emp=(window.employees || []).find(e=>e.id==id) || (window.allEmployeesGlobal || []).find(e=>e.id==id);
         document.getElementById('employeeId').value=emp.id;
-        document.getElementById('empNik').value=emp.nik;
+        document.getElementById('empEmployId').value = emp.employ_id || '';
         document.getElementById('empNama').value=emp.nama;
         document.getElementById('empClientId').value=emp.client_id;
         
@@ -373,9 +388,12 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empTempatLahir').value = emp.tempat_lahir || '';
         document.getElementById('empTanggalLahir').value = emp.tanggal_lahir || '';
         document.getElementById('empNpwp').value = emp.npwp || '';
-        document.getElementById('empStatusPernikahan').value = emp.status_pernikahan || '';
+        if (document.getElementById('empStatusPernikahan')) {
+            document.getElementById('empStatusPernikahan').value = emp.status_pernikahan || '';
+        }
+
         if (jumlahAnakInput) jumlahAnakInput.value = emp.jumlah_anak || 0;
-        updateJumlahAnakVisibility();
+        if (typeof updateJumlahAnakVisibility === 'function') updateJumlahAnakVisibility();
 
         document.getElementById('empStartContract').value = emp.start_contract || '';
         document.getElementById('empEndContract').value = emp.end_contract || '';
@@ -383,6 +401,14 @@ async function bukaModalKaryawan(mode,id=null){
         
         await loadWorkLocationsForSelect(emp.client_id, emp.work_location_id);
     }
+    
+    if (window.empClientSelectInstance) {
+        window.empClientSelectInstance.destroy();
+    }
+    window.empClientSelectInstance = new TomSelect(cs, {
+        create: false,
+        sortField: { field: "text", direction: "asc" }
+    });
 }
 
 async function loadPositions(cid){
@@ -396,19 +422,23 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     e.preventDefault();
     const id=document.getElementById('employeeId').value;
     const d={
-        nik:document.getElementById('empNik').value,
         nama:document.getElementById('empNama').value,
         client_id:document.getElementById('empClientId').value,
         tempat_lahir:document.getElementById('empTempatLahir').value,
         tanggal_lahir:document.getElementById('empTanggalLahir').value,
         npwp:document.getElementById('empNpwp').value,
-        status_pernikahan:document.getElementById('empStatusPernikahan').value,
+        status_pernikahan:document.getElementById('empStatusPernikahan') ? document.getElementById('empStatusPernikahan').value : '',
+
         jumlah_anak: parseInt(document.getElementById('empJumlahAnak')?.value || 0, 10),
         start_contract:document.getElementById('empStartContract').value,
         end_contract:document.getElementById('empEndContract').value,
         tipe_perjanjian:document.getElementById('empTipePerjanjian').value,
         work_location_id:document.getElementById('empWorkLocationId').value || null
     };
+    // For new employees, generate a dummy nik from employ_id (nik is required by DB)
+    if (!id) {
+        d.nik = document.getElementById('empEmployId').value || ('EMP-' + Date.now());
+    }
     const r=await fetch(id?`${API}/employees/${id}`:`${API}/employees`,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
     if(r.ok){
         tutupModalKaryawan();
@@ -441,6 +471,28 @@ async function hapusKaryawan(id){
     if(r.ok){if(selectedClientId){renderTableKaryawanClient();renderClientOrg(selectedClientId);}showToast('Karyawan dihapus');}
 }
 function bukaModalKaryawanSpecific(){bukaModalKaryawan('tambah');const cs=document.getElementById('empClientId');if(cs){cs.value=selectedClientId;cs.closest('.form-group').style.display='none';}}
+
+// Auto-fetch Employ ID when contract start date is set
+document.getElementById('empStartContract')?.addEventListener('change', async (e) => {
+    const dateVal = e.target.value;
+    const employeeId = document.getElementById('employeeId').value;
+    // Only auto-generate for new employees (not edit)
+    if (employeeId) return;
+    if (!dateVal) {
+        document.getElementById('empEmployId').value = '';
+        return;
+    }
+    const year = dateVal.substring(0, 4);
+    try {
+        const r = await fetch(`${API}/employees/next-employ-id?year=${year}`);
+        const data = await r.json();
+        if (data && data.employ_id) {
+            document.getElementById('empEmployId').value = data.employ_id;
+        }
+    } catch (err) {
+        console.error('Error fetching next employ ID:', err);
+    }
+});
 
 window.renderClientOrg=renderClientOrg;window.bukaModalOrg=bukaModalOrg;window.tutupModalOrg=tutupModalOrg;window.hapusOrg=hapusOrg;window.toggleNode=toggleNode;window.renderTableKaryawanClient=renderTableKaryawanClient;window.bukaModalKaryawan=bukaModalKaryawan;window.bukaModalKaryawanSpecific=bukaModalKaryawanSpecific;window.tutupModalKaryawan=tutupModalKaryawan;window.hapusKaryawan=hapusKaryawan;window.loadPositions=loadPositions;
 window.tambahDeptInline=tambahDeptInline;window.tambahPosisiInline=tambahPosisiInline;

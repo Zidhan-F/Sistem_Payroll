@@ -4,24 +4,24 @@
 function rowHtmlForEmployee(emp) {
     return `
         <tr>
-            <td style="font-weight: 600; color: #64748b;">${emp.nik || '-'}</td>
-            <td style="font-weight: 600; color: var(--primary-color);">
+            <td style="font-weight: 600;">${emp.nama_klien || '-'}</td>
+            <td style="font-weight: 600;">${emp.nik || '-'}</td>
+            <td style="font-weight: 600;">
                 <i class="fas fa-user" style="margin-right: 8px; opacity: 0.6;"></i>${emp.nama}
             </td>
             <td>
                 <div style="font-size: 13px;">${emp.tempat_lahir || '-'}</div>
-                <div style="font-size: 11px; color: #64748b;">${emp.tanggal_lahir || '-'}</div>
+                <div style="font-size: 11px;">${emp.tanggal_lahir || '-'}</div>
             </td>
             <td>${emp.npwp || '-'}</td>
-            <td style="font-weight: 600; color: var(--secondary-color);">${emp.nama_klien || '-'}</td>
             <td>
-                <div style="font-weight: 600; color: #0284c7;">${emp.tipe_perjanjian || '-'}</div>
-                <div style="font-size: 11px; color: #64748b;">${emp.start_contract || '-'} s/d ${emp.end_contract || '-'}</div>
-            </td>
-            <td>
-                <div style="font-weight:600;color:#0f766e;">
+                <div style="font-weight:600;">
                     <i class="fas fa-map-marker-alt" style="margin-right: 4px; opacity: 0.7;"></i>${emp.nama_lokasi || '-'}
                 </div>
+            </td>
+            <td>
+                <div style="font-weight: 600;">${emp.tipe_perjanjian || '-'}</div>
+                <div style="font-size: 11px;">${emp.start_contract || '-'} s/d ${emp.end_contract || '-'}</div>
             </td>
             <td>${emp.status_pernikahan || '-'}</td>
             <td>

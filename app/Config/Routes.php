@@ -110,7 +110,9 @@ $routes->group('api', function($routes) {
     $routes->delete('clients/components/(:num)', 'Client::deleteComponent/$1');
 
     // Employees
+    $routes->get('employees/next-employ-id', 'Employee::nextEmployId');
     $routes->resource('employees', ['controller' => 'Employee']);
+
 
     // Work Locations
     $routes->resource('work-locations', ['controller' => 'WorkLocation']);

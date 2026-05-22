@@ -24,7 +24,7 @@ class SystemLogModel extends Model
 
         return $this->insert([
             'action'      => $action,
-            'description' => $description,
+            'status_log'  => $description,
             'client_id'   => $clientId,
             'created_by'  => $createdBy,
             'user_name'   => $userName,

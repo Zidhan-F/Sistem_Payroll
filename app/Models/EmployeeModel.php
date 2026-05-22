@@ -13,7 +13,8 @@ class EmployeeModel extends Model
     protected $allowedFields    = [
         'nik', 'nama', 'email', 'no_rekening', 'bank_name', 'ptkp', 
         'gaji_pokok', 'position_id', 'client_id', 'tgl_masuk', 'status', 'minimum_wage_id', 'alamat',
-        'tempat_lahir', 'tanggal_lahir', 'npwp', 'start_contract', 'end_contract', 'tipe_perjanjian', 'status_pernikahan', 'work_location_id', 'jumlah_anak'
+        'tempat_lahir', 'tanggal_lahir', 'npwp', 'start_contract', 'end_contract', 'tipe_perjanjian', 'status_pernikahan', 'work_location_id', 'jumlah_anak',
+        'employ_id'
     ];
     protected $useTimestamps    = true;
 
