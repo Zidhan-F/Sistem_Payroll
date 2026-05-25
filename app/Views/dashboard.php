@@ -205,7 +205,11 @@
                                 <th>Nama Karyawan</th>
                                 <th>Tempat Tanggal Lahir</th>
                                 <th>NPWP</th>
+                                <th>Divisi</th>
+                                <th>Departemen</th>
+                                <th>Posisi/Jabatan</th>
                                 <th>Lokasi Kerja</th>
+                                <th>Gaji Harian / Denda</th>
                                 <th>Kontrak</th>
                                 <th>Action</th>
                             </tr>
@@ -233,9 +237,7 @@
                                 <th>Lokasi Kerja</th>
                                 <th>Location Code</th>
                                 <th>Klien / Perusahaan</th>
-                                <th>Divisi</th>
-                                <th>Department</th>
-                                <th>Posisi / Jabatan</th>
+
                                 <th>Provinsi</th>
                                 <th>Kota/Kabupaten</th>
                                 <th>Action</th>
@@ -300,9 +302,7 @@
                                                 <tr>
                                                     <th>Lokasi Kerja</th>
                                                     <th>Location Code</th>
-                                                    <th>Divisi</th>
-                                                    <th>Department</th>
-                                                    <th>Posisi / Jabatan</th>
+
                                                     <th>Provinsi</th>
                                                     <th>Kota/Kabupaten</th>
                                                     <th>Action</th>
@@ -335,7 +335,11 @@
                                                     <th>Nama Karyawan</th>
                                                     <th>Tempat Tanggal Lahir</th>
                                                     <th>NPWP</th>
+                                                    <th>Divisi</th>
+                                                    <th>Departemen</th>
+                                                    <th>Posisi/Jabatan</th>
                                                     <th>Lokasi Kerja</th>
+                                                    <th>Gaji Harian / Denda</th>
                                                     <th>Kontrak</th>
                                                     <th>Action</th>
                                                 </tr>

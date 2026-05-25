@@ -266,6 +266,51 @@
                                 </div>
 
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
+                                    
+                                    <!-- Hirarki Pemilihan Level Skema -->
+                                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                                            <div style="width: 36px; height: 36px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-sitemap" style="color: #3498db; font-size: 16px;"></i>
+                                            </div>
+                                            <div>
+                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Target Level Skema</h4>
+                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Pilih level organisasi yang akan dipasangkan skema ini</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group" style="margin-bottom: 15px;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin-bottom: 6px; display: block;">Terapkan Pada Level <span style="color:red">*</span></label>
+                                            <select id="pilihanSkemaLevel" onchange="handlePilihanSkemaLevelChange()" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; background: white; cursor: pointer;">
+                                                <option value="general">General Klien (Default)</option>
+                                                <option value="divisi">Divisi Tertentu</option>
+                                                <option value="departemen">Departemen Tertentu</option>
+                                                <option value="posisi">Posisi / Jabatan Tertentu</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Cascading Dropdowns -->
+                                        <div id="pilihanSkemaDivisiContainer" style="display: none; margin-bottom: 15px;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin-bottom: 6px; display: block;">Divisi <span style="color:red">*</span></label>
+                                            <select id="pilihanSkemaDivisiId" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; background: white;">
+                                                <option value="">-- Pilih Divisi --</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div id="pilihanSkemaDeptContainer" style="display: none; margin-bottom: 15px;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin-bottom: 6px; display: block;">Departemen <span style="color:red">*</span></label>
+                                            <select id="pilihanSkemaDeptId" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; background: white;">
+                                                <option value="">-- Pilih Departemen --</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div id="pilihanSkemaPosisiContainer" style="display: none;">
+                                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin-bottom: 6px; display: block;">Posisi / Jabatan <span style="color:red">*</span></label>
+                                            <select id="pilihanSkemaPosisiId" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; background: white;">
+                                                <option value="">-- Pilih Posisi --</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                     <!-- Skema Payroll Card -->
                                     <div style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
                                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
@@ -388,6 +433,27 @@
                                     <button onclick="simpanPilihanSkema()" class="btn-save" style="background: var(--primary-color); padding: 12px 30px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
                                         <i class="fas fa-save"></i> Simpan Pilihan Skema
                                     </button>
+                                </div>
+                                
+                                <!-- Tabel Daftar Skema Terpasang -->
+                                <div id="schemaMappingTableContainer" style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 30px;">
+                                    <h4 style="font-size: 16px; font-weight: 700; color: var(--secondary-color); margin-bottom: 15px;">Daftar Skema Tersimpan</h4>
+                                    <div class="table-container">
+                                        <table style="width: 100%;">
+                                            <thead>
+                                                <tr>
+                                                    <th>Level Organisasi</th>
+                                                    <th>Skema Payroll</th>
+                                                    <th>Skema Pajak</th>
+                                                    <th>Skema Komponen</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelSchemaMappingBody">
+                                                <tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>

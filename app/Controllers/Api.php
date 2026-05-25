@@ -524,16 +524,69 @@ class Api extends ResourceController
         $data = $this->request->getJSON(true);
         $clientId = $data['client_id'];
         
-        // Check if exists
-        $existing = $this->db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
+        $divId = $data['division_id'] ?? null;
+        $deptId = $data['department_id'] ?? null;
+        $posId = $data['position_id'] ?? null;
+        
+        // Cek jika sudah ada skema untuk level organisasi ini yang SPESIFIK
+        $query = $this->db->table('client_payroll_configs')->where('client_id', $clientId);
+        if ($divId) $query->where('division_id', $divId); else $query->where('division_id IS NULL');
+        if ($deptId) $query->where('department_id', $deptId); else $query->where('department_id IS NULL');
+        if ($posId) $query->where('position_id', $posId); else $query->where('position_id IS NULL');
+        
+        $existing = $query->get()->getRow();
+        
+        // PENCEGAHAN DUPLIKASI (Hanya 1 Skema Unik per level Org)
+        // Jika ada attempt untuk membuat data baru (misal via UI "tambah skema divisi"), kita tolak jika sudah ada
+        $isUpdateAction = isset($data['id']) && $data['id'] > 0;
+        
+        if ($existing && !$isUpdateAction) {
+            // Jika data sudah ada tapi ini bukan proses update dari ID yang sama, tolak!
+            if (!isset($data['id']) || $data['id'] != $existing->id) {
+                return $this->fail('Skema untuk level organisasi ini sudah ada! Silakan edit skema yang sudah ada untuk mencegah duplikasi/race condition.');
+            }
+        }
         
         if ($existing) {
-            $this->db->table('client_payroll_configs')->where('client_id', $clientId)->update($data);
+            $this->db->table('client_payroll_configs')->where('id', $existing->id)->update($data);
         } else {
             $this->db->table('client_payroll_configs')->insert($data);
         }
         
         return $this->respond(['message' => 'Konfigurasi payroll klien berhasil disimpan']);
+    }
+
+    public function getClientConfigMappings($clientId)
+    {
+        $configs = $this->db->table('client_payroll_configs')
+            ->select('
+                client_payroll_configs.*,
+                divisions.nama as division_name,
+                departments.nama as department_name,
+                positions.nama as position_name,
+                payroll_schemes.nama as payroll_scheme_name,
+                tax_schemes.nama as tax_scheme_name,
+                compensation_schemes.nama as compensation_scheme_name,
+                minimum_wages.nama_daerah as minimum_wage_region,
+                minimum_wages.nominal as minimum_wage_nominal
+            ')
+            ->join('divisions', 'divisions.id = client_payroll_configs.division_id', 'left')
+            ->join('departments', 'departments.id = client_payroll_configs.department_id', 'left')
+            ->join('positions', 'positions.id = client_payroll_configs.position_id', 'left')
+            ->join('payroll_schemes', 'payroll_schemes.id = client_payroll_configs.payroll_scheme_id', 'left')
+            ->join('tax_schemes', 'tax_schemes.id = client_payroll_configs.tax_scheme_id', 'left')
+            ->join('compensation_schemes', 'compensation_schemes.id = client_payroll_configs.compensation_scheme_id', 'left')
+            ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
+            ->where('client_payroll_configs.client_id', $clientId)
+            ->get()->getResultArray();
+            
+        return $this->respond($configs);
+    }
+    
+    public function deleteClientConfig($id)
+    {
+        $this->db->table('client_payroll_configs')->where('id', $id)->delete();
+        return $this->respondDeleted(['id' => $id, 'message' => 'Mapping skema berhasil dihapus']);
     }
 
     // --- PKWT ---
@@ -1394,5 +1447,39 @@ class Api extends ResourceController
             }
         }
         return $res;
+    }
+
+    public function checkSchema()
+    {
+        $clientId = $this->request->getGet('client_id');
+        $divId = $this->request->getGet('division_id');
+        $deptId = $this->request->getGet('department_id');
+        $posId = $this->request->getGet('position_id');
+
+        if (!$clientId) return $this->fail('Client ID required');
+
+        // Cek Posisi
+        if ($posId) {
+            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'position_id' => $posId])->get()->getRow();
+            if ($config) return $this->respond(['level' => 'Posisi', 'config' => $config]);
+        }
+        
+        // Cek Departemen
+        if ($deptId) {
+            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'department_id' => $deptId, 'position_id' => null])->get()->getRow();
+            if ($config) return $this->respond(['level' => 'Departemen', 'config' => $config]);
+        }
+
+        // Cek Divisi
+        if ($divId) {
+            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'division_id' => $divId, 'department_id' => null, 'position_id' => null])->get()->getRow();
+            if ($config) return $this->respond(['level' => 'Divisi', 'config' => $config]);
+        }
+
+        // Cek General Client
+        $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'division_id' => null, 'department_id' => null, 'position_id' => null])->get()->getRow();
+        if ($config) return $this->respond(['level' => 'General Client', 'config' => $config]);
+
+        return $this->respond(['level' => 'Tidak Ada', 'config' => null]);
     }
 }

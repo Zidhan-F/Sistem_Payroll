@@ -266,6 +266,175 @@ async function renderPilihanKompensasiSummary(schemeId) {
     }
 }
 
+let wsClientOrgHierarchy = [];
+window.editSchemaMappingId = null;
+
+async function loadSchemaMappingOrgDropdowns() {
+    if (!window.selectedClientId) return;
+    try {
+        const r = await fetch(`${API_URL}/org?client_id=${window.selectedClientId}`);
+        wsClientOrgHierarchy = await r.json();
+        
+        const divSelect = document.getElementById('pilihanSkemaDivisiId');
+        if(divSelect) {
+            divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>';
+            if (Array.isArray(wsClientOrgHierarchy)) {
+                wsClientOrgHierarchy.forEach(div => {
+                    divSelect.innerHTML += `<option value="${div.id}">${div.nama}</option>`;
+                });
+            }
+        }
+    } catch(e) { console.error(e); }
+}
+
+function handlePilihanSkemaLevelChange() {
+    const level = document.getElementById('pilihanSkemaLevel').value;
+    document.getElementById('pilihanSkemaDivisiContainer').style.display = (level !== 'general') ? 'block' : 'none';
+    document.getElementById('pilihanSkemaDeptContainer').style.display = (level === 'departemen' || level === 'posisi') ? 'block' : 'none';
+    document.getElementById('pilihanSkemaPosisiContainer').style.display = (level === 'posisi') ? 'block' : 'none';
+}
+
+function initCascadingSkemaDropdowns() {
+    const divSelect = document.getElementById('pilihanSkemaDivisiId');
+    const deptSelect = document.getElementById('pilihanSkemaDeptId');
+    const posSelect = document.getElementById('pilihanSkemaPosisiId');
+    
+    if(divSelect) divSelect.onchange = () => {
+        const divId = divSelect.value;
+        if(deptSelect) deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+        if(posSelect) posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+        if (divId && Array.isArray(wsClientOrgHierarchy)) {
+            const division = wsClientOrgHierarchy.find(d => d.id == divId);
+            if (division && Array.isArray(division.departments)) {
+                division.departments.forEach(dept => {
+                    if(deptSelect) deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
+                });
+            }
+        }
+    };
+    
+    if(deptSelect) deptSelect.onchange = () => {
+        const divId = divSelect.value;
+        const deptId = deptSelect.value;
+        if(posSelect) posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+        if (divId && deptId && Array.isArray(wsClientOrgHierarchy)) {
+            const division = wsClientOrgHierarchy.find(d => d.id == divId);
+            if (division && Array.isArray(division.departments)) {
+                const dept = division.departments.find(dp => dp.id == deptId);
+                if (dept && Array.isArray(dept.positions)) {
+                    dept.positions.forEach(pos => {
+                        if(posSelect) posSelect.innerHTML += `<option value="${pos.id}">${pos.nama}</option>`;
+                    });
+                }
+            }
+        }
+    };
+}
+
+async function loadSchemaMappingTable() {
+    if (!window.selectedClientId) return;
+    try {
+        const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
+        const mappings = await res.json();
+        
+        const tbody = document.getElementById('tabelSchemaMappingBody');
+        if (!tbody) return;
+        
+        if (!mappings || mappings.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada skema yang diatur</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = mappings.map(m => {
+            let levelLabel = '<span class="status-badge warning" style="background:#f1f5f9;color:#475569;">General Klien</span>';
+            if (m.position_id) {
+                levelLabel = `<span class="status-badge" style="background:#e0e7ff;color:#4338ca;">Posisi: ${m.position_name}</span>`;
+            } else if (m.department_id) {
+                levelLabel = `<span class="status-badge" style="background:#fce7f3;color:#be185d;">Dept: ${m.department_name}</span>`;
+            } else if (m.division_id) {
+                levelLabel = `<span class="status-badge" style="background:#dcfce7;color:#15803d;">Divisi: ${m.division_name}</span>`;
+            }
+            
+            return `
+                <tr>
+                    <td>${levelLabel}</td>
+                    <td>${m.payroll_type || '-'}</td>
+                    <td>${m.tax_scheme_name || '-'}</td>
+                    <td>${m.compensation_scheme_name || '-'}</td>
+                    <td>
+                        <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db;background:transparent;border:none;cursor:pointer;"><i class="fas fa-edit"></i></button>
+                        <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error('Error loading mapping table:', err);
+    }
+}
+
+async function editSchemaMapping(id) {
+    try {
+        const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
+        const mappings = await res.json();
+        const conf = mappings.find(m => m.id == id);
+        if (!conf) return;
+        
+        window.editSchemaMappingId = id;
+        
+        // Set dropdown level
+        const levelSelect = document.getElementById('pilihanSkemaLevel');
+        if (conf.position_id) levelSelect.value = 'posisi';
+        else if (conf.department_id) levelSelect.value = 'departemen';
+        else if (conf.division_id) levelSelect.value = 'divisi';
+        else levelSelect.value = 'general';
+        
+        handlePilihanSkemaLevelChange();
+        
+        if (conf.division_id) {
+            document.getElementById('pilihanSkemaDivisiId').value = conf.division_id;
+            document.getElementById('pilihanSkemaDivisiId').dispatchEvent(new Event('change'));
+            
+            if (conf.department_id) {
+                setTimeout(() => {
+                    document.getElementById('pilihanSkemaDeptId').value = conf.department_id;
+                    document.getElementById('pilihanSkemaDeptId').dispatchEvent(new Event('change'));
+                    if (conf.position_id) {
+                        setTimeout(() => {
+                            document.getElementById('pilihanSkemaPosisiId').value = conf.position_id;
+                        }, 100);
+                    }
+                }, 100);
+            }
+        }
+        
+        // Populate cards
+        if (document.getElementById('pilihanSkemaPajak')) document.getElementById('pilihanSkemaPajak').value = conf.tax_scheme_id || '';
+        if (document.getElementById('pilihanSkemaKompensasi')) {
+            document.getElementById('pilihanSkemaKompensasi').value = conf.compensation_scheme_id || '';
+            renderPilihanKompensasiSummary(conf.compensation_scheme_id);
+        }
+        
+        window.scrollTo({ top: document.getElementById('viewKompensasi').offsetTop, behavior: 'smooth' });
+    } catch(e) { console.error(e); }
+}
+
+async function hapusSchemaMapping(id) {
+    if (!confirm('Apakah Anda yakin ingin menghapus mapping skema ini?')) return;
+    try {
+        const res = await fetch(`${API_URL}/client-configs/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showToast('Mapping skema dihapus', 'success');
+            loadSchemaMappingTable();
+        } else {
+            showToast('Gagal menghapus mapping', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+
 async function loadPilihanSkema() {
     if (!window.selectedClientId) return;
     try {
@@ -297,9 +466,10 @@ async function loadPilihanSkema() {
         }
 
         // Load current client config to pre-select values
-        const cfgRes = await fetch(`${API_URL}/client-configs`);
+        const cfgRes = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const configs = await cfgRes.json();
-        const conf = configs.find(c => c.client_id == window.selectedClientId);
+        const conf = configs.find(c => c.division_id === null && c.department_id === null && c.position_id === null); // Load General as default form
+        window.editSchemaMappingId = conf ? conf.id : null;
         
         const summaryDiv = document.getElementById('pilihanKompensasiSummary');
         if (summaryDiv) {
@@ -341,6 +511,11 @@ async function loadPilihanSkema() {
             }
         }
         await loadAbsenConfig();
+        
+        await loadSchemaMappingOrgDropdowns();
+        initCascadingSkemaDropdowns();
+        handlePilihanSkemaLevelChange();
+        await loadSchemaMappingTable();
     } catch (err) {
         console.error('Error loading pilihan skema:', err);
     }
@@ -364,10 +539,15 @@ async function simpanPilihanSkema() {
     }
 
     try {
-        // Load existing config to preserve pay_date and cutoff
-        const cfgRes = await fetch(`${API_URL}/client-configs`);
+        // Load existing general config to preserve pay_date and cutoff
+        const cfgRes = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const configs = await cfgRes.json();
-        const existing = configs.find(c => c.client_id == window.selectedClientId);
+        const generalExisting = configs.find(c => c.division_id === null && c.department_id === null && c.position_id === null);
+
+        const level = document.getElementById('pilihanSkemaLevel').value;
+        const divId = document.getElementById('pilihanSkemaDivisiId')?.value;
+        const deptId = document.getElementById('pilihanSkemaDeptId')?.value;
+        const posId = document.getElementById('pilihanSkemaPosisiId')?.value;
 
         const data = {
             client_id: window.selectedClientId,
@@ -375,11 +555,21 @@ async function simpanPilihanSkema() {
             minimum_wage_id: (payrollType === 'UMP' || payrollType === 'UMK') ? (minimumWageId || null) : null,
             custom_nominal: (payrollType === 'Nominal') ? (customNominal || null) : null,
             payroll_scheme_id: (payrollType === 'Template') ? (payrollSchemeId || null) : null,
-            tax_scheme_id: taxSchemeId || (existing ? existing.tax_scheme_id : null),
-            compensation_scheme_id: compSchemeId || (existing ? existing.compensation_scheme_id : null),
-            pay_date: existing ? existing.pay_date : 25,
-            cutoff_start: existing ? existing.cutoff_start : 21
+            tax_scheme_id: taxSchemeId || (generalExisting ? generalExisting.tax_scheme_id : null),
+            compensation_scheme_id: compSchemeId || (generalExisting ? generalExisting.compensation_scheme_id : null),
+            pay_date: generalExisting ? generalExisting.pay_date : 25,
+            cutoff_start: generalExisting ? generalExisting.cutoff_start : 21,
+            cutoff_end: generalExisting ? generalExisting.cutoff_end : 20,
+            
+            // Add org hierarchy based on selected level
+            division_id: (level !== 'general' && divId) ? divId : null,
+            department_id: ((level === 'departemen' || level === 'posisi') && deptId) ? deptId : null,
+            position_id: (level === 'posisi' && posId) ? posId : null
         };
+        
+        if (window.editSchemaMappingId) {
+            data.id = window.editSchemaMappingId;
+        }
 
         const res = await fetch(`${API_URL}/client-configs`, {
             method: 'POST',
@@ -390,10 +580,15 @@ async function simpanPilihanSkema() {
         if (res.ok) {
             await simpanKonfigAbsen(false);
             showToast('Pilihan skema berhasil disimpan!', 'success');
+            window.editSchemaMappingId = null;
+            document.getElementById('pilihanSkemaLevel').value = 'general';
+            handlePilihanSkemaLevelChange();
+            await loadSchemaMappingTable();
             // Also update the Setup Payroll tab data
             loadWorkspaceSetup();
         } else {
-            showToast('Gagal menyimpan pilihan skema!', 'error');
+            const d = await res.json();
+            showToast(d.message || 'Gagal menyimpan pilihan skema!', 'error');
         }
     } catch (err) {
         console.error(err);

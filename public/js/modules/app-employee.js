@@ -14,10 +14,16 @@ function rowHtmlForEmployee(emp) {
                 <div style="font-size: 11px;">${emp.tanggal_lahir || '-'}</div>
             </td>
             <td>${emp.npwp || '-'}</td>
+            <td>${emp.nama_divisi || '-'}</td>
+            <td>${emp.nama_dept || '-'}</td>
+            <td>${emp.nama_posisi || '-'}</td>
             <td>
                 <div style="font-weight:600;">
                     <i class="fas fa-map-marker-alt" style="margin-right: 4px; opacity: 0.7;"></i>${emp.nama_lokasi || '-'}
                 </div>
+            </td>
+            <td>
+                <div style="color: #ef4444; font-weight: 600; font-size: 12px;">Rp ${emp.denda_absen ? parseFloat(emp.denda_absen).toLocaleString('id-ID') : '0'}</div>
             </td>
             <td>
                 <div style="font-weight: 600;">${emp.tipe_perjanjian || '-'}</div>

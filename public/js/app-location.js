@@ -84,9 +84,7 @@ function renderGlobalWorkLocationsTable() {
                 <td style="font-weight:600;">${loc.lokasi_kerja}</td>
                 <td style="font-weight:600;">${loc.location_code || '-'}</td>
                 <td>${loc.nama_klien || '-'}</td>
-                <td>${loc.nama_divisi || '-'}</td>
-                <td>${loc.nama_dept || '-'}</td>
-                <td>${loc.nama_posisi || '-'}</td>
+
                 <td>${loc.provinsi || '-'}</td>
                 <td>${loc.kota_kabupaten || '-'}</td>
                 <td>
@@ -126,9 +124,7 @@ function renderWorkLocationsTable() {
             <tr>
                 <td style="font-weight:600;">${loc.lokasi_kerja}</td>
                 <td style="font-weight:600;">${loc.location_code || '-'}</td>
-                <td>${loc.nama_divisi || '-'}</td>
-                <td>${loc.nama_dept || '-'}</td>
-                <td>${loc.nama_posisi || '-'}</td>
+
                 <td>${loc.provinsi || '-'}</td>
                 <td>${loc.kota_kabupaten || '-'}</td>
                 <td>
@@ -236,9 +232,7 @@ async function populateLocClients() {
 }
 
 function resetCascadingSelects() {
-    document.getElementById('locDivisionId').innerHTML = '<option value="">-- Pilih Divisi --</option>';
-    document.getElementById('locDepartmentId').innerHTML = '<option value="">-- Pilih Departemen --</option>';
-    document.getElementById('locPositionId').innerHTML = '<option value="">-- Pilih Jabatan --</option>';
+    // Dipindah ke modal karyawan
 }
 
 document.getElementById('locClientId')?.addEventListener('change', async (e) => {
@@ -249,62 +243,12 @@ document.getElementById('locClientId')?.addEventListener('change', async (e) => 
     try {
         const r = await fetch(`/api/org?client_id=${clientId}`);
         const divs = await r.json();
-        const divSelect = document.getElementById('locDivisionId');
-        divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>';
-        divs.forEach(d => {
-            divSelect.innerHTML += `<option value="${d.id}">${d.nama}</option>`;
-        });
     } catch (err) {
         console.error(err);
     }
 });
 
-document.getElementById('locDivisionId')?.addEventListener('change', async (e) => {
-    const divId = e.target.value;
-    document.getElementById('locDepartmentId').innerHTML = '<option value="">-- Pilih Departemen --</option>';
-    document.getElementById('locPositionId').innerHTML = '<option value="">-- Pilih Jabatan --</option>';
-    if (!divId) return;
-    
-    const clientId = document.getElementById('locClientId').value;
-    try {
-        const r = await fetch(`/api/org?client_id=${clientId}`);
-        const divs = await r.json();
-        const selectedDiv = divs.find(d => d.id == divId);
-        const deptSelect = document.getElementById('locDepartmentId');
-        if (selectedDiv && selectedDiv.departments) {
-            selectedDiv.departments.forEach(dept => {
-                deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
-            });
-        }
-    } catch (err) {
-        console.error(err);
-    }
-});
 
-document.getElementById('locDepartmentId')?.addEventListener('change', async (e) => {
-    const deptId = e.target.value;
-    document.getElementById('locPositionId').innerHTML = '<option value="">-- Pilih Jabatan --</option>';
-    if (!deptId) return;
-    
-    const clientId = document.getElementById('locClientId').value;
-    const divId = document.getElementById('locDivisionId').value;
-    try {
-        const r = await fetch(`/api/org?client_id=${clientId}`);
-        const divs = await r.json();
-        const selectedDiv = divs.find(d => d.id == divId);
-        if (selectedDiv && selectedDiv.departments) {
-            const selectedDept = selectedDiv.departments.find(dept => dept.id == deptId);
-            const posSelect = document.getElementById('locPositionId');
-            if (selectedDept && selectedDept.positions) {
-                selectedDept.positions.forEach(pos => {
-                    posSelect.innerHTML += `<option value="${pos.id}">${pos.nama}</option>`;
-                });
-            }
-        }
-    } catch (err) {
-        console.error(err);
-    }
-});
 
 document.getElementById('locName')?.addEventListener('input', (e) => {
     const val = e.target.value;
@@ -356,39 +300,6 @@ async function editLokasiKerja(id) {
         }
     }
     
-    try {
-        const r = await fetch(`/api/org?client_id=${loc.client_id}`);
-        const divs = await r.json();
-        const divSelect = document.getElementById('locDivisionId');
-        divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>';
-        divs.forEach(d => {
-            divSelect.innerHTML += `<option value="${d.id}" ${d.id == loc.division_id ? 'selected' : ''}>${d.nama}</option>`;
-        });
-        
-        if (loc.division_id) {
-            const selectedDiv = divs.find(d => d.id == loc.division_id);
-            const deptSelect = document.getElementById('locDepartmentId');
-            deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
-            if (selectedDiv && selectedDiv.departments) {
-                selectedDiv.departments.forEach(dept => {
-                    deptSelect.innerHTML += `<option value="${dept.id}" ${dept.id == loc.department_id ? 'selected' : ''}>${dept.nama}</option>`;
-                });
-            }
-            
-            if (loc.department_id && selectedDiv && selectedDiv.departments) {
-                const selectedDept = selectedDiv.departments.find(dept => dept.id == loc.department_id);
-                const posSelect = document.getElementById('locPositionId');
-                posSelect.innerHTML = '<option value="">-- Pilih Jabatan --</option>';
-                if (selectedDept && selectedDept.positions) {
-                    selectedDept.positions.forEach(pos => {
-                        posSelect.innerHTML += `<option value="${pos.id}" ${pos.id == loc.position_id ? 'selected' : ''}>${pos.nama}</option>`;
-                    });
-                }
-            }
-        }
-    } catch (err) {
-        console.error(err);
-    }
 }
 
 document.getElementById('formLokasiKerja')?.addEventListener('submit', async (e) => {
@@ -398,9 +309,9 @@ document.getElementById('formLokasiKerja')?.addEventListener('submit', async (e)
         client_id: document.getElementById('locClientId').value,
         lokasi_kerja: document.getElementById('locName').value,
         location_code: document.getElementById('locCode').value,
-        division_id: document.getElementById('locDivisionId').value || null,
-        department_id: document.getElementById('locDepartmentId').value || null,
-        position_id: document.getElementById('locPositionId').value || null,
+        division_id: null,
+        department_id: null,
+        position_id: null,
         provinsi: document.getElementById('locProvinsi').value,
         kota_kabupaten: document.getElementById('locKotaKabupaten').value
     };

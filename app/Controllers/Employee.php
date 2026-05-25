@@ -33,6 +33,12 @@ class Employee extends ResourceController
     {
         $data = $this->request->getJSON(true);
         
+        if (isset($data['gaji_pokok']) && isset($data['hari_kerja'])) {
+            $hk = (int)$data['hari_kerja'];
+            $pembagi = ($hk == 5) ? 22 : (($hk == 6) ? 26 : (($hk == 7) ? 30 : 22));
+            $data['denda_absen'] = floatval($data['gaji_pokok']) / $pembagi;
+        }
+        
         $db = \Config\Database::connect();
         if (isset($data['umr_tipe']) && $data['umr_tipe'] === 'NOMINAL' && isset($data['custom_nominal']) && floatval($data['custom_nominal']) > 0) {
             $customNominal = floatval($data['custom_nominal']);
@@ -129,6 +135,14 @@ class Employee extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $oldEmp = $this->model->find($id);
+        
+        // Auto-calculate denda_absen if gaji_pokok or hari_kerja is updated
+        $gaji = isset($data['gaji_pokok']) ? $data['gaji_pokok'] : ($oldEmp['gaji_pokok'] ?? 0);
+        $hk = isset($data['hari_kerja']) ? (int)$data['hari_kerja'] : (int)($oldEmp['hari_kerja'] ?? 5);
+        if ($gaji > 0 && $hk > 0) {
+            $pembagi = ($hk == 5) ? 22 : (($hk == 6) ? 26 : (($hk == 7) ? 30 : 22));
+            $data['denda_absen'] = floatval($gaji) / $pembagi;
+        }
         
         $db = \Config\Database::connect();
         if (isset($data['umr_tipe']) && $data['umr_tipe'] === 'NOMINAL' && isset($data['custom_nominal']) && floatval($data['custom_nominal']) > 0) {

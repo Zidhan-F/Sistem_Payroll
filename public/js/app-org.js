@@ -246,6 +246,7 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
                     });
                 }
             }
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         };
         
         deptSelect.onchange = () => {
@@ -263,6 +264,11 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
                     }
                 }
             }
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
+        };
+        
+        posSelect.onchange = () => {
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         };
         
         if (selectedDivId) {
@@ -371,8 +377,12 @@ async function bukaModalKaryawan(mode,id=null){
         const cid = cs.value;
         if (cid) {
             await loadWorkLocationsForSelect(cid);
+            await loadOrgSelects(cid);
         } else {
             document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+            const ds = document.getElementById('empDivisionId'); if(ds) ds.innerHTML = '<option value="">-- Pilih Divisi --</option>';
+            const deps = document.getElementById('empDepartmentId'); if(deps) deps.innerHTML = '<option value="">-- Pilih Department --</option>';
+            const ps = document.getElementById('empPositionId'); if(ps) ps.innerHTML = '<option value="">-- Pilih Posisi --</option>';
         }
     };
 
@@ -382,6 +392,7 @@ async function bukaModalKaryawan(mode,id=null){
         cs.disabled=true;
         if(clientContainer) clientContainer.style.display = 'block'; // Selalu tampilkan agar user tahu
         await loadWorkLocationsForSelect(selectedClientId);
+        if (mode !== 'edit') await loadOrgSelects(selectedClientId);
     }else{
         cs.disabled=false;
         if(clientContainer) clientContainer.style.display = 'block';
@@ -408,8 +419,13 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empStartContract').value = emp.start_contract || '';
         document.getElementById('empEndContract').value = emp.end_contract || '';
         document.getElementById('empTipePerjanjian').value = emp.tipe_perjanjian || '';
+        document.getElementById('empGajiPokok').value = emp.gaji_pokok ? parseFloat(emp.gaji_pokok).toLocaleString('id-ID') : '';
+        document.getElementById('empHariKerja').value = emp.hari_kerja || '5';
+        
+        if (typeof calculateDendaAbsen === 'function') calculateDendaAbsen();
         
         await loadWorkLocationsForSelect(emp.client_id, emp.work_location_id);
+        await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
     }
     
     if (window.empClientSelectInstance) {
@@ -419,6 +435,13 @@ async function bukaModalKaryawan(mode,id=null){
         create: false,
         sortField: { field: "text", direction: "asc" }
     });
+    
+    // Initial check schema
+    if (mode === 'edit' && id) {
+        setTimeout(checkSchemaAvailability, 500);
+    } else {
+        document.getElementById('schemaInfoContainer').style.display = 'none';
+    }
 }
 
 async function loadPositions(cid){
@@ -443,7 +466,10 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         start_contract:document.getElementById('empStartContract').value,
         end_contract:document.getElementById('empEndContract').value,
         tipe_perjanjian:document.getElementById('empTipePerjanjian').value,
-        work_location_id:document.getElementById('empWorkLocationId').value || null
+        gaji_pokok: document.getElementById('empGajiPokok').value.replace(/\./g, ''),
+        hari_kerja: document.getElementById('empHariKerja').value,
+        work_location_id:document.getElementById('empWorkLocationId').value || null,
+        position_id:document.getElementById('empPositionId')?.value || null
     };
     // For new employees, generate a dummy nik from employ_id (nik is required by DB)
     if (!id) {
@@ -503,6 +529,77 @@ document.getElementById('empStartContract')?.addEventListener('change', async (e
         console.error('Error fetching next employ ID:', err);
     }
 });
+
+// Kalkulasi denda absen
+function calculateDendaAbsen() {
+    const gajiInput = document.getElementById('empGajiPokok').value;
+    const hariKerja = parseInt(document.getElementById('empHariKerja').value || 5);
+    const dendaInput = document.getElementById('empDendaAbsen');
+    
+    if (!gajiInput) {
+        dendaInput.value = '';
+        return;
+    }
+    
+    const gaji = parseFloat(gajiInput.replace(/\./g, ''));
+    if (isNaN(gaji)) return;
+    
+    let pembagi = 22;
+    if (hariKerja === 6) pembagi = 26;
+    else if (hariKerja === 7) pembagi = 30;
+    
+    const denda = gaji / pembagi;
+    dendaInput.value = Math.round(denda).toLocaleString('id-ID');
+}
+window.calculateDendaAbsen = calculateDendaAbsen;
+
+// Validasi Keselarasan Skema
+async function checkSchemaAvailability() {
+    const cid = document.getElementById('empClientId')?.value;
+    const divId = document.getElementById('empDivisionId')?.value;
+    const deptId = document.getElementById('empDepartmentId')?.value;
+    const posId = document.getElementById('empPositionId')?.value;
+    const infoContainer = document.getElementById('schemaInfoContainer');
+    
+    if (!infoContainer) return;
+    
+    if (!cid) {
+        infoContainer.style.display = 'none';
+        return;
+    }
+    
+    infoContainer.style.display = 'block';
+    infoContainer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengecek ketersediaan skema...';
+    infoContainer.style.color = '#64748b';
+    infoContainer.style.background = '#f8fafc';
+    
+    try {
+        let url = `${API}/check-schema?client_id=${cid}`;
+        if (divId) url += `&division_id=${divId}`;
+        if (deptId) url += `&department_id=${deptId}`;
+        if (posId) url += `&position_id=${posId}`;
+        
+        const res = await fetch(url);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.level === 'Tidak Ada') {
+                infoContainer.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <b>Skema Belum Diatur!</b><br>Karyawan ini tidak memiliki skema perhitungan payroll. Harap setup di menu Konfigurasi Payroll.';
+                infoContainer.style.color = '#b91c1c';
+                infoContainer.style.background = '#fef2f2';
+                infoContainer.style.border = '1px solid #fca5a5';
+            } else {
+                infoContainer.innerHTML = `<i class="fas fa-check-circle"></i> <b>Skema Tersedia!</b><br>Sistem akan menggunakan skema pada level: <b>${data.level}</b>.`;
+                infoContainer.style.color = '#15803d';
+                infoContainer.style.background = '#f0fdf4';
+                infoContainer.style.border = '1px solid #bbf7d0';
+            }
+        }
+    } catch (e) {
+        console.error('Error checking schema', e);
+        infoContainer.innerHTML = '<i class="fas fa-info-circle"></i> Gagal memverifikasi skema server.';
+    }
+}
+window.checkSchemaAvailability = checkSchemaAvailability;
 
 window.renderClientOrg=renderClientOrg;window.bukaModalOrg=bukaModalOrg;window.tutupModalOrg=tutupModalOrg;window.hapusOrg=hapusOrg;window.toggleNode=toggleNode;window.renderTableKaryawanClient=renderTableKaryawanClient;window.bukaModalKaryawan=bukaModalKaryawan;window.bukaModalKaryawanSpecific=bukaModalKaryawanSpecific;window.tutupModalKaryawan=tutupModalKaryawan;window.hapusKaryawan=hapusKaryawan;window.loadPositions=loadPositions;
 window.tambahDeptInline=tambahDeptInline;window.tambahPosisiInline=tambahPosisiInline;
