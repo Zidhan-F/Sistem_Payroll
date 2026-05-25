@@ -93,24 +93,24 @@
                             </div>
                         </div>
 
-                        <!-- Action 3: Proses Payroll -->
-                        <div class="quick-action-card" onclick="quickAction('proses-payroll')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <!-- Action 3: Struktur Gaji -->
+                        <div class="quick-action-card" onclick="quickAction('struktur-gaji')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(46, 204, 113, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135706.png" alt="Payroll" style="width: 32px; height: 32px; object-fit: contain;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135706.png" alt="Struktur Gaji" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Proses Payroll</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Generate & hitung gaji bulanan.</p>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Struktur Gaji</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Skema komponen pendapatan.</p>
                             </div>
                         </div>
 
-                        <!-- Action 4: Pengaturan Skema -->
+                        <!-- Action 4: Pengaturan BPJS & Pajak -->
                         <div class="quick-action-card" onclick="quickAction('pengaturan-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(155, 89, 182, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/2040/2040504.png" alt="Skema" style="width: 32px; height: 32px; object-fit: contain;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2040/2040504.png" alt="BPJS & Pajak" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Pengaturan Skema</h4>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Skema BPJS & Pajak</h4>
                                 <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Atur skema BPJS & pajak.</p>
                             </div>
                         </div>
@@ -137,14 +137,14 @@
                             </div>
                         </div>
 
-                        <!-- Action 7: Struktur Gaji -->
-                        <div class="quick-action-card" onclick="quickAction('struktur-gaji')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <!-- Action 7: Setting Skema -->
+                        <div class="quick-action-card" onclick="quickAction('setting-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(39, 174, 96, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/2489/2489756.png" alt="Struktur Gaji" style="width: 32px; height: 32px; object-fit: contain;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2489/2489756.png" alt="Setting Skema" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Struktur Gaji</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Skema komponen pendapatan.</p>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Setting Skema</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Atur parameter & template payroll.</p>
                             </div>
                         </div>
                     </div>
@@ -165,22 +165,24 @@
                         </div>
                     </div>
 
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nama Klien</th>
-                                <th>Bisnis Klien</th>
-                                <th>NPWP</th>
-                                <th>NIB</th>
-                                <th>Tanggal Bergabung</th>
-                                <th>Alamat</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelKlienBody">
-                            <!-- Data injected by app.js -->
-                        </tbody>
-                    </table>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nama Klien</th>
+                                    <th>Bisnis Klien</th>
+                                    <th>NPWP</th>
+                                    <th>NIB</th>
+                                    <th>Tanggal Bergabung</th>
+                                    <th>Alamat</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelKlienBody">
+                                <!-- Data injected by app.js -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -197,27 +199,29 @@
                         </div>
                     </div>
 
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Perusahaan / Klien</th>
-                                <th>Employ ID (NIK)</th>
-                                <th>Nama Karyawan</th>
-                                <th>Tempat Tanggal Lahir</th>
-                                <th>NPWP</th>
-                                <th>Divisi</th>
-                                <th>Departemen</th>
-                                <th>Posisi/Jabatan</th>
-                                <th>Lokasi Kerja</th>
-                                <th>Gaji Harian / Denda</th>
-                                <th>Kontrak</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelKaryawanGlobalBody">
-                            <!-- Injected by app.js -->
-                        </tbody>
-                    </table>
+                    <div class="table-container">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Perusahaan / Klien</th>
+                                    <th>Employ ID (NIK)</th>
+                                    <th>Nama Karyawan</th>
+                                    <th>Tempat Tanggal Lahir</th>
+                                    <th>NPWP</th>
+                                    <th>Divisi</th>
+                                    <th>Departemen</th>
+                                    <th>Posisi/Jabatan</th>
+                                    <th>Lokasi Kerja</th>
+                                    <th>Gaji Harian / Denda</th>
+                                    <th>Kontrak</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelKaryawanGlobalBody">
+                                <!-- Injected by app.js -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -231,22 +235,23 @@
                         </button>
                     </div>
 
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Lokasi Kerja</th>
-                                <th>Location Code</th>
-                                <th>Klien / Perusahaan</th>
-
-                                <th>Provinsi</th>
-                                <th>Kota/Kabupaten</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelGlobalLokasiKerjaBody">
-                            <!-- Injected by JS -->
-                        </tbody>
-                    </table>
+                    <div class="table-container">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Lokasi Kerja</th>
+                                    <th>Location Code</th>
+                                    <th>Klien / Perusahaan</th>
+                                    <th>Provinsi</th>
+                                    <th>Kota/Kabupaten</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelGlobalLokasiKerjaBody">
+                                <!-- Injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -508,139 +513,71 @@
                         </div>
 
                         <!-- Panel: Pilihan Skema -->
-                        <div id="viewKompensasi" class="w-tab-panel">
-                            <div class="content-card" style="max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                                <div style="text-align: center; margin-bottom: 30px;">
-                                    <div style="background: rgba(243, 156, 18, 0.1); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                                        <i class="fas fa-layer-group" style="font-size: 28px; color: var(--primary-color);"></i>
-                                    </div>
-                                    <h3 style="font-size: 18px; font-weight: 700; color: var(--secondary-color);">Pilihan Skema</h3>
-                                    <p style="color: #64748b; font-size: 13px;">Pilih skema payroll, pajak, dan kompensasi untuk klien ini.</p>
-                                </div>
+                                                <div id="viewKompensasi" class="w-tab-panel">
+                            <div class="content-card" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
 
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
-                                    <!-- Skema Payroll Card -->
-                                    <div style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
-                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                            <div style="width: 40px; height: 40px; background: rgba(52,152,219,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-file-invoice-dollar" style="font-size: 18px; color: #3498db;"></i>
-                                            </div>
+                                    
+                                    <!-- Section: Daftar Skema Payroll Klien -->
+                                    <div style="margin-bottom: 30px;">
+                                        <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                                             <div>
-                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Payroll</h4>
-                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Metode perhitungan gaji karyawan</p>
+                                                <h3 style="font-size: 18px; color: var(--secondary-color); margin: 0; font-weight: 700;">Daftar Skema Payroll</h3>
+                                                <p style="font-size: 13px; color: #64748b; margin: 5px 0 0 0;">Kelola skema payroll untuk setiap divisi, departemen, dan posisi</p>
                                             </div>
-                                        </div>
-                                        <select id="pilihanSkemaPayrollTipe" onchange="handlePilihanSkemaPayrollTipeChange()" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer; margin-bottom: 12px;">
-                                            <option value="">-- Pilih Tipe Skema Payroll --</option>
-                                            <option value="UMP">UMP (Upah Minimum Provinsi)</option>
-                                            <option value="UMK">UMK (Upah Minimum Kota/Kabupaten)</option>
-                                            <option value="Nominal">Nominal Custom</option>
-                                            <option value="Template">Template Skema Payroll</option>
-                                        </select>
-
-                                        <div id="pilihanSkemaPayrollWilayahContainer" style="display: none; margin-bottom: 12px;">
-                                            <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px; display: block;">Pilih Wilayah UMP/UMK</label>
-                                            <select id="pilihanSkemaPayrollWilayah" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                                <option value="">-- Pilih Wilayah --</option>
-                                            </select>
-                                        </div>
-
-                                        <div id="pilihanSkemaPayrollNominalContainer" style="display: none; margin-bottom: 12px;">
-                                            <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px; display: block;">Masukkan Nominal Gaji Pokok (Rp)</label>
-                                            <input type="number" id="pilihanSkemaPayrollNominal" placeholder="Contoh: 5000000" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white;">
-                                        </div>
-
-                                        <div id="pilihanSkemaPayrollTemplateContainer" style="display: none; margin-bottom: 12px;">
-                                            <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px; display: block;">Pilih Template Skema</label>
-                                            <select id="pilihanSkemaPayroll" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                                <option value="">-- Pilih Skema Payroll --</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Skema Pajak Card -->
-                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
-                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                            <div style="width: 40px; height: 40px; background: rgba(231,76,60,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-percent" style="font-size: 18px; color: #e74c3c;"></i>
-                                            </div>
-                                            <div>
-                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Pajak</h4>
-                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Metode perhitungan PPh 21</p>
-                                            </div>
-                                        </div>
-                                        <select id="pilihanSkemaPajak" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                            <option value="">-- Pilih Skema Pajak --</option>
-                                        </select>
-                                    </div>
-
-                                    <!-- Skema Komponen Card -->
-                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
-                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                                            <div style="display: flex; align-items: center; gap: 12px;">
-                                                <div style="width: 40px; height: 40px; background: rgba(16,185,129,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                    <i class="fas fa-coins" style="font-size: 18px; color: #10b981;"></i>
-                                                </div>
-                                                <div>
-                                                    <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Komponen</h4>
-                                                    <p style="font-size: 12px; color: #94a3b8; margin: 0;">Komponen pendapatan & potongan</p>
-                                                </div>
-                                            </div>
-                                            <button onclick="goToMasterKompensasi()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-                                                <i class="fas fa-external-link-alt"></i> Kelola di Master
+                                            <button class="btn-add" onclick="openModalPilihanSkema()" style="background: #f39c12; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 14px; box-shadow: 0 2px 8px rgba(243, 156, 18, 0.25); transition: all 0.3s;">
+                                                <i class="fas fa-plus"></i> Tambah Skema
                                             </button>
                                         </div>
-                                        <div style="margin-bottom: 12px;">
-                                            <select id="pilihanSkemaKompensasi" onchange="renderPilihanKompensasiSummary(this.value)" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                                <option value="">-- Pilih Skema Komponen --</option>
-                                            </select>
-                                        </div>
-                                        <div id="pilihanKompensasiSummary" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; min-height: 60px;">
-                                            <p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema komponen di atas untuk melihat detailnya.</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- Skema Absensi Card -->
-                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
-                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                                            <div style="width: 40px; height: 40px; background: rgba(231, 76, 60, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-calendar-times" style="font-size: 18px; color: #e74c3c;"></i>
-                                            </div>
-                                            <div>
-                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Absensi</h4>
-                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Aturan prorate dan pemotongan absen</p>
-                                            </div>
-                                        </div>
-                                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                                            <label class="absen-config-item" style="cursor: pointer;">
-                                                <div>
-                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Prorate Gaji</strong>
-                                                    <span style="font-size: 12px; color: #94a3b8;">Hitung gaji secara proporsional sesuai hari kerja</span>
-                                                </div>
-                                                <input type="checkbox" id="cfgProrate" style="width: 20px; height: 20px; cursor: pointer;">
-                                            </label>
-                                            <label class="absen-config-item" style="cursor: pointer;">
-                                                <div>
-                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Absen Tidak Potong Gaji</strong>
-                                                    <span style="font-size: 12px; color: #94a3b8;">Absensi ketidakhadiran tidak memotong gaji bulanan</span>
-                                                </div>
-                                                <input type="checkbox" id="cfgAbsenTidakPotong" style="width: 20px; height: 20px; cursor: pointer;">
-                                            </label>
-                                            <div class="absen-config-item" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 24px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
-                                                <div>
-                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Nominal Potongan Absen</strong>
-                                                    <span style="font-size: 12px; color: #94a3b8;">Jumlah potongan per hari absen</span>
-                                                </div>
-                                                <input type="text" id="cfgNominalPotongan" onkeyup="formatRupiahInput(this)" placeholder="0" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 150px; text-align: right; font-size: 14px; font-weight: 600; outline: none;">
-                                            </div>
+                                        
+                                        <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
+                                            <table style="width: 100%; border-collapse: collapse; background: white;">
+                                                <thead>
+                                                    <tr style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white;">
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Divisi</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Departemen</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Posisi</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Skema Payroll</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Skema BPJS & Pajak</th>
+                                                        <th style="padding: 15px; text-align: center; font-weight: 600; font-size: 13px;">Aksi</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tabelPilihanSkemaKlien">
+                                                    <tr>
+                                                        <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                                            <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                                                            Belum ada skema payroll yang terdaftar. Klik tombol "Tambah Skema" untuk mengkonfigurasi.
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div style="text-align: center; margin-top: 25px;">
-                                    <button onclick="simpanPilihanSkema()" class="btn-save" style="background: var(--primary-color); padding: 12px 30px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
-                                        <i class="fas fa-save"></i> Simpan Pilihan Skema
-                                    </button>
+                                    
+                                    <!-- Hidden Fields to maintain JS compatibility -->
+                                    <div style="display: none;">
+                                        <select id="pilihanSkemaPayrollTipe">
+                                            <option value="Template" selected>Template</option>
+                                        </select>
+                                        <div id="pilihanSkemaPayrollWilayahContainer">
+                                            <select id="pilihanSkemaPayrollWilayah"></select>
+                                        </div>
+                                        <div id="pilihanSkemaPayrollNominalContainer">
+                                            <input type="number" id="pilihanSkemaPayrollNominal">
+                                        </div>
+                                        <div id="pilihanSkemaPayrollTemplateContainer"></div>
+                                        <select id="pilihanSkemaKompensasi">
+                                            <option value="">-- Pilih Skema Komponen --</option>
+                                        </select>
+                                        <div id="pilihanKompensasiSummary"></div>
+                                        <input type="text" id="pilihanSkemaNamaKlien">
+                                        <select id="pilihanSkemaDivisi"></select>
+                                        <select id="pilihanSkemaDepartemen"></select>
+                                        <select id="pilihanSkemaPosisi"></select>
+                                        <select id="pilihanSkemaHariKerja"></select>
+                                        <select id="pilihanSkemaPayroll"></select>
+                                        <select id="pilihanSkemaPajak"></select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -771,9 +708,9 @@
             <!-- Section: Skema Pajak (Master) -->
             <div id="viewPajak" class="view-section">
                 <div class="section-header" style="margin-bottom: 20px;">
-                    <h3 style="font-size: 16px; color: var(--secondary-color);">Master Skema Pajak (PPh 21)</h3>
+                    <h3 style="font-size: 16px; color: var(--secondary-color);">Skema BPJS & Pajak</h3>
                     <button class="btn-add" onclick="bukaModalPajak('tambah')">
-                        <i class="fas fa-plus"></i> Tambah Skema Pajak
+                        <i class="fas fa-plus"></i> Tambah Skema BPJS & Pajak
                     </button>
                 </div>
                 <div id="taxSchemesContainer" class="schemes-grid">

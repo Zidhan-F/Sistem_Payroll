@@ -47,7 +47,7 @@ async function renderAllEmployees() {
         const employees = await res.json();
         window.employees = employees; // Expose globally for app-org.js
         const tbody = document.getElementById('tabelKaryawanBody');
-        if(!tbody) return;
+        if (!tbody) return;
         tbody.innerHTML = employees.map(emp => rowHtmlForEmployee(emp)).join('');
     } catch (err) { console.error(err); }
 }
@@ -56,17 +56,17 @@ function filterKaryawan() {
     const q = document.getElementById('searchKaryawan').value.toLowerCase();
     const tbody = document.getElementById('tabelKaryawanBody');
     if (!tbody || !window.employees) return;
-    
+
     const filtered = window.employees.filter(emp => {
         return (emp.nama && emp.nama.toLowerCase().includes(q)) ||
-               (emp.nik && emp.nik.toLowerCase().includes(q)) ||
-               (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
-               (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
-               (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q)) ||
-               (emp.email && emp.email.toLowerCase().includes(q)) ||
-               (emp.nama_lokasi && emp.nama_lokasi.toLowerCase().includes(q));
+            (emp.nik && emp.nik.toLowerCase().includes(q)) ||
+            (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
+            (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
+            (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q)) ||
+            (emp.email && emp.email.toLowerCase().includes(q)) ||
+            (emp.nama_lokasi && emp.nama_lokasi.toLowerCase().includes(q));
     });
-    
+
     tbody.innerHTML = filtered.map(emp => rowHtmlForEmployee(emp)).join('');
 }
 window.filterKaryawan = filterKaryawan;
@@ -84,7 +84,7 @@ async function renderManajemenKaryawan(list = null) {
         }
         const tbody = document.getElementById('tabelKaryawanGlobalBody');
         if (!tbody) return;
-        
+
         tbody.innerHTML = list.map(emp => rowHtmlForEmployee(emp)).join('');
     } catch (err) {
         console.error(err);
@@ -99,12 +99,12 @@ function cariKaryawanGlobalAktif() {
     }
     const filtered = allEmployeesGlobal.filter(emp => {
         return (emp.nama && emp.nama.toLowerCase().includes(q)) ||
-               (emp.nik && emp.nik.toLowerCase().includes(q)) ||
-               (emp.nama_klien && emp.nama_klien.toLowerCase().includes(q)) ||
-               (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
-               (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
-               (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q)) ||
-               (emp.nama_lokasi && emp.nama_lokasi.toLowerCase().includes(q));
+            (emp.nik && emp.nik.toLowerCase().includes(q)) ||
+            (emp.nama_klien && emp.nama_klien.toLowerCase().includes(q)) ||
+            (emp.nama_posisi && emp.nama_posisi.toLowerCase().includes(q)) ||
+            (emp.nama_dept && emp.nama_dept.toLowerCase().includes(q)) ||
+            (emp.nama_divisi && emp.nama_divisi.toLowerCase().includes(q)) ||
+            (emp.nama_lokasi && emp.nama_lokasi.toLowerCase().includes(q));
     });
     renderManajemenKaryawan(filtered);
 }
@@ -148,9 +148,9 @@ function toggleSubmenu(event, id) {
     if (event) event.stopPropagation();
     const submenu = document.getElementById(id);
     if (!submenu) return;
-    
+
     const isVisible = submenu.style.display === 'block';
-    
+
     // Hide all other submenus first (if there are any)
     document.querySelectorAll('.sidebar-submenu').forEach(sub => {
         if (sub.id !== id) {
@@ -161,7 +161,7 @@ function toggleSubmenu(event, id) {
     });
 
     submenu.style.display = isVisible ? 'none' : 'block';
-    
+
     const arrow = event.currentTarget.querySelector('.submenu-arrow');
     if (arrow) {
         arrow.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
@@ -170,9 +170,9 @@ function toggleSubmenu(event, id) {
 
 function switchKaryawanSubMenu(action, event) {
     if (event) event.stopPropagation();
-    
+
     document.querySelectorAll('.sidebar-submenu li').forEach(l => l.classList.remove('active'));
-    
+
     if (action === 'lokasi_kerja') {
         switchView('globalLokasiKerja');
         if (typeof loadGlobalWorkLocations === 'function') {

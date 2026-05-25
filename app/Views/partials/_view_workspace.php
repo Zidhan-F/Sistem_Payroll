@@ -137,7 +137,7 @@
                                         <span id="wSetupPayrollScheme" class="scheme-badge bulanan" style="font-weight: 600;">-</span>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Skema Pajak</span>
+                                        <span style="font-weight: 500; color: #64748b;">Skema BPJS & Pajak</span>
                                         <span id="wSetupTaxScheme" class="scheme-badge" style="background:#fee2e2; color:#dc2626; font-weight: 600;">-</span>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
@@ -254,181 +254,18 @@
                             </div>
                         </div>
 
-                        <!-- Panel: Pilihan Skema -->
-                        <div id="viewKompensasi" class="w-tab-panel">
-                            <div class="content-card" style="max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                                <div style="text-align: center; margin-bottom: 30px;">
-                                    <div style="background: rgba(243, 156, 18, 0.1); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                                        <i class="fas fa-layer-group" style="font-size: 28px; color: var(--primary-color);"></i>
-                                    </div>
-                                    <h3 style="font-size: 18px; font-weight: 700; color: var(--secondary-color);">Pilihan Skema</h3>
-                                    <p style="color: #64748b; font-size: 13px;">Pilih skema payroll, pajak, dan komponen untuk klien ini.</p>
-                                </div>
+                                                <!-- Panel: Pilihan Skema -->
+                                                <div id="viewKompensasi" class="w-tab-panel">
+                            <div class="content-card" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
 
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
                                     
-                                    <!-- Hirarki Pemilihan Level Skema -->
-                                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                                            <div style="width: 36px; height: 36px; background: rgba(52, 152, 219, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-sitemap" style="color: #3498db; font-size: 16px;"></i>
-                                            </div>
-                                            <div>
-                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Target Level Skema</h4>
-                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Pilih level organisasi yang akan dipasangkan skema ini</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="form-group" style="margin-bottom: 15px;">
-                                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin-bottom: 6px; display: block;">Terapkan Pada Level <span style="color:red">*</span></label>
-                                            <select id="pilihanSkemaLevel" onchange="handlePilihanSkemaLevelChange()" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; background: white; cursor: pointer;">
-                                                <option value="general">General Klien (Default)</option>
-                                                <option value="divisi">Divisi Tertentu</option>
-                                                <option value="departemen">Departemen Tertentu</option>
-                                                <option value="posisi">Posisi / Jabatan Tertentu</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <!-- Cascading Dropdowns -->
-                                        <div id="pilihanSkemaDivisiContainer" style="display: none; margin-bottom: 15px;">
-                                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin-bottom: 6px; display: block;">Divisi <span style="color:red">*</span></label>
-                                            <select id="pilihanSkemaDivisiId" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; background: white;">
-                                                <option value="">-- Pilih Divisi --</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div id="pilihanSkemaDeptContainer" style="display: none; margin-bottom: 15px;">
-                                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin-bottom: 6px; display: block;">Departemen <span style="color:red">*</span></label>
-                                            <select id="pilihanSkemaDeptId" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; background: white;">
-                                                <option value="">-- Pilih Departemen --</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div id="pilihanSkemaPosisiContainer" style="display: none;">
-                                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin-bottom: 6px; display: block;">Posisi / Jabatan <span style="color:red">*</span></label>
-                                            <select id="pilihanSkemaPosisiId" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; background: white;">
-                                                <option value="">-- Pilih Posisi --</option>
-                                            </select>
-                                        </div>
-                                    </div>
                                     <!-- Skema Payroll Card -->
-                                    <div style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
                                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                                             <div style="width: 40px; height: 40px; background: rgba(52,152,219,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
                                                 <i class="fas fa-file-invoice-dollar" style="font-size: 18px; color: #3498db;"></i>
                                             </div>
-                                            <div>
-                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Payroll</h4>
-                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Metode perhitungan gaji karyawan</p>
-                                            </div>
-                                        </div>
-                                        <select id="pilihanSkemaPayrollTipe" onchange="handlePilihanSkemaPayrollTipeChange()" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer; margin-bottom: 12px;">
-                                            <option value="">-- Pilih Tipe Skema Payroll --</option>
-                                            <option value="UMP">UMP (Upah Minimum Provinsi)</option>
-                                            <option value="UMK">UMK (Upah Minimum Kota/Kabupaten)</option>
-                                            <option value="Nominal">Nominal Custom</option>
-                                            <option value="Template">Template Skema Payroll</option>
-                                        </select>
-
-                                        <div id="pilihanSkemaPayrollWilayahContainer" style="display: none; margin-bottom: 12px;">
-                                            <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px; display: block;">Pilih Wilayah UMP/UMK</label>
-                                            <select id="pilihanSkemaPayrollWilayah" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                                <option value="">-- Pilih Wilayah --</option>
-                                            </select>
-                                        </div>
-
-                                        <div id="pilihanSkemaPayrollNominalContainer" style="display: none; margin-bottom: 12px;">
-                                            <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px; display: block;">Masukkan Nominal Gaji Pokok (Rp)</label>
-                                            <input type="number" id="pilihanSkemaPayrollNominal" placeholder="Contoh: 5000000" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white;">
-                                        </div>
-
-                                        <div id="pilihanSkemaPayrollTemplateContainer" style="display: none; margin-bottom: 12px;">
-                                            <label style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px; display: block;">Pilih Template Skema</label>
-                                            <select id="pilihanSkemaPayroll" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                                <option value="">-- Pilih Skema Payroll --</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Skema Pajak Card -->
-                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
-                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                                            <div style="width: 40px; height: 40px; background: rgba(231,76,60,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-percent" style="font-size: 18px; color: #e74c3c;"></i>
-                                            </div>
-                                            <div>
-                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Pajak</h4>
-                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Metode perhitungan PPh 21</p>
-                                            </div>
-                                        </div>
-                                        <select id="pilihanSkemaPajak" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                            <option value="">-- Pilih Skema Pajak --</option>
-                                        </select>
-                                    </div>
-
-                                    <!-- Skema Komponen Card -->
-                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
-                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                                            <div style="display: flex; align-items: center; gap: 12px;">
-                                                <div style="width: 40px; height: 40px; background: rgba(16,185,129,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                    <i class="fas fa-coins" style="font-size: 18px; color: #10b981;"></i>
-                                                </div>
-                                                <div>
-                                                    <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Komponen</h4>
-                                                    <p style="font-size: 12px; color: #94a3b8; margin: 0;">Komponen pendapatan & potongan</p>
-                                                </div>
-                                            </div>
-                                            <button onclick="goToMasterKompensasi()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-                                                <i class="fas fa-external-link-alt"></i> Kelola di Master
-                                            </button>
-                                        </div>
-                                        <div style="margin-bottom: 12px;">
-                                            <select id="pilihanSkemaKompensasi" onchange="renderPilihanKompensasiSummary(this.value)" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; font-size: 14px; font-weight: 500; background: white; cursor: pointer;">
-                                                <option value="">-- Pilih Skema Komponen --</option>
-                                            </select>
-                                        </div>
-                                        <div id="pilihanKompensasiSummary" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; min-height: 60px;">
-                                            <p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema komponen di atas untuk melihat detailnya.</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- Skema Absensi Card -->
-                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
-                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                                            <div style="width: 40px; height: 40px; background: rgba(231, 76, 60, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                                                <i class="fas fa-calendar-times" style="font-size: 18px; color: #e74c3c;"></i>
-                                            </div>
-                                            <div>
-                                                <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Skema Absensi</h4>
-                                                <p style="font-size: 12px; color: #94a3b8; margin: 0;">Aturan prorate dan pemotongan absen</p>
-                                            </div>
-                                        </div>
-                                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                                            <label class="absen-config-item" style="cursor: pointer;">
-                                                <div>
-                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Prorate Gaji</strong>
-                                                    <span style="font-size: 12px; color: #94a3b8;">Hitung gaji secara proporsional sesuai hari kerja</span>
-                                                </div>
-                                                <input type="checkbox" id="cfgProrate" style="width: 20px; height: 20px; cursor: pointer;">
-                                            </label>
-                                            <label class="absen-config-item" style="cursor: pointer;">
-                                                <div>
-                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Absen Tidak Potong Gaji</strong>
-                                                    <span style="font-size: 12px; color: #94a3b8;">Absensi ketidakhadiran tidak memotong gaji bulanan</span>
-                                                </div>
-                                                <input type="checkbox" id="cfgAbsenTidakPotong" style="width: 20px; height: 20px; cursor: pointer;">
-                                            </label>
-                                            <div class="absen-config-item" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 24px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
-                                                <div>
-                                                    <strong style="font-size: 14px; color: #1e293b; display: block; margin-bottom: 2px;">Nominal Potongan Absen</strong>
-                                                    <span style="font-size: 12px; color: #94a3b8;">Jumlah potongan per hari absen</span>
-                                                </div>
-                                                <input type="text" id="cfgNominalPotongan" onkeyup="formatRupiahInput(this)" placeholder="0" style="padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; width: 150px; text-align: right; font-size: 14px; font-weight: 600; outline: none;">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <div style="text-align: center; margin-top: 25px;">
                                     <button onclick="simpanPilihanSkema()" class="btn-save" style="background: var(--primary-color); padding: 12px 30px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
                                         <i class="fas fa-save"></i> Simpan Pilihan Skema

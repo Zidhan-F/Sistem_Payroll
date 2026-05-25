@@ -10,5 +10,5 @@ class PositionModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['nama', 'level', 'employee_name', 'email', 'phone', 'department_id'];
+    protected $allowedFields    = ['nama', 'level', 'employee_name', 'email', 'phone', 'department_id', 'hari_kerja'];
 }

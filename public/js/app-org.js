@@ -39,10 +39,9 @@ async function renderClientOrg(clientId){
                         <div class="nested-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;" data-display-type="grid">`;
                     if(dept.positions&&dept.positions.length>0){
                         dept.positions.forEach(pos=>{
-                            const emp=pos.employees&&pos.employees.length>0?pos.employees[0]:null;
-                            h+=`<div style="display:flex;align-items:center;gap:12px;background:white;padding:12px;border-radius:10px;border:1px solid #eef2f7;box-shadow:0 2px 4px rgba(0,0,0,0.01);${emp?'border-left:4px solid var(--primary-color);':'border:1px dashed #cbd5e0;background:#f8fafc;'}">
-                                <div style="width:36px;height:36px;background:${emp?'#fff9f0':'#f1f5f9'};color:${emp?'var(--primary-color)':'#94a3b8'};border-radius:8px;display:grid;place-items:center;font-size:14px;"><i class="fas ${emp?'fa-user-tie':'fa-user-plus'}"></i></div>
-                                <div style="display:flex;flex-direction:column;flex-grow:1;"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#64748b;">${pos.level ? pos.level + ' — ' : ''}${pos.nama}</span><span style="font-weight:700;color:#1e293b;font-size:13px;">${emp?emp.nama:''}</span></div>
+                            h+=`<div style="display:flex;align-items:center;gap:12px;background:white;padding:12px;border-radius:10px;border:1px solid #eef2f7;box-shadow:0 2px 4px rgba(0,0,0,0.01);border-left:4px solid var(--primary-color);">
+                                <div style="width:36px;height:36px;background:#fff9f0;color:var(--primary-color);border-radius:8px;display:grid;place-items:center;font-size:14px;"><i class="fas fa-briefcase"></i></div>
+                                <div style="display:flex;flex-direction:column;flex-grow:1;"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#64748b;">${pos.level || 'Posisi'}</span><span style="font-weight:700;color:#1e293b;font-size:13px;">${pos.nama}</span></div>
                                 <div class="action-btns" style="gap:4px;"><button class="btn-icon btn-edit" style="padding:4px;font-size:10px;" onclick="bukaModalOrg('posisi','edit',${pos.id},${dept.id})"><i class="fas fa-edit"></i></button><button class="btn-icon btn-delete" style="padding:4px;font-size:10px;" onclick="hapusOrg('posisi',${pos.id})"><i class="fas fa-trash"></i></button></div></div>`;
                         });
                     } else h+='<div class="empty-state" style="font-size:11px;color:#94a3b8;grid-column:1/-1;">Belum ada posisi.</div>';
@@ -97,8 +96,12 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
     document.getElementById('modalOrgTitle').innerText=(mode==='edit'?'Edit ':'Tambah ')+lbl;
     document.getElementById('labelOrgName').innerText='Nama '+lbl;
     document.getElementById('orgName').placeholder='Masukkan nama '+lbl.toLowerCase();
-    document.getElementById('posEmployeeField').style.display=type==='posisi'?'block':'none';
-    document.getElementById('posExtraFields').style.display=type==='posisi'?'block':'none';
+    if(document.getElementById('posEmployeeField')) {
+        document.getElementById('posEmployeeField').style.display=type==='posisi'?'block':'none';
+    }
+    if(document.getElementById('posExtraFields')) {
+        document.getElementById('posExtraFields').style.display=type==='posisi'?'block':'none';
+    }
     
     // Render quick-select badges
     const badgeContainer = document.getElementById('quickBadgeContainer');

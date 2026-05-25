@@ -65,6 +65,19 @@ class Payroll extends ResourceController
                             ->get()
                             ->getRow();
 
+        $taxScheme = null;
+        if ($payrollConfig && !empty($payrollConfig->tax_scheme_id)) {
+            $taxScheme = $db->table('tax_schemes')->where('id', $payrollConfig->tax_scheme_id)->get()->getRow();
+        }
+
+        $minimumWage = 0;
+        if ($payrollConfig && !empty($payrollConfig->minimum_wage_id)) {
+            $mw = $db->table('minimum_wages')->where('id', $payrollConfig->minimum_wage_id)->get()->getRow();
+            if ($mw) {
+                $minimumWage = floatval($mw->nominal);
+            }
+        }
+
         // 2. Ambil Komponen Payroll Custom (Global Master Skema Kompensasi or Legacy)
         $components = [];
         if ($payrollConfig && !empty($payrollConfig->compensation_scheme_id)) {
@@ -120,29 +133,9 @@ class Payroll extends ResourceController
             // Hitung Lembur (jika rate skema 0, pakai standar depnaker 1/173)
             $otRate = $otRateSchema > 0 ? $otRateSchema : ($baseSalary / 173);
             $overtimePay = $otRate * 1.5 * $dk['lembur'];
-
+            
             // Potongan Absen (Gaji Pokok / 22 hari kerja * jumlah alpa)
             $potonganAlpa = ($baseSalary / 22) * $dk['alpa'];
-
-            // Hitung BPJS berdasarkan Skema
-            $bpjsKes = $baseSalary * $bpjsKesRate;
-            $bpjsJht = $baseSalary * $bpjsJhtRate;
-
-            // Hitung Pajak Sederhana (5% dari Gross)
-            $gross = $baseSalary + $overtimePay;
-            $taxAmount = $gross * 0.05;
-            $tunjanganPajak = 0;
-
-            if ($taxMethod === 'Gross') {
-                $pajakPotongan = $taxAmount;
-            } elseif ($taxMethod === 'Net') {
-                $pajakPotongan = 0;
-            } elseif ($taxMethod === 'Gross Up') {
-                $tunjanganPajak = $taxAmount;
-                $pajakPotongan = $taxAmount;
-            } else {
-                $pajakPotongan = $taxAmount;
-            }
 
             // Hitung komponen custom
             $customTunjangan = 0;
@@ -171,8 +164,45 @@ class Payroll extends ResourceController
                 ];
             }
 
-            $totalTunjangan = $overtimePay + $tunjanganPajak + $customTunjangan;
-            $totalPotongan = $bpjsKes + $bpjsJht + $potonganAlpa + $pajakPotongan + $customPotongan;
+            // Hitung BPJS & Pajak TER 2024
+            $empMinimumWage = $minimumWage;
+            if (!empty($emp['minimum_wage_id'])) {
+                $mw = $db->table('minimum_wages')->where('id', $emp['minimum_wage_id'])->get()->getRow();
+                if ($mw) {
+                    $empMinimumWage = floatval($mw->nominal);
+                }
+            }
+
+            $ptkpStatus = 'TK/0';
+            if (!empty($emp['ptkp'])) {
+                $ptkpStatus = $emp['ptkp'];
+            } elseif ($taxScheme && !empty($taxScheme->ptkp_status)) {
+                $ptkpStatus = $taxScheme->ptkp_status;
+            }
+
+            $totalPendapatanKotor = $baseSalary + $overtimePay + $customTunjangan;
+            $calc = $this->calculateBpjsAndTax($baseSalary, $totalPendapatanKotor, $taxScheme, $empMinimumWage, $ptkpStatus);
+
+            $bpjsKesKaryawan = $calc['bpjs_kes_karyawan'];
+            $bpjsJhtKaryawan = $calc['bpjs_jht_karyawan'];
+            $bpjsJpKaryawan = $calc['bpjs_jp_karyawan'];
+            $pph21 = $calc['pph21'];
+            $taxAllowance = $calc['tax_allowance'];
+            $curTaxMethod = $calc['metode_pajak'];
+
+            $employeeBpjsDeductions = $bpjsKesKaryawan + $bpjsJhtKaryawan + $bpjsJpKaryawan;
+
+            if ($curTaxMethod === 'Gross Up') {
+                $totalTunjangan = $overtimePay + $taxAllowance + $customTunjangan;
+                $totalPotongan = $employeeBpjsDeductions + $pph21 + $potonganAlpa + $customPotongan;
+            } elseif ($curTaxMethod === 'Gross') {
+                $totalTunjangan = $overtimePay + $customTunjangan;
+                $totalPotongan = $employeeBpjsDeductions + $pph21 + $potonganAlpa + $customPotongan;
+            } else { // Nett
+                $totalTunjangan = $overtimePay + $customTunjangan;
+                $totalPotongan = $employeeBpjsDeductions + $potonganAlpa + $customPotongan;
+            }
+
             $thp = $baseSalary + $totalTunjangan - $totalPotongan;
 
             // Delete existing if re-generating
@@ -197,11 +227,14 @@ class Payroll extends ResourceController
 
             // Simpan Detail standar
             if ($overtimePay > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Lembur', 'tipe' => 'Tunjangan', 'jumlah' => $overtimePay]);
-            if ($tunjanganPajak > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Tunjangan Pajak (Gross Up)', 'tipe' => 'Tunjangan', 'jumlah' => $tunjanganPajak]);
-            if ($bpjsKes > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Kesehatan', 'tipe' => 'Potongan', 'jumlah' => $bpjsKes]);
-            if ($bpjsJht > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Ketenagakerjaan', 'tipe' => 'Potongan', 'jumlah' => $bpjsJht]);
+            if ($taxAllowance > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Tunjangan Pajak (Gross Up)', 'tipe' => 'Tunjangan', 'jumlah' => $taxAllowance]);
+            if ($bpjsKesKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Kesehatan (1% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsKesKaryawan]);
+            if ($bpjsJhtKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JHT (2% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsJhtKaryawan]);
+            if ($bpjsJpKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JP (1% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsJpKaryawan]);
             if ($potonganAlpa > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Alpa/Absen', 'tipe' => 'Potongan', 'jumlah' => $potonganAlpa]);
-            if ($pajakPotongan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Pajak PPh 21', 'tipe' => 'Potongan', 'jumlah' => $pajakPotongan]);
+            if ($pph21 > 0 && $curTaxMethod !== 'Net') {
+                $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Pajak PPh 21', 'tipe' => 'Potongan', 'jumlah' => $pph21]);
+            }
 
             // Simpan Detail custom
             foreach ($customDetails as $cd) {
@@ -406,4 +439,215 @@ class Payroll extends ResourceController
             'period' => $period
         ]);
     }
+
+    private function calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus)
+    {
+        $result = [
+            'bpjs_kes_karyawan' => 0,
+            'bpjs_kes_perusahaan' => 0,
+            'bpjs_jht_karyawan' => 0,
+            'bpjs_jht_perusahaan' => 0,
+            'bpjs_jp_karyawan' => 0,
+            'bpjs_jp_perusahaan' => 0,
+            'bpjs_jkk_perusahaan' => 0,
+            'bpjs_jkm_perusahaan' => 0,
+            'pph21' => 0,
+            'tax_allowance' => 0,
+            'ter_rate' => 0,
+            'metode_pajak' => 'Gross'
+        ];
+
+        if (!$taxScheme) {
+            return $result;
+        }
+
+        $result['metode_pajak'] = $taxScheme->metode ?? 'Gross';
+
+        if ($gajiPokok <= 0) {
+            return $result;
+        }
+
+        // Rates & limits configuration
+        $kesRateEmp = floatval($taxScheme->bpjs_kes_karyawan ?? 1.0) / 100;
+        $kesRateCo = floatval($taxScheme->bpjs_kes_perusahaan ?? 4.0) / 100;
+        $kesMaxSal = floatval($taxScheme->bpjs_kes_max_salary ?? 12000000);
+
+        $jhtRateEmp = floatval($taxScheme->bpjs_jht_karyawan ?? 2.0) / 100;
+        $jhtRateCo = floatval($taxScheme->bpjs_jht_perusahaan ?? 3.7) / 100;
+
+        $jpRateEmp = floatval($taxScheme->bpjs_jp_karyawan ?? 1.0) / 100;
+        $jpRateCo = floatval($taxScheme->bpjs_jp_perusahaan ?? 2.0) / 100;
+        $jpMaxSal = floatval($taxScheme->bpjs_jp_max_salary ?? 10024600);
+
+        $jkkRateCo = floatval($taxScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
+        $jkmRateCo = floatval($taxScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
+
+        // Wage base for BPJS: must be at least the regional minimum wage (if minimum wage is set)
+        $wageBase = $gajiPokok;
+        if ($minimumWage > 0 && $gajiPokok < $minimumWage) {
+            $wageBase = $minimumWage;
+        }
+
+        // Apply caps
+        $kesWageBase = min($wageBase, $kesMaxSal);
+        $jpWageBase = min($wageBase, $jpMaxSal);
+
+        // Calculations
+        $result['bpjs_kes_karyawan'] = $kesWageBase * $kesRateEmp;
+        $result['bpjs_kes_perusahaan'] = $kesWageBase * $kesRateCo;
+
+        $result['bpjs_jht_karyawan'] = $wageBase * $jhtRateEmp;
+        $result['bpjs_jht_perusahaan'] = $wageBase * $jhtRateCo;
+
+        $result['bpjs_jp_karyawan'] = $jpWageBase * $jpRateEmp;
+        $result['bpjs_jp_perusahaan'] = $jpWageBase * $jpRateCo;
+
+        $result['bpjs_jkk_perusahaan'] = $wageBase * $jkkRateCo;
+        $result['bpjs_jkm_perusahaan'] = $wageBase * $jkmRateCo;
+
+        // PPh 21 TER 2024 Calculation
+        $bpjsCoPremiums = $result['bpjs_kes_perusahaan'] + $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
+        
+        $ptkpCategory = $this->determineTerCategory($ptkpStatus);
+
+        if ($result['metode_pajak'] === 'Gross Up') {
+            // Iteration loop for Gross Up
+            $allowance = 0;
+            for ($i = 0; $i < 5; $i++) {
+                $brutoPajak = $totalPendapatanKotor + $bpjsCoPremiums + $allowance;
+                $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
+                $allowance = $brutoPajak * ($terRate / 100);
+            }
+            $result['tax_allowance'] = $allowance;
+            $result['pph21'] = $allowance;
+            $result['ter_rate'] = $terRate;
+        } else {
+            $brutoPajak = $totalPendapatanKotor + $bpjsCoPremiums;
+            $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
+            $result['pph21'] = $brutoPajak * ($terRate / 100);
+            $result['ter_rate'] = $terRate;
+        }
+
+        return $result;
+    }
+
+    private function determineTerCategory($ptkpStatus)
+    {
+        $ptkpStatus = strtoupper(trim($ptkpStatus ?? 'TK/0'));
+        if (in_array($ptkpStatus, ['TK/0', 'TK/1', 'K/0'])) {
+            return 'A';
+        }
+        if (in_array($ptkpStatus, ['TK/2', 'TK/3', 'K/1', 'K/2'])) {
+            return 'B';
+        }
+        if ($ptkpStatus === 'K/3') {
+            return 'C';
+        }
+        return 'A';
+    }
+
+    private function getTerRate($category, $bruto)
+    {
+        if ($category === 'A') {
+            if ($bruto <= 5400000) return 0.0;
+            if ($bruto <= 5650000) return 0.25;
+            if ($bruto <= 5950000) return 0.5;
+            if ($bruto <= 6300000) return 0.75;
+            if ($bruto <= 6750000) return 1.0;
+            if ($bruto <= 7500000) return 1.25;
+            if ($bruto <= 8550000) return 1.5;
+            if ($bruto <= 9650000) return 1.75;
+            if ($bruto <= 10950000) return 2.0;
+            if ($bruto <= 12950000) return 3.0;
+            if ($bruto <= 15000000) return 4.0;
+            if ($bruto <= 17850000) return 5.0;
+            if ($bruto <= 21050000) return 6.0;
+            if ($bruto <= 24450000) return 7.0;
+            if ($bruto <= 29350000) return 8.0;
+            if ($bruto <= 35900000) return 9.0;
+            if ($bruto <= 43850000) return 10.0;
+            if ($bruto <= 54200000) return 11.0;
+            if ($bruto <= 68600000) return 12.0;
+            if ($bruto <= 83700000) return 13.0;
+            if ($bruto <= 99600000) return 14.0;
+            if ($bruto <= 165600000) return 15.0;
+            if ($bruto <= 219200000) return 19.0;
+            if ($bruto <= 276000000) return 20.0;
+            if ($bruto <= 346500000) return 21.0;
+            if ($bruto <= 439700000) return 22.0;
+            if ($bruto <= 563800000) return 23.0;
+            if ($bruto <= 775200000) return 24.0;
+            if ($bruto <= 1121200000) return 25.0;
+            if ($bruto <= 1512200000) return 26.0;
+            if ($bruto <= 2000000000) return 30.0;
+            return 34.0;
+        } elseif ($category === 'B') {
+            if ($bruto <= 6200000) return 0.0;
+            if ($bruto <= 6500000) return 0.25;
+            if ($bruto <= 6850000) return 0.5;
+            if ($bruto <= 7300000) return 0.75;
+            if ($bruto <= 7800000) return 1.0;
+            if ($bruto <= 8850000) return 1.25;
+            if ($bruto <= 9800000) return 1.5;
+            if ($bruto <= 10950000) return 1.75;
+            if ($bruto <= 12300000) return 2.0;
+            if ($bruto <= 14850000) return 3.0;
+            if ($bruto <= 17200000) return 4.0;
+            if ($bruto <= 19550000) return 5.0;
+            if ($bruto <= 22700000) return 6.0;
+            if ($bruto <= 26600000) return 7.0;
+            if ($bruto <= 31850000) return 8.0;
+            if ($bruto <= 39400000) return 9.0;
+            if ($bruto <= 48250000) return 10.0;
+            if ($bruto <= 58750000) return 11.0;
+            if ($bruto <= 72050000) return 12.0;
+            if ($bruto <= 88750000) return 13.0;
+            if ($bruto <= 107800000) return 14.0;
+            if ($bruto <= 168600000) return 15.0;
+            if ($bruto <= 219900000) return 19.0;
+            if ($bruto <= 276300000) return 20.0;
+            if ($bruto <= 346800000) return 21.0;
+            if ($bruto <= 439900000) return 22.0;
+            if ($bruto <= 564000000) return 23.0;
+            if ($bruto <= 775400000) return 24.0;
+            if ($bruto <= 1121500000) return 25.0;
+            if ($bruto <= 1512500000) return 26.0;
+            if ($bruto <= 2000000000) return 30.0;
+            return 34.0;
+        } else { // Category C
+            if ($bruto <= 6600000) return 0.0;
+            if ($bruto <= 6950000) return 0.25;
+            if ($bruto <= 7350000) return 0.5;
+            if ($bruto <= 7800000) return 0.75;
+            if ($bruto <= 8300000) return 1.0;
+            if ($bruto <= 9550000) return 1.25;
+            if ($bruto <= 10650000) return 1.5;
+            if ($bruto <= 11850000) return 1.75;
+            if ($bruto <= 13600000) return 2.0;
+            if ($bruto <= 16000000) return 3.0;
+            if ($bruto <= 18550000) return 4.0;
+            if ($bruto <= 20850000) return 5.0;
+            if ($bruto <= 24550000) return 6.0;
+            if ($bruto <= 28600000) return 7.0;
+            if ($bruto <= 34600000) return 8.0;
+            if ($bruto <= 42300000) return 9.0;
+            if ($bruto <= 51600000) return 10.0;
+            if ($bruto <= 62900000) return 11.0;
+            if ($bruto <= 77250000) return 12.0;
+            if ($bruto <= 95100000) return 13.0;
+            if ($bruto <= 115400000) return 14.0;
+            if ($bruto <= 179800000) return 15.0;
+            if ($bruto <= 233700000) return 19.0;
+            if ($bruto <= 293700000) return 20.0;
+            if ($bruto <= 368500000) return 21.0;
+            if ($bruto <= 467400000) return 22.0;
+            if ($bruto <= 599500000) return 23.0;
+            if ($bruto <= 824200000) return 24.0;
+            if ($bruto <= 1192200000) return 25.0;
+            if ($bruto <= 1607700000) return 26.0;
+            if ($bruto <= 2126000000) return 30.0;
+            return 34.0;
+        }
+    }
 }
+

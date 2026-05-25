@@ -1,4 +1,4 @@
-﻿            <!-- Section: Manajemen Karyawan (Global) -->
+            <!-- Section: Manajemen Karyawan (Global) -->
             <div id="viewManajemenKaryawan" class="view-section">
                 <div class="content-card">
                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
@@ -11,23 +11,25 @@
                         </div>
                     </div>
 
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>
-                                                    <th>NIK</th>
-                                                    <th>Nama Karyawan</th>
-                                                    <th>Lahir</th>
-                                                    <th>NPWP</th>
-                                                    <th>Perusahaan / Klien</th>
-                                                    <th>Kontrak</th>
-                                                    <th>Lokasi Kerja</th>
-                                                    <th>Status Nikah</th>
-                                                    <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelKaryawanGlobalBody">
-                            <!-- Injected by app.js -->
-                        </tbody>
-                    </table>
+                    <div class="table-container">
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                                        <th>NIK</th>
+                                                        <th>Nama Karyawan</th>
+                                                        <th>Lahir</th>
+                                                        <th>NPWP</th>
+                                                        <th>Perusahaan / Klien</th>
+                                                        <th>Kontrak</th>
+                                                        <th>Lokasi Kerja</th>
+                                                        <th>Status Nikah</th>
+                                                        <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelKaryawanGlobalBody">
+                                <!-- Injected by app.js -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
