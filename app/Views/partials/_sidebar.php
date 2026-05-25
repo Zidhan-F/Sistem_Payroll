@@ -47,10 +47,10 @@
                 <i class="fas fa-cog"></i>
                 <span>Setting Skema</span>
             </li>
+            <li id="submenu_pajak" onclick="switchPayrollSub('pajak')">
+                <i class="fas fa-percent"></i>
+                <span>Skema BPJS & Pajak</span>
+            </li>
         </ul>
-        <li id="menuPajak" onclick="switchView('pajak')">
-            <i class="fas fa-percent"></i>
-            <span>Master Skema Pajak</span>
-        </li>
     </ul>
 </div>

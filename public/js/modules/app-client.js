@@ -99,6 +99,10 @@ function switchWorkspaceTab(tab) {
         }
     } else if (tab === 'kompensasi') {
         loadPilihanSkema();
+        // Load scheme templates for the client
+        if (typeof loadSchemeTemplates === 'function' && window.selectedClientId) {
+            loadSchemeTemplates(window.selectedClientId);
+        }
     } else if (tab === 'setup') {
         loadWorkspaceSetup();
     } else if (tab === 'pkwt') {

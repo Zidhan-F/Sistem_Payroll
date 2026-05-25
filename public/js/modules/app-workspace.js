@@ -269,116 +269,428 @@ async function renderPilihanKompensasiSummary(schemeId) {
 async function loadPilihanSkema() {
     if (!window.selectedClientId) return;
     try {
-        // Load payroll schemes for dropdown
+        // Fetch payroll schemes for dropdown inside modal later
         const psRes = await fetch(`${API_URL}/payroll-schemes`);
-        const payrollSchemes = await psRes.json();
-        const psSelect = document.getElementById('pilihanSkemaPayroll');
-        if (psSelect) {
-            psSelect.innerHTML = '<option value="">-- Pilih Skema Payroll --</option>' +
-                payrollSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.tipe || 'Umum'})</option>`).join('');
-        }
+        window.payrollSchemes = await psRes.json();
 
-        // Load tax schemes for dropdown
+        // Fetch tax schemes for dropdown inside modal later
         const tsRes = await fetch(`${API_URL}/tax-schemes`);
-        const taxSchemes = await tsRes.json();
-        const tsSelect = document.getElementById('pilihanSkemaPajak');
-        if (tsSelect) {
-            tsSelect.innerHTML = '<option value="">-- Pilih Skema Pajak --</option>' +
-                taxSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.metode || '-'})</option>`).join('');
-        }
+        window.taxSchemes = await tsRes.json();
 
-        // Load global compensation schemes for dropdown
-        const compRes = await fetch(`${API_URL}/compensation-schemes`);
-        const compensationSchemes = await compRes.json();
-        const compSelect = document.getElementById('pilihanSkemaKompensasi');
-        if (compSelect) {
-            compSelect.innerHTML = '<option value="">-- Pilih Skema Komponen --</option>' +
-                compensationSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
-        }
-
-        // Load current client config to pre-select values
+        // Load current client configs to render in the table
         const cfgRes = await fetch(`${API_URL}/client-configs`);
         const configs = await cfgRes.json();
-        const conf = configs.find(c => c.client_id == window.selectedClientId);
         
-        const summaryDiv = document.getElementById('pilihanKompensasiSummary');
-        if (summaryDiv) {
-            summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema komponen di atas untuk melihat detailnya.</p>`;
-        }
-
-        if (conf) {
-            const tipeSelect = document.getElementById('pilihanSkemaPayrollTipe');
-            if (tipeSelect) {
-                tipeSelect.value = conf.payroll_type || '';
-                await handlePilihanSkemaPayrollTipeChange();
-                
-                if (conf.payroll_type === 'UMP' || conf.payroll_type === 'UMK') {
-                    const wilSelect = document.getElementById('pilihanSkemaPayrollWilayah');
-                    if (wilSelect && conf.minimum_wage_id) {
-                        wilSelect.value = conf.minimum_wage_id;
-                    }
-                } else if (conf.payroll_type === 'Nominal') {
-                    const nomInput = document.getElementById('pilihanSkemaPayrollNominal');
-                    if (nomInput && conf.custom_nominal) {
-                        nomInput.value = conf.custom_nominal;
-                    }
-                } else if (conf.payroll_type === 'Template') {
-                    if (psSelect && conf.payroll_scheme_id) {
-                        psSelect.value = conf.payroll_scheme_id;
-                    }
-                }
-            }
-            if (tsSelect && conf.tax_scheme_id) tsSelect.value = conf.tax_scheme_id;
-            if (compSelect && conf.compensation_scheme_id) {
-                compSelect.value = conf.compensation_scheme_id;
-                renderPilihanKompensasiSummary(conf.compensation_scheme_id);
-            }
-        } else {
-            const tipeSelect = document.getElementById('pilihanSkemaPayrollTipe');
-            if (tipeSelect) {
-                tipeSelect.value = '';
-                handlePilihanSkemaPayrollTipeChange();
-            }
-        }
-        await loadAbsenConfig();
+        renderPilihanSkemaTable(configs);
     } catch (err) {
         console.error('Error loading pilihan skema:', err);
     }
 }
+
+function renderPilihanSkemaTable(configs) {
+    const tbody = document.getElementById('tabelPilihanSkemaKlien');
+    if (!tbody) return;
+
+    // Filter configs for active client and having a valid setup_id
+    const clientConfigs = configs.filter(c => c.client_id == window.selectedClientId && c.setup_id);
+
+    if (clientConfigs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                    Belum ada skema payroll yang terdaftar. Klik tombol "Tambah Skema" untuk mengkonfigurasi.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = clientConfigs.map(c => {
+        return `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 12px 15px; font-weight: 500; color: #334155;">${c.division_name || '<span style="color: #94a3b8; font-style: italic;">Global (Semua)</span>'}</td>
+                <td style="padding: 12px 15px; font-weight: 500; color: #334155;">${c.department_name || '-'}</td>
+                <td style="padding: 12px 15px; font-weight: 500; color: #334155;">${c.position_name || '-'}</td>
+                <td style="padding: 12px 15px; font-weight: 600; color: var(--primary-color);">${c.payroll_scheme_name || '-'}</td>
+                <td style="padding: 12px 15px; font-weight: 600; color: #0f766e;">${c.tax_scheme_name || '-'}</td>
+                <td style="padding: 12px 15px; text-align: center;">
+                    <div style="display: flex; justify-content: center; gap: 8px;">
+                        <button class="btn-action-edit" onclick="editPilihanSkema(${c.setup_id})" style="background: #e0f2fe; color: #0369a1; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Edit">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn-action-delete" onclick="deletePilihanSkema(${c.setup_id})" style="background: #fee2e2; color: #b91c1c; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Hapus">
+                            <i class="fas fa-trash-alt"></i> Hapus
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.openModalPilihanSkema = async function(conf = null) {
+    if (!window.selectedClientId) {
+        showToast('Pilih klien terlebih dahulu!', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('modalPilihanSkema');
+    if (!modal) return;
+
+    // Title & Reset
+    document.getElementById('modalPilihanSkemaTitle').innerText = conf ? 'Edit Skema Client' : 'Tambah Skema Client';
+    document.getElementById('pilihanSkemaSetupId').value = conf ? (conf.setup_id || '') : '';
+    document.getElementById('modalPilihanSkemaNamaKlien').value = window.selectedClientName || '';
+
+    // Load hierarchy
+    const divSelect = document.getElementById('modalPilihanSkemaDivisi');
+    const deptSelect = document.getElementById('modalPilihanSkemaDepartemen');
+    const posSelect = document.getElementById('modalPilihanSkemaPosisi');
+    const hkSelect = document.getElementById('modalPilihanSkemaHariKerja');
+    const psSelect = document.getElementById('modalPilihanSkemaPayroll');
+    const tsSelect = document.getElementById('modalPilihanSkemaPajak');
+
+    divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>';
+    deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+    posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+    hkSelect.value = '';
+    psSelect.value = '';
+    tsSelect.value = '';
+
+    // Hide detail buttons
+    handleModalPilihanSkemaPajakChange('');
+    handleModalPilihanSkemaPayrollChange('');
+
+    // Populate dropdown values
+    if (window.payrollSchemes) {
+        psSelect.innerHTML = '<option value="">-- Pilih Skema Payroll --</option>' +
+            window.payrollSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.tipe || 'Umum'})</option>`).join('');
+    }
+    if (window.taxSchemes) {
+        tsSelect.innerHTML = '<option value="">-- Pilih Skema Pajak --</option>' +
+            window.taxSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.metode || '-'})</option>`).join('');
+    }
+
+    try {
+        const r = await fetch(`${API_URL}/org?client_id=${window.selectedClientId}`);
+        const orgHierarchy = await r.json();
+
+        if (Array.isArray(orgHierarchy)) {
+            orgHierarchy.forEach(div => {
+                divSelect.innerHTML += `<option value="${div.id}">${div.nama}</option>`;
+            });
+        }
+
+        // Setup cascading triggers inside modal
+        divSelect.onchange = () => {
+            const divId = divSelect.value;
+            deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+            hkSelect.value = '';
+            if (divId && Array.isArray(orgHierarchy)) {
+                const division = orgHierarchy.find(d => d.id == divId);
+                if (division && Array.isArray(division.departments)) {
+                    division.departments.forEach(dept => {
+                        deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
+                    });
+                }
+            }
+        };
+
+        deptSelect.onchange = () => {
+            const divId = divSelect.value;
+            const deptId = deptSelect.value;
+            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+            hkSelect.value = '';
+            if (divId && deptId && Array.isArray(orgHierarchy)) {
+                const division = orgHierarchy.find(d => d.id == divId);
+                if (division && Array.isArray(division.departments)) {
+                    const dept = division.departments.find(dp => dp.id == deptId);
+                    if (dept && Array.isArray(dept.positions)) {
+                        dept.positions.forEach(pos => {
+                            posSelect.innerHTML += `<option value="${pos.id}" data-hari-kerja="${pos.hari_kerja || 5}">${pos.nama}</option>`;
+                        });
+                    }
+                }
+            }
+        };
+
+        posSelect.onchange = () => {
+            const selectedOpt = posSelect.options[posSelect.selectedIndex];
+            if (selectedOpt && selectedOpt.value) {
+                const hk = selectedOpt.getAttribute('data-hari-kerja') || '5';
+                hkSelect.value = hk;
+            } else {
+                hkSelect.value = '';
+            }
+        };
+
+        // If editing (conf is provided), pre-fill values
+        if (conf) {
+            if (conf.division_id) {
+                divSelect.value = conf.division_id;
+                divSelect.onchange(); // trigger cascade
+            }
+            if (conf.department_id) {
+                deptSelect.value = conf.department_id;
+                deptSelect.onchange(); // trigger cascade
+            }
+            if (conf.position_id) {
+                posSelect.value = conf.position_id;
+                posSelect.onchange(); // trigger cascade
+            }
+            // Set payroll scheme
+            if (conf.payroll_scheme_id) {
+                psSelect.value = conf.payroll_scheme_id;
+                handleModalPilihanSkemaPayrollChange(conf.payroll_scheme_id);
+            }
+            // Set tax scheme
+            if (conf.tax_scheme_id) {
+                tsSelect.value = conf.tax_scheme_id;
+                handleModalPilihanSkemaPajakChange(conf.tax_scheme_id);
+            }
+            // Set working days
+            if (conf.position_id) {
+                setTimeout(() => {
+                    const posOpt = posSelect.querySelector(`option[value="${conf.position_id}"]`);
+                    if (posOpt) {
+                        hkSelect.value = posOpt.getAttribute('data-hari-kerja') || '5';
+                    }
+                }, 100);
+            }
+        }
+
+    } catch (err) {
+        console.error('Error in modal setup:', err);
+    }
+
+    modal.style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+};
+
+window.tutupModalPilihanSkema = function() {
+    const modal = document.getElementById('modalPilihanSkema');
+    if (modal) modal.style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+};
+
+window.editPilihanSkema = async function(setupId) {
+    if (!window.selectedClientId) return;
+    try {
+        const res = await fetch(`${API_URL}/client-configs`);
+        const configs = await res.json();
+        const conf = configs.find(c => c.setup_id == setupId);
+        if (!conf) return;
+
+        openModalPilihanSkema(conf);
+    } catch (err) {
+        console.error('Error opening edit modal:', err);
+        showToast('Gagal memuat detail konfigurasi', 'error');
+    }
+};
+
+window.deletePilihanSkema = async function(setupId) {
+    const confirmed = await showConfirm('Apakah Anda yakin ingin menghapus konfigurasi skema ini?');
+    if (confirmed) {
+        try {
+            const res = await fetch(`${API_URL}/client-configs/${setupId}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                showToast('Konfigurasi skema berhasil dihapus!', 'success');
+                loadPilihanSkema();
+            } else {
+                showToast('Gagal menghapus konfigurasi skema!', 'error');
+            }
+        } catch (err) {
+            console.error('Error deleting client config:', err);
+            showToast('Gagal menghapus konfigurasi skema!', 'error');
+        }
+    }
+};
+
+window.handleModalPilihanSkemaPajakChange = function(val) {
+    const btn = document.getElementById('modalBtnDetailSkemaPajak');
+    if (btn) {
+        btn.style.display = val ? 'inline-flex' : 'none';
+    }
+};
+
+window.lihatDetailSkemaPajakModal = function() {
+    const val = document.getElementById('modalPilihanSkemaPajak').value;
+    if (!val || !window.taxSchemes) return;
+    
+    const scheme = window.taxSchemes.find(s => s.id == val);
+    if (!scheme) return;
+    
+    // Populate modal contents
+    document.getElementById('dtlPajakNama').innerText = scheme.nama || '-';
+    document.getElementById('dtlPajakDeskripsi').innerText = scheme.deskripsi || 'Tidak ada deskripsi.';
+    document.getElementById('dtlPajakMetode').innerText = scheme.metode ? scheme.metode.toUpperCase() : '-';
+    document.getElementById('dtlPajakPtkp').innerText = scheme.ptkp_default || '-';
+    
+    document.getElementById('dtlPajakBpjsKesKaryawan').innerText = (scheme.bpjs_kes_karyawan !== undefined ? scheme.bpjs_kes_karyawan : '1.00') + '%';
+    document.getElementById('dtlPajakBpjsKesPerusahaan').innerText = (scheme.bpjs_kes_perusahaan !== undefined ? scheme.bpjs_kes_perusahaan : '4.00') + '%';
+    document.getElementById('dtlPajakBpjsKesMaxSalary').innerText = formatRupiah(scheme.bpjs_kes_max_salary || 12000000);
+    
+    document.getElementById('dtlPajakBpjsJht').innerText = `${scheme.bpjs_jht_karyawan !== undefined ? scheme.bpjs_jht_karyawan : '2.00'}% / ${scheme.bpjs_jht_perusahaan !== undefined ? scheme.bpjs_jht_perusahaan : '3.70'}%`;
+    document.getElementById('dtlPajakBpjsJp').innerText = `${scheme.bpjs_jp_karyawan !== undefined ? scheme.bpjs_jp_karyawan : '1.00'}% / ${scheme.bpjs_jp_perusahaan !== undefined ? scheme.bpjs_jp_perusahaan : '2.00'}%`;
+    document.getElementById('dtlPajakBpjsJpMaxSalary').innerText = formatRupiah(scheme.bpjs_jp_max_salary || 10024600);
+    
+    document.getElementById('dtlPajakBpjsJkk').innerText = (scheme.bpjs_jkk_perusahaan !== undefined ? scheme.bpjs_jkk_perusahaan : '0.24') + '%';
+    document.getElementById('dtlPajakBpjsJkm').innerText = (scheme.bpjs_jkm_perusahaan !== undefined ? scheme.bpjs_jkm_perusahaan : '0.30') + '%';
+    
+    // Open modal
+    document.getElementById('modalDetailSkemaPajak').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+};
+
+window.handleModalPilihanSkemaPayrollChange = function(val) {
+    const btn = document.getElementById('modalBtnDetailSkemaPayroll');
+    if (btn) {
+        btn.style.display = val ? 'inline-flex' : 'none';
+    }
+};
+
+window.lihatDetailSkemaPayrollModal = function() {
+    const val = document.getElementById('modalPilihanSkemaPayroll').value;
+    if (!val || !window.payrollSchemes) return;
+    
+    const scheme = window.payrollSchemes.find(s => s.id == val);
+    if (!scheme) return;
+    
+    // Populate modal contents
+    document.getElementById('dtlNama').innerText = scheme.nama || '-';
+    document.getElementById('dtlDeskripsi').innerText = scheme.deskripsi || 'Tidak ada deskripsi.';
+    document.getElementById('dtlTipe').innerText = scheme.tipe ? scheme.tipe.toUpperCase() : 'BULANAN';
+    document.getElementById('dtlProrate').innerText = scheme.prorate == 1 ? 'YA' : 'TIDAK';
+    document.getElementById('dtlAbsenTidakPotong').innerText = scheme.absen_tidak_potong == 1 ? 'YA' : 'TIDAK';
+    document.getElementById('dtlNominalPotongan').innerText = formatRupiah(scheme.nominal_potongan || 0);
+    
+    const listCont = document.getElementById('dtlComponentsList');
+    if (listCont) {
+        if (scheme.components && scheme.components.length > 0) {
+            listCont.innerHTML = scheme.components.map(c => {
+                const isPendapatan = c.tipe === 'pendapatan';
+                const badgeClass = isPendapatan ? 'pendapatan' : 'potongan';
+                const valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiah(c.nilai || 0);
+                
+                // Determine icon and color based on jenis_komponen
+                let iconClass = 'fa-coins';
+                let iconBg = '#f1f5f9';
+                let iconColor = '#64748b';
+                
+                if (c.jenis_komponen === 'basic_salary') {
+                    iconClass = 'fa-wallet'; iconBg = '#fef3c7'; iconColor = '#d97706';
+                } else if (isPendapatan) {
+                    iconClass = 'fa-plus-circle'; iconBg = '#d1fae5'; iconColor = '#059669';
+                } else {
+                    iconClass = 'fa-minus-circle'; iconBg = '#fee2e2'; iconColor = '#dc2626';
+                }
+                
+                return `
+                    <div class="component-item" style="padding: 10px 14px; margin-bottom: 8px;">
+                        <div class="component-item-left" style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <div class="component-kategori-icon" style="width: 30px; height: 30px; background: ${iconBg}; color: ${iconColor}; font-size: 12px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas ${iconClass}"></i>
+                            </div>
+                            <div class="component-info" style="display: flex; flex-direction: column;">
+                                <span class="comp-name" style="font-size: 13px; font-weight: 600; color: #1e293b;">${c.nama}</span>
+                                <span class="comp-kategori" style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px;">${c.sifat_kompensasi || 'komponen'} • ${c.tipe}</span>
+                            </div>
+                        </div>
+                        <div class="component-item-right" style="display: flex; align-items: center; gap: 12px;">
+                            <span class="component-value ${badgeClass}" style="font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 6px;">${valStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            listCont.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
+                    Tidak ada komponen tambahan pada skema ini.
+                </div>
+            `;
+        }
+    }
+    
+    // Open modal
+    document.getElementById('modalDetailSkemaPayroll').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+};
 
 async function simpanPilihanSkema() {
     if (!window.selectedClientId) {
         showToast('Pilih klien terlebih dahulu!', 'error');
         return;
     }
-    const payrollType = document.getElementById('pilihanSkemaPayrollTipe').value;
-    const minimumWageId = document.getElementById('pilihanSkemaPayrollWilayah').value;
-    const customNominal = document.getElementById('pilihanSkemaPayrollNominal').value;
-    const payrollSchemeId = document.getElementById('pilihanSkemaPayroll').value;
-    const taxSchemeId = document.getElementById('pilihanSkemaPajak').value;
-    const compSchemeId = document.getElementById('pilihanSkemaKompensasi').value;
+    const setupId = document.getElementById('pilihanSkemaSetupId').value;
+    const payrollSchemeId = document.getElementById('modalPilihanSkemaPayroll').value;
+    const taxSchemeId = document.getElementById('modalPilihanSkemaPajak').value;
+    const divisionId = document.getElementById('modalPilihanSkemaDivisi').value;
+    const departmentId = document.getElementById('modalPilihanSkemaDepartemen').value;
+    const positionId = document.getElementById('modalPilihanSkemaPosisi').value;
+    const hariKerja = document.getElementById('modalPilihanSkemaHariKerja').value;
 
-    if (!payrollType && !taxSchemeId && !compSchemeId) {
-        showToast('Pilih minimal satu skema!', 'error');
+    if (!payrollSchemeId) {
+        showToast('Pilih Skema Payroll!', 'error');
+        return;
+    }
+    if (!taxSchemeId) {
+        showToast('Pilih Skema BPJS & Pajak!', 'error');
         return;
     }
 
     try {
-        // Load existing config to preserve pay_date and cutoff
-        const cfgRes = await fetch(`${API_URL}/client-configs`);
-        const configs = await cfgRes.json();
-        const existing = configs.find(c => c.client_id == window.selectedClientId);
+        // If position is selected, save working days setting to this position
+        if (positionId && hariKerja) {
+            const posRes = await fetch(`${API_URL}/org/posisi/${positionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hari_kerja: parseInt(hariKerja) })
+            });
+            if (!posRes.ok) {
+                showToast('Gagal menyimpan hari kerja posisi!', 'error');
+                return;
+            }
+        }
+
+        // Load existing config to preserve pay_date and cutoff if editing, or use defaults
+        let payDate = 25;
+        let cutoffStart = 21;
+        
+        if (setupId) {
+            const cfgRes = await fetch(`${API_URL}/client-configs`);
+            const configs = await cfgRes.json();
+            const existing = configs.find(c => c.setup_id == setupId);
+            if (existing) {
+                payDate = existing.pay_date || 25;
+                cutoffStart = existing.cutoff_start || 21;
+            }
+        } else {
+            // Check if there is already a global config or any config to reuse payDate/cutoffStart
+            const cfgRes = await fetch(`${API_URL}/client-configs`);
+            const configs = await cfgRes.json();
+            const firstExist = configs.find(c => c.client_id == window.selectedClientId);
+            if (firstExist) {
+                payDate = firstExist.pay_date || 25;
+                cutoffStart = firstExist.cutoff_start || 21;
+            }
+        }
 
         const data = {
+            id: setupId ? parseInt(setupId) : undefined,
             client_id: window.selectedClientId,
-            payroll_type: payrollType || null,
-            minimum_wage_id: (payrollType === 'UMP' || payrollType === 'UMK') ? (minimumWageId || null) : null,
-            custom_nominal: (payrollType === 'Nominal') ? (customNominal || null) : null,
-            payroll_scheme_id: (payrollType === 'Template') ? (payrollSchemeId || null) : null,
-            tax_scheme_id: taxSchemeId || (existing ? existing.tax_scheme_id : null),
-            compensation_scheme_id: compSchemeId || (existing ? existing.compensation_scheme_id : null),
-            pay_date: existing ? existing.pay_date : 25,
-            cutoff_start: existing ? existing.cutoff_start : 21
+            payroll_type: 'Template',
+            payroll_scheme_id: parseInt(payrollSchemeId),
+            tax_scheme_id: parseInt(taxSchemeId),
+            compensation_scheme_id: null,
+            division_id: divisionId ? parseInt(divisionId) : null,
+            department_id: departmentId ? parseInt(departmentId) : null,
+            position_id: positionId ? parseInt(positionId) : null,
+            pay_date: payDate,
+            cutoff_start: cutoffStart
         };
 
         const res = await fetch(`${API_URL}/client-configs`, {
@@ -388,10 +700,10 @@ async function simpanPilihanSkema() {
         });
 
         if (res.ok) {
-            await simpanKonfigAbsen(false);
             showToast('Pilihan skema berhasil disimpan!', 'success');
-            // Also update the Setup Payroll tab data
-            loadWorkspaceSetup();
+            tutupModalPilihanSkema();
+            loadPilihanSkema(); // reload configurations table
+            loadWorkspaceSetup(); // reload workspace setup tab
         } else {
             showToast('Gagal menyimpan pilihan skema!', 'error');
         }
@@ -406,46 +718,115 @@ function goToMasterKompensasi() {
     renderMasterKompensasi();
 }
 
-// ===== 9. KONFIGURASI ABSEN =====
-async function loadAbsenConfig() {
-    if (!window.selectedClientId) return;
-    try {
-        const res = await fetch(`${API_URL}/client-absence-config/${window.selectedClientId}`);
-        const data = await res.json();
-        if (data && data.id) {
-            document.getElementById('cfgProrate').checked = data.prorate == 1;
-            document.getElementById('cfgAbsenTidakPotong').checked = data.absen_tidak_potong == 1;
-            const nominalInput = document.getElementById('cfgNominalPotongan');
-            if (nominalInput) {
-                const val = data.nominal_potongan ? parseFloat(data.nominal_potongan) : 0;
-                nominalInput.value = val > 0 ? new Intl.NumberFormat('id-ID').format(val) : '';
-            }
-        } else {
-            document.getElementById('cfgProrate').checked = false;
-            document.getElementById('cfgAbsenTidakPotong').checked = false;
-            const nominalInput = document.getElementById('cfgNominalPotongan');
-            if (nominalInput) nominalInput.value = '';
-        }
-    } catch (err) { console.error(err); }
-}
+window.handlePilihanSkemaPayrollChange = function(val) {
+    const btn = document.getElementById('btnDetailSkemaPayroll');
+    if (btn) {
+        btn.style.display = val ? 'inline-flex' : 'none';
+    }
+};
 
-async function simpanKonfigAbsen(showToastOnSuccess = true) {
-    if (!window.selectedClientId) return;
-    const nominalRaw = document.getElementById('cfgNominalPotongan').value;
-    const nominalClean = parseFloat(nominalRaw.replace(/\./g, '').replace(/,/g, '.')) || 0;
+window.lihatDetailSkemaPayroll = function() {
+    const val = document.getElementById('pilihanSkemaPayroll').value;
+    if (!val || !window.payrollSchemes) return;
     
-    const data = {
-        client_id: window.selectedClientId,
-        prorate: document.getElementById('cfgProrate').checked ? 1 : 0,
-        absen_tidak_potong: document.getElementById('cfgAbsenTidakPotong').checked ? 1 : 0,
-        nominal_potongan: nominalClean
-    };
-    try {
-        const res = await fetch(`${API_URL}/client-absence-config`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        if (res.ok && showToastOnSuccess) { showToast('Konfigurasi absen berhasil disimpan!', 'success'); }
-    } catch (err) { console.error(err); if (showToastOnSuccess) showToast('Gagal menyimpan konfigurasi', 'error'); }
-}
+    const scheme = window.payrollSchemes.find(s => s.id == val);
+    if (!scheme) return;
+    
+    // Populate modal contents
+    document.getElementById('dtlNama').innerText = scheme.nama || '-';
+    document.getElementById('dtlDeskripsi').innerText = scheme.deskripsi || 'Tidak ada deskripsi.';
+    document.getElementById('dtlTipe').innerText = scheme.tipe ? scheme.tipe.toUpperCase() : 'BULANAN';
+    document.getElementById('dtlProrate').innerText = scheme.prorate == 1 ? 'YA' : 'TIDAK';
+    document.getElementById('dtlAbsenTidakPotong').innerText = scheme.absen_tidak_potong == 1 ? 'YA' : 'TIDAK';
+    document.getElementById('dtlNominalPotongan').innerText = formatRupiah(scheme.nominal_potongan || 0);
+    
+    const listCont = document.getElementById('dtlComponentsList');
+    if (listCont) {
+        if (scheme.components && scheme.components.length > 0) {
+            listCont.innerHTML = scheme.components.map(c => {
+                const isPendapatan = c.tipe === 'pendapatan';
+                const badgeClass = isPendapatan ? 'pendapatan' : 'potongan';
+                const valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiah(c.nilai || 0);
+                
+                // Determine icon and color based on jenis_komponen
+                let iconClass = 'fa-coins';
+                let iconBg = '#f1f5f9';
+                let iconColor = '#64748b';
+                
+                if (c.jenis_komponen === 'basic_salary') {
+                    iconClass = 'fa-wallet'; iconBg = '#fef3c7'; iconColor = '#d97706';
+                } else if (isPendapatan) {
+                    iconClass = 'fa-plus-circle'; iconBg = '#d1fae5'; iconColor = '#059669';
+                } else {
+                    iconClass = 'fa-minus-circle'; iconBg = '#fee2e2'; iconColor = '#dc2626';
+                }
+                
+                return `
+                    <div class="component-item" style="padding: 10px 14px; margin-bottom: 8px;">
+                        <div class="component-item-left" style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                            <div class="component-kategori-icon" style="width: 30px; height: 30px; background: ${iconBg}; color: ${iconColor}; font-size: 12px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="fas ${iconClass}"></i>
+                            </div>
+                            <div class="component-info" style="display: flex; flex-direction: column;">
+                                <span class="comp-name" style="font-size: 13px; font-weight: 600; color: #1e293b;">${c.nama}</span>
+                                <span class="comp-kategori" style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px;">${c.sifat_kompensasi || 'komponen'} • ${c.tipe}</span>
+                            </div>
+                        </div>
+                        <div class="component-item-right" style="display: flex; align-items: center; gap: 12px;">
+                            <span class="component-value ${badgeClass}" style="font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 6px;">${valStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            listCont.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
+                    Tidak ada komponen tambahan pada skema ini.
+                </div>
+            `;
+        }
+    }
+    
+    // Open modal
+    document.getElementById('modalDetailSkemaPayroll').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+};
+
+window.handlePilihanSkemaPajakChange = function(val) {
+    const btn = document.getElementById('btnDetailSkemaPajak');
+    if (btn) {
+        btn.style.display = val ? 'inline-flex' : 'none';
+    }
+};
+
+window.lihatDetailSkemaPajak = function() {
+    const val = document.getElementById('pilihanSkemaPajak').value;
+    if (!val || !window.taxSchemes) return;
+    
+    const scheme = window.taxSchemes.find(s => s.id == val);
+    if (!scheme) return;
+    
+    // Populate modal contents
+    document.getElementById('dtlPajakNama').innerText = scheme.nama || '-';
+    document.getElementById('dtlPajakDeskripsi').innerText = scheme.deskripsi || 'Tidak ada deskripsi.';
+    document.getElementById('dtlPajakMetode').innerText = scheme.metode ? scheme.metode.toUpperCase() : '-';
+    document.getElementById('dtlPajakPtkp').innerText = scheme.ptkp_default || '-';
+    
+    document.getElementById('dtlPajakBpjsKesKaryawan').innerText = (scheme.bpjs_kes_karyawan !== undefined ? scheme.bpjs_kes_karyawan : '1.00') + '%';
+    document.getElementById('dtlPajakBpjsKesPerusahaan').innerText = (scheme.bpjs_kes_perusahaan !== undefined ? scheme.bpjs_kes_perusahaan : '4.00') + '%';
+    document.getElementById('dtlPajakBpjsKesMaxSalary').innerText = formatRupiah(scheme.bpjs_kes_max_salary || 12000000);
+    
+    document.getElementById('dtlPajakBpjsJht').innerText = `${scheme.bpjs_jht_karyawan !== undefined ? scheme.bpjs_jht_karyawan : '2.00'}% / ${scheme.bpjs_jht_perusahaan !== undefined ? scheme.bpjs_jht_perusahaan : '3.70'}%`;
+    document.getElementById('dtlPajakBpjsJp').innerText = `${scheme.bpjs_jp_karyawan !== undefined ? scheme.bpjs_jp_karyawan : '1.00'}% / ${scheme.bpjs_jp_perusahaan !== undefined ? scheme.bpjs_jp_perusahaan : '2.00'}%`;
+    document.getElementById('dtlPajakBpjsJpMaxSalary').innerText = formatRupiah(scheme.bpjs_jp_max_salary || 10024600);
+    
+    document.getElementById('dtlPajakBpjsJkk').innerText = (scheme.bpjs_jkk_perusahaan !== undefined ? scheme.bpjs_jkk_perusahaan : '0.24') + '%';
+    document.getElementById('dtlPajakBpjsJkm').innerText = (scheme.bpjs_jkm_perusahaan !== undefined ? scheme.bpjs_jkm_perusahaan : '0.30') + '%';
+    
+    // Open modal
+    document.getElementById('modalDetailSkemaPajak').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+};
+
+
+

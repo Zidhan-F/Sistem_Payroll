@@ -508,12 +508,15 @@ class Api extends ResourceController
     public function getClientConfigs()
     {
         $configs = $this->db->table('clients')
-                            ->select('clients.id as client_id, clients.nama as client_name, client_payroll_configs.id as setup_id, payroll_schemes.nama as payroll_scheme_name, tax_schemes.nama as tax_scheme_name, compensation_schemes.nama as compensation_scheme_name, client_payroll_configs.pay_date, client_payroll_configs.cutoff_start, client_payroll_configs.cutoff_end, client_payroll_configs.payroll_scheme_id, client_payroll_configs.tax_scheme_id, client_payroll_configs.compensation_scheme_id, client_payroll_configs.payroll_type, client_payroll_configs.minimum_wage_id, client_payroll_configs.custom_nominal, minimum_wages.nama_daerah as minimum_wage_region, minimum_wages.nominal as minimum_wage_nominal')
+                            ->select('clients.id as client_id, clients.nama as client_name, client_payroll_configs.id as setup_id, payroll_schemes.nama as payroll_scheme_name, tax_schemes.nama as tax_scheme_name, compensation_schemes.nama as compensation_scheme_name, client_payroll_configs.pay_date, client_payroll_configs.cutoff_start, client_payroll_configs.cutoff_end, client_payroll_configs.payroll_scheme_id, client_payroll_configs.tax_scheme_id, client_payroll_configs.compensation_scheme_id, client_payroll_configs.payroll_type, client_payroll_configs.minimum_wage_id, client_payroll_configs.custom_nominal, minimum_wages.nama_daerah as minimum_wage_region, minimum_wages.nominal as minimum_wage_nominal, client_payroll_configs.division_id, client_payroll_configs.department_id, client_payroll_configs.position_id, divisions.nama as division_name, departments.nama as department_name, positions.nama as position_name')
                             ->join('client_payroll_configs', 'client_payroll_configs.client_id = clients.id', 'left')
                             ->join('payroll_schemes', 'payroll_schemes.id = client_payroll_configs.payroll_scheme_id', 'left')
                             ->join('tax_schemes', 'tax_schemes.id = client_payroll_configs.tax_scheme_id', 'left')
                             ->join('compensation_schemes', 'compensation_schemes.id = client_payroll_configs.compensation_scheme_id', 'left')
                             ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
+                            ->join('divisions', 'divisions.id = client_payroll_configs.division_id', 'left')
+                            ->join('departments', 'departments.id = client_payroll_configs.department_id', 'left')
+                            ->join('positions', 'positions.id = client_payroll_configs.position_id', 'left')
                             ->get()
                             ->getResult();
         return $this->respond($configs);
@@ -524,16 +527,51 @@ class Api extends ResourceController
         $data = $this->request->getJSON(true);
         $clientId = $data['client_id'];
         
-        // Check if exists
-        $existing = $this->db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
+        $divisionId = !empty($data['division_id']) ? intval($data['division_id']) : null;
+        $departmentId = !empty($data['department_id']) ? intval($data['department_id']) : null;
+        $positionId = !empty($data['position_id']) ? intval($data['position_id']) : null;
+
+        $data['division_id'] = $divisionId;
+        $data['department_id'] = $departmentId;
+        $data['position_id'] = $positionId;
+
+        // Check if matching record exists
+        $query = $this->db->table('client_payroll_configs')
+                          ->where('client_id', $clientId);
+        
+        if ($divisionId !== null) {
+            $query->where('division_id', $divisionId);
+        } else {
+            $query->where('division_id IS NULL');
+        }
+
+        if ($departmentId !== null) {
+            $query->where('department_id', $departmentId);
+        } else {
+            $query->where('department_id IS NULL');
+        }
+
+        if ($positionId !== null) {
+            $query->where('position_id', $positionId);
+        } else {
+            $query->where('position_id IS NULL');
+        }
+
+        $existing = $query->get()->getRow();
         
         if ($existing) {
-            $this->db->table('client_payroll_configs')->where('client_id', $clientId)->update($data);
+            $this->db->table('client_payroll_configs')->where('id', $existing->id)->update($data);
         } else {
             $this->db->table('client_payroll_configs')->insert($data);
         }
         
         return $this->respond(['message' => 'Konfigurasi payroll klien berhasil disimpan']);
+    }
+
+    public function deleteClientConfig($id)
+    {
+        $this->db->table('client_payroll_configs')->where('id', $id)->delete();
+        return $this->respond(['message' => 'Konfigurasi payroll klien berhasil dihapus']);
     }
 
     // --- PKWT ---
@@ -569,10 +607,7 @@ class Api extends ResourceController
         $pkwtId = $this->db->insertID();
 
         // 2. Get Client Scheme Config
-        $config = $this->db->table('client_payroll_configs')
-                           ->where('client_id', $data['client_id'])
-                           ->get()
-                           ->getRow();
+        $config = $this->resolveClientConfig($data['client_id'], $data['position_name'] ?? null);
 
         if ($config && $config->payroll_scheme_id) {
             // 3. Fetch components from scheme
@@ -725,7 +760,7 @@ class Api extends ResourceController
 
         foreach ($pkwts as $pkwt) {
             // Get client config to find payroll scheme ID
-            $clientConfig = $this->db->table('client_payroll_configs')->where('client_id', $pkwt->client_id)->get()->getRow();
+            $clientConfig = $this->resolveClientConfig($pkwt->client_id, $pkwt->position_name);
             
             $isProrate = false;
             $isAbsenTidakPotong = false;
@@ -762,11 +797,22 @@ class Api extends ResourceController
             
             // 4. Resolve Employee / Client UMR (Minimum Wage)
             $emp = $this->db->table('employees')
-                            ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id')
+                            ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id, positions.hari_kerja as position_hari_kerja')
                             ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                            ->join('positions', 'positions.id = employees.position_id', 'left')
                             ->where('employees.nama', $pkwt->employee_name)
                             ->get()
                             ->getRow();
+
+            $stdWorkingDays = 21;
+            if ($emp && isset($emp->position_hari_kerja)) {
+                $posHk = intval($emp->position_hari_kerja);
+                if ($posHk === 6) {
+                    $stdWorkingDays = 25;
+                } elseif ($posHk === 7) {
+                    $stdWorkingDays = 30;
+                }
+            }
             
             $minimumWage = 0;
             $mwId = null;
@@ -844,7 +890,7 @@ class Api extends ResourceController
                             // bulanan
                             if ($isProrate) {
                                 $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
-                                $base_nilai = $base_nilai * ($days / 21);
+                                $base_nilai = $base_nilai * ($days / $stdWorkingDays);
                             }
                         }
                     }
@@ -858,7 +904,7 @@ class Api extends ResourceController
                 $gajiPokok = floatval($emp->gaji_pokok);
                 if ($isProrate) {
                     $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
-                    $gajiPokok = $gajiPokok * ($days / 21);
+                    $gajiPokok = $gajiPokok * ($days / $stdWorkingDays);
                 }
             }
 
@@ -929,16 +975,18 @@ class Api extends ResourceController
             }
 
             // 7. Add Variable Data from Attendance
+            $potonganAbsenVal = 0;
             if ($att) {
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
                     $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
                     if ($nominalPotongan > 0 && $potongan_absen == 0) {
-                        $missingDays = 21 - intval($att->hari_kerja);
+                        $missingDays = $stdWorkingDays - intval($att->hari_kerja);
                         if ($missingDays > 0) {
                             $potongan_absen = $missingDays * $nominalPotongan;
                         }
                     }
+                    $potonganAbsenVal = $potongan_absen;
                     $totalPotongan += $potongan_absen;
                 }
                 $totalPendapatan += $att->bonus_tambahan;
@@ -946,6 +994,36 @@ class Api extends ResourceController
                 // Simplified Overtime Calculation (e.g., 20.000 per hour)
                 $overtimePay = $att->jam_lembur * 20000; 
                 $totalPendapatan += $overtimePay;
+            }
+
+            // Calculate BPJS & Tax
+            $taxScheme = null;
+            if ($clientConfig && $clientConfig->tax_scheme_id) {
+                $taxScheme = $this->db->table('tax_schemes')->where('id', $clientConfig->tax_scheme_id)->get()->getRow();
+            }
+
+            $ptkpStatus = 'TK/0';
+            if ($emp && !empty($emp->ptkp)) {
+                $ptkpStatus = $emp->ptkp;
+            } elseif ($taxScheme && !empty($taxScheme->ptkp_status)) {
+                $ptkpStatus = $taxScheme->ptkp_status;
+            }
+
+            $totalPendapatanKotor = $totalPendapatan;
+
+            // Resolve BPJS & Tax calculations
+            $calc = $this->calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus);
+
+            // Deductions from Employee: BPJS Kes Karyawan, JHT Karyawan, JP Karyawan
+            $employeeBpjsDeductions = $calc['bpjs_kes_karyawan'] + $calc['bpjs_jht_karyawan'] + $calc['bpjs_jp_karyawan'];
+
+            if ($calc['metode_pajak'] === 'Gross Up') {
+                $totalPendapatan += $calc['tax_allowance'];
+                $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
+            } elseif ($calc['metode_pajak'] === 'Gross') {
+                $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
+            } else { // Nett
+                $totalPotongan += $employeeBpjsDeductions;
             }
 
             $thp = $totalPendapatan - $totalPotongan;
@@ -962,7 +1040,25 @@ class Api extends ResourceController
                 'total_pendapatan' => $totalPendapatan,
                 'total_potongan' => $totalPotongan,
                 'take_home_pay' => $thp,
-                'status_approval' => 'Pending'
+                'status_approval' => 'Pending',
+                'bpjs_kes_karyawan' => $calc['bpjs_kes_karyawan'],
+                'bpjs_kes_perusahaan' => $calc['bpjs_kes_perusahaan'],
+                'bpjs_jht_karyawan' => $calc['bpjs_jht_karyawan'],
+                'bpjs_jht_perusahaan' => $calc['bpjs_jht_perusahaan'],
+                'bpjs_jp_karyawan' => $calc['bpjs_jp_karyawan'],
+                'bpjs_jp_perusahaan' => $calc['bpjs_jp_perusahaan'],
+                'bpjs_jkk_perusahaan' => $calc['bpjs_jkk_perusahaan'],
+                'bpjs_jkm_perusahaan' => $calc['bpjs_jkm_perusahaan'],
+                'pph21' => $calc['pph21'],
+                'tax_allowance' => $calc['tax_allowance'],
+                'tax_method' => $calc['metode_pajak'],
+                'ptkp_status' => $ptkpStatus,
+                'gaji_pokok' => $gajiPokok,
+                'potongan_absen' => $potonganAbsenVal,
+                'jam_lembur' => ($att) ? floatval($att->jam_lembur) : 0,
+                'lembur_pay' => ($att) ? (floatval($att->jam_lembur) * 20000) : 0,
+                'bonus_tambahan' => ($att) ? floatval($att->bonus_tambahan) : 0,
+                'raw_components' => json_encode($components)
             ];
 
             if ($existingFinal) {
@@ -970,6 +1066,7 @@ class Api extends ResourceController
             } else {
                 $this->db->table('payroll_final')->insert($finalData);
             }
+
         }
 
         $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
@@ -1026,7 +1123,7 @@ class Api extends ResourceController
         if (!$final) return $this->failNotFound('Data tidak ditemukan');
 
         // Get client config to find payroll scheme ID
-        $clientConfig = $this->db->table('client_payroll_configs')->where('client_id', $final['client_id'])->get()->getRow();
+        $clientConfig = $this->resolveClientConfig($final['client_id'], $final['position_name'] ?? null);
         
         $isProrate = false;
         $isAbsenTidakPotong = false;
@@ -1067,11 +1164,22 @@ class Api extends ResourceController
 
         // 1. Resolve Employee / Client UMR (Minimum Wage)
         $emp = $this->db->table('employees')
-                        ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id')
+                        ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id, positions.hari_kerja as position_hari_kerja')
                         ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                        ->join('positions', 'positions.id = employees.position_id', 'left')
                         ->where('employees.nama', $final['employee_name'])
                         ->get()
                         ->getRow();
+
+        $stdWorkingDays = 21;
+        if ($emp && isset($emp->position_hari_kerja)) {
+            $posHk = intval($emp->position_hari_kerja);
+            if ($posHk === 6) {
+                $stdWorkingDays = 25;
+            } elseif ($posHk === 7) {
+                $stdWorkingDays = 30;
+            }
+        }
         
         $minimumWage = 0;
         $mwId = null;
@@ -1149,7 +1257,7 @@ class Api extends ResourceController
                         // bulanan
                         if ($isProrate) {
                             $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
-                            $base_nilai = $base_nilai * ($days / 21);
+                            $base_nilai = $base_nilai * ($days / $stdWorkingDays);
                         }
                     }
                 }
@@ -1163,7 +1271,7 @@ class Api extends ResourceController
             $gajiPokok = floatval($emp->gaji_pokok);
             if ($isProrate) {
                 $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
-                $gajiPokok = $gajiPokok * ($days / 21);
+                $gajiPokok = $gajiPokok * ($days / $stdWorkingDays);
             }
         }
 
@@ -1182,7 +1290,7 @@ class Api extends ResourceController
             $nilai = 0;
 
             if ($isBasic) {
-                $nilai = $gajiPokok;
+                $nilai = isset($final['gaji_pokok']) ? floatval($final['gaji_pokok']) : $gajiPokok;
             } else {
                 if ($hasKompensasiSource && ($comp['jenis_komponen'] ?? '') === 'kompensasi' && ($comp['sifat_kompensasi'] ?? '') === 'tetap') {
                     $nilai = 0; // Prevent double-counting by setting it to 0
@@ -1221,27 +1329,40 @@ class Api extends ResourceController
                     // Legacy component logic
                     $nilai = floatval($comp['nilai']);
                     if (intval($comp['is_persentase']) === 1 || $comp['is_persentase'] === true) {
-                        $nilai = $gajiPokok * ($nilai / 100);
+                        $nilai = (isset($final['gaji_pokok']) ? floatval($final['gaji_pokok']) : $gajiPokok) * ($nilai / 100);
                     }
                 }
             }
 
-            if ($comp['tipe'] === 'pendapatan') {
-                $earnings[] = ['nama' => $comp['nama'], 'nilai' => $nilai];
-            } else {
-                $deductions[] = ['nama' => $comp['nama'], 'nilai' => $nilai];
+            if ($nilai > 0) {
+                if ($comp['tipe'] === 'pendapatan') {
+                    $earnings[] = ['nama' => $comp['nama'], 'nilai' => $nilai];
+                } else {
+                    $deductions[] = ['nama' => $comp['nama'], 'nilai' => $nilai];
+                }
             }
         }
 
         if ($att) {
-            if ($att['jam_lembur'] > 0) $earnings[] = ['nama' => 'Lembur', 'nilai' => $att['jam_lembur'] * 20000];
-            if ($att['bonus_tambahan'] > 0) $earnings[] = ['nama' => 'Bonus/Lainnya', 'nilai' => $att['bonus_tambahan']];
+            if (isset($final['jam_lembur']) && floatval($final['lembur_pay']) > 0) {
+                $earnings[] = ['nama' => 'Lembur', 'nilai' => floatval($final['lembur_pay'])];
+            } else if ($att['jam_lembur'] > 0) {
+                $earnings[] = ['nama' => 'Lembur', 'nilai' => $att['jam_lembur'] * 20000];
+            }
+
+            if (isset($final['bonus_tambahan']) && floatval($final['bonus_tambahan']) > 0) {
+                $earnings[] = ['nama' => 'Bonus/Lainnya', 'nilai' => floatval($final['bonus_tambahan'])];
+            } else if ($att['bonus_tambahan'] > 0) {
+                $earnings[] = ['nama' => 'Bonus/Lainnya', 'nilai' => $att['bonus_tambahan']];
+            }
             
-            $potongan_absen = floatval($att['potongan_absensi']);
-            if (!$isAbsenTidakPotong) {
+            if (isset($final['potongan_absen']) && floatval($final['potongan_absen']) > 0) {
+                $deductions[] = ['nama' => 'Potongan Absen', 'nilai' => floatval($final['potongan_absen'])];
+            } else if (!$isAbsenTidakPotong) {
+                $potongan_absen = floatval($att['potongan_absensi']);
                 $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
                 if ($nominalPotongan > 0 && $potongan_absen == 0) {
-                    $missingDays = 21 - intval($att['hari_kerja']);
+                    $missingDays = $stdWorkingDays - intval($att['hari_kerja']);
                     if ($missingDays > 0) {
                         $potongan_absen = $missingDays * $nominalPotongan;
                     }
@@ -1252,12 +1373,35 @@ class Api extends ResourceController
             }
         }
 
+        // Add BPJS and PPh 21 detailed lines
+        if (isset($final['bpjs_kes_karyawan'])) {
+            if (floatval($final['bpjs_kes_karyawan']) > 0) {
+                $deductions[] = ['nama' => 'BPJS Kesehatan (1% Karyawan)', 'nilai' => floatval($final['bpjs_kes_karyawan'])];
+            }
+            if (floatval($final['bpjs_jht_karyawan']) > 0) {
+                $deductions[] = ['nama' => 'BPJS TK JHT (2% Karyawan)', 'nilai' => floatval($final['bpjs_jht_karyawan'])];
+            }
+            if (floatval($final['bpjs_jp_karyawan']) > 0) {
+                $deductions[] = ['nama' => 'BPJS TK JP (1% Karyawan)', 'nilai' => floatval($final['bpjs_jp_karyawan'])];
+            }
+
+            if (floatval($final['pph21']) > 0) {
+                if ($final['tax_method'] === 'Gross Up') {
+                    $earnings[] = ['nama' => 'Tunjangan Pajak (Gross Up)', 'nilai' => floatval($final['tax_allowance'])];
+                    $deductions[] = ['nama' => 'Potongan Pajak PPh 21', 'nilai' => floatval($final['pph21'])];
+                } elseif ($final['tax_method'] === 'Gross') {
+                    $deductions[] = ['nama' => 'Potongan Pajak PPh 21', 'nilai' => floatval($final['pph21'])];
+                }
+            }
+        }
+
         return $this->respond([
             'info' => $final,
             'earnings' => $earnings,
             'deductions' => $deductions
         ]);
     }
+
 
     // --- EMPLOYEES ---
     public function getEmployees()
@@ -1395,4 +1539,293 @@ class Api extends ResourceController
         }
         return $res;
     }
+
+    private function calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus)
+    {
+        $result = [
+            'bpjs_kes_karyawan' => 0,
+            'bpjs_kes_perusahaan' => 0,
+            'bpjs_jht_karyawan' => 0,
+            'bpjs_jht_perusahaan' => 0,
+            'bpjs_jp_karyawan' => 0,
+            'bpjs_jp_perusahaan' => 0,
+            'bpjs_jkk_perusahaan' => 0,
+            'bpjs_jkm_perusahaan' => 0,
+            'pph21' => 0,
+            'tax_allowance' => 0,
+            'ter_rate' => 0,
+            'metode_pajak' => 'Gross'
+        ];
+
+        if (!$taxScheme) {
+            return $result;
+        }
+
+        $result['metode_pajak'] = $taxScheme->metode ?? 'Gross';
+
+        if ($gajiPokok <= 0) {
+            return $result;
+        }
+
+        // Rates & limits configuration
+        $kesRateEmp = floatval($taxScheme->bpjs_kes_karyawan ?? 1.0) / 100;
+        $kesRateCo = floatval($taxScheme->bpjs_kes_perusahaan ?? 4.0) / 100;
+        $kesMaxSal = floatval($taxScheme->bpjs_kes_max_salary ?? 12000000);
+
+        $jhtRateEmp = floatval($taxScheme->bpjs_jht_karyawan ?? 2.0) / 100;
+        $jhtRateCo = floatval($taxScheme->bpjs_jht_perusahaan ?? 3.7) / 100;
+
+        $jpRateEmp = floatval($taxScheme->bpjs_jp_karyawan ?? 1.0) / 100;
+        $jpRateCo = floatval($taxScheme->bpjs_jp_perusahaan ?? 2.0) / 100;
+        $jpMaxSal = floatval($taxScheme->bpjs_jp_max_salary ?? 10024600);
+
+        $jkkRateCo = floatval($taxScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
+        $jkmRateCo = floatval($taxScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
+
+        // Wage base for BPJS: must be at least the regional minimum wage (if minimum wage is set)
+        $wageBase = $gajiPokok;
+        if ($minimumWage > 0 && $gajiPokok < $minimumWage) {
+            $wageBase = $minimumWage;
+        }
+
+        // Apply caps
+        $kesWageBase = min($wageBase, $kesMaxSal);
+        $jpWageBase = min($wageBase, $jpMaxSal);
+
+        // Calculations
+        $result['bpjs_kes_karyawan'] = $kesWageBase * $kesRateEmp;
+        $result['bpjs_kes_perusahaan'] = $kesWageBase * $kesRateCo;
+
+        $result['bpjs_jht_karyawan'] = $wageBase * $jhtRateEmp;
+        $result['bpjs_jht_perusahaan'] = $wageBase * $jhtRateCo;
+
+        $result['bpjs_jp_karyawan'] = $jpWageBase * $jpRateEmp;
+        $result['bpjs_jp_perusahaan'] = $jpWageBase * $jpRateCo;
+
+        $result['bpjs_jkk_perusahaan'] = $wageBase * $jkkRateCo;
+        $result['bpjs_jkm_perusahaan'] = $wageBase * $jkmRateCo;
+
+        // PPh 21 TER 2024 Calculation
+        // Gross income for PPh 21 includes:
+        // + Regular gross income (totalPendapatanKotor)
+        // + BPJS benefits paid by employer that are considered taxable:
+        //   - BPJS Kesehatan (4%)
+        //   - JKK (0.24% - or configured)
+        //   - JKM (0.3% - or configured)
+        $bpjsCoPremiums = $result['bpjs_kes_perusahaan'] + $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
+        
+        $ptkpCategory = $this->determineTerCategory($ptkpStatus);
+
+        if ($result['metode_pajak'] === 'Gross Up') {
+            // Iteration loop for Gross Up
+            $allowance = 0;
+            for ($i = 0; $i < 5; $i++) {
+                $brutoPajak = $totalPendapatanKotor + $bpjsCoPremiums + $allowance;
+                $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
+                $allowance = $brutoPajak * ($terRate / 100);
+            }
+            $result['tax_allowance'] = $allowance;
+            $result['pph21'] = $allowance;
+            $result['ter_rate'] = $terRate;
+        } else {
+            $brutoPajak = $totalPendapatanKotor + $bpjsCoPremiums;
+            $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
+            $result['pph21'] = $brutoPajak * ($terRate / 100);
+            $result['ter_rate'] = $terRate;
+        }
+
+        return $result;
+    }
+
+    private function determineTerCategory($ptkpStatus)
+    {
+        $ptkpStatus = strtoupper(trim($ptkpStatus ?? 'TK/0'));
+        if (in_array($ptkpStatus, ['TK/0', 'TK/1', 'K/0'])) {
+            return 'A';
+        }
+        if (in_array($ptkpStatus, ['TK/2', 'TK/3', 'K/1', 'K/2'])) {
+            return 'B';
+        }
+        if ($ptkpStatus === 'K/3') {
+            return 'C';
+        }
+        return 'A';
+    }
+
+    private function getTerRate($category, $bruto)
+    {
+        if ($category === 'A') {
+            if ($bruto <= 5400000) return 0.0;
+            if ($bruto <= 5650000) return 0.25;
+            if ($bruto <= 5950000) return 0.5;
+            if ($bruto <= 6300000) return 0.75;
+            if ($bruto <= 6750000) return 1.0;
+            if ($bruto <= 7500000) return 1.25;
+            if ($bruto <= 8550000) return 1.5;
+            if ($bruto <= 9650000) return 1.75;
+            if ($bruto <= 10950000) return 2.0;
+            if ($bruto <= 12950000) return 3.0;
+            if ($bruto <= 15000000) return 4.0;
+            if ($bruto <= 17850000) return 5.0;
+            if ($bruto <= 21050000) return 6.0;
+            if ($bruto <= 24450000) return 7.0;
+            if ($bruto <= 29350000) return 8.0;
+            if ($bruto <= 35900000) return 9.0;
+            if ($bruto <= 43850000) return 10.0;
+            if ($bruto <= 54200000) return 11.0;
+            if ($bruto <= 68600000) return 12.0;
+            if ($bruto <= 83700000) return 13.0;
+            if ($bruto <= 99600000) return 14.0;
+            if ($bruto <= 165600000) return 15.0;
+            if ($bruto <= 219200000) return 19.0;
+            if ($bruto <= 276000000) return 20.0;
+            if ($bruto <= 346500000) return 21.0;
+            if ($bruto <= 439700000) return 22.0;
+            if ($bruto <= 563800000) return 23.0;
+            if ($bruto <= 775200000) return 24.0;
+            if ($bruto <= 1121200000) return 25.0;
+            if ($bruto <= 1512200000) return 26.0;
+            if ($bruto <= 2000000000) return 30.0;
+            return 34.0;
+        } elseif ($category === 'B') {
+            if ($bruto <= 6200000) return 0.0;
+            if ($bruto <= 6500000) return 0.25;
+            if ($bruto <= 6850000) return 0.5;
+            if ($bruto <= 7300000) return 0.75;
+            if ($bruto <= 7800000) return 1.0;
+            if ($bruto <= 8850000) return 1.25;
+            if ($bruto <= 9800000) return 1.5;
+            if ($bruto <= 10950000) return 1.75;
+            if ($bruto <= 12300000) return 2.0;
+            if ($bruto <= 14850000) return 3.0;
+            if ($bruto <= 17200000) return 4.0;
+            if ($bruto <= 19550000) return 5.0;
+            if ($bruto <= 22700000) return 6.0;
+            if ($bruto <= 26600000) return 7.0;
+            if ($bruto <= 31850000) return 8.0;
+            if ($bruto <= 39400000) return 9.0;
+            if ($bruto <= 48250000) return 10.0;
+            if ($bruto <= 58750000) return 11.0;
+            if ($bruto <= 72050000) return 12.0;
+            if ($bruto <= 88750000) return 13.0;
+            if ($bruto <= 107800000) return 14.0;
+            if ($bruto <= 168600000) return 15.0;
+            if ($bruto <= 219900000) return 19.0;
+            if ($bruto <= 276300000) return 20.0;
+            if ($bruto <= 346800000) return 21.0;
+            if ($bruto <= 439900000) return 22.0;
+            if ($bruto <= 564000000) return 23.0;
+            if ($bruto <= 775400000) return 24.0;
+            if ($bruto <= 1121500000) return 25.0;
+            if ($bruto <= 1512500000) return 26.0;
+            if ($bruto <= 2000000000) return 30.0;
+            return 34.0;
+        } else { // Category C
+            if ($bruto <= 6600000) return 0.0;
+            if ($bruto <= 6950000) return 0.25;
+            if ($bruto <= 7350000) return 0.5;
+            if ($bruto <= 7800000) return 0.75;
+            if ($bruto <= 8300000) return 1.0;
+            if ($bruto <= 9550000) return 1.25;
+            if ($bruto <= 10650000) return 1.5;
+            if ($bruto <= 11850000) return 1.75;
+            if ($bruto <= 13600000) return 2.0;
+            if ($bruto <= 16000000) return 3.0;
+            if ($bruto <= 18550000) return 4.0;
+            if ($bruto <= 20850000) return 5.0;
+            if ($bruto <= 24550000) return 6.0;
+            if ($bruto <= 28600000) return 7.0;
+            if ($bruto <= 34600000) return 8.0;
+            if ($bruto <= 42300000) return 9.0;
+            if ($bruto <= 51600000) return 10.0;
+            if ($bruto <= 62900000) return 11.0;
+            if ($bruto <= 77250000) return 12.0;
+            if ($bruto <= 95100000) return 13.0;
+            if ($bruto <= 115400000) return 14.0;
+            if ($bruto <= 179800000) return 15.0;
+            if ($bruto <= 233700000) return 19.0;
+            if ($bruto <= 293700000) return 20.0;
+            if ($bruto <= 368500000) return 21.0;
+            if ($bruto <= 467400000) return 22.0;
+            if ($bruto <= 599500000) return 23.0;
+            if ($bruto <= 824200000) return 24.0;
+            if ($bruto <= 1192200000) return 25.0;
+            if ($bruto <= 1607700000) return 26.0;
+            if ($bruto <= 2126000000) return 30.0;
+            return 34.0;
+        }
+    }
+
+    private function resolveClientConfig($clientId, $positionName = null)
+    {
+        // 1. If position is specified, try to find the position ID
+        $positionId = null;
+        $departmentId = null;
+        $divisionId = null;
+        
+        if (!empty($positionName)) {
+            $pos = $this->db->table('positions')
+                      ->select('positions.id as position_id, departments.id as department_id, divisions.id as division_id')
+                      ->join('departments', 'departments.id = positions.department_id', 'left')
+                      ->join('divisions', 'divisions.id = departments.division_id', 'left')
+                      ->where('positions.nama', $positionName)
+                      ->where('divisions.client_id', $clientId)
+                      ->get()
+                      ->getRow();
+            if ($pos) {
+                $positionId = $pos->position_id;
+                $departmentId = $pos->department_id;
+                $divisionId = $pos->division_id;
+            }
+        }
+        
+        // 2. Try to search by position_id
+        if ($positionId) {
+            $config = $this->db->table('client_payroll_configs')
+                         ->where('client_id', $clientId)
+                         ->where('position_id', $positionId)
+                         ->get()
+                         ->getRow();
+            if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
+                return $config;
+            }
+        }
+        
+        // 3. Fallback to department_id
+        if ($departmentId) {
+            $config = $this->db->table('client_payroll_configs')
+                         ->where('client_id', $clientId)
+                         ->where('department_id', $departmentId)
+                         ->where('position_id IS NULL')
+                         ->get()
+                         ->getRow();
+            if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
+                return $config;
+            }
+        }
+        
+        // 4. Fallback to division_id
+        if ($divisionId) {
+            $config = $this->db->table('client_payroll_configs')
+                         ->where('client_id', $clientId)
+                         ->where('division_id', $divisionId)
+                         ->where('department_id IS NULL')
+                         ->where('position_id IS NULL')
+                         ->get()
+                         ->getRow();
+            if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
+                return $config;
+            }
+        }
+        
+        // 5. Fallback to global config (where all org columns are NULL)
+        return $this->db->table('client_payroll_configs')
+                  ->where('client_id', $clientId)
+                  ->where('division_id IS NULL')
+                  ->where('department_id IS NULL')
+                  ->where('position_id IS NULL')
+                  ->get()
+                  ->getRow();
+    }
 }
+

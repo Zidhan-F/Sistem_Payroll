@@ -142,12 +142,9 @@ function renderWorkLocationsTable() {
     });
 }
 
-function bukaModalLokasiKerja() {
+async function bukaModalLokasiKerja() {
     document.getElementById('modalLokasiKerja').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
-    
-    populateLocClients();
-    populateProvinsiKotaLists();
     
     document.getElementById('formLokasiKerja').reset();
     document.getElementById('workLocationId').value = '';
@@ -155,6 +152,17 @@ function bukaModalLokasiKerja() {
     
     resetCascadingSelects();
     fetchNextWorkLocationId();
+
+    const clientSelect = document.getElementById('locClientId');
+    if (clientSelect) {
+        clientSelect.disabled = false;
+    }
+    if (window.locClientSelectInstance) {
+        window.locClientSelectInstance.enable();
+    }
+    
+    await populateLocClients();
+    await populateProvinsiKotaLists();
 }
 
 function tutupModalLokasiKerja() {
@@ -332,10 +340,8 @@ document.getElementById('locName')?.addEventListener('input', (e) => {
 });
 
 async function editLokasiKerja(id) {
-    bukaModalLokasiKerja();
+    await bukaModalLokasiKerja();
     const loc = workLocations.find(l => l.id == id);
-    populateLocClients();
-    populateProvinsiKotaLists();
     
     if (!loc) return;
     
@@ -349,6 +355,13 @@ async function editLokasiKerja(id) {
     const clientSelect = document.getElementById('locClientId');
     if (clientSelect) {
         clientSelect.value = loc.client_id;
+        clientSelect.disabled = true;
+        
+        if (window.locClientSelectInstance) {
+            window.locClientSelectInstance.setValue(loc.client_id);
+            window.locClientSelectInstance.disable();
+        }
+        
         if (window.selectedClientId) {
             clientSelect.parentElement.style.display = 'none';
         } else {

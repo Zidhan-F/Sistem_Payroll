@@ -16,8 +16,37 @@ class Migrasi extends BaseController
                 metode NVARCHAR(50) DEFAULT 'Gross',
                 ptkp_status NVARCHAR(10) DEFAULT 'TK/0',
                 deskripsi NVARCHAR(MAX),
+                bpjs_kes_karyawan DECIMAL(5,2) DEFAULT 1.0,
+                bpjs_kes_perusahaan DECIMAL(5,2) DEFAULT 4.0,
+                bpjs_kes_max_salary DECIMAL(15,2) DEFAULT 12000000.0,
+                bpjs_jht_karyawan DECIMAL(5,2) DEFAULT 2.0,
+                bpjs_jht_perusahaan DECIMAL(5,2) DEFAULT 3.7,
+                bpjs_jp_karyawan DECIMAL(5,2) DEFAULT 1.0,
+                bpjs_jp_perusahaan DECIMAL(5,2) DEFAULT 2.0,
+                bpjs_jp_max_salary DECIMAL(15,2) DEFAULT 10024600.0,
+                bpjs_jkk_perusahaan DECIMAL(5,2) DEFAULT 0.24,
+                bpjs_jkm_perusahaan DECIMAL(5,2) DEFAULT 0.30,
                 created_at DATETIME DEFAULT GETDATE()
             )");
+
+        // Ensure BPJS columns exist in tax_schemes for older dbs
+        $bpjsCols = [
+            'bpjs_kes_karyawan' => 'DECIMAL(5,2) DEFAULT 1.0',
+            'bpjs_kes_perusahaan' => 'DECIMAL(5,2) DEFAULT 4.0',
+            'bpjs_kes_max_salary' => 'DECIMAL(15,2) DEFAULT 12000000.0',
+            'bpjs_jht_karyawan' => 'DECIMAL(5,2) DEFAULT 2.0',
+            'bpjs_jht_perusahaan' => 'DECIMAL(5,2) DEFAULT 3.7',
+            'bpjs_jp_karyawan' => 'DECIMAL(5,2) DEFAULT 1.0',
+            'bpjs_jp_perusahaan' => 'DECIMAL(5,2) DEFAULT 2.0',
+            'bpjs_jp_max_salary' => 'DECIMAL(15,2) DEFAULT 10024600.0',
+            'bpjs_jkk_perusahaan' => 'DECIMAL(5,2) DEFAULT 0.24',
+            'bpjs_jkm_perusahaan' => 'DECIMAL(5,2) DEFAULT 0.30'
+        ];
+        foreach ($bpjsCols as $col => $definition) {
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tax_schemes') AND name = '$col')
+                ALTER TABLE tax_schemes ADD $col $definition");
+        }
+
 
         // 2. Tabel Mapping (Menempelkan Skema ke Klien)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'client_payroll_configs')
@@ -116,8 +145,53 @@ class Migrasi extends BaseController
                 take_home_pay DECIMAL(15,2),
                 status_approval NVARCHAR(20) DEFAULT 'Pending',
                 approved_by NVARCHAR(100),
+                bpjs_kes_karyawan DECIMAL(15,2) DEFAULT 0,
+                bpjs_kes_perusahaan DECIMAL(15,2) DEFAULT 0,
+                bpjs_jht_karyawan DECIMAL(15,2) DEFAULT 0,
+                bpjs_jht_perusahaan DECIMAL(15,2) DEFAULT 0,
+                bpjs_jp_karyawan DECIMAL(15,2) DEFAULT 0,
+                bpjs_jp_perusahaan DECIMAL(15,2) DEFAULT 0,
+                bpjs_jkk_perusahaan DECIMAL(15,2) DEFAULT 0,
+                bpjs_jkm_perusahaan DECIMAL(15,2) DEFAULT 0,
+                pph21 DECIMAL(15,2) DEFAULT 0,
+                tax_allowance DECIMAL(15,2) DEFAULT 0,
+                tax_method NVARCHAR(20) DEFAULT 'Gross',
+                ptkp_status NVARCHAR(10) DEFAULT 'TK/0',
+                gaji_pokok DECIMAL(15,2) DEFAULT 0,
+                potongan_absen DECIMAL(15,2) DEFAULT 0,
+                jam_lembur DECIMAL(10,2) DEFAULT 0,
+                lembur_pay DECIMAL(15,2) DEFAULT 0,
+                bonus_tambahan DECIMAL(15,2) DEFAULT 0,
+                raw_components NVARCHAR(MAX),
                 created_at DATETIME DEFAULT GETDATE()
             )");
+
+        // Ensure new calculation columns exist in payroll_final for older dbs
+        $finalCols = [
+            'bpjs_kes_karyawan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_kes_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jht_karyawan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jht_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jp_karyawan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jp_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jkk_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jkm_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'pph21' => 'DECIMAL(15,2) DEFAULT 0',
+            'tax_allowance' => 'DECIMAL(15,2) DEFAULT 0',
+            'tax_method' => "NVARCHAR(20) DEFAULT 'Gross'",
+            'ptkp_status' => "NVARCHAR(10) DEFAULT 'TK/0'",
+            'gaji_pokok' => 'DECIMAL(15,2) DEFAULT 0',
+            'potongan_absen' => 'DECIMAL(15,2) DEFAULT 0',
+            'jam_lembur' => 'DECIMAL(10,2) DEFAULT 0',
+            'lembur_pay' => 'DECIMAL(15,2) DEFAULT 0',
+            'bonus_tambahan' => 'DECIMAL(15,2) DEFAULT 0',
+            'raw_components' => 'NVARCHAR(MAX)'
+        ];
+        foreach ($finalCols as $col => $definition) {
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_final') AND name = '$col')
+                ALTER TABLE payroll_final ADD $col $definition");
+        }
+
 
         // 8. Tabel UMP/UMK (Minimum Wages)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'minimum_wages')
@@ -194,6 +268,10 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('positions') AND name = 'level')
             ALTER TABLE positions ADD level NVARCHAR(50) DEFAULT ''");
 
+        // Tambah kolom hari_kerja pada positions (jika belum ada)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('positions') AND name = 'hari_kerja')
+            ALTER TABLE positions ADD hari_kerja INT DEFAULT 5");
+
         // 12. Tambah kolom alamat pada employees (jika belum ada)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'alamat')
             ALTER TABLE employees ADD alamat NVARCHAR(MAX) NULL");
@@ -240,7 +318,15 @@ class Migrasi extends BaseController
         $db->query("ALTER TABLE payroll_components ALTER COLUMN tipe VARCHAR(20) NULL");
         $db->query("ALTER TABLE payroll_components ALTER COLUMN jenis_nilai VARCHAR(20) NULL");
 
-        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, dan kolom baru payroll_schemes)";
+        // 17. Tambahkan kolom division_id, department_id, dan position_id di client_payroll_configs
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = 'division_id')
+            ALTER TABLE client_payroll_configs ADD division_id INT NULL");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = 'department_id')
+            ALTER TABLE client_payroll_configs ADD department_id INT NULL");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = 'position_id')
+            ALTER TABLE client_payroll_configs ADD position_id INT NULL");
+
+        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, dan kolom departemen/posisi client_payroll_configs)";
     }
 
     /**

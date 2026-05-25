@@ -435,8 +435,19 @@ header {
 }
 
 /* ===== Table Styles ===== */
-.table-wrapper,
-.content-card > table {
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 70vh;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 20px;
+    background: white;
+}
+
+.table-wrapper {
     border-radius: 12px;
     overflow: hidden;
 }
@@ -454,6 +465,15 @@ th {
     font-weight: 600;
     font-size: 14px;
     border-bottom: 2px solid #eee;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.scrollable-table-container {
+    max-height: 500px;
+    overflow-y: auto;
+    position: relative;
 }
 
 td {
@@ -2344,5 +2364,17 @@ body.modal-open, html.modal-open {
     100% {
         background-position: 200% 0;
     }
+}
+
+/* Fix for Tom Select search input inheriting global form group styles */
+.form-group .ts-wrapper .ts-control input {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
 }
 

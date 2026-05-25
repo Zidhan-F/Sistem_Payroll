@@ -1,4 +1,4 @@
-﻿// ===== PROCESS PAYROLL MODULE =====
+// ===== PROCESS PAYROLL MODULE =====
 // Extracted from app.js for modular monolith architecture
 
 // ===== 7. PROSES PAYROLL BULANAN =====
@@ -124,11 +124,6 @@ async function approveGaji(id) {
 }
 
 // ===== UTILS & MODAL CLOSING =====
-function tutupSemuaModal() {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi'];
-    modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
-    if(document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
-}
 
 // ===== SLIP GAJI =====
 

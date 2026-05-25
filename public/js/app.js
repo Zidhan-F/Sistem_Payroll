@@ -295,6 +295,8 @@ function switchPayrollSub(sub) {
     } else if (sub === 'setting') {
         switchView('payroll');
         switchPayrollSubTab('skema');
+    } else if (sub === 'pajak') {
+        switchView('pajak');
     }
 }
 
@@ -348,14 +350,14 @@ function switchView(view) {
         manajemenKaryawan: 'Manajemen Karyawan',
         clientWorkspace: 'Workspace Klien',
         payroll: 'Master Skema Payroll',
-        pajak: 'Master Skema Pajak',
+        pajak: 'Skema BPJS & Pajak',
         masterKompensasi: 'Master Skema Komponen',
         logAktivitas: 'Log Aktivitas'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Payroll System';
 
     // Highlight and expand parent menu if we are in one of the payroll submenus
-    if (view === 'payroll' || view === 'masterKompensasi') {
+    if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
         const parentMenu = document.getElementById('menuPayroll');
         if (parentMenu) parentMenu.classList.add('active');
         togglePayrollSubmenu(true);
@@ -399,17 +401,32 @@ function switchView(view) {
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal() {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     if(document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
+    
+    // Close sidebar on mobile when modal or overlay is closed/clicked
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.classList.remove('active');
+    }
 }
 
 // ===== SIDEBAR TOGGLE =====
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');
     const mainContent = document.querySelector('.main-content');
-    sidebar.classList.toggle('collapsed');
-    mainContent.classList.toggle('expanded');
+    const overlay = document.getElementById('overlay');
+    
+    if (window.innerWidth <= 768) {
+        sidebar.classList.toggle('active');
+        if (overlay) {
+            overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+        }
+    } else {
+        sidebar.classList.toggle('collapsed');
+        if (mainContent) mainContent.classList.toggle('expanded');
+    }
 }
 
 // Expose defined local core functions to window if needed
@@ -426,9 +443,7 @@ Object.assign(window, {
     }
 
 // Initialize default view
-if (typeof updateDashboardStats === 'function') {
-    updateDashboardStats();
-}
+switchView('dashboard');
 
 // MutationObserver to automatically toggle 'modal-open' class (overflow: hidden) on body when overlay is active
 document.addEventListener('DOMContentLoaded', () => {
@@ -478,6 +493,8 @@ function quickAction(type) {
         switchView('klien');
         showToast('Pilih salah satu klien terlebih dahulu untuk memproses payroll', 'info');
     } else if (type === 'pengaturan-skema') {
+        switchPayrollSub('pajak');
+    } else if (type === 'setting-skema') {
         switchPayrollSub('setting');
     } else if (type === 'lokasi-kerja') {
         if (typeof window.switchKaryawanSubMenu === 'function') {

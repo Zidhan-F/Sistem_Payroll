@@ -58,6 +58,7 @@ $routes->group('api', function($routes) {
     // Client Configs
     $routes->get('client-configs', 'Api::getClientConfigs');
     $routes->post('client-configs', 'Api::saveClientConfig');
+    $routes->delete('client-configs/(:num)', 'Api::deleteClientConfig/$1');
 
     // PKWT
     $routes->get('pkwt', 'Api::getPKWT');
@@ -142,4 +143,14 @@ $routes->group('api', function($routes) {
     $routes->post('positions', 'Org::createPosition');
     $routes->put('org/(:segment)/(:num)', 'Org::update/$1/$2');
     $routes->delete('org/(:segment)/(:num)', 'Org::delete/$1/$2');
+
+    // Payroll Scheme Templates (Multiple schemes per org structure)
+    $routes->get('payroll-schemes', 'PayrollScheme::index');
+    $routes->get('payroll-schemes/by-org', 'PayrollScheme::getByOrgStructure');
+    $routes->get('payroll-schemes/for-employee', 'PayrollScheme::getSchemeForEmployee');
+    $routes->get('payroll-schemes/(:num)', 'PayrollScheme::show/$1');
+    $routes->post('payroll-schemes', 'PayrollScheme::create');
+    $routes->put('payroll-schemes/(:num)', 'PayrollScheme::update/$1');
+    $routes->delete('payroll-schemes/(:num)', 'PayrollScheme::delete/$1');
+    $routes->post('payroll-schemes/toggle-active/(:num)', 'PayrollScheme::toggleActive/$1');
 });
