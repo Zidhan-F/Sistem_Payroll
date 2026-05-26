@@ -337,31 +337,65 @@ async function loadSchemaMappingTable() {
         const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const mappings = await res.json();
         
-        const tbody = document.getElementById('tabelPilihanSkemaKlien');
-        if (!tbody) return;
+        const tbody = document.getElementById('tabelSchemaMappingBody');
+        const tbodyKlien = document.getElementById('tabelPilihanSkemaKlien');
         
-        if (!mappings || mappings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #94a3b8;"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>No payroll schemes registered yet. Click the "Add Scheme" button to configure.</td></tr>';
-            return;
-        }
-        
-        tbody.innerHTML = mappings.map(m => {
-            return `
+        if (mappings && mappings.length > 0) {
+            if (tbody) {
+                tbody.innerHTML = mappings.map(m => {
+                    let levelLabel = '<span class="status-badge warning" style="background:#f1f5f9;color:#475569;">General Klien</span>';
+                    if (m.position_id) {
+                        levelLabel = `<span class="status-badge" style="background:#e0e7ff;color:#4338ca;">Posisi: ${m.position_name}</span>`;
+                    } else if (m.department_id) {
+                        levelLabel = `<span class="status-badge" style="background:#fce7f3;color:#be185d;">Dept: ${m.department_name}</span>`;
+                    } else if (m.division_id) {
+                        levelLabel = `<span class="status-badge" style="background:#dcfce7;color:#15803d;">Divisi: ${m.division_name}</span>`;
+                    }
+                    
+                    return `
+                        <tr>
+                            <td>${levelLabel}</td>
+                            <td>${m.payroll_type || '-'}</td>
+                            <td>${m.tax_scheme_name || '-'}</td>
+                            <td>${m.compensation_scheme_name || '-'}</td>
+                            <td>
+                                <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db;background:transparent;border:none;cursor:pointer;"><i class="fas fa-edit"></i></button>
+                                <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            if (tbodyKlien) {
+                tbodyKlien.innerHTML = mappings.map(m => {
+                    return `
+                        <tr>
+                            <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.division_name || '<span style="color:#94a3b8;font-style:italic;">(General)</span>'}</td>
+                            <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.department_name || '<span style="color:#94a3b8;font-style:italic;">(Semua)</span>'}</td>
+                            <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || '<span style="color:#94a3b8;font-style:italic;">(Semua)</span>'}</td>
+                            <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
+                            <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.tax_scheme_name || '-'}</td>
+                            <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0;">
+                                <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
+                                    <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
+                                    <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Delete" style="color:#e74c3c; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        } else {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada skema yang diatur</td></tr>';
+            if (tbodyKlien) tbodyKlien.innerHTML = `
                 <tr>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.division_name || 'Global'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.department_name || 'Global'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || 'Global'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.tax_scheme_name || '-'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0;">
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
-                            <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
-                            <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Delete" style="color:#e74c3c; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
-                        </div>
+                    <td colspan="6" style="text-align:center; padding: 40px; color: #94a3b8;">
+                        <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                        Belum ada skema payroll yang terdaftar. Klik tombol "Tambah Skema" untuk mengkonfigurasi.
                     </td>
                 </tr>
             `;
-        }).join('');
     } catch (err) {
         console.error('Error loading mapping table:', err);
     }
@@ -622,6 +656,10 @@ window.openModalPilihanSkema = async function() {
         showToast('Pilih klien terlebih dahulu!', 'error');
         return;
     }
+    
+    // Reset any previous edit state
+    window.editSchemaMappingId = null;
+    
     document.getElementById('modalPilihanSkemaTitle').innerText = 'Tambah Skema Client';
     document.getElementById('formPilihanSkema').reset();
     

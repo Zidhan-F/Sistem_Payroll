@@ -581,6 +581,7 @@ class Api extends ResourceController
         if ($existing) {
             $this->db->table('client_payroll_configs')->where('id', $existing->id)->update($data);
         } else {
+            if (isset($data['id'])) unset($data['id']);
             $this->db->table('client_payroll_configs')->insert($data);
         }
         
@@ -1634,19 +1635,36 @@ class Api extends ResourceController
         $level = 'Tidak Ada';
         
         if ($posId) {
-            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'position_id' => $posId])->get()->getRow();
+            $config = $this->db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('position_id', $posId)
+                ->get()->getRow();
             if ($config) $level = 'Posisi';
         }
         if (!$config && $deptId) {
-            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'department_id' => $deptId, 'position_id' => null])->get()->getRow();
+            $config = $this->db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('department_id', $deptId)
+                ->where('position_id IS NULL')
+                ->get()->getRow();
             if ($config) $level = 'Departemen';
         }
         if (!$config && $divId) {
-            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'division_id' => $divId, 'department_id' => null, 'position_id' => null])->get()->getRow();
+            $config = $this->db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('division_id', $divId)
+                ->where('department_id IS NULL')
+                ->where('position_id IS NULL')
+                ->get()->getRow();
             if ($config) $level = 'Divisi';
         }
         if (!$config) {
-            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'division_id' => null, 'department_id' => null, 'position_id' => null])->get()->getRow();
+            $config = $this->db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('division_id IS NULL')
+                ->where('department_id IS NULL')
+                ->where('position_id IS NULL')
+                ->get()->getRow();
             if ($config) $level = 'General Client';
         }
 
