@@ -115,7 +115,7 @@ function renderWorkLocationsTable() {
     tbody.innerHTML = '';
     
     if (workLocations.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: var(--text-muted);">Belum ada data lokasi kerja.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 20px; color: var(--text-muted);">Belum ada data lokasi kerja.</td></tr>`;
         return;
     }
     
@@ -124,15 +124,8 @@ function renderWorkLocationsTable() {
             <tr>
                 <td style="font-weight:600;">${loc.lokasi_kerja}</td>
                 <td style="font-weight:600;">${loc.location_code || '-'}</td>
-
                 <td>${loc.provinsi || '-'}</td>
                 <td>${loc.kota_kabupaten || '-'}</td>
-                <td>
-                    <div style="display:flex; gap:8px;">
-                        <button onclick="editLokasiKerja(${loc.id})" class="btn-action edit" title="Edit" style="background:#3b82f6; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-edit"></i></button>
-                        <button onclick="hapusLokasiKerja(${loc.id})" class="btn-action delete" title="Hapus" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
-                    </div>
-                </td>
             </tr>
         `;
     });
@@ -146,7 +139,7 @@ async function bukaModalLokasiKerja() {
     document.getElementById('workLocationId').value = '';
     document.getElementById('modalLokasiKerjaTitle').innerText = 'Add Work Location';
     
-    resetCascadingSelects();
+
     fetchNextWorkLocationId();
 
     const clientSelect = document.getElementById('locClientId');
@@ -239,22 +232,7 @@ async function populateLocClients() {
     }
 }
 
-function resetCascadingSelects() {
-    // Dipindah ke modal karyawan
-}
 
-document.getElementById('locClientId')?.addEventListener('change', async (e) => {
-    const clientId = e.target.value;
-    resetCascadingSelects();
-    if (!clientId) return;
-    
-    try {
-        const r = await fetch(`/api/org?client_id=${clientId}`);
-        const divs = await r.json();
-    } catch (err) {
-        console.error(err);
-    }
-});
 
 
 

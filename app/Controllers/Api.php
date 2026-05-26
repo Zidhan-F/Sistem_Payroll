@@ -566,26 +566,22 @@ class Api extends ResourceController
         
         $existing = $query->get()->getRow();
         
-        // PENCEGAHAN DUPLIKASI (Hanya 1 Skema Unik per level Org)
+        // JIKA SUDAH ADA, LANGSUNG UPDATE (UPSERT)
         $isUpdateAction = isset($data['id']) && $data['id'] > 0;
         
         if ($existing && !$isUpdateAction) {
-            if (!isset($data['id']) || $data['id'] != $existing->id) {
-                return $this->fail('A scheme for this organizational level already exists! Please edit the existing scheme to prevent duplication.');
-            }
+            $data['id'] = $existing->id;
         }
         
-        // Remove 'id' from data to prevent SQL Server identity column error
-        unset($data['id']);
-        
-        if ($existing) {
-            $this->db->table('client_payroll_configs')->where('id', $existing->id)->update($data);
+        if (isset($data['id'])) {
+            $idToUpdate = $data['id'];
+            unset($data['id']); // Mencegah update kolom identity
+            $this->db->table('client_payroll_configs')->where('id', $idToUpdate)->update($data);
         } else {
-            if (isset($data['id'])) unset($data['id']);
             $this->db->table('client_payroll_configs')->insert($data);
         }
-        
-        return $this->respond(['message' => 'Client payroll configuration saved successfully']);
+
+        return $this->respond(['status' => 'success', 'message' => 'Pilihan skema berhasil disimpan']);
     }
 
     public function getClientConfigMappings($clientId)

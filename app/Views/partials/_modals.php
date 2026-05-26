@@ -949,26 +949,7 @@
                     <input type="hidden" id="locCode">
                 </div>
 
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Division</label>
-                        <select id="locDivisionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="">-- Select Division --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Department</label>
-                        <select id="locDepartmentId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="">-- Select Department --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Position/Title</label>
-                        <select id="locPositionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="">-- Select Position --</option>
-                        </select>
-                    </div>
-                </div>
+
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">

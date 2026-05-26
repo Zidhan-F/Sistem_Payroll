@@ -321,6 +321,10 @@ function switchView(view) {
     document.querySelectorAll('.sidebar-menu li').forEach(l => l.classList.remove('active'));
     document.querySelectorAll('.sidebar-submenu li').forEach(l => l.classList.remove('active'));
 
+    if (view !== 'clientWorkspace') {
+        window.selectedClientId = null;
+    }
+
     const sectionId = 'view' + view.charAt(0).toUpperCase() + view.slice(1);
     let menuId = 'menu' + view.charAt(0).toUpperCase() + view.slice(1);
     
