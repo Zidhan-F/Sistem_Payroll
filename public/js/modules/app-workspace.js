@@ -531,7 +531,6 @@ async function simpanPilihanSkema() {
     
     let payrollType, minimumWageId, customNominal, payrollSchemeId, taxSchemeId, compSchemeId;
     let level, divId, deptId, posId;
-    let hariKerja = null;
     
     if (isModal) {
         payrollType = 'Template';
@@ -541,7 +540,6 @@ async function simpanPilihanSkema() {
         divId = document.getElementById('modalPilihanSkemaDivisi').value;
         deptId = document.getElementById('modalPilihanSkemaDepartemen').value;
         posId = document.getElementById('modalPilihanSkemaPosisi').value;
-        hariKerja = document.getElementById('modalPilihanSkemaHariKerja').value;
         
         if (posId) level = 'posisi';
         else if (deptId) level = 'departemen';
@@ -588,8 +586,7 @@ async function simpanPilihanSkema() {
             // Add org hierarchy based on selected level
             division_id: (level !== 'general' && divId) ? divId : null,
             department_id: ((level === 'departemen' || level === 'posisi') && deptId) ? deptId : null,
-            position_id: (level === 'posisi' && posId) ? posId : null,
-            hari_kerja: (level === 'posisi' && hariKerja) ? hariKerja : null
+            position_id: (level === 'posisi' && posId) ? posId : null
         };
         
         if (window.editSchemaMappingId) {

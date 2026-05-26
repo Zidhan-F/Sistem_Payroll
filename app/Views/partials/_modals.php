@@ -531,20 +531,6 @@
                         <small style="color: #64748b; font-size: 11px;">Leave blank to apply the scheme globally/client-wide.</small>
                     </div>
 
-                    <!-- Working Days -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="font-weight: 600; color: #475569;"><i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>Working Days</span>
-                            <small style="color: #64748b; font-size: 11px;">Configure the number of working days per week for the selected position.</small>
-                        </div>
-                        <select id="modalPilihanSkemaHariKerja" style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
-                            <option value="">-- Select Working Days --</option>
-                            <option value="5">5 Working Days</option>
-                            <option value="6">6 Working Days</option>
-                            <option value="7">7 Working Days</option>
-                        </select>
-                    </div>
-
                     <!-- Payroll Scheme -->
                     <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
                         <div style="display: flex; flex-direction: column;">
