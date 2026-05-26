@@ -612,7 +612,10 @@ async function simpanPilihanSkema() {
             loadWorkspaceSetup();
         } else {
             const d = await res.json();
-            showToast(d.message || 'Gagal menyimpan pilihan skema!', 'error');
+            let msg = 'Gagal menyimpan pilihan skema!';
+            if (d.messages && d.messages.error) msg = d.messages.error;
+            else if (d.message) msg = d.message;
+            showToast(msg, 'error');
         }
     } catch (err) {
         console.error(err);

@@ -831,7 +831,7 @@
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">NPWP</label>
-                        <input type="text" id="empNpwp" placeholder="Contoh: 00.000.000.0-000.000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <input type="text" id="empNpwp" placeholder="Example: 00.000.000.0-000.000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </div>
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Marital Status</label>
@@ -871,40 +871,40 @@
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Gaji Pokok (Rp)</label>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Basic Salary (Rp)</label>
                         <input type="text" id="empGajiPokok" required placeholder="0" onkeyup="formatRupiahInput(this); calculateDendaAbsen()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Hari Kerja</label>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Working Days</label>
                         <select id="empHariKerja" onchange="calculateDendaAbsen()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="5">5 Hari</option>
-                            <option value="6">6 Hari</option>
-                            <option value="7">7 Hari</option>
+                            <option value="5">5 Days</option>
+                            <option value="6">6 Days</option>
+                            <option value="7">7 Days</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Gaji Harian & Denda Absen (Rp)</label>
-                        <input type="text" id="empDendaAbsen" readonly placeholder="Otomatis" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; font-weight: 600; color: #ef4444;">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Daily Wage & Absence Fine (Rp)</label>
+                        <input type="text" id="empDendaAbsen" readonly placeholder="Automatic" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; font-weight: 600; color: #ef4444;">
                     </div>
                 </div>
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Divisi</label>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Division</label>
                         <select id="empDivisionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="">-- Pilih Divisi --</option>
+                            <option value="">-- Select Division --</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Departmen</label>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Department</label>
                         <select id="empDepartmentId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="">-- Pilih Departemen --</option>
+                            <option value="">-- Select Department --</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Posisi/Jabatan</label>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Position / Role</label>
                         <select id="empPositionId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="">-- Pilih Jabatan --</option>
+                            <option value="">-- Select Position --</option>
                         </select>
                         <div id="schemaInfoContainer" style="margin-top: 6px; font-size: 12px; font-weight: 500; display: none; padding: 6px 10px; border-radius: 6px; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569;"></div>
                     </div>
@@ -915,6 +915,15 @@
                     <select id="empWorkLocationId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         <option value="">-- Select Work Location --</option>
                     </select>
+                </div>
+
+                <div class="form-group" id="empMinimumWageContainer" style="margin-bottom: 15px; display: none;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Location Minimum Wage (UMP / UMK)</label>
+                    <div style="position: relative;">
+                        <input type="text" id="empMinimumWage" readonly style="width: 100%; padding: 10px 10px 10px 40px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f8fafc; color: #475569; font-weight: 600;">
+                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
+                    </div>
+                    <small id="empMinimumWageInfo" style="margin-top: 4px; display: block; font-size: 12px; color: #64748b; font-weight: 500;"></small>
                 </div>
             </div>
             <div class="modal-footer">

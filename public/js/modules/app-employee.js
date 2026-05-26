@@ -23,6 +23,14 @@ function rowHtmlForEmployee(emp) {
                 </div>
             </td>
             <td>
+                <div style="font-weight: 600; color: #16a34a;">
+                    Rp ${emp.umr_nominal ? parseFloat(emp.umr_nominal).toLocaleString('id-ID') : '0'}
+                </div>
+                <div style="font-size: 11px; color: #64748b;">
+                    ${emp.umr_tipe || '-'}
+                </div>
+            </td>
+            <td>
                 <div style="color: #ef4444; font-weight: 600; font-size: 12px;">Rp ${emp.denda_absen ? parseFloat(emp.denda_absen).toLocaleString('id-ID') : '0'}</div>
             </td>
             <td>

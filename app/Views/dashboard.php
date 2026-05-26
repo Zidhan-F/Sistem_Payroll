@@ -212,6 +212,7 @@
                                     <th>Department</th>
                                     <th>Position / Role</th>
                                     <th>Work Location</th>
+                                    <th>Min. Wage (UMP/UMK)</th>
                                     <th>Daily Wage / Fine</th>
                                     <th>Contract</th>
                                     <th>Action</th>
@@ -230,9 +231,12 @@
                 <div class="content-card">
                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
                         <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Work Location Data</h3>
-                        <button class="btn-add" onclick="bukaModalLokasiKerja()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                            <i class="fas fa-plus"></i> Add Work Location
-                        </button>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <input type="text" id="cariLokasiKerjaGlobal" placeholder="Search work location, province, city..." oninput="cariLokasiKerjaGlobalAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <button class="btn-add" onclick="bukaModalLokasiKerja()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                                <i class="fas fa-plus"></i> Add Work Location
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-container">
@@ -339,6 +343,7 @@
                                                     <th>Department</th>
                                                     <th>Position / Role</th>
                                                     <th>Work Location</th>
+                                                    <th>Min. Wage (UMP/UMK)</th>
                                                     <th>Daily Wage / Fine</th>
                                                     <th>Contract</th>
                                                     <th>Action</th>

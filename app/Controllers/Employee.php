@@ -13,6 +13,22 @@ class Employee extends ResourceController
 
     public function index()
     {
+        // Automatically sync/update missing minimum_wage_ids for existing employees
+        $db = \Config\Database::connect();
+        $missingEmps = $db->table('employees')
+                          ->where('work_location_id IS NOT NULL')
+                          ->where('minimum_wage_id IS NULL')
+                          ->get()
+                          ->getResult();
+        if (!empty($missingEmps)) {
+            foreach ($missingEmps as $emp) {
+                $wageId = $this->resolveMinimumWageId($emp->work_location_id);
+                if ($wageId) {
+                    $db->table('employees')->where('id', $emp->id)->update(['minimum_wage_id' => $wageId]);
+                }
+            }
+        }
+
         $clientId = $this->request->getGet('client_id');
         if ($clientId) {
             $data = $this->model->select('employees.*, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, clients.nama as nama_klien, positions.department_id as department_id, departments.division_id as division_id, COALESCE(NULLIF(CAST(employees.alamat AS VARCHAR(MAX)), \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal, work_locations.lokasi_kerja as nama_lokasi')
@@ -33,6 +49,10 @@ class Employee extends ResourceController
     {
         $data = $this->request->getJSON(true);
         
+        if (!empty($data['work_location_id'])) {
+            $data['minimum_wage_id'] = $this->resolveMinimumWageId($data['work_location_id']);
+        }
+
         if (isset($data['gaji_pokok']) && isset($data['hari_kerja'])) {
             $hk = (int)$data['hari_kerja'];
             $pembagi = ($hk == 5) ? 22 : (($hk == 6) ? 26 : (($hk == 7) ? 30 : 22));
@@ -136,6 +156,10 @@ class Employee extends ResourceController
         $data = $this->request->getJSON(true);
         $oldEmp = $this->model->find($id);
         
+        if (isset($data['work_location_id'])) {
+            $data['minimum_wage_id'] = $this->resolveMinimumWageId($data['work_location_id']);
+        }
+
         // Auto-calculate denda_absen if gaji_pokok or hari_kerja is updated
         $gaji = isset($data['gaji_pokok']) ? $data['gaji_pokok'] : ($oldEmp['gaji_pokok'] ?? 0);
         $hk = isset($data['hari_kerja']) ? (int)$data['hari_kerja'] : (int)($oldEmp['hari_kerja'] ?? 5);
@@ -250,5 +274,39 @@ class Employee extends ResourceController
         }
         $employId = $year . str_pad($nextSeq, 5, '0', STR_PAD_LEFT);
         return $this->respond(['employ_id' => $employId]);
+    }
+
+    private function resolveMinimumWageId($workLocationId)
+    {
+        if (!$workLocationId) return null;
+        $db = \Config\Database::connect();
+        
+        // 1. Get work location
+        $loc = $db->table('work_locations')->where('id', $workLocationId)->get()->getRow();
+        if (!$loc) return null;
+        
+        // 2. Try to match UMK by city/regency
+        if (!empty($loc->kota_kabupaten)) {
+            $search = trim(strtolower($loc->kota_kabupaten));
+            $rows = $db->table('minimum_wages')->where('tipe', 'UMK')->get()->getResult();
+            foreach ($rows as $row) {
+                if (trim(strtolower($row->nama_daerah)) === $search) {
+                    return $row->id;
+                }
+            }
+        }
+        
+        // 3. Fallback to match UMP by province
+        if (!empty($loc->provinsi)) {
+            $search = trim(strtolower($loc->provinsi));
+            $rows = $db->table('minimum_wages')->where('tipe', 'UMP')->get()->getResult();
+            foreach ($rows as $row) {
+                if (trim(strtolower($row->nama_daerah)) === $search) {
+                    return $row->id;
+                }
+            }
+        }
+        
+        return null;
     }
 }

@@ -73,14 +73,17 @@
                                         <table>
                                             <thead>
                                                 <tr>
-                                                    <th>NIK</th>
-                                                    <th>Employee Name</th>
-                                                    <th>Birth Date</th>
-                                                    <th>NPWP</th>
                                                     <th>Company / Client</th>
-                                                    <th>Contract</th>
+                                                    <th>Employee ID (NIK)</th>
+                                                    <th>Employee Name</th>
+                                                    <th>Place & Date of Birth</th>
+                                                    <th>NPWP</th>
+                                                    <th>Division</th>
+                                                    <th>Department</th>
+                                                    <th>Position / Role</th>
                                                     <th>Work Location</th>
-                                                    <th>Marital Status</th>
+                                                    <th>Daily Wage / Fine</th>
+                                                    <th>Contract</th>
                                                     <th>Action</th>
                                                 </tr>
                                             </thead>

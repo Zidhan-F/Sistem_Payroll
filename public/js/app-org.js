@@ -224,7 +224,7 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     
     divSelect.innerHTML = '<option value="">-- Select Division --</option>';
     deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
-    posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+    posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     
     try {
         const r = await fetch(`${API}/org?client_id=${clientId}`);
@@ -292,14 +292,85 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     }
 }
 
+let workLocationsCache = [];
+let minimumWagesCache = [];
+
+async function handleWorkLocationChange() {
+    const locSel = document.getElementById('empWorkLocationId');
+    const minWageInput = document.getElementById('empMinimumWage');
+    const minWageInfo = document.getElementById('empMinimumWageInfo');
+    const minWageContainer = document.getElementById('empMinimumWageContainer');
+    
+    if (!locSel || !minWageInput || !minWageInfo || !minWageContainer) return;
+    
+    const locationId = locSel.value;
+    if (!locationId) {
+        minWageContainer.style.display = 'none';
+        minWageInput.value = '';
+        minWageInfo.innerHTML = '';
+        return;
+    }
+    
+    const loc = workLocationsCache.find(l => l.id == locationId);
+    if (!loc) {
+        minWageContainer.style.display = 'none';
+        return;
+    }
+    
+    if (minimumWagesCache.length === 0) {
+        try {
+            const res = await fetch(`${API}/minimum-wages?tipe=all`);
+            minimumWagesCache = await res.json();
+        } catch (err) {
+            console.error('Error fetching minimum wages:', err);
+        }
+    }
+    
+    let match = null;
+    let wageType = '';
+    
+    // 1. Search UMK matching kota_kabupaten
+    if (loc.kota_kabupaten) {
+        const searchName = loc.kota_kabupaten.trim().toLowerCase();
+        match = minimumWagesCache.find(w => w.tipe === 'UMK' && w.nama_daerah.trim().toLowerCase() === searchName);
+        if (match) wageType = 'UMK';
+    }
+    
+    // 2. Fallback to UMP matching provinsi
+    if (!match && loc.provinsi) {
+        const searchName = loc.provinsi.trim().toLowerCase();
+        match = minimumWagesCache.find(w => w.tipe === 'UMP' && w.nama_daerah.trim().toLowerCase() === searchName);
+        if (match) wageType = 'UMP';
+    }
+    
+    minWageContainer.style.display = 'block';
+    if (match) {
+        minWageInput.value = parseFloat(match.nominal).toLocaleString('id-ID');
+        minWageInfo.innerHTML = `<i class="fas fa-check-circle"></i> Auto-filled using <b>${wageType}</b> for <b>${match.nama_daerah}</b> (Rp ${parseFloat(match.nominal).toLocaleString('id-ID')})`;
+        minWageInfo.style.color = '#15803d';
+    } else {
+        minWageInput.value = '0';
+        minWageInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No UMP/UMK configured for ${loc.kota_kabupaten || loc.provinsi || 'this region'}.`;
+        minWageInfo.style.color = '#b91c1c';
+    }
+}
+
 async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
     const locSel = document.getElementById('empWorkLocationId');
     if (!locSel) return;
+    
+    if (!locSel.dataset.listenerAttached) {
+        locSel.addEventListener('change', handleWorkLocationChange);
+        locSel.dataset.listenerAttached = 'true';
+    }
+    
     locSel.innerHTML = '<option value="">-- Loading Locations... --</option>';
     try {
         const r = await fetch(`${API}/work-locations?client_id=${clientId}`);
         const locations = await r.json();
-        locSel.innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+        workLocationsCache = locations;
+        
+        locSel.innerHTML = '<option value="">-- Select Work Location --</option>';
         if (Array.isArray(locations)) {
             locations.forEach(loc => {
                 const opt = document.createElement('option');
@@ -311,9 +382,16 @@ async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
                 locSel.appendChild(opt);
             });
         }
+        
+        if (activeLocationId) {
+            handleWorkLocationChange();
+        } else {
+            const minWageContainer = document.getElementById('empMinimumWageContainer');
+            if (minWageContainer) minWageContainer.style.display = 'none';
+        }
     } catch (e) {
         console.error('Error loading work locations:', e);
-        locSel.innerHTML = '<option value="">-- Gagal memuat lokasi --</option>';
+        locSel.innerHTML = '<option value="">-- Failed to load locations --</option>';
     }
 }
 
@@ -324,8 +402,11 @@ async function bukaModalKaryawan(mode,id=null){
     // Reset form first so it doesn't overwrite values set below!
     document.getElementById('formKaryawan').reset();
     document.getElementById('employeeId').value='';
-    document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+    document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
     document.getElementById('empEmployId').value = '';
+    
+    const minWageContainer = document.getElementById('empMinimumWageContainer');
+    if (minWageContainer) minWageContainer.style.display = 'none';
     
     const empEmployIdContainer = document.getElementById('empEmployIdContainer');
     const empNikNamaGrid = document.getElementById('empNikNamaGrid');
@@ -360,11 +441,11 @@ async function bukaModalKaryawan(mode,id=null){
         statusPernikahanSel.onchange = updateJumlahAnakVisibility;
     }
     
-    cs.innerHTML='<option value="">-- Memuat Klien... --</option>';
+    cs.innerHTML='<option value="">-- Loading Clients... --</option>';
     try {
         const r = await fetch(API + '/clients');
         const clientsData = await r.json();
-        cs.innerHTML = '<option value="">-- Pilih Klien --</option>';
+        cs.innerHTML = '<option value="">-- Select Client --</option>';
         clientsData.forEach(c => {
             cs.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
         });
@@ -373,7 +454,7 @@ async function bukaModalKaryawan(mode,id=null){
         if (typeof window.clients !== 'undefined') window.clients = clientsData;
     } catch (err) {
         console.error('Error fetching clients:', err);
-        cs.innerHTML = '<option value="">-- Gagal memuat --</option>';
+        cs.innerHTML = '<option value="">-- Failed to load --</option>';
     }
 
     cs.onchange = async () => {
@@ -382,10 +463,10 @@ async function bukaModalKaryawan(mode,id=null){
             await loadWorkLocationsForSelect(cid);
             await loadOrgSelects(cid);
         } else {
-            document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
-            const ds = document.getElementById('empDivisionId'); if(ds) ds.innerHTML = '<option value="">-- Pilih Divisi --</option>';
-            const deps = document.getElementById('empDepartmentId'); if(deps) deps.innerHTML = '<option value="">-- Pilih Department --</option>';
-            const ps = document.getElementById('empPositionId'); if(ps) ps.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+            document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
+            const ds = document.getElementById('empDivisionId'); if(ds) ds.innerHTML = '<option value="">-- Select Division --</option>';
+            const deps = document.getElementById('empDepartmentId'); if(deps) deps.innerHTML = '<option value="">-- Select Department --</option>';
+            const ps = document.getElementById('empPositionId'); if(ps) ps.innerHTML = '<option value="">-- Select Position --</option>';
         }
     };
 
@@ -460,8 +541,8 @@ async function bukaModalKaryawan(mode,id=null){
 async function loadPositions(cid){
     if(!cid)return;const ps=document.getElementById('empPositionId');
     if(!ps) return;
-    ps.innerHTML='<option value="">-- Memuat Posisi... --</option>';
-    try{const r=await fetch(`${API}/positions/client/${cid}`);const p=await r.json();ps.innerHTML='<option value="">-- Pilih Posisi --</option>';if(Array.isArray(p))p.forEach(x=>{ps.innerHTML+=`<option value="${x.id}">${x.nama}</option>`;});}catch(e){console.error(e);}
+    ps.innerHTML='<option value="">-- Loading Positions... --</option>';
+    try{const r=await fetch(`${API}/positions/client/${cid}`);const p=await r.json();ps.innerHTML='<option value="">-- Select Position --</option>';if(Array.isArray(p))p.forEach(x=>{ps.innerHTML+=`<option value="${x.id}">${x.nama}</option>`;});}catch(e){console.error(e);}
 }
 
 document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
@@ -583,7 +664,7 @@ async function checkSchemaAvailability() {
     }
     
     infoContainer.style.display = 'block';
-    infoContainer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengecek ketersediaan skema & perhitungan otomatis...';
+    infoContainer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking scheme availability & automatic calculation...';
     infoContainer.style.color = '#64748b';
     infoContainer.style.background = '#f8fafc';
     
@@ -598,12 +679,12 @@ async function checkSchemaAvailability() {
         if (res.ok) {
             const data = await res.json();
             if (data.status === 'error') {
-                infoContainer.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <b>Skema Belum Diatur!</b><br>Karyawan ini tidak memiliki skema perhitungan payroll. Harap setup di menu Konfigurasi Payroll.';
+                infoContainer.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <b>Scheme Not Configured!</b><br>This employee has no payroll calculation scheme. Please set it up in the Payroll Configuration menu.';
                 infoContainer.style.color = '#b91c1c';
                 infoContainer.style.background = '#fef2f2';
                 infoContainer.style.border = '1px solid #fca5a5';
             } else {
-                infoContainer.innerHTML = `<i class="fas fa-check-circle"></i> <b>Skema Tersedia!</b><br>Sistem menggunakan skema level: <b>${data.level}</b>.<br><small>${data.description}</small>`;
+                infoContainer.innerHTML = `<i class="fas fa-check-circle"></i> <b>Scheme Available!</b><br>System uses scheme level: <b>${data.level}</b>.<br><small>${data.description}</small>`;
                 infoContainer.style.color = '#15803d';
                 infoContainer.style.background = '#f0fdf4';
                 infoContainer.style.border = '1px solid #bbf7d0';
@@ -614,20 +695,22 @@ async function checkSchemaAvailability() {
                 const dendaInput = document.getElementById('empDendaAbsen');
 
                 if (gajiInput && data.gaji_pokok > 0) {
-                    gajiInput.value = data.gaji_pokok.toLocaleString('id-ID');
-                    gajiInput.readOnly = true;
-                    gajiInput.style.background = '#f1f5f9';
+                     gajiInput.value = data.gaji_pokok.toLocaleString('id-ID');
+                     gajiInput.readOnly = true;
+                     gajiInput.style.background = '#f1f5f9';
                 } else if (gajiInput) {
-                    gajiInput.value = '';
-                    gajiInput.readOnly = false;
-                    gajiInput.style.background = '#fff';
+                     if (gajiInput.readOnly) {
+                          gajiInput.value = '';
+                     }
+                     gajiInput.readOnly = false;
+                     gajiInput.style.background = '#fff';
                 }
 
                 if (hariKerjaInput) {
-                    hariKerjaInput.value = data.hari_kerja || 5;
-                    // Usually select cannot be readonly, so we disable pointer events or just leave it
-                    hariKerjaInput.style.pointerEvents = 'none';
-                    hariKerjaInput.style.background = '#f1f5f9';
+                     hariKerjaInput.value = data.hari_kerja || 5;
+                     // Usually select cannot be readonly, so we disable pointer events or just leave it
+                     hariKerjaInput.style.pointerEvents = 'none';
+                     hariKerjaInput.style.background = '#f1f5f9';
                 }
 
                 if (typeof calculateDendaAbsen === 'function') calculateDendaAbsen();
@@ -635,7 +718,7 @@ async function checkSchemaAvailability() {
         }
     } catch (e) {
         console.error('Error checking schema', e);
-        infoContainer.innerHTML = '<i class="fas fa-info-circle"></i> Gagal memverifikasi skema server.';
+        infoContainer.innerHTML = '<i class="fas fa-info-circle"></i> Failed to verify server scheme.';
     }
 }
 window.checkSchemaAvailability = checkSchemaAvailability;

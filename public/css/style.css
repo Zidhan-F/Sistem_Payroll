@@ -2428,3 +2428,28 @@ body.modal-open, html.modal-open {
     min-height: 0 !important;
 }
 
+/* Premium Sticky Action Column styling for wide tables */
+.table-container th:last-child,
+.table-container td:last-child {
+    position: sticky;
+    right: 0;
+    background: #ffffff;
+    z-index: 5;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.table-container th:last-child {
+    background: #f4f6f8; /* matches the table header gradient bottom background */
+    z-index: 15; /* higher than standard headers to overlap scroll correctly */
+}
+
+/* Ensure zebra striping background matches on sticky column */
+.table-container tbody tr:nth-child(even) td:last-child {
+    background: #fbfcfc;
+}
+
+/* Ensure row hover background matches on sticky column */
+.table-container tbody tr:hover td:last-child {
+    background: #fef8f0 !important; /* matches primary-color hover tint */
+}
+

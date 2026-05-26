@@ -58,27 +58,32 @@ async function loadWorkLocations() {
     }
 }
 
+let allWorkLocationsGlobal = [];
+
 async function loadGlobalWorkLocations() {
     try {
         const r = await fetch('/api/work-locations');
         workLocations = await r.json();
-        renderGlobalWorkLocationsTable();
+        allWorkLocationsGlobal = [...workLocations];
+        renderGlobalWorkLocationsTable(workLocations);
     } catch (e) {
         console.error(e);
     }
 }
 
-function renderGlobalWorkLocationsTable() {
+function renderGlobalWorkLocationsTable(list = null) {
     const tbody = document.getElementById('tabelGlobalLokasiKerjaBody');
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    if (workLocations.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color: var(--text-muted);">Belum ada data lokasi kerja.</td></tr>`;
+    const items = list !== null ? list : workLocations;
+    
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">No work location data found.</td></tr>`;
         return;
     }
     
-    workLocations.forEach(loc => {
+    items.forEach(loc => {
         tbody.innerHTML += `
             <tr>
                 <td style="font-weight:600;">${loc.lokasi_kerja}</td>
@@ -96,6 +101,22 @@ function renderGlobalWorkLocationsTable() {
             </tr>
         `;
     });
+}
+
+function cariLokasiKerjaGlobalAktif() {
+    const q = document.getElementById('cariLokasiKerjaGlobal').value.toLowerCase();
+    if (!q) {
+        renderGlobalWorkLocationsTable(allWorkLocationsGlobal);
+        return;
+    }
+    const filtered = allWorkLocationsGlobal.filter(loc => {
+        return (loc.lokasi_kerja && loc.lokasi_kerja.toLowerCase().includes(q)) ||
+            (loc.location_code && loc.location_code.toLowerCase().includes(q)) ||
+            (loc.nama_klien && loc.nama_klien.toLowerCase().includes(q)) ||
+            (loc.provinsi && loc.provinsi.toLowerCase().includes(q)) ||
+            (loc.kota_kabupaten && loc.kota_kabupaten.toLowerCase().includes(q));
+    });
+    renderGlobalWorkLocationsTable(filtered);
 }
 
 async function loadWorkLocationsForClient() {
@@ -361,4 +382,5 @@ window.bukaModalLokasiKerja = bukaModalLokasiKerja;
 window.tutupModalLokasiKerja = tutupModalLokasiKerja;
 window.editLokasiKerja = editLokasiKerja;
 window.hapusLokasiKerja = hapusLokasiKerja;
+window.cariLokasiKerjaGlobalAktif = cariLokasiKerjaGlobalAktif;
 
