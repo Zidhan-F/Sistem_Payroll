@@ -635,13 +635,27 @@ window.openModalPilihanSkema = async function() {
         document.getElementById('modalPilihanSkemaNamaKlien').value = clientName;
     }
     
-    // Populate divisions
+    // Show modal IMMEDIATELY, then load data in background
+    document.getElementById('modalPilihanSkema').style.display = 'block';
+    
+    // Load all dropdown data in PARALLEL
     const divSelect = document.getElementById('modalPilihanSkemaDivisi');
+    const psSelect = document.getElementById('modalPilihanSkemaPayroll');
+    const tsSelect = document.getElementById('modalPilihanSkemaPajak');
+
     try {
-        const orgRes = await fetch(`${API_URL}/org?client_id=${window.selectedClientId}`);
-            const orgData = await orgRes.json();
-            window.clientOrgData = orgData;
-            
+        const [orgRes, psRes, tsRes] = await Promise.all([
+            fetch(`${API_URL}/org?client_id=${window.selectedClientId}`),
+            fetch(`${API_URL}/payroll-schemes`),
+            fetch(`${API_URL}/tax-schemes`)
+        ]);
+        const [orgData, payrollSchemes, taxSchemes] = await Promise.all([
+            orgRes.json(), psRes.json(), tsRes.json()
+        ]);
+
+        // Populate divisions
+        window.clientOrgData = orgData;
+        if (divSelect) {
             divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>' +
                 orgData.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
                 
@@ -656,8 +670,10 @@ window.openModalPilihanSkema = async function() {
                     deptSelect.innerHTML += div.departments.map(dep => `<option value="${dep.id}">${dep.nama}</option>`).join('');
                 }
             };
+        }
             
-            const deptSelect = document.getElementById('modalPilihanSkemaDepartemen');
+        const deptSelect = document.getElementById('modalPilihanSkemaDepartemen');
+        if (deptSelect) {
             deptSelect.onchange = function() {
                 const posSelect = document.getElementById('modalPilihanSkemaPosisi');
                 posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
@@ -670,32 +686,22 @@ window.openModalPilihanSkema = async function() {
                     }
                 }
             };
-    } catch (e) {
-        console.error('Error fetching org data', e);
-    }
-    
-    // Check if we need to copy to modal dropdowns
-    try {
-        const psRes = await fetch(`${API_URL}/payroll-schemes`);
-        const payrollSchemes = await psRes.json();
-        const psSelect = document.getElementById('modalPilihanSkemaPayroll');
+        }
+
+        // Populate payroll schemes
         if (psSelect) {
             psSelect.innerHTML = '<option value="">-- Pilih Skema Payroll --</option>' +
                 payrollSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.tipe || 'Umum'})</option>`).join('');
         }
         
-        const tsRes = await fetch(`${API_URL}/tax-schemes`);
-        const taxSchemes = await tsRes.json();
-        const tsSelect = document.getElementById('modalPilihanSkemaPajak');
+        // Populate tax schemes
         if (tsSelect) {
             tsSelect.innerHTML = '<option value="">-- Pilih Skema Pajak --</option>' +
                 taxSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
         }
-    } catch(e) {
-        console.error('Error fetching schemes for modal', e);
+    } catch (e) {
+        console.error('Error loading modal data:', e);
     }
-    
-    document.getElementById('modalPilihanSkema').style.display = 'block';
 };
 
 window.tutupModalPilihanSkema = function() {
