@@ -57,6 +57,7 @@ $routes->group('api', function($routes) {
 
     // Client Configs
     $routes->get('client-configs', 'Api::getClientConfigs');
+    $routes->get('client-configs-mapping/(:num)', 'Api::getClientConfigMappings/$1');
     $routes->post('client-configs', 'Api::saveClientConfig');
     $routes->delete('client-configs/(:num)', 'Api::deleteClientConfig/$1');
 
@@ -89,6 +90,8 @@ $routes->group('api', function($routes) {
     // Client Absence Config
     $routes->get('client-absence-config/(:num)', 'Api::getAbsenceConfig/$1');
     $routes->post('client-absence-config', 'Api::saveAbsenceConfig');
+    $routes->get('check-schema', 'Api::checkSchema');
+    $routes->get('preview-payroll', 'Api::previewPayroll');
 
     // Employees
 });

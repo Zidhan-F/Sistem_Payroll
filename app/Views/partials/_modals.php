@@ -432,7 +432,7 @@
 
     <!-- Client Payroll Setup Modal -->
     <div id="modalSetup" class="modal-skema">
-        <div class="modal-header" style="background: var(--secondary-color);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalSetupTitle">Client Payroll Setup</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalSetup()"></i>
         </div>
@@ -489,7 +489,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="tutupModalSetup()">Cancel</button>
-                <button type="submit" class="btn-save" style="background: var(--secondary-color);">Save Configuration</button>
+                <button type="submit" class="btn-save" style="background: var(--primary-color);">Save Configuration</button>
             </div>
         </form>
     </div>
@@ -868,6 +868,47 @@
                             <option value="PKWTT">PKWTT</option>
                             <option value="PKHL">PKHL</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Gaji Pokok (Rp)</label>
+                        <input type="text" id="empGajiPokok" required placeholder="0" onkeyup="formatRupiahInput(this); calculateDendaAbsen()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Hari Kerja</label>
+                        <select id="empHariKerja" onchange="calculateDendaAbsen()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="5">5 Hari</option>
+                            <option value="6">6 Hari</option>
+                            <option value="7">7 Hari</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Gaji Harian & Denda Absen (Rp)</label>
+                        <input type="text" id="empDendaAbsen" readonly placeholder="Otomatis" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; font-weight: 600; color: #ef4444;">
+                    </div>
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Divisi</label>
+                        <select id="empDivisionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Divisi --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Departmen</label>
+                        <select id="empDepartmentId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Departemen --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Posisi/Jabatan</label>
+                        <select id="empPositionId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="">-- Pilih Jabatan --</option>
+                        </select>
+                        <div id="schemaInfoContainer" style="margin-top: 6px; font-size: 12px; font-weight: 500; display: none; padding: 6px 10px; border-radius: 6px; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569;"></div>
                     </div>
                 </div>
 

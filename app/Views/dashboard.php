@@ -208,7 +208,11 @@
                                     <th>Employee Name</th>
                                     <th>Place & Date of Birth</th>
                                     <th>NPWP</th>
+                                    <th>Division</th>
+                                    <th>Department</th>
+                                    <th>Position / Role</th>
                                     <th>Work Location</th>
+                                    <th>Daily Wage / Fine</th>
                                     <th>Contract</th>
                                     <th>Action</th>
                                 </tr>
@@ -238,9 +242,6 @@
                                     <th>Work Location</th>
                                     <th>Location Code</th>
                                     <th>Client / Company</th>
-                                    <th>Division</th>
-                                    <th>Department</th>
-                                    <th>Position / Role</th>
                                     <th>Province</th>
                                     <th>City/Regency</th>
                                     <th>Action</th>
@@ -306,9 +307,7 @@
                                                 <tr>
                                                     <th>Work Location</th>
                                                     <th>Location Code</th>
-                                                    <th>Division</th>
-                                                    <th>Department</th>
-                                                    <th>Position / Role</th>
+
                                                     <th>Province</th>
                                                     <th>City/Regency</th>
                                                     <th>Action</th>
@@ -341,7 +340,11 @@
                                                     <th>Employee Name</th>
                                                     <th>Place & Date of Birth</th>
                                                     <th>NPWP</th>
+                                                    <th>Division</th>
+                                                    <th>Department</th>
+                                                    <th>Position / Role</th>
                                                     <th>Work Location</th>
+                                                    <th>Daily Wage / Fine</th>
                                                     <th>Contract</th>
                                                     <th>Action</th>
                                                 </tr>

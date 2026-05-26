@@ -15,7 +15,7 @@ async function renderClientOrg(clientId){
         const r=await fetch(`${API}/org?client_id=${clientId}`);
         orgData=await r.json();
         container.innerHTML='';
-        if(!Array.isArray(orgData)||orgData.length===0){container.innerHTML+='<div class="payroll-empty-state"><i class="fas fa-sitemap"></i><h4>No Structure Yet</h4><p>Please click the <b>Add Division</b> button above to build the structure.</p></div>';return;}
+        if(!Array.isArray(orgData)||orgData.length===0){container.innerHTML+='<div class="payroll-empty-state"><i class="fas fa-sitemap"></i><h4>No Structure Yet</h4><p>Please click the <b>Add Division</b> button above to build a structure.</p></div>';return;}
         orgData.forEach(div=>{
             let h=`<div class="org-level" style="margin-bottom:30px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;">
                 <div class="level-header" style="background:#f1f5f9;padding:12px 20px;cursor:pointer;border-bottom:1px solid #e2e8f0;" onclick="toggleNode(this)">
@@ -32,7 +32,7 @@ async function renderClientOrg(clientId){
                         <div class="level-header" style="margin-bottom:10px;cursor:pointer;padding:5px;border-radius:6px;" onclick="toggleNode(this)">
                             <div class="level-title" style="font-size:14px;font-weight:700;color:#334155;gap:8px;"><i class="fas fa-chevron-down toggle-icon" style="color:#94a3b8;font-size:10px;"></i><i class="fas fa-building" style="color:var(--info);"></i> ${dept.nama}</div>
                             <div class="action-btns" onclick="event.stopPropagation()">
-                                <button class="btn-nested-add" style="background:#10b981;border:none;color:white;padding:4px 8px;border-radius:6px;font-size:10px;cursor:pointer;" onclick="bukaModalOrg('posisi','tambah',null,${dept.id})"><i class="fas fa-user-plus"></i> Posisi</button>
+                                <button class="btn-nested-add" style="background:#10b981;border:none;color:white;padding:4px 8px;border-radius:6px;font-size:10px;cursor:pointer;" onclick="bukaModalOrg('posisi','tambah',null,${dept.id})"><i class="fas fa-user-plus"></i> Position</button>
                                 <button class="btn-icon btn-edit" onclick="bukaModalOrg('department','edit',${dept.id},${div.id})"><i class="fas fa-edit"></i></button>
                                 <button class="btn-icon btn-delete" onclick="hapusOrg('department',${dept.id})"><i class="fas fa-trash"></i></button>
                             </div></div>
@@ -41,13 +41,13 @@ async function renderClientOrg(clientId){
                         dept.positions.forEach(pos=>{
                             h+=`<div style="display:flex;align-items:center;gap:12px;background:white;padding:12px;border-radius:10px;border:1px solid #eef2f7;box-shadow:0 2px 4px rgba(0,0,0,0.01);border-left:4px solid var(--primary-color);">
                                 <div style="width:36px;height:36px;background:#fff9f0;color:var(--primary-color);border-radius:8px;display:grid;place-items:center;font-size:14px;"><i class="fas fa-briefcase"></i></div>
-                                <div style="display:flex;flex-direction:column;flex-grow:1;"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#64748b;">${pos.level || 'Posisi'}</span><span style="font-weight:700;color:#1e293b;font-size:13px;">${pos.nama}</span></div>
+                                <div style="display:flex;flex-direction:column;flex-grow:1;"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#64748b;">${pos.level || 'Position'}</span><span style="font-weight:700;color:#1e293b;font-size:13px;">${pos.nama}</span></div>
                                 <div class="action-btns" style="gap:4px;"><button class="btn-icon btn-edit" style="padding:4px;font-size:10px;" onclick="bukaModalOrg('posisi','edit',${pos.id},${dept.id})"><i class="fas fa-edit"></i></button><button class="btn-icon btn-delete" style="padding:4px;font-size:10px;" onclick="hapusOrg('posisi',${pos.id})"><i class="fas fa-trash"></i></button></div></div>`;
                         });
-                    } else h+='<div class="empty-state" style="font-size:11px;color:#94a3b8;grid-column:1/-1;">No positions available.</div>';
+                    } else h+='<div class="empty-state" style="font-size:11px;color:#94a3b8;grid-column:1/-1;">No positions yet.</div>';
                     h+=`</div></div>`;
                 });
-            } else h+='<div class="empty-state" style="font-size:12px;color:#94a3b8;text-align:center;padding:10px;">No departments available.</div>';
+            } else h+='<div class="empty-state" style="font-size:12px;color:#94a3b8;text-align:center;padding:10px;">No departments yet.</div>';
             h+=`</div></div>`;
             container.innerHTML+=h;
         });
@@ -92,10 +92,10 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
     if(document.getElementById('posLevel'))document.getElementById('posLevel').value='';
     
     document.getElementById('orgType').value=type;document.getElementById('orgId').value=id;document.getElementById('orgParentId').value=parentId;
-    const lbl=type==='divisi'?'Division':type==='department'?'Department':'Position';
+    const lbl=type==='divisi'?'Division':type==='department'?'Department':'Position/Title';
     document.getElementById('modalOrgTitle').innerText=(mode==='edit'?'Edit ':'Add ')+lbl;
-    document.getElementById('labelOrgName').innerText=lbl + ' Name';
-    document.getElementById('orgName').placeholder='Enter ' + lbl.toLowerCase() + ' name';
+    document.getElementById('labelOrgName').innerText=lbl+' Name';
+    document.getElementById('orgName').placeholder='Enter '+lbl.toLowerCase()+' name';
     if(document.getElementById('posEmployeeField')) {
         document.getElementById('posEmployeeField').style.display=type==='posisi'?'block':'none';
     }
@@ -108,8 +108,8 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
     if (badgeContainer) {
         badgeContainer.innerHTML = '';
         const list = quickBadges[type] || [];
-        if (list.length > 0 && (mode === 'tambah' || mode === 'add')) {
-            let badgeHTML = '<span style="font-size: 11px; color: #64748b; width: 100%; margin-bottom: 2px; display: block;">Quick Options (Recommended):</span>';
+        if (list.length > 0 && mode === 'tambah') {
+            let badgeHTML = '<span style="font-size: 11px; color: #64748b; width: 100%; margin-bottom: 2px; display: block;">Quick Select (Recommended):</span>';
             list.forEach(val => {
                 badgeHTML += `<span class="quick-badge" onclick="document.getElementById('orgName').value='${val}'" style="background: #e2e8f0; color: #334155; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-block; margin-right: 4px; margin-bottom: 4px;">${val}</span>`;
             });
@@ -203,7 +203,7 @@ document.getElementById('formOrg')?.addEventListener('submit',async(e)=>{
 async function hapusOrg(type,id){
     if(!await showConfirm(`Are you sure you want to delete this ${type}?`))return;
     const r=await fetch(`${API}/org/${type}/${id}`,{method:'DELETE'});
-    if(r.ok){if(selectedClientId)renderClientOrg(selectedClientId);showToast('Successfully deleted');}
+    if(r.ok){if(selectedClientId)renderClientOrg(selectedClientId);showToast('Deleted successfully');}
 }
 
 // === EMPLOYEE ===
@@ -224,7 +224,7 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     
     divSelect.innerHTML = '<option value="">-- Select Division --</option>';
     deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
-    posSelect.innerHTML = '<option value="">-- Select Position --</option>';
+    posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
     
     try {
         const r = await fetch(`${API}/org?client_id=${clientId}`);
@@ -249,6 +249,7 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
                     });
                 }
             }
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         };
         
         deptSelect.onchange = () => {
@@ -266,6 +267,11 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
                     }
                 }
             }
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
+        };
+        
+        posSelect.onchange = () => {
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         };
         
         if (selectedDivId) {
@@ -293,7 +299,7 @@ async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
     try {
         const r = await fetch(`${API}/work-locations?client_id=${clientId}`);
         const locations = await r.json();
-        locSel.innerHTML = '<option value="">-- Select Work Location --</option>';
+        locSel.innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
         if (Array.isArray(locations)) {
             locations.forEach(loc => {
                 const opt = document.createElement('option');
@@ -307,7 +313,7 @@ async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
         }
     } catch (e) {
         console.error('Error loading work locations:', e);
-        locSel.innerHTML = '<option value="">-- Failed to load locations --</option>';
+        locSel.innerHTML = '<option value="">-- Gagal memuat lokasi --</option>';
     }
 }
 
@@ -318,7 +324,7 @@ async function bukaModalKaryawan(mode,id=null){
     // Reset form first so it doesn't overwrite values set below!
     document.getElementById('formKaryawan').reset();
     document.getElementById('employeeId').value='';
-    document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
+    document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
     document.getElementById('empEmployId').value = '';
     
     const empEmployIdContainer = document.getElementById('empEmployIdContainer');
@@ -342,7 +348,7 @@ async function bukaModalKaryawan(mode,id=null){
     const updateJumlahAnakVisibility = () => {
         if (!statusPernikahanSel || !jumlahAnakContainer) return;
         const val = statusPernikahanSel.value;
-        if (val === 'Sudah' || val === 'Cerai' || val === 'Married' || val === 'Divorced') {
+        if (val === 'Sudah' || val === 'Cerai') {
             jumlahAnakContainer.style.display = 'block';
         } else {
             jumlahAnakContainer.style.display = 'none';
@@ -354,11 +360,11 @@ async function bukaModalKaryawan(mode,id=null){
         statusPernikahanSel.onchange = updateJumlahAnakVisibility;
     }
     
-    cs.innerHTML='<option value="">-- Loading Clients... --</option>';
+    cs.innerHTML='<option value="">-- Memuat Klien... --</option>';
     try {
         const r = await fetch(API + '/clients');
         const clientsData = await r.json();
-        cs.innerHTML = '<option value="">-- Select Client --</option>';
+        cs.innerHTML = '<option value="">-- Pilih Klien --</option>';
         clientsData.forEach(c => {
             cs.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
         });
@@ -367,15 +373,19 @@ async function bukaModalKaryawan(mode,id=null){
         if (typeof window.clients !== 'undefined') window.clients = clientsData;
     } catch (err) {
         console.error('Error fetching clients:', err);
-        cs.innerHTML = '<option value="">-- Failed to load --</option>';
+        cs.innerHTML = '<option value="">-- Gagal memuat --</option>';
     }
 
     cs.onchange = async () => {
         const cid = cs.value;
         if (cid) {
             await loadWorkLocationsForSelect(cid);
+            await loadOrgSelects(cid);
         } else {
-            document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
+            document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+            const ds = document.getElementById('empDivisionId'); if(ds) ds.innerHTML = '<option value="">-- Pilih Divisi --</option>';
+            const deps = document.getElementById('empDepartmentId'); if(deps) deps.innerHTML = '<option value="">-- Pilih Department --</option>';
+            const ps = document.getElementById('empPositionId'); if(ps) ps.innerHTML = '<option value="">-- Pilih Posisi --</option>';
         }
     };
 
@@ -385,6 +395,7 @@ async function bukaModalKaryawan(mode,id=null){
         cs.disabled=true;
         if(clientContainer) clientContainer.style.display = 'block'; // Selalu tampilkan agar user tahu
         await loadWorkLocationsForSelect(selectedClientId);
+        if (mode !== 'edit') await loadOrgSelects(selectedClientId);
     }else{
         cs.disabled=false;
         if(clientContainer) clientContainer.style.display = 'block';
@@ -411,8 +422,13 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empStartContract').value = emp.start_contract || '';
         document.getElementById('empEndContract').value = emp.end_contract || '';
         document.getElementById('empTipePerjanjian').value = emp.tipe_perjanjian || '';
+        document.getElementById('empGajiPokok').value = emp.gaji_pokok ? parseFloat(emp.gaji_pokok).toLocaleString('id-ID') : '';
+        document.getElementById('empHariKerja').value = emp.hari_kerja || '5';
+        
+        if (typeof calculateDendaAbsen === 'function') calculateDendaAbsen();
         
         await loadWorkLocationsForSelect(emp.client_id, emp.work_location_id);
+        await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
     }
     
     if (window.empClientSelectInstance) {
@@ -422,13 +438,30 @@ async function bukaModalKaryawan(mode,id=null){
         create: false,
         sortField: { field: "text", direction: "asc" }
     });
+    
+    // Initial check schema
+    if (mode === 'edit' && id) {
+        setTimeout(checkSchemaAvailability, 500);
+    } else {
+        document.getElementById('schemaInfoContainer').style.display = 'none';
+    }
+
+    // Attach listeners for automated payroll preview
+    const empPosEl = document.getElementById('empPositionId');
+    const empLocEl = document.getElementById('empWorkLocationId');
+    if (empPosEl) {
+        empPosEl.addEventListener('change', checkSchemaAvailability);
+    }
+    if (empLocEl) {
+        empLocEl.addEventListener('change', checkSchemaAvailability);
+    }
 }
 
 async function loadPositions(cid){
     if(!cid)return;const ps=document.getElementById('empPositionId');
     if(!ps) return;
-    ps.innerHTML='<option value="">-- Loading Positions... --</option>';
-    try{const r=await fetch(`${API}/positions/client/${cid}`);const p=await r.json();ps.innerHTML='<option value="">-- Select Position --</option>';if(Array.isArray(p))p.forEach(x=>{ps.innerHTML+=`<option value="${x.id}">${x.nama}</option>`;});}catch(e){console.error(e);}
+    ps.innerHTML='<option value="">-- Memuat Posisi... --</option>';
+    try{const r=await fetch(`${API}/positions/client/${cid}`);const p=await r.json();ps.innerHTML='<option value="">-- Pilih Posisi --</option>';if(Array.isArray(p))p.forEach(x=>{ps.innerHTML+=`<option value="${x.id}">${x.nama}</option>`;});}catch(e){console.error(e);}
 }
 
 document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
@@ -446,7 +479,10 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         start_contract:document.getElementById('empStartContract').value,
         end_contract:document.getElementById('empEndContract').value,
         tipe_perjanjian:document.getElementById('empTipePerjanjian').value,
-        work_location_id:document.getElementById('empWorkLocationId').value || null
+        gaji_pokok: document.getElementById('empGajiPokok').value.replace(/\./g, ''),
+        hari_kerja: document.getElementById('empHariKerja').value,
+        work_location_id:document.getElementById('empWorkLocationId').value || null,
+        position_id:document.getElementById('empPositionId')?.value || null
     };
     // For new employees, generate a dummy nik from employ_id (nik is required by DB)
     if (!id) {
@@ -462,10 +498,10 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         if(typeof renderManajemenKaryawan === 'function'){
             renderManajemenKaryawan();
         }
-        showToast('Employee data saved successfully');
+        showToast('Data karyawan berhasil disimpan');
     } else {
         const err = await r.json().catch(() => ({}));
-        let msg = 'Failed to save employee data';
+        let msg = 'Gagal menyimpan data karyawan';
         if (err.messages) msg = Object.values(err.messages).join(', ');
         else if (err.message) msg = err.message;
         showToast(msg, 'error');
@@ -479,9 +515,9 @@ function tutupModalKaryawan(){
     }
 }
 async function hapusKaryawan(id){
-    if(!await showConfirm('Are you sure you want to delete this employee?'))return;
+    if(!await showConfirm('Yakin ingin menghapus karyawan ini?'))return;
     const r=await fetch(`${API}/employees/${id}`,{method:'DELETE'});
-    if(r.ok){if(selectedClientId){renderTableKaryawanClient();renderClientOrg(selectedClientId);}showToast('Employee deleted');}
+    if(r.ok){if(selectedClientId){renderTableKaryawanClient();renderClientOrg(selectedClientId);}showToast('Karyawan dihapus');}
 }
 function bukaModalKaryawanSpecific(){bukaModalKaryawan('tambah');const cs=document.getElementById('empClientId');if(cs){cs.value=selectedClientId;cs.closest('.form-group').style.display='none';}}
 
@@ -506,6 +542,103 @@ document.getElementById('empStartContract')?.addEventListener('change', async (e
         console.error('Error fetching next employ ID:', err);
     }
 });
+
+// Kalkulasi denda absen
+function calculateDendaAbsen() {
+    const gajiInput = document.getElementById('empGajiPokok').value;
+    const hariKerja = parseInt(document.getElementById('empHariKerja').value || 5);
+    const dendaInput = document.getElementById('empDendaAbsen');
+    
+    if (!gajiInput) {
+        dendaInput.value = '';
+        return;
+    }
+    
+    const gaji = parseFloat(gajiInput.replace(/\./g, ''));
+    if (isNaN(gaji)) return;
+    
+    let pembagi = 22;
+    if (hariKerja === 6) pembagi = 26;
+    else if (hariKerja === 7) pembagi = 30;
+    
+    const denda = gaji / pembagi;
+    dendaInput.value = Math.round(denda).toLocaleString('id-ID');
+}
+window.calculateDendaAbsen = calculateDendaAbsen;
+
+// Validasi Keselarasan Skema
+async function checkSchemaAvailability() {
+    const cid = document.getElementById('empClientId')?.value;
+    const divId = document.getElementById('empDivisionId')?.value;
+    const deptId = document.getElementById('empDepartmentId')?.value;
+    const posId = document.getElementById('empPositionId')?.value;
+    const workLocId = document.getElementById('empWorkLocationId')?.value;
+    const infoContainer = document.getElementById('schemaInfoContainer');
+    
+    if (!infoContainer) return;
+    
+    if (!cid) {
+        infoContainer.style.display = 'none';
+        return;
+    }
+    
+    infoContainer.style.display = 'block';
+    infoContainer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengecek ketersediaan skema & perhitungan otomatis...';
+    infoContainer.style.color = '#64748b';
+    infoContainer.style.background = '#f8fafc';
+    
+    try {
+        let url = `${API}/preview-payroll?client_id=${cid}`;
+        if (divId) url += `&division_id=${divId}`;
+        if (deptId) url += `&department_id=${deptId}`;
+        if (posId) url += `&position_id=${posId}`;
+        if (workLocId) url += `&work_location_id=${workLocId}`;
+        
+        const res = await fetch(url);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'error') {
+                infoContainer.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <b>Skema Belum Diatur!</b><br>Karyawan ini tidak memiliki skema perhitungan payroll. Harap setup di menu Konfigurasi Payroll.';
+                infoContainer.style.color = '#b91c1c';
+                infoContainer.style.background = '#fef2f2';
+                infoContainer.style.border = '1px solid #fca5a5';
+            } else {
+                infoContainer.innerHTML = `<i class="fas fa-check-circle"></i> <b>Skema Tersedia!</b><br>Sistem menggunakan skema level: <b>${data.level}</b>.<br><small>${data.description}</small>`;
+                infoContainer.style.color = '#15803d';
+                infoContainer.style.background = '#f0fdf4';
+                infoContainer.style.border = '1px solid #bbf7d0';
+
+                // Auto-fill form fields if data is returned
+                const gajiInput = document.getElementById('empGajiPokok');
+                const hariKerjaInput = document.getElementById('empHariKerja');
+                const dendaInput = document.getElementById('empDendaAbsen');
+
+                if (gajiInput && data.gaji_pokok > 0) {
+                    gajiInput.value = data.gaji_pokok.toLocaleString('id-ID');
+                    gajiInput.readOnly = true;
+                    gajiInput.style.background = '#f1f5f9';
+                } else if (gajiInput) {
+                    gajiInput.value = '';
+                    gajiInput.readOnly = false;
+                    gajiInput.style.background = '#fff';
+                }
+
+                if (hariKerjaInput) {
+                    hariKerjaInput.value = data.hari_kerja || 5;
+                    // Usually select cannot be readonly, so we disable pointer events or just leave it
+                    hariKerjaInput.style.pointerEvents = 'none';
+                    hariKerjaInput.style.background = '#f1f5f9';
+                }
+
+                if (typeof calculateDendaAbsen === 'function') calculateDendaAbsen();
+            }
+        }
+    } catch (e) {
+        console.error('Error checking schema', e);
+        infoContainer.innerHTML = '<i class="fas fa-info-circle"></i> Gagal memverifikasi skema server.';
+    }
+}
+window.checkSchemaAvailability = checkSchemaAvailability;
 
 window.renderClientOrg=renderClientOrg;window.bukaModalOrg=bukaModalOrg;window.tutupModalOrg=tutupModalOrg;window.hapusOrg=hapusOrg;window.toggleNode=toggleNode;window.renderTableKaryawanClient=renderTableKaryawanClient;window.bukaModalKaryawan=bukaModalKaryawan;window.bukaModalKaryawanSpecific=bukaModalKaryawanSpecific;window.tutupModalKaryawan=tutupModalKaryawan;window.hapusKaryawan=hapusKaryawan;window.loadPositions=loadPositions;
 window.tambahDeptInline=tambahDeptInline;window.tambahPosisiInline=tambahPosisiInline;
