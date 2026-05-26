@@ -500,15 +500,18 @@ async function loadPilihanSkema() {
                 handlePilihanSkemaPayrollTipeChange();
             }
         }
-        await loadAbsenConfig();
+        try { await loadAbsenConfig(); } catch(e) { console.warn('loadAbsenConfig skipped:', e); }
         
-        await loadSchemaMappingOrgDropdowns();
-        initCascadingSkemaDropdowns();
-        handlePilihanSkemaLevelChange();
-        await loadSchemaMappingTable();
+        try {
+            await loadSchemaMappingOrgDropdowns();
+            initCascadingSkemaDropdowns();
+            handlePilihanSkemaLevelChange();
+        } catch(e) { console.warn('Org dropdowns init skipped:', e); }
     } catch (err) {
         console.error('Error loading pilihan skema:', err);
     }
+    // Always load the mapping table, even if form setup fails
+    await loadSchemaMappingTable();
 }
 
 async function simpanPilihanSkema() {
@@ -710,18 +713,19 @@ async function loadAbsenConfig() {
     try {
         const res = await fetch(`${API_URL}/client-absence-config/${window.selectedClientId}`);
         const data = await res.json();
+        const elProrate = document.getElementById('cfgProrate');
+        const elAbsen = document.getElementById('cfgAbsenTidakPotong');
+        const nominalInput = document.getElementById('cfgNominalPotongan');
         if (data && data.id) {
-            document.getElementById('cfgProrate').checked = data.prorate == 1;
-            document.getElementById('cfgAbsenTidakPotong').checked = data.absen_tidak_potong == 1;
-            const nominalInput = document.getElementById('cfgNominalPotongan');
+            if (elProrate) elProrate.checked = data.prorate == 1;
+            if (elAbsen) elAbsen.checked = data.absen_tidak_potong == 1;
             if (nominalInput) {
                 const val = data.nominal_potongan ? parseFloat(data.nominal_potongan) : 0;
                 nominalInput.value = val > 0 ? new Intl.NumberFormat('id-ID').format(val) : '';
             }
         } else {
-            document.getElementById('cfgProrate').checked = false;
-            document.getElementById('cfgAbsenTidakPotong').checked = false;
-            const nominalInput = document.getElementById('cfgNominalPotongan');
+            if (elProrate) elProrate.checked = false;
+            if (elAbsen) elAbsen.checked = false;
             if (nominalInput) nominalInput.value = '';
         }
     } catch (err) { console.error(err); }
