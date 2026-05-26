@@ -545,6 +545,19 @@ class Api extends ResourceController
         }
         unset($data['hari_kerja']);
         
+        // VALIDATION: Enforce that a Global schema exists before specific schemes are allowed
+        if ($divisionId !== null || $departmentId !== null || $positionId !== null) {
+            $globalExists = $this->db->table('client_payroll_configs')
+                                     ->where('client_id', $clientId)
+                                     ->where('division_id IS NULL')
+                                     ->where('department_id IS NULL')
+                                     ->where('position_id IS NULL')
+                                     ->countAllResults();
+            if ($globalExists === 0) {
+                return $this->fail('Please create a Global client schema first before setting up division, department, or position schemes!');
+            }
+        }
+
         // Cek jika sudah ada skema untuk level organisasi ini yang SPESIFIK
         $query = $this->db->table('client_payroll_configs')->where('client_id', $clientId);
         if ($divisionId) $query->where('division_id', $divisionId); else $query->where('division_id IS NULL');

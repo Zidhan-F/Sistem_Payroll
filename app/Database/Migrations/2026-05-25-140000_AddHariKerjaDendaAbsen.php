@@ -8,22 +8,29 @@ class AddHariKerjaDendaAbsen extends Migration
 {
     public function up()
     {
-        $fields = [
-            'hari_kerja' => [
+        $db = \Config\Database::connect();
+        $fields = [];
+        
+        if (!$db->fieldExists('hari_kerja', 'employees')) {
+            $fields['hari_kerja'] = [
                 'type'       => 'INT',
                 'constraint' => 11,
                 'default'    => 5,
                 'null'       => true,
-            ],
-            'denda_absen' => [
+            ];
+        }
+        if (!$db->fieldExists('denda_absen', 'employees')) {
+            $fields['denda_absen'] = [
                 'type'       => 'DECIMAL',
                 'constraint' => '15,2',
                 'default'    => 0,
                 'null'       => true,
-            ],
-        ];
+            ];
+        }
 
-        $this->forge->addColumn('employees', $fields);
+        if (!empty($fields)) {
+            $this->forge->addColumn('employees', $fields);
+        }
     }
 
     public function down()

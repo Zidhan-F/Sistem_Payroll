@@ -8,28 +8,37 @@ class AddOrgLevelsToClientPayrollConfigs extends Migration
 {
     public function up()
     {
-        $fields = [
-            'division_id' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-            ],
-            'department_id' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-            ],
-            'position_id' => [
-                'type'       => 'INT',
-                'constraint' => 11,
-                'unsigned'   => true,
-                'null'       => true,
-            ],
-        ];
+        $db = \Config\Database::connect();
+        $fields = [];
         
-        $this->forge->addColumn('client_payroll_configs', $fields);
+        if (!$db->fieldExists('division_id', 'client_payroll_configs')) {
+            $fields['division_id'] = [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'unsigned'   => true,
+                'null'       => true,
+            ];
+        }
+        if (!$db->fieldExists('department_id', 'client_payroll_configs')) {
+            $fields['department_id'] = [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'unsigned'   => true,
+                'null'       => true,
+            ];
+        }
+        if (!$db->fieldExists('position_id', 'client_payroll_configs')) {
+            $fields['position_id'] = [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'unsigned'   => true,
+                'null'       => true,
+            ];
+        }
+        
+        if (!empty($fields)) {
+            $this->forge->addColumn('client_payroll_configs', $fields);
+        }
     }
 
     public function down()

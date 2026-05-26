@@ -337,31 +337,27 @@ async function loadSchemaMappingTable() {
         const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const mappings = await res.json();
         
-        const tbody = document.getElementById('tabelSchemaMappingBody');
+        const tbody = document.getElementById('tabelPilihanSkemaKlien');
         if (!tbody) return;
         
         if (!mappings || mappings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Belum ada skema yang diatur</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #94a3b8;"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>No payroll schemes registered yet. Click the "Add Scheme" button to configure.</td></tr>';
             return;
         }
         
         tbody.innerHTML = mappings.map(m => {
-            let levelLabel = '<span class="status-badge warning" style="background:#f1f5f9;color:#475569;">General Klien</span>';
-            if (m.position_id) {
-                levelLabel = `<span class="status-badge" style="background:#e0e7ff;color:#4338ca;">Posisi: ${m.position_name}</span>`;
-            } else if (m.department_id) {
-                levelLabel = `<span class="status-badge" style="background:#fce7f3;color:#be185d;">Dept: ${m.department_name}</span>`;
-            } else if (m.division_id) {
-                levelLabel = `<span class="status-badge" style="background:#dcfce7;color:#15803d;">Divisi: ${m.division_name}</span>`;
-            }
+            const divLabel = m.division_name ? `<span class="status-badge" style="background:#dcfce7;color:#15803d;padding:4px 8px;border-radius:6px;font-weight:600;">${m.division_name}</span>` : '<span style="color:#94a3b8;">Global (All)</span>';
+            const deptLabel = m.department_name ? `<span class="status-badge" style="background:#fce7f3;color:#be185d;padding:4px 8px;border-radius:6px;font-weight:600;">${m.department_name}</span>` : '<span style="color:#94a3b8;">Global (All)</span>';
+            const posLabel = m.position_name ? `<span class="status-badge" style="background:#e0e7ff;color:#4338ca;padding:4px 8px;border-radius:6px;font-weight:600;">${m.position_name}</span>` : '<span style="color:#94a3b8;">Global (All)</span>';
             
             return `
                 <tr>
-                    <td>${levelLabel}</td>
-                    <td>${m.payroll_type || '-'}</td>
-                    <td>${m.tax_scheme_name || '-'}</td>
-                    <td>${m.compensation_scheme_name || '-'}</td>
-                    <td>
+                    <td style="padding:15px; border-bottom:1px solid #e2e8f0;">${divLabel}</td>
+                    <td style="padding:15px; border-bottom:1px solid #e2e8f0;">${deptLabel}</td>
+                    <td style="padding:15px; border-bottom:1px solid #e2e8f0;">${posLabel}</td>
+                    <td style="padding:15px; border-bottom:1px solid #e2e8f0; font-weight:500;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
+                    <td style="padding:15px; border-bottom:1px solid #e2e8f0; font-weight:500;">${m.tax_scheme_name || '-'}</td>
+                    <td style="padding:15px; text-align:center; border-bottom:1px solid #e2e8f0;">
                         <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db;background:transparent;border:none;cursor:pointer;"><i class="fas fa-edit"></i></button>
                         <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button>
                     </td>
@@ -375,48 +371,44 @@ async function loadSchemaMappingTable() {
 
 async function editSchemaMapping(id) {
     try {
+        await window.openModalPilihanSkema();
+        
         const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const mappings = await res.json();
         const conf = mappings.find(m => m.id == id);
         if (!conf) return;
         
         window.editSchemaMappingId = id;
-        
-        // Set dropdown level
-        const levelSelect = document.getElementById('pilihanSkemaLevel');
-        if (conf.position_id) levelSelect.value = 'posisi';
-        else if (conf.department_id) levelSelect.value = 'departemen';
-        else if (conf.division_id) levelSelect.value = 'divisi';
-        else levelSelect.value = 'general';
-        
-        handlePilihanSkemaLevelChange();
+        document.getElementById('modalPilihanSkemaTitle').innerText = 'Edit Client Scheme';
         
         if (conf.division_id) {
-            document.getElementById('pilihanSkemaDivisiId').value = conf.division_id;
-            document.getElementById('pilihanSkemaDivisiId').dispatchEvent(new Event('change'));
+            const divSelect = document.getElementById('modalPilihanSkemaDivisi');
+            divSelect.value = conf.division_id;
+            divSelect.dispatchEvent(new Event('change'));
             
             if (conf.department_id) {
                 setTimeout(() => {
-                    document.getElementById('pilihanSkemaDeptId').value = conf.department_id;
-                    document.getElementById('pilihanSkemaDeptId').dispatchEvent(new Event('change'));
+                    const deptSelect = document.getElementById('modalPilihanSkemaDepartemen');
+                    deptSelect.value = conf.department_id;
+                    deptSelect.dispatchEvent(new Event('change'));
+                    
                     if (conf.position_id) {
                         setTimeout(() => {
-                            document.getElementById('pilihanSkemaPosisiId').value = conf.position_id;
+                            const posSelect = document.getElementById('modalPilihanSkemaPosisi');
+                            posSelect.value = conf.position_id;
                         }, 100);
                     }
                 }, 100);
             }
         }
         
-        // Populate cards
-        if (document.getElementById('pilihanSkemaPajak')) document.getElementById('pilihanSkemaPajak').value = conf.tax_scheme_id || '';
-        if (document.getElementById('pilihanSkemaKompensasi')) {
-            document.getElementById('pilihanSkemaKompensasi').value = conf.compensation_scheme_id || '';
-            renderPilihanKompensasiSummary(conf.compensation_scheme_id);
+        if (conf.payroll_scheme_id) {
+            document.getElementById('modalPilihanSkemaPayroll').value = conf.payroll_scheme_id;
         }
-        
-        window.scrollTo({ top: document.getElementById('viewKompensasi').offsetTop, behavior: 'smooth' });
-    } catch(e) { console.error(e); }
+        if (conf.tax_scheme_id) {
+            document.getElementById('modalPilihanSkemaPajak').value = conf.tax_scheme_id;
+        }
+    } catch(e) { console.error('Error in editSchemaMapping:', e); }
 }
 
 async function hapusSchemaMapping(id) {
