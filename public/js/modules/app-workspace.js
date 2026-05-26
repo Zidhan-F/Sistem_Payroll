@@ -353,9 +353,11 @@ async function loadSchemaMappingTable() {
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || 'Global'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.tax_scheme_name || '-'}</td>
-                    <td style="padding:12px 15px; text-align:center; border-bottom:1px solid #e2e8f0;">
-                        <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db;background:transparent;border:none;cursor:pointer;"><i class="fas fa-edit"></i></button>
-                        <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Delete" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
+                            <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
+                            <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Delete" style="color:#e74c3c; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
+                        </div>
                     </td>
                 </tr>
             `;
