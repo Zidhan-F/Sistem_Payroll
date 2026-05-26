@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkulator Gaji - Payroll App</title>
+    <title>Salary Calculator - Payroll App</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?= base_url('css/style.css') ?>">
     <style>
@@ -60,56 +60,56 @@
     </style>
 </head>
 <body>
-
+ 
     <div class="calc-container">
         <div class="calc-header">
             <i class="fas fa-calculator"></i>
-            <h2>Simulasi Gaji Kamu</h2>
-            <p>Pilih daerah kerja kamu untuk melihat estimasi gaji</p>
+            <h2>Your Salary Simulator</h2>
+            <p>Select your work area to see the salary estimation</p>
         </div>
-
+ 
         <div class="form-group">
-            <label>Tipe Daerah</label>
+            <label>Region Type</label>
             <select id="calcType" onchange="loadRegions()" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd;">
-                <option value="UMP">Provinsi (UMP)</option>
-                <option value="UMK">Kota/Kabupaten (UMK)</option>
+                <option value="UMP">Province (UMP)</option>
+                <option value="UMK">City/Regency (UMK)</option>
             </select>
         </div>
-
+ 
         <div class="form-group" style="margin-top: 20px;">
-            <label>Pilih Daerah</label>
+            <label>Select Region</label>
             <select id="calcRegion" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd;">
-                <option value="">-- Loading Daerah --</option>
+                <option value="">-- Loading Regions --</option>
             </select>
         </div>
-
-        <button class="btn-check" onclick="calculateSalary()">Cek Estimasi Gaji</button>
-
+ 
+        <button class="btn-check" onclick="calculateSalary()">Check Salary Estimate</button>
+ 
         <div id="resultCard" class="result-card">
             <div class="result-item">
-                <span>Daerah:</span>
+                <span>Region:</span>
                 <span id="resRegion">-</span>
             </div>
             <div class="result-item">
-                <span>Gaji Pokok (UMP/UMK):</span>
+                <span>Basic Salary (UMP/UMK):</span>
                 <span id="resBasic">-</span>
             </div>
             <div class="result-item">
-                <span>Tunjangan (Estimasi 10%):</span>
+                <span>Allowance (10% Estimate):</span>
                 <span id="resAllowance">-</span>
             </div>
             <div class="result-total">
-                <span>Total Estimasi THP:</span>
+                <span>Total Estimated THP:</span>
                 <span id="resTotal">-</span>
             </div>
             <p style="font-size: 10px; margin-top: 15px; opacity: 0.7; font-weight: 400; text-align: center;">
-                *Hasil ini adalah simulasi. Gaji riil ditentukan oleh kebijakan perusahaan dan kontrak kerja.
+                *This is a simulation. Actual salary is determined by company policy and work contracts.
             </p>
         </div>
         
         <div style="text-align: center; margin-top: 20px;">
             <a href="<?= base_url('index.php/login') ?>" style="color: #2c3e50; text-decoration: none; font-size: 13px; font-weight: 500;">
-                <i class="fas fa-lock" style="margin-right: 5px;"></i> Login Admin
+                <i class="fas fa-lock" style="margin-right: 5px;"></i> Admin Login
             </a>
         </div>
     </div>

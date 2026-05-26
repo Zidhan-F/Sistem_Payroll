@@ -319,6 +319,12 @@
                                         <select id="pilihanSkemaHariKerja"></select>
                                         <select id="pilihanSkemaPayroll"></select>
                                         <select id="pilihanSkemaPajak"></select>
+                                        <select id="pilihanSkemaLevel">
+                                            <option value="general" selected>general</option>
+                                        </select>
+                                        <input type="hidden" id="pilihanSkemaDivisiId">
+                                        <input type="hidden" id="pilihanSkemaDeptId">
+                                        <input type="hidden" id="pilihanSkemaPosisiId">
                                     </div>
                                 </div>
                             </div>

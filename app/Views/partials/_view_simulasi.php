@@ -1,28 +1,28 @@
-﻿            <!-- Section: Simulasi Gaji -->
+            <!-- Section: Salary Simulation -->
             <div id="viewSimulasi" class="view-section">
                 <div class="content-card" style="max-width: 600px; margin: 0 auto;">
                     <div class="section-header" style="justify-content: center; flex-direction: column; text-align: center;">
                         <div style="background: rgba(52, 152, 219, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
                             <i class="fas fa-calculator" style="font-size: 32px; color: var(--info);"></i>
                         </div>
-                        <h2 style="font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">Upload UMP/UMK</h2>
-                        <p style="color: #666; font-size: 14px;">Hitung estimasi Take Home Pay berdasarkan UMP/UMK daerah</p>
+                        <h2 style="font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">Salary Simulator</h2>
+                        <p style="color: #666; font-size: 14px;">Estimate Take Home Pay based on regional UMP/UMK</p>
                     </div>
                     
                     <div style="margin-top: 30px;">
                         <div class="form-group" style="margin-bottom: 20px;">
-                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Tipe Daerah</label>
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Region Type</label>
                             <select id="simulasiType" onchange="loadSimulasiRegions()" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit;">
-                                <option value="UMP">Provinsi (UMP)</option>
-                                <option value="UMK">Kota/Kabupaten (UMK)</option>
-                                <option value="NOMINAL">Nominal (Input Manual)</option>
+                                <option value="UMP">Province (UMP)</option>
+                                <option value="UMK">City/Regency (UMK)</option>
+                                <option value="NOMINAL">Nominal (Manual Input)</option>
                             </select>
                         </div>
 
                         <div class="form-group" style="margin-bottom: 20px;">
-                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Pilih Daerah</label>
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Select Region</label>
                             <select id="simulasiRegion" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit;">
-                                <option value="">-- Pilih Provinsi --</option>
+                                <option value="">-- Select Province --</option>
                                 <option value="p1">ACEH</option>
                                 <option value="p2">SUMATERA UTARA</option>
                                 <option value="p3">SUMATERA BARAT</option>
@@ -65,24 +65,24 @@
                         </div>
 
                         <button class="btn-save" onclick="hitungSimulasiGaji()" style="width: 100%; padding: 15px; background: var(--primary-color); color: white; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; transition: 0.3s; margin-top: 10px;">
-                            <i class="fas fa-search-dollar" style="margin-right: 8px;"></i> Cek Estimasi Gaji
+                            <i class="fas fa-search-dollar" style="margin-right: 8px;"></i> Calculate Salary Estimate
                         </button>
 
                         <div id="simulasiResult" style="display: none; margin-top: 30px; padding: 25px; background: #f8f9fa; border-radius: 16px; border: 1px solid #eee; animation: fadeIn 0.5s;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                <span style="color: #666; font-size: 14px;">Gaji Pokok:</span>
+                                <span style="color: #666; font-size: 14px;">Basic Salary:</span>
                                 <span id="simBasic" style="font-weight: 600; color: #2c3e50;">-</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                <span style="color: #666; font-size: 14px;">Tunjangan Tetap (10%):</span>
+                                <span style="color: #666; font-size: 14px;">Fixed Allowance (10%):</span>
                                 <span id="simAllowance" style="font-weight: 600; color: #2c3e50;">-</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding-top: 20px; border-top: 2px dashed #ddd; margin-top: 20px;">
-                                <span style="font-weight: 700; color: #2c3e50;">Total Estimasi THP:</span>
+                                <span style="font-weight: 700; color: #2c3e50;">Total Estimated THP:</span>
                                 <span id="simTotal" style="font-weight: 800; color: #27ae60; font-size: 22px;">-</span>
                             </div>
                             <p style="font-size: 11px; color: #999; text-align: center; margin-top: 20px; line-height: 1.5;">
-                                *Hasil simulasi ini hanya perkiraan. Nilai riil dapat berbeda tergantung kebijakan potongan BPJS, pajak, dan tunjangan lainnya.
+                                *Simulation result is an estimate. Actual values may vary based on BPJS deductions, taxes, and other allowances.
                             </p>
                         </div>
                     </div>
