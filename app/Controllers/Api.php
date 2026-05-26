@@ -543,9 +543,7 @@ class Api extends ResourceController
         if ($positionId && isset($data['hari_kerja']) && $data['hari_kerja'] !== '') {
             $this->db->table('positions')->where('id', $positionId)->update(['hari_kerja' => intval($data['hari_kerja'])]);
         }
-        if (isset($data['hari_kerja'])) {
-            unset($data['hari_kerja']);
-        }
+        unset($data['hari_kerja']);
         
         // Cek jika sudah ada skema untuk level organisasi ini yang SPESIFIK
         $query = $this->db->table('client_payroll_configs')->where('client_id', $clientId);
@@ -556,15 +554,16 @@ class Api extends ResourceController
         $existing = $query->get()->getRow();
         
         // PENCEGAHAN DUPLIKASI (Hanya 1 Skema Unik per level Org)
-        // Jika ada attempt untuk membuat data baru (misal via UI "tambah skema divisi"), kita tolak jika sudah ada
         $isUpdateAction = isset($data['id']) && $data['id'] > 0;
         
         if ($existing && !$isUpdateAction) {
-            // Jika data sudah ada tapi ini bukan proses update dari ID yang sama, tolak!
             if (!isset($data['id']) || $data['id'] != $existing->id) {
-                return $this->fail('Skema untuk level organisasi ini sudah ada! Silakan edit skema yang sudah ada untuk mencegah duplikasi/race condition.');
+                return $this->fail('A scheme for this organizational level already exists! Please edit the existing scheme to prevent duplication.');
             }
         }
+        
+        // Remove 'id' from data to prevent SQL Server identity column error
+        unset($data['id']);
         
         if ($existing) {
             $this->db->table('client_payroll_configs')->where('id', $existing->id)->update($data);
@@ -572,7 +571,7 @@ class Api extends ResourceController
             $this->db->table('client_payroll_configs')->insert($data);
         }
         
-        return $this->respond(['message' => 'Konfigurasi payroll klien berhasil disimpan']);
+        return $this->respond(['message' => 'Client payroll configuration saved successfully']);
     }
 
     public function getClientConfigMappings($clientId)
