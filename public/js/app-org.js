@@ -445,6 +445,16 @@ async function bukaModalKaryawan(mode,id=null){
     } else {
         document.getElementById('schemaInfoContainer').style.display = 'none';
     }
+
+    // Attach listeners for automated payroll preview
+    const empPosEl = document.getElementById('empPositionId');
+    const empLocEl = document.getElementById('empWorkLocationId');
+    if (empPosEl) {
+        empPosEl.addEventListener('change', checkSchemaAvailability);
+    }
+    if (empLocEl) {
+        empLocEl.addEventListener('change', checkSchemaAvailability);
+    }
 }
 
 async function loadPositions(cid){
@@ -562,6 +572,7 @@ async function checkSchemaAvailability() {
     const divId = document.getElementById('empDivisionId')?.value;
     const deptId = document.getElementById('empDepartmentId')?.value;
     const posId = document.getElementById('empPositionId')?.value;
+    const workLocId = document.getElementById('empWorkLocationId')?.value;
     const infoContainer = document.getElementById('schemaInfoContainer');
     
     if (!infoContainer) return;
@@ -572,29 +583,54 @@ async function checkSchemaAvailability() {
     }
     
     infoContainer.style.display = 'block';
-    infoContainer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengecek ketersediaan skema...';
+    infoContainer.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengecek ketersediaan skema & perhitungan otomatis...';
     infoContainer.style.color = '#64748b';
     infoContainer.style.background = '#f8fafc';
     
     try {
-        let url = `${API}/check-schema?client_id=${cid}`;
+        let url = `${API}/preview-payroll?client_id=${cid}`;
         if (divId) url += `&division_id=${divId}`;
         if (deptId) url += `&department_id=${deptId}`;
         if (posId) url += `&position_id=${posId}`;
+        if (workLocId) url += `&work_location_id=${workLocId}`;
         
         const res = await fetch(url);
         if (res.ok) {
             const data = await res.json();
-            if (data.level === 'Tidak Ada') {
+            if (data.status === 'error') {
                 infoContainer.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <b>Skema Belum Diatur!</b><br>Karyawan ini tidak memiliki skema perhitungan payroll. Harap setup di menu Konfigurasi Payroll.';
                 infoContainer.style.color = '#b91c1c';
                 infoContainer.style.background = '#fef2f2';
                 infoContainer.style.border = '1px solid #fca5a5';
             } else {
-                infoContainer.innerHTML = `<i class="fas fa-check-circle"></i> <b>Skema Tersedia!</b><br>Sistem akan menggunakan skema pada level: <b>${data.level}</b>.`;
+                infoContainer.innerHTML = `<i class="fas fa-check-circle"></i> <b>Skema Tersedia!</b><br>Sistem menggunakan skema level: <b>${data.level}</b>.<br><small>${data.description}</small>`;
                 infoContainer.style.color = '#15803d';
                 infoContainer.style.background = '#f0fdf4';
                 infoContainer.style.border = '1px solid #bbf7d0';
+
+                // Auto-fill form fields if data is returned
+                const gajiInput = document.getElementById('empGajiPokok');
+                const hariKerjaInput = document.getElementById('empHariKerja');
+                const dendaInput = document.getElementById('empDendaAbsen');
+
+                if (gajiInput && data.gaji_pokok > 0) {
+                    gajiInput.value = data.gaji_pokok.toLocaleString('id-ID');
+                    gajiInput.readOnly = true;
+                    gajiInput.style.background = '#f1f5f9';
+                } else if (gajiInput) {
+                    gajiInput.value = '';
+                    gajiInput.readOnly = false;
+                    gajiInput.style.background = '#fff';
+                }
+
+                if (hariKerjaInput) {
+                    hariKerjaInput.value = data.hari_kerja || 5;
+                    // Usually select cannot be readonly, so we disable pointer events or just leave it
+                    hariKerjaInput.style.pointerEvents = 'none';
+                    hariKerjaInput.style.background = '#f1f5f9';
+                }
+
+                if (typeof calculateDendaAbsen === 'function') calculateDendaAbsen();
             }
         }
     } catch (e) {

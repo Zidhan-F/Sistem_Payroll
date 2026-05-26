@@ -539,6 +539,14 @@ class Api extends ResourceController
         $data['department_id'] = $departmentId;
         $data['position_id'] = $positionId;
         
+        // Handle hari_kerja for positions
+        if ($positionId && isset($data['hari_kerja']) && $data['hari_kerja'] !== '') {
+            $this->db->table('positions')->where('id', $positionId)->update(['hari_kerja' => intval($data['hari_kerja'])]);
+        }
+        if (isset($data['hari_kerja'])) {
+            unset($data['hari_kerja']);
+        }
+        
         // Cek jika sudah ada skema untuk level organisasi ini yang SPESIFIK
         $query = $this->db->table('client_payroll_configs')->where('client_id', $clientId);
         if ($divisionId) $query->where('division_id', $divisionId); else $query->where('division_id IS NULL');
@@ -1597,7 +1605,110 @@ class Api extends ResourceController
         $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'division_id' => null, 'department_id' => null, 'position_id' => null])->get()->getRow();
         if ($config) return $this->respond(['level' => 'General Client', 'config' => $config]);
 
-        return $this->respond(['level' => 'Tidak Ada', 'config' => null]);
+    }
+
+    public function previewPayroll()
+    {
+        $clientId = $this->request->getGet('client_id');
+        $divId = $this->request->getGet('division_id');
+        $deptId = $this->request->getGet('department_id');
+        $posId = $this->request->getGet('position_id');
+        $workLocId = $this->request->getGet('work_location_id');
+
+        if (!$clientId) return $this->fail('Client ID required');
+
+        // Resolve Config
+        $config = null;
+        $level = 'Tidak Ada';
+        
+        if ($posId) {
+            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'position_id' => $posId])->get()->getRow();
+            if ($config) $level = 'Posisi';
+        }
+        if (!$config && $deptId) {
+            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'department_id' => $deptId, 'position_id' => null])->get()->getRow();
+            if ($config) $level = 'Departemen';
+        }
+        if (!$config && $divId) {
+            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'division_id' => $divId, 'department_id' => null, 'position_id' => null])->get()->getRow();
+            if ($config) $level = 'Divisi';
+        }
+        if (!$config) {
+            $config = $this->db->table('client_payroll_configs')->where(['client_id' => $clientId, 'division_id' => null, 'department_id' => null, 'position_id' => null])->get()->getRow();
+            if ($config) $level = 'General Client';
+        }
+
+        if (!$config) {
+            return $this->respond(['status' => 'error', 'message' => 'Skema tidak ditemukan']);
+        }
+
+        $gajiPokok = 0;
+        $desc = "Tipe Skema: {$config->payroll_type}. ";
+
+        if ($config->payroll_type === 'Nominal') {
+            $gajiPokok = floatval($config->custom_nominal);
+            $desc .= "Menggunakan nominal kustom Rp " . number_format($gajiPokok, 0, ',', '.');
+        } else if ($config->payroll_type === 'UMP/UMK' || $config->payroll_type === 'UMP' || $config->payroll_type === 'UMK') {
+            $mw = null;
+            if ($workLocId) {
+                $loc = $this->db->table('work_locations')->where('id', $workLocId)->get()->getRow();
+                if ($loc && ($loc->kota_kabupaten || $loc->provinsi)) {
+                    $year = date('Y');
+                    $daerah = $loc->kota_kabupaten ?: $loc->provinsi;
+                    $mw = $this->db->table('minimum_wages')
+                        ->where('tahun', $year)
+                        ->groupStart()
+                            ->where('nama_daerah', $daerah)
+                            ->orWhere('provinsi', $daerah)
+                        ->groupEnd()
+                        ->orderBy('nominal', 'DESC')
+                        ->get()->getRow();
+                    
+                    if ($mw) {
+                        $desc .= "Mendeteksi lokasi {$daerah}. ";
+                    }
+                }
+            }
+            if (!$mw && $config->minimum_wage_id) {
+                $mw = $this->db->table('minimum_wages')->where('id', $config->minimum_wage_id)->get()->getRow();
+            }
+            
+            if ($mw) {
+                $gajiPokok = floatval($mw->nominal);
+                $desc .= "Menggunakan UMR {$mw->nama_daerah} (Rp " . number_format($gajiPokok, 0, ',', '.') . ")";
+            } else {
+                $desc .= "UMR tidak ditemukan untuk lokasi ini.";
+            }
+        } else if ($config->payroll_type === 'Template') {
+            // Find template components if possible. For now, zero as fallback if no fixed income found.
+            $desc .= "Menggunakan Template. Silakan sesuaikan komponen gaji pokok jika diperlukan.";
+            $gajiPokok = 0;
+        }
+
+        $hariKerja = 5;
+        if ($posId) {
+            $pos = $this->db->table('positions')->where('id', $posId)->get()->getRow();
+            if ($pos && isset($pos->hari_kerja)) {
+                $hariKerja = intval($pos->hari_kerja);
+            }
+        }
+
+        $hariKerjaBulanan = 22;
+        if ($hariKerja == 6) $hariKerjaBulanan = 26;
+        if ($hariKerja == 7) $hariKerjaBulanan = 30;
+
+        $gajiHarian = $gajiPokok / $hariKerjaBulanan;
+        $dendaAbsen = $gajiHarian;
+
+        return $this->respond([
+            'status' => 'success',
+            'level' => $level,
+            'gaji_pokok' => $gajiPokok,
+            'hari_kerja' => $hariKerja,
+            'gaji_harian' => round($gajiHarian),
+            'denda_absen' => round($dendaAbsen),
+            'description' => $desc
+        ]);
     }
 
     private function calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus)

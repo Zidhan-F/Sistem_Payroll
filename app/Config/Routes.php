@@ -91,6 +91,7 @@ $routes->group('api', function($routes) {
     $routes->get('client-absence-config/(:num)', 'Api::getAbsenceConfig/$1');
     $routes->post('client-absence-config', 'Api::saveAbsenceConfig');
     $routes->get('check-schema', 'Api::checkSchema');
+    $routes->get('preview-payroll', 'Api::previewPayroll');
 
     // Employees
 });

@@ -432,7 +432,7 @@
 
     <!-- Modal Setup Payroll Klien -->
     <div id="modalSetup" class="modal-skema">
-        <div class="modal-header" style="background: var(--secondary-color);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalSetupTitle">Setup Payroll Klien</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalSetup()"></i>
         </div>
@@ -489,7 +489,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="tutupModalSetup()">Batal</button>
-                <button type="submit" class="btn-save" style="background: var(--secondary-color);">Simpan Konfigurasi</button>
+                <button type="submit" class="btn-save" style="background: var(--primary-color);">Simpan Konfigurasi</button>
             </div>
         </form>
     </div>
