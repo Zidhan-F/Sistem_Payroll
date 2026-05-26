@@ -346,20 +346,16 @@ async function loadSchemaMappingTable() {
         }
         
         tbody.innerHTML = mappings.map(m => {
-            const divLabel = m.division_name ? `<span class="status-badge" style="background:#dcfce7;color:#15803d;padding:4px 8px;border-radius:6px;font-weight:600;">${m.division_name}</span>` : '<span style="color:#94a3b8;">Global (All)</span>';
-            const deptLabel = m.department_name ? `<span class="status-badge" style="background:#fce7f3;color:#be185d;padding:4px 8px;border-radius:6px;font-weight:600;">${m.department_name}</span>` : '<span style="color:#94a3b8;">Global (All)</span>';
-            const posLabel = m.position_name ? `<span class="status-badge" style="background:#e0e7ff;color:#4338ca;padding:4px 8px;border-radius:6px;font-weight:600;">${m.position_name}</span>` : '<span style="color:#94a3b8;">Global (All)</span>';
-            
             return `
                 <tr>
-                    <td style="padding:15px; border-bottom:1px solid #e2e8f0;">${divLabel}</td>
-                    <td style="padding:15px; border-bottom:1px solid #e2e8f0;">${deptLabel}</td>
-                    <td style="padding:15px; border-bottom:1px solid #e2e8f0;">${posLabel}</td>
-                    <td style="padding:15px; border-bottom:1px solid #e2e8f0; font-weight:500;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
-                    <td style="padding:15px; border-bottom:1px solid #e2e8f0; font-weight:500;">${m.tax_scheme_name || '-'}</td>
-                    <td style="padding:15px; text-align:center; border-bottom:1px solid #e2e8f0;">
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.division_name || '-'}</td>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.department_name || '-'}</td>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || '-'}</td>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.tax_scheme_name || '-'}</td>
+                    <td style="padding:12px 15px; text-align:center; border-bottom:1px solid #e2e8f0;">
                         <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db;background:transparent;border:none;cursor:pointer;"><i class="fas fa-edit"></i></button>
-                        <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button>
+                        <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Delete" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `;
