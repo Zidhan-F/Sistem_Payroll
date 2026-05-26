@@ -348,9 +348,9 @@ async function loadSchemaMappingTable() {
         tbody.innerHTML = mappings.map(m => {
             return `
                 <tr>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.division_name || '-'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.department_name || '-'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || '-'}</td>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.division_name || 'Global'}</td>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.department_name || 'Global'}</td>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || 'Global'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.tax_scheme_name || '-'}</td>
                     <td style="padding:12px 15px; text-align:center; border-bottom:1px solid #e2e8f0;">
