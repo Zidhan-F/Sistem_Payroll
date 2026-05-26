@@ -74,7 +74,7 @@ function renderGlobalWorkLocationsTable() {
     tbody.innerHTML = '';
     
     if (workLocations.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color: var(--text-muted);">Belum ada data lokasi kerja.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color: var(--text-muted);">No work location data available.</td></tr>`;
         return;
     }
     
@@ -92,7 +92,7 @@ function renderGlobalWorkLocationsTable() {
                 <td>
                     <div style="display:flex; gap:8px;">
                         <button onclick="editLokasiKerja(${loc.id})" class="btn-action edit" title="Edit" style="background:#3b82f6; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-edit"></i></button>
-                        <button onclick="hapusLokasiKerja(${loc.id})" class="btn-action delete" title="Hapus" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        <button onclick="hapusLokasiKerja(${loc.id})" class="btn-action delete" title="Delete" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
                     </div>
                 </td>
             </tr>
@@ -117,7 +117,7 @@ function renderWorkLocationsTable() {
     tbody.innerHTML = '';
     
     if (workLocations.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: var(--text-muted);">Belum ada data lokasi kerja.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding: 20px; color: var(--text-muted);">No work location data available.</td></tr>`;
         return;
     }
     
@@ -134,7 +134,7 @@ function renderWorkLocationsTable() {
                 <td>
                     <div style="display:flex; gap:8px;">
                         <button onclick="editLokasiKerja(${loc.id})" class="btn-action edit" title="Edit" style="background:#3b82f6; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-edit"></i></button>
-                        <button onclick="hapusLokasiKerja(${loc.id})" class="btn-action delete" title="Hapus" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        <button onclick="hapusLokasiKerja(${loc.id})" class="btn-action delete" title="Delete" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
                     </div>
                 </td>
             </tr>
@@ -148,7 +148,7 @@ async function bukaModalLokasiKerja() {
     
     document.getElementById('formLokasiKerja').reset();
     document.getElementById('workLocationId').value = '';
-    document.getElementById('modalLokasiKerjaTitle').innerText = 'Tambah Lokasi Kerja';
+    document.getElementById('modalLokasiKerjaTitle').innerText = 'Add Work Location';
     
     resetCascadingSelects();
     fetchNextWorkLocationId();
@@ -212,7 +212,7 @@ async function populateLocClients() {
         window.locClientSelectInstance.destroy();
     }
     
-    clientSelect.innerHTML = '<option value="">-- Pilih Klien --</option>';
+    clientSelect.innerHTML = '<option value="">-- Select Client --</option>';
     
     try {
         const r = await fetch('/api/clients');
@@ -244,9 +244,9 @@ async function populateLocClients() {
 }
 
 function resetCascadingSelects() {
-    document.getElementById('locDivisionId').innerHTML = '<option value="">-- Pilih Divisi --</option>';
-    document.getElementById('locDepartmentId').innerHTML = '<option value="">-- Pilih Departemen --</option>';
-    document.getElementById('locPositionId').innerHTML = '<option value="">-- Pilih Jabatan --</option>';
+    document.getElementById('locDivisionId').innerHTML = '<option value="">-- Select Division --</option>';
+    document.getElementById('locDepartmentId').innerHTML = '<option value="">-- Select Department --</option>';
+    document.getElementById('locPositionId').innerHTML = '<option value="">-- Select Position --</option>';
 }
 
 document.getElementById('locClientId')?.addEventListener('change', async (e) => {
@@ -258,7 +258,7 @@ document.getElementById('locClientId')?.addEventListener('change', async (e) => 
         const r = await fetch(`/api/org?client_id=${clientId}`);
         const divs = await r.json();
         const divSelect = document.getElementById('locDivisionId');
-        divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>';
+        divSelect.innerHTML = '<option value="">-- Select Division --</option>';
         divs.forEach(d => {
             divSelect.innerHTML += `<option value="${d.id}">${d.nama}</option>`;
         });
@@ -269,8 +269,8 @@ document.getElementById('locClientId')?.addEventListener('change', async (e) => 
 
 document.getElementById('locDivisionId')?.addEventListener('change', async (e) => {
     const divId = e.target.value;
-    document.getElementById('locDepartmentId').innerHTML = '<option value="">-- Pilih Departemen --</option>';
-    document.getElementById('locPositionId').innerHTML = '<option value="">-- Pilih Jabatan --</option>';
+    document.getElementById('locDepartmentId').innerHTML = '<option value="">-- Select Department --</option>';
+    document.getElementById('locPositionId').innerHTML = '<option value="">-- Select Position --</option>';
     if (!divId) return;
     
     const clientId = document.getElementById('locClientId').value;
@@ -291,7 +291,7 @@ document.getElementById('locDivisionId')?.addEventListener('change', async (e) =
 
 document.getElementById('locDepartmentId')?.addEventListener('change', async (e) => {
     const deptId = e.target.value;
-    document.getElementById('locPositionId').innerHTML = '<option value="">-- Pilih Jabatan --</option>';
+    document.getElementById('locPositionId').innerHTML = '<option value="">-- Select Position --</option>';
     if (!deptId) return;
     
     const clientId = document.getElementById('locClientId').value;
@@ -345,7 +345,7 @@ async function editLokasiKerja(id) {
     
     if (!loc) return;
     
-    document.getElementById('modalLokasiKerjaTitle').innerText = 'Edit Lokasi Kerja';
+    document.getElementById('modalLokasiKerjaTitle').innerText = 'Edit Work Location';
     document.getElementById('workLocationId').value = loc.id;
     document.getElementById('locName').value = loc.lokasi_kerja;
     document.getElementById('locCode').value = loc.location_code || '';
@@ -373,7 +373,7 @@ async function editLokasiKerja(id) {
         const r = await fetch(`/api/org?client_id=${loc.client_id}`);
         const divs = await r.json();
         const divSelect = document.getElementById('locDivisionId');
-        divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>';
+        divSelect.innerHTML = '<option value="">-- Select Division --</option>';
         divs.forEach(d => {
             divSelect.innerHTML += `<option value="${d.id}" ${d.id == loc.division_id ? 'selected' : ''}>${d.nama}</option>`;
         });
@@ -381,7 +381,7 @@ async function editLokasiKerja(id) {
         if (loc.division_id) {
             const selectedDiv = divs.find(d => d.id == loc.division_id);
             const deptSelect = document.getElementById('locDepartmentId');
-            deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+            deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
             if (selectedDiv && selectedDiv.departments) {
                 selectedDiv.departments.forEach(dept => {
                     deptSelect.innerHTML += `<option value="${dept.id}" ${dept.id == loc.department_id ? 'selected' : ''}>${dept.nama}</option>`;
@@ -391,7 +391,7 @@ async function editLokasiKerja(id) {
             if (loc.department_id && selectedDiv && selectedDiv.departments) {
                 const selectedDept = selectedDiv.departments.find(dept => dept.id == loc.department_id);
                 const posSelect = document.getElementById('locPositionId');
-                posSelect.innerHTML = '<option value="">-- Pilih Jabatan --</option>';
+                posSelect.innerHTML = '<option value="">-- Select Position --</option>';
                 if (selectedDept && selectedDept.positions) {
                     selectedDept.positions.forEach(pos => {
                         posSelect.innerHTML += `<option value="${pos.id}" ${pos.id == loc.position_id ? 'selected' : ''}>${pos.nama}</option>`;
@@ -432,22 +432,22 @@ document.getElementById('formLokasiKerja')?.addEventListener('submit', async (e)
             } else {
                 loadGlobalWorkLocations();
             }
-            showToast('Data lokasi kerja berhasil disimpan');
+            showToast('Work location data saved successfully');
         } else {
             const err = await r.json().catch(() => ({}));
-            let msg = 'Gagal menyimpan data lokasi kerja';
+            let msg = 'Failed to save work location data';
             if (err.messages) msg = Object.values(err.messages).join(', ');
             else if (err.message) msg = err.message;
             showToast(msg, 'error');
         }
     } catch (err) {
         console.error(err);
-        showToast('Terjadi kesalahan koneksi', 'error');
+        showToast('Connection error occurred', 'error');
     }
 });
 
 async function hapusLokasiKerja(id) {
-    if (!await showConfirm('Yakin ingin menghapus lokasi kerja ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this work location?')) return;
     try {
         const r = await fetch(`/api/work-locations/${id}`, { method: 'DELETE' });
         if (r.ok) {
@@ -456,13 +456,13 @@ async function hapusLokasiKerja(id) {
             } else {
                 loadGlobalWorkLocations();
             }
-            showToast('Lokasi kerja berhasil dihapus');
+            showToast('Work location deleted successfully');
         } else {
-            showToast('Gagal menghapus lokasi kerja', 'error');
+            showToast('Failed to delete work location', 'error');
         }
     } catch (err) {
         console.error(err);
-        showToast('Terjadi kesalahan koneksi', 'error');
+        showToast('Connection error occurred', 'error');
     }
 }
 

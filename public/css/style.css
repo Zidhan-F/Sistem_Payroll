@@ -142,13 +142,59 @@ body {
     border-radius: 0 8px 8px 0;
 }
 
-.sidebar-menu li:hover {
+.sidebar-menu li:not(.has-submenu):hover {
     background: linear-gradient(90deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.03));
     color: var(--primary-dark);
     border-left: 4px solid var(--primary-color);
 }
 
-.sidebar-menu li.active {
+.sidebar-menu li:not(.has-submenu).active {
+    background: linear-gradient(90deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.04));
+    color: var(--primary-dark);
+    border-left: 4px solid var(--primary-color);
+    font-weight: 600;
+}
+
+/* Adjust has-submenu wrapper so it doesn't show background/border directly */
+.sidebar-menu li.has-submenu {
+    display: block !important;
+    padding: 0 !important;
+    border-left: none !important;
+    background: none !important;
+}
+
+.sidebar-menu li.has-submenu:hover {
+    background: none !important;
+    border-left: none !important;
+}
+
+.sidebar-menu li.has-submenu.active {
+    background: none !important;
+    border-left: none !important;
+}
+
+/* Styling the menu item header inside has-submenu */
+.menu-item-header {
+    padding: 15px 25px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    color: var(--text-muted);
+    border-left: 4px solid transparent;
+    margin: 2px 8px 2px 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.menu-item-header:hover {
+    background: linear-gradient(90deg, rgba(243, 156, 18, 0.1), rgba(243, 156, 18, 0.03));
+    color: var(--primary-dark);
+    border-left: 4px solid var(--primary-color);
+}
+
+.sidebar-menu li.has-submenu.active > .menu-item-header {
     background: linear-gradient(90deg, rgba(243, 156, 18, 0.15), rgba(243, 156, 18, 0.04));
     color: var(--primary-dark);
     border-left: 4px solid var(--primary-color);
@@ -162,6 +208,12 @@ body {
 }
 
 .sidebar-menu li:hover i {
+    transform: none;
+}
+
+.sidebar-menu li:not(.has-submenu):hover i,
+.menu-item-header:hover i,
+.sidebar-submenu li:hover i {
     transform: scale(1.15);
 }
 
@@ -253,18 +305,17 @@ header {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background-color 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.3s ease;
 }
 
 .header-hamburger:hover {
     background-color: rgba(255, 255, 255, 0.1);
-    transform: scale(1.12) rotate(8deg);
 }
 
 .header-left .fa-bars,
 .header-left [class*="hamburger"],
 .header-left button:first-child {
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: none;
 }
 
 /* User profile glassmorphism pill */
@@ -2311,11 +2362,10 @@ tbody tr:hover {
 
 /* 6. Modal Close Button Micro-Interaction */
 .modal-header i {
-    transition: transform 0.25s ease, opacity 0.2s ease;
+    transition: opacity 0.2s ease;
 }
 
 .modal-header i:hover {
-    transform: scale(1.18) rotate(90deg);
     opacity: 0.85;
 }
 

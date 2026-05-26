@@ -115,7 +115,7 @@ function showToast(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
-function showConfirm(message, title = 'Konfirmasi') {
+function showConfirm(message, title = 'Confirmation') {
     return new Promise((resolve) => {
         const overlay = document.getElementById('confirmOverlay');
         const dialog = document.getElementById('confirmDialog');
@@ -159,10 +159,10 @@ function formatTimeAgo(dateString) {
     const diffHr = Math.floor(diffMin / 60);
     const diffDays = Math.floor(diffHr / 24);
 
-    if (diffSec < 60) return 'baru saja';
-    if (diffMin < 60) return `${diffMin} menit yang lalu`;
-    if (diffHr < 24) return `${diffHr} jam yang lalu`;
-    return `${diffDays} hari yang lalu`;
+    if (diffSec < 60) return 'just now';
+    if (diffMin < 60) return `${diffMin} minutes ago`;
+    if (diffHr < 24) return `${diffHr} hours ago`;
+    return `${diffDays} days ago`;
 }
 
 async function updateDashboardStats() {
@@ -301,8 +301,8 @@ function switchPayrollSub(sub) {
 }
 
 function switchView(view) {
-    // Auto-close any open modals when switching views
-    tutupSemuaModal();
+    // Auto-close any open modals when switching views, but keep sidebar open
+    tutupSemuaModal(true);
 
     const clientScopedViews = ['karyawan', 'struktur', 'setup', 'pkwt', 'proses'];
     if (clientScopedViews.includes(view.toLowerCase())) {
@@ -312,7 +312,7 @@ function switchView(view) {
             return;
         } else {
             switchView('klien');
-            showToast('Pilih klien terlebih dahulu!', 'info');
+            showToast('Please select a client first!', 'info');
             return;
         }
     }
@@ -346,15 +346,16 @@ function switchView(view) {
 
     const titles = {
         dashboard: 'Dashboard',
-        klien: 'Manajemen Klien',
-        manajemenKaryawan: 'Manajemen Karyawan',
-        clientWorkspace: 'Workspace Klien',
-        payroll: 'Master Skema Payroll',
-        pajak: 'Skema BPJS & Pajak',
-        masterKompensasi: 'Master Skema Komponen',
-        logAktivitas: 'Log Aktivitas'
+        klien: 'Client Management',
+        manajemenKaryawan: 'Employee Management',
+        globalLokasiKerja: 'Employee Management',
+        clientWorkspace: 'Client Workspace',
+        payroll: 'Master Payroll Scheme',
+        pajak: 'Master Payroll Scheme',
+        masterKompensasi: 'Master Payroll Scheme',
+        logAktivitas: 'Activity Log'
     };
-    document.getElementById('viewTitle').innerText = titles[view] || 'Payroll System';
+    document.getElementById('viewTitle').innerText = titles[view] || 'Employee Management';
 
     // Highlight and expand parent menu if we are in one of the payroll submenus
     if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
@@ -373,13 +374,7 @@ function switchView(view) {
         }
     }
 
-    // Auto-collapse sidebar after clicking a menu item
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar && !sidebar.classList.contains('collapsed')) {
-        sidebar.classList.add('collapsed');
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) mainContent.classList.add('expanded');
-    }
+
 
     // Auto load data based on view
     if (view === 'dashboard') updateDashboardStats();
@@ -400,15 +395,22 @@ function switchView(view) {
 
 
 // ===== UTILS & MODAL CLOSING =====
-function tutupSemuaModal() {
+function tutupSemuaModal(keepSidebarOpen = false) {
     const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
-    if(document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
     
-    // Close sidebar on mobile when modal or overlay is closed/clicked
     const sidebar = document.querySelector('.sidebar');
-    if (sidebar) {
-        sidebar.classList.remove('active');
+    const isSidebarActive = sidebar && sidebar.classList.contains('active');
+
+    if (!keepSidebarOpen) {
+        if (sidebar) {
+            sidebar.classList.remove('active');
+        }
+        if(document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
+    } else {
+        if (!isSidebarActive) {
+            if(document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
+        }
     }
 }
 
@@ -491,7 +493,7 @@ function quickAction(type) {
         }, 150);
     } else if (type === 'proses-payroll') {
         switchView('klien');
-        showToast('Pilih salah satu klien terlebih dahulu untuk memproses payroll', 'info');
+        showToast('Please select a client first to process payroll', 'info');
     } else if (type === 'pengaturan-skema') {
         switchPayrollSub('pajak');
     } else if (type === 'setting-skema') {

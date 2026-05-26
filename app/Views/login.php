@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Sistem Payroll</title>
+    <title>Login - Payroll System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?= base_url('css/login.css') ?>">
 </head>
@@ -15,28 +15,28 @@
                     <i class="fas fa-building"></i>
                 </div>
                 <h1>Payroll System</h1>
-                <p>Silakan login untuk mengelola payroll</p>
+                <p>Please log in to manage payroll</p>
             </div>
             <form id="loginForm">
                 <div class="input-group">
                     <label for="username">Username</label>
                     <div class="input-wrapper">
                         <i class="fas fa-user"></i>
-                        <input type="text" id="username" placeholder="Masukkan username" required>
+                        <input type="text" id="username" placeholder="Enter username" required>
                     </div>
                 </div>
                 <div class="input-group">
                     <label for="password">Password</label>
                     <div class="input-wrapper">
                         <i class="fas fa-lock"></i>
-                        <input type="password" id="password" placeholder="Masukkan password" required>
+                        <input type="password" id="password" placeholder="Enter password" required>
                     </div>
                 </div>
                 <div class="remember-forgot">
-                    <label><input type="checkbox"> Ingat saya</label>
-                    <a href="#">Lupa password?</a>
+                    <label><input type="checkbox"> Remember me</label>
+                    <a href="#">Forgot password?</a>
                 </div>
-                <button type="submit" class="btn-login">Login Sekarang</button>
+                <button type="submit" class="btn-login">Log In Now</button>
             </form>
             <div id="loginMessage" class="login-message"></div>
         </div>

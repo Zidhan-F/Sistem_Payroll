@@ -15,15 +15,15 @@ async function renderPayrollSchemes() {
         const container = document.getElementById('payrollSchemesContainer');
         if(!container) return;
         container.innerHTML = payrollSchemes.map(scheme => {
-            const basic = scheme.components ? scheme.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok')) : null;
-            let basicDetails = 'Belum dikonfigurasi';
+            const basic = scheme.components ? scheme.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok') || c.nama.includes('Basic Salary')) : null;
+            let basicDetails = 'Not configured';
             if (basic) {
                 if (basic.sumber_nilai === 'ump') {
                     basicDetails = `UMP (${basic.nilai}%)`;
                 } else if (basic.sumber_nilai === 'umk') {
                     basicDetails = `UMK (${basic.nilai}%)`;
                 } else if (basic.sumber_nilai === 'kompensasi') {
-                    basicDetails = `Ambil dari Komponen (${basic.nilai}%)`;
+                    basicDetails = `Take from Allowance (${basic.nilai}%)`;
                 } else {
                     basicDetails = formatRupiah(basic.nilai);
                 }
@@ -32,20 +32,20 @@ async function renderPayrollSchemes() {
             const linkedComps = (scheme.components || []).filter(c => c.jenis_komponen !== 'basic_salary');
             const compName = linkedComps.length > 0 
                 ? linkedComps.map(c => c.nama).join(', ') 
-                : 'Tidak ada komponen';
+                : 'No allowance';
 
-            const absenceDetails = `Prorate: ${scheme.prorate == 1 ? 'Ya' : 'Tidak'} | Absen Tidak Potong Gaji: ${scheme.absen_tidak_potong == 1 ? 'Ya' : 'Tidak'} | Potongan: ${formatRupiah(scheme.nominal_potongan || 0)}/hari`;
+            const absenceDetails = `Prorate: ${scheme.prorate == 1 ? 'Yes' : 'No'} | Absen No Salary Cut: ${scheme.absen_tidak_potong == 1 ? 'Yes' : 'No'} | Cut: ${formatRupiah(scheme.nominal_potongan || 0)}/day`;
 
             return `
             <div class="scheme-card">
                 <div class="scheme-card-header">
                     <div class="scheme-card-info">
                         <h4><i class="fas fa-file-invoice-dollar"></i> ${scheme.nama}</h4>
-                            <div class="scheme-card-desc" style="margin-bottom: 8px;">${scheme.deskripsi || 'Tidak ada deskripsi'}</div>
+                            <div class="scheme-card-desc" style="margin-bottom: 8px;">${scheme.deskripsi || 'No description'}</div>
                             <div style="font-size: 12px; color: #475569; display: grid; gap: 4px; border-top: 1px solid #f1f5f9; padding-top: 8px;">
-                                <div><strong>Gaji Pokok:</strong> ${basicDetails}</div>
-                                <div><strong>Skema Komponen:</strong> ${compName}</div>
-                                <div><strong>Skema Absen:</strong> ${absenceDetails}</div>
+                                <div><strong>Basic Salary:</strong> ${basicDetails}</div>
+                                <div><strong>Allowance Scheme:</strong> ${compName}</div>
+                                <div><strong>Absence Scheme:</strong> ${absenceDetails}</div>
                             </div>
                     </div>
                     <div class="scheme-card-actions">
@@ -108,9 +108,9 @@ async function renderPayrollSchemes() {
             if (res.ok) {
                 tutupSemuaModal();
                 renderPayrollSchemes();
-                showToast(id ? 'Skema payroll berhasil diupdate!' : 'Skema payroll berhasil ditambahkan!', 'success');
+                showToast(id ? 'Payroll scheme updated successfully!' : 'Payroll scheme added successfully!', 'success');
             } else {
-                showToast('Gagal menyimpan skema payroll!', 'error');
+                showToast('Failed to save payroll scheme!', 'error');
             }
         });
     }
@@ -128,13 +128,13 @@ async function bukaModalSkema(mode, id = null) {
 
     const tetapBody = document.getElementById('tabelKompensasiTetapBody');
     const tidakTetapBody = document.getElementById('tabelKompensasiTidakTetapBody');
-    if (tetapBody) tetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema komponen terpilih</td></tr>`;
-    if (tidakTetapBody) tidakTetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema komponen terpilih</td></tr>`;
+    if (tetapBody) tetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">No allowance scheme selected yet</td></tr>`;
+    if (tidakTetapBody) tidakTetapBody.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">No allowance scheme selected yet</td></tr>`;
 
     if(mode === 'edit' && id) {
         const s = payrollSchemes.find(x => x.id == id);
         if(s) {
-            document.getElementById('modalSkemaTitle').innerText = 'Edit Skema Payroll';
+            document.getElementById('modalSkemaTitle').innerText = 'Edit Payroll Scheme';
             document.getElementById('skemaId').value = s.id;
             document.getElementById('skemaNama').value = s.nama;
             document.getElementById('skemaDeskripsi').value = s.deskripsi;
@@ -163,7 +163,7 @@ async function bukaModalSkema(mode, id = null) {
             handleSkemaAbsenRuleChange();
 
             // Find basic salary component
-            const basic = s.components ? s.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok')) : null;
+            const basic = s.components ? s.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok') || c.nama.includes('Basic Salary')) : null;
             if (basic) {
                 document.getElementById('skemaSumber').value = basic.sumber_nilai || 'nominal';
                 document.getElementById('skemaPeriode').value = basic.periode || 'bulan';
@@ -237,7 +237,7 @@ async function bukaModalSkema(mode, id = null) {
             }
         }
     } else {
-        document.getElementById('modalSkemaTitle').innerText = 'Tambah Skema Payroll';
+        document.getElementById('modalSkemaTitle').innerText = 'Add Payroll Scheme';
         document.getElementById('formSkema').reset();
         document.getElementById('skemaId').value = '';
         const radioProrate = document.querySelector('input[name="skemaAbsenRule"][value="prorate"]');
@@ -274,14 +274,14 @@ function bukaModalPilihSkema(sifat) {
     const bodyEl = document.getElementById('modalPilihSkemaBody');
     if (!titleEl || !bodyEl) return;
 
-    titleEl.innerText = sifat === 'tetap' ? 'Pilih Skema Kompensasi Tetap' : 'Pilih Skema Kompensasi Tidak Tetap';
+    titleEl.innerText = sifat === 'tetap' ? 'Select Fixed Allowance Scheme' : 'Select Variable Allowance Scheme';
 
     const filteredSchemes = (window.compensationSchemes || []).filter(s => 
         (s.components || []).some(c => c.sifat_kompensasi === sifat)
     );
 
     if (filteredSchemes.length === 0) {
-        bodyEl.innerHTML = `<tr><td colspan="3" style="padding: 15px; text-align: center; color: #64748b;">Tidak ada skema kompensasi tersedia</td></tr>`;
+        bodyEl.innerHTML = `<tr><td colspan="3" style="padding: 15px; text-align: center; color: #64748b;">No allowance schemes available</td></tr>`;
     } else {
         const mainCompNames = Array.from(document.querySelectorAll(`#tabelKompensasi${sifat === 'tetap' ? 'Tetap' : 'TidakTetap'}Body .skema-comp-checkbox`))
             .map(cb => {
@@ -383,7 +383,7 @@ function terapkanPilihanSkema() {
     });
 
     if (componentsToRender.length === 0) {
-        body.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Belum ada skema kompensasi terpilih</td></tr>`;
+        body.innerHTML = `<tr><td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">No allowance scheme selected yet</td></tr>`;
         tutupModalPilihSkema();
         return;
     }
@@ -440,20 +440,20 @@ window.handleSkemaAbsenRuleChange = handleSkemaAbsenRuleChange;
 window.bukaModalSkema = bukaModalSkema;
 
 async function hapusSkema(id) {
-    if (!await showConfirm('Apakah Anda yakin ingin menghapus skema payroll ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this payroll scheme?')) return;
     try {
         const res = await fetch(`${API_URL}/payroll-schemes/${id}`, {
             method: 'DELETE'
         });
         if (res.ok) {
             renderPayrollSchemes();
-            showToast('Skema payroll berhasil dihapus!', 'success');
+            showToast('Payroll scheme deleted successfully!', 'success');
         } else {
-            showToast('Gagal menghapus skema payroll!', 'error');
+            showToast('Failed to delete payroll scheme!', 'error');
         }
     } catch (err) {
         console.error('Error deleting payroll scheme:', err);
-        showToast('Gagal menghapus skema payroll!', 'error');
+        showToast('Failed to delete payroll scheme!', 'error');
     }
 }
 window.hapusSkema = hapusSkema;

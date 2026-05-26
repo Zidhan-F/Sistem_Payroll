@@ -25,9 +25,9 @@
             if (res.ok) {
                 tutupSemuaModal();
                 renderMasterKompensasi();
-                showToast(id ? 'Skema komponen berhasil diupdate!' : 'Skema komponen berhasil ditambahkan!', 'success');
+                showToast(id ? 'Allowance scheme updated successfully!' : 'Allowance scheme added successfully!', 'success');
             } else {
-                showToast('Gagal menyimpan skema!', 'error');
+                showToast('Failed to save scheme!', 'error');
             }
         });
     }
@@ -42,9 +42,9 @@
             const sifat = document.getElementById('komponenKompensasiSifat').value;
             let nama = '';
             if (jenis === 'basic_salary') {
-                nama = 'Gaji Pokok';
+                nama = 'Basic Salary';
             } else {
-                nama = sifat === 'tetap' ? 'Komponen Tetap' : 'Komponen Tidak Tetap';
+                nama = sifat === 'tetap' ? 'Fixed Allowance' : 'Variable Allowance';
             }
 
             const data = {
@@ -67,9 +67,9 @@
             if (res.ok) {
                 tutupSemuaModal();
                 renderMasterKompensasi();
-                showToast(id ? 'Komponen berhasil diupdate!' : 'Komponen berhasil ditambahkan!', 'success');
+                showToast(id ? 'Allowance updated successfully!' : 'Allowance added successfully!', 'success');
             } else {
-                showToast('Gagal menyimpan komponen!', 'error');
+                showToast('Failed to save allowance!', 'error');
             }
         });
     }
@@ -88,9 +88,9 @@ async function renderMasterKompensasi() {
                     <td colspan="5" style="text-align: center; padding: 40px;">
                         <div class="empty-schemes" style="border: 2px dashed #cbd5e1; border-radius: 12px; background: white; padding: 30px; margin: 0 auto; max-width: 500px;">
                             <i class="fas fa-coins" style="font-size: 40px; color: #94a3b8; margin-bottom: 12px; display: block;"></i>
-                            <p style="color: #64748b; font-weight: 600; margin-bottom: 15px;">Belum ada skema kompensasi global.</p>
+                            <p style="color: #64748b; font-weight: 600; margin-bottom: 15px;">No global allowance schemes available.</p>
                             <button class="btn-add" onclick="bukaModalSkemaKompensasi('tambah')" style="margin: 0 auto; background: var(--primary-color);">
-                                <i class="fas fa-plus"></i> Tambah Skema Pertama
+                                <i class="fas fa-plus"></i> Add First Scheme
                             </button>
                         </div>
                     </td>
@@ -118,19 +118,19 @@ async function renderMasterKompensasi() {
             let periodeDisplay = '-';
             if (comp) {
                 if (comp.periode === 'hari_kerja') {
-                    periodeDisplay = 'Per Hari Kerja';
+                    periodeDisplay = 'Per Working Day';
                 } else if (comp.periode === 'minggu') {
-                    periodeDisplay = 'Per Minggu';
+                    periodeDisplay = 'Per Week';
                 } else if (comp.periode === 'tahun') {
-                    periodeDisplay = 'Per Tahun';
+                    periodeDisplay = 'Per Year';
                 } else {
-                    periodeDisplay = 'Per Bulan';
+                    periodeDisplay = 'Per Month';
                 }
             }
 
             let sifatDisplay = '';
             if (comp) {
-                sifatDisplay = comp.sifat_kompensasi === 'tidak_tetap' ? 'Komponen Tidak Tetap' : 'Komponen Tetap';
+                sifatDisplay = comp.sifat_kompensasi === 'tidak_tetap' ? 'Variable Allowance' : 'Fixed Allowance';
             }
 
             return `
@@ -151,8 +151,8 @@ async function renderMasterKompensasi() {
                     <td style="text-align: center; padding: 16px; color: #475569;">${periodeDisplay}</td>
                     <td style="text-align: center; padding: 16px;">
                         <div style="display: flex; gap: 8px; justify-content: center; align-items: center;">
-                            <button class="btn-icon btn-edit" onclick="bukaModalSkemaKompensasi('edit', ${scheme.id})" title="Edit Skema"><i class="fas fa-edit"></i></button>
-                            <button class="btn-icon btn-delete" onclick="hapusSkemaKompensasi(${scheme.id})" title="Hapus Skema"><i class="fas fa-trash"></i></button>
+                            <button class="btn-icon btn-edit" onclick="bukaModalSkemaKompensasi('edit', ${scheme.id})" title="Edit Scheme"><i class="fas fa-edit"></i></button>
+                            <button class="btn-icon btn-delete" onclick="hapusSkemaKompensasi(${scheme.id})" title="Delete Scheme"><i class="fas fa-trash"></i></button>
                         </div>
                     </td>
                 </tr>
@@ -187,16 +187,16 @@ function handleSchemeSumberNilaiChange() {
 
     if (sumber === 'ump' || sumber === 'umk') {
         if (isPersentase) isPersentase.value = '1';
-        if (labelNilai) labelNilai.innerText = `Nilai Persentase (%) dari ${sumber.toUpperCase()}`;
-        if (inputNilai) inputNilai.placeholder = 'Contoh: 100';
+        if (labelNilai) labelNilai.innerText = `Percentage Value (%) from ${sumber.toUpperCase()}`;
+        if (inputNilai) inputNilai.placeholder = 'e.g., 100';
         if (selectPeriode) {
             selectPeriode.value = 'bulan';
             selectPeriode.disabled = true;
         }
     } else {
         if (isPersentase) isPersentase.value = '0';
-        if (labelNilai) labelNilai.innerText = 'Nominal Custom (Rp)';
-        if (inputNilai) inputNilai.placeholder = 'Contoh: 200000';
+        if (labelNilai) labelNilai.innerText = 'Custom Nominal (Rp)';
+        if (inputNilai) inputNilai.placeholder = 'e.g., 200000';
         if (selectPeriode) {
             selectPeriode.disabled = false;
         }
@@ -212,9 +212,9 @@ window.handlePayrollSchemeSumberNilaiChange = function() {
 
     if (sumber === 'ump' || sumber === 'umk') {
         if (isPersentase) isPersentase.value = '1';
-        if (labelNilai) labelNilai.innerText = `Nilai Persentase (%) dari ${sumber.toUpperCase()}`;
+        if (labelNilai) labelNilai.innerText = `Percentage Value (%) from ${sumber.toUpperCase()}`;
         if (inputNilai) {
-            inputNilai.placeholder = 'Contoh: 100';
+            inputNilai.placeholder = 'e.g., 100';
             if (inputNilai.value === '') inputNilai.value = '100';
         }
         if (selectPeriode) {
@@ -223,9 +223,9 @@ window.handlePayrollSchemeSumberNilaiChange = function() {
         }
     } else {
         if (isPersentase) isPersentase.value = '0';
-        if (labelNilai) labelNilai.innerText = 'Nominal Custom (Rp)';
+        if (labelNilai) labelNilai.innerText = 'Custom Nominal (Rp)';
         if (inputNilai) {
-            inputNilai.placeholder = 'Contoh: 5000000';
+            inputNilai.placeholder = 'e.g., 5000000';
             if (inputNilai.value === '100') inputNilai.value = '';
         }
         if (selectPeriode) {
@@ -241,7 +241,7 @@ function bukaModalSkemaKompensasi(mode, id = null) {
         const scheme = window.compensationSchemes.find(s => s.id == id);
         if (scheme) {
             const comp = (scheme.components && scheme.components.length > 0) ? scheme.components[0] : null;
-            document.getElementById('modalSkemaKompensasiTitle').innerText = 'Edit Skema Komponen';
+            document.getElementById('modalSkemaKompensasiTitle').innerText = 'Edit Allowance Scheme';
             document.getElementById('skemaKompensasiId').value = scheme.id;
             document.getElementById('skemaKompensasiNama').value = scheme.nama;
             document.getElementById('skemaKompensasiDeskripsi').value = '';
@@ -266,7 +266,7 @@ function bukaModalSkemaKompensasi(mode, id = null) {
             handleSchemeSumberNilaiChange();
         }
     } else {
-        document.getElementById('modalSkemaKompensasiTitle').innerText = 'Tambah Skema Komponen';
+        document.getElementById('modalSkemaKompensasiTitle').innerText = 'Add Allowance Scheme';
         document.getElementById('formSkemaKompensasi').reset();
         document.getElementById('skemaKompensasiId').value = '';
         document.getElementById('skemaKompensasiNama').value = '';
@@ -285,14 +285,14 @@ function tutupModalSkemaKompensasi() {
 }
 
 async function hapusSkemaKompensasi(id) {
-    if (!await showConfirm('Apakah Anda yakin ingin menghapus skema komponen ini beserta seluruh komponen di dalamnya?')) return;
+    if (!await showConfirm('Are you sure you want to delete this allowance scheme and all allowances inside it?')) return;
     try {
         const res = await fetch(`${API_URL}/compensation-schemes/${id}`, { method: 'DELETE' });
         if (res.ok) {
             renderMasterKompensasi();
-            showToast('Skema komponen berhasil dihapus!', 'success');
+            showToast('Allowance scheme deleted successfully!', 'success');
         } else {
-            showToast('Gagal menghapus skema!', 'error');
+            showToast('Failed to delete scheme!', 'error');
         }
     } catch (err) {
         console.error(err);
@@ -319,23 +319,23 @@ function handleSumberNilaiChange() {
     if (sumber === 'ump') {
         if (formatContainer) formatContainer.style.display = 'none';
         if (selectIsPersentase) selectIsPersentase.value = '1';
-        if (labelNilai) labelNilai.innerText = 'Nilai Persentase (%) dari UMP';
-        if (inputNilai) inputNilai.placeholder = 'Contoh: 100';
+        if (labelNilai) labelNilai.innerText = 'Percentage Value (%) of UMP';
+        if (inputNilai) inputNilai.placeholder = 'e.g., 100';
     } else if (sumber === 'umk') {
         if (formatContainer) formatContainer.style.display = 'none';
         if (selectIsPersentase) selectIsPersentase.value = '1';
-        if (labelNilai) labelNilai.innerText = 'Nilai Persentase (%) dari UMK';
-        if (inputNilai) inputNilai.placeholder = 'Contoh: 100';
+        if (labelNilai) labelNilai.innerText = 'Percentage Value (%) of UMK';
+        if (inputNilai) inputNilai.placeholder = 'e.g., 100';
     } else if (sumber === 'ump_umk') {
         if (formatContainer) formatContainer.style.display = 'none';
         if (selectIsPersentase) selectIsPersentase.value = '1';
-        if (labelNilai) labelNilai.innerText = 'Nilai Persentase (%) dari UMP/UMK';
-        if (inputNilai) inputNilai.placeholder = 'Contoh: 100';
+        if (labelNilai) labelNilai.innerText = 'Percentage Value (%) of UMP/UMK';
+        if (inputNilai) inputNilai.placeholder = 'e.g., 100';
     } else {
         if (formatContainer) formatContainer.style.display = 'none';
         if (selectIsPersentase) selectIsPersentase.value = '0';
-        if (labelNilai) labelNilai.innerText = 'Nominal Custom (Rp)';
-        if (inputNilai) inputNilai.placeholder = 'Contoh: 5000000';
+        if (labelNilai) labelNilai.innerText = 'Custom Nominal (Rp)';
+        if (inputNilai) inputNilai.placeholder = 'e.g., 5000000';
     }
 }
 
@@ -347,7 +347,7 @@ function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
         const scheme = window.compensationSchemes.find(s => s.id == schemeId);
         const k = scheme ? (scheme.components || []).find(comp => comp.id == id) : null;
         if (k) {
-            document.getElementById('modalKomponenKompensasiTitle').innerText = 'Edit Komponen Kompensasi';
+            document.getElementById('modalKomponenKompensasiTitle').innerText = 'Edit Allowance';
             document.getElementById('komponenKompensasiId').value = k.id;
             const nameEl = document.getElementById('komponenKompensasiNama');
             if (nameEl) nameEl.value = k.nama;
@@ -365,7 +365,7 @@ function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
             document.getElementById('komponenKompensasiPeriode').value = k.periode || 'bulan';
         }
     } else {
-        document.getElementById('modalKomponenKompensasiTitle').innerText = 'Tambah Komponen Kompensasi';
+        document.getElementById('modalKomponenKompensasiTitle').innerText = 'Add Allowance';
         document.getElementById('formKomponenKompensasi').reset();
         document.getElementById('komponenKompensasiId').value = '';
         document.getElementById('komponenKompensasiSchemeId').value = schemeId;
@@ -388,14 +388,14 @@ function tutupModalKomponenKompensasi() {
 }
 
 async function hapusKomponenKompensasi(id) {
-    if (!await showConfirm('Apakah Anda yakin ingin menghapus komponen kompensasi ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this allowance?')) return;
     try {
         const res = await fetch(`${API_URL}/compensation-components/${id}`, { method: 'DELETE' });
         if (res.ok) {
             renderMasterKompensasi();
-            showToast('Komponen kompensasi berhasil dihapus!', 'success');
+            showToast('Allowance deleted successfully!', 'success');
         } else {
-            showToast('Gagal menghapus komponen!', 'error');
+            showToast('Failed to delete allowance!', 'error');
         }
     } catch (err) {
         console.error(err);

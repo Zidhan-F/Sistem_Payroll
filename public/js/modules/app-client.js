@@ -118,7 +118,7 @@ async function populateMinimumWageDropdown(tipe, selectElementId) {
         const data = await res.json();
         const select = document.getElementById(selectElementId);
         if (select) {
-            select.innerHTML = '<option value="">-- Pilih Wilayah --</option>' +
+            select.innerHTML = '<option value="">-- Select Region --</option>' +
                 data.map(item => `<option value="${item.id}">${item.nama_daerah} (Rp ${parseFloat(item.nominal).toLocaleString('id-ID')})</option>`).join('');
         }
     } catch (err) {
@@ -176,25 +176,25 @@ async function loadWorkspaceSetup() {
         document.getElementById('wSetupClientName').innerText = window.selectedClientName || '-';
         
         if (conf) {
-            let payrollSchemeText = 'Belum Set';
+            let payrollSchemeText = 'Not Set';
             if (conf.payroll_type === 'UMP') {
-                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Not Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
             } else if (conf.payroll_type === 'UMK') {
-                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Not Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
             } else if (conf.payroll_type === 'Nominal') {
                 payrollSchemeText = `Nominal: Rp ${conf.custom_nominal ? parseFloat(conf.custom_nominal).toLocaleString('id-ID') : '-'}`;
             } else if (conf.payroll_type === 'Template') {
-                payrollSchemeText = conf.payroll_scheme_name || 'Belum Set';
+                payrollSchemeText = conf.payroll_scheme_name || 'Not Set';
             }
             document.getElementById('wSetupPayrollScheme').innerText = payrollSchemeText;
-            document.getElementById('wSetupTaxScheme').innerText = conf.tax_scheme_name || 'Belum Set';
-            document.getElementById('wSetupPayDate').innerText = conf.pay_date ? `Tgl ${conf.pay_date}` : 'Belum Set';
-            document.getElementById('wSetupCutoff').innerText = conf.cutoff_start ? `${conf.cutoff_start} s/d ${(conf.cutoff_start - 1)}` : 'Belum Set';
+            document.getElementById('wSetupTaxScheme').innerText = conf.tax_scheme_name || 'Not Set';
+            document.getElementById('wSetupPayDate').innerText = conf.pay_date ? `Day ${conf.pay_date}` : 'Not Set';
+            document.getElementById('wSetupCutoff').innerText = conf.cutoff_start ? `${conf.cutoff_start} to ${(conf.cutoff_start - 1)}` : 'Not Set';
         } else {
-            document.getElementById('wSetupPayrollScheme').innerText = 'Belum Set';
-            document.getElementById('wSetupTaxScheme').innerText = 'Belum Set';
-            document.getElementById('wSetupPayDate').innerText = 'Belum Set';
-            document.getElementById('wSetupCutoff').innerText = 'Belum Set';
+            document.getElementById('wSetupPayrollScheme').innerText = 'Not Set';
+            document.getElementById('wSetupTaxScheme').innerText = 'Not Set';
+            document.getElementById('wSetupPayDate').innerText = 'Not Set';
+            document.getElementById('wSetupCutoff').innerText = 'Not Set';
         }
     } catch (err) {
         console.error(err);
@@ -209,7 +209,7 @@ function bukaModal(mode, id = null) {
     if (mode === 'edit' && id) {
         const client = clients.find(c => c.id == id);
         if (client) {
-            document.getElementById('modalTitle').innerText = 'Edit Data Client';
+            document.getElementById('modalTitle').innerText = 'Edit Client Data';
             document.getElementById('clientId').value = client.id;
             document.getElementById('namaKlien').value = client.nama;
             document.getElementById('emailKlien').value = client.email;
@@ -220,17 +220,17 @@ function bukaModal(mode, id = null) {
             document.getElementById('alamat').value = client.alamat;
         }
     } else {
-        document.getElementById('modalTitle').innerText = 'Tambah Data Client';
+        document.getElementById('modalTitle').innerText = 'Add Client Data';
         document.getElementById('formKlien').reset();
         document.getElementById('clientId').value = '';
     }
 }
 
 async function hapusKlien(id) {
-    if (!await showConfirm('Hapus klien ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this client?')) return;
     try {
         const res = await fetch(`${API_URL}/clients/${id}`, { method: 'DELETE' });
-        if (res.ok) { renderTable(); showToast('Klien berhasil dihapus', 'success'); }
+        if (res.ok) { renderTable(); showToast('Client deleted successfully', 'success'); }
     } catch (err) { console.error(err); }
 }
 
@@ -266,12 +266,12 @@ document.getElementById('formKlien')?.addEventListener('submit', async (e) => {
             else if (document.getElementById('modalClient')) document.getElementById('modalClient').style.display = 'none';
             if (document.getElementById('overlay')) document.getElementById('overlay').style.display = 'none';
             renderTable();
-            showToast(id ? 'Data Klien berhasil diubah!' : 'Data Klien berhasil ditambahkan!', 'success');
+            showToast(id ? 'Client data updated successfully!' : 'Client data added successfully!', 'success');
         } else {
-            showToast('Gagal menyimpan data klien', 'error');
+            showToast('Failed to save client data', 'error');
         }
     } catch (err) {
         console.error(err);
-        showToast('Terjadi kesalahan pada server', 'error');
+        showToast('A server error occurred', 'error');
     }
 });

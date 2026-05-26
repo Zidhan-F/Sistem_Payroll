@@ -84,7 +84,7 @@ async function renderTable() {
                 <td><div style="font-size:13px;font-weight:500;">${c.email||'-'}</div><div style="font-size:11px;color:#888;">${c.telepon||'-'}</div></td>
                 <td>${c.sektor}</td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.alamat}</td>
-                <td><span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${c.status==='Aktif'?'#e8fdf0':'#fde8e8'};color:${c.status==='Aktif'?'#2ecc71':'#e74c3c'};">${c.status||'Aktif'}</span></td>
+                <td><span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${(c.status==='Aktif' || c.status==='Active')?'#e8fdf0':'#fde8e8'};color:${(c.status==='Aktif' || c.status==='Active')?'#2ecc71':'#e74c3c'};">${(c.status==='Aktif' || c.status==='Active')?'Active':'Inactive'}</span></td>
                 <td><div class="action-btns">
                     <button class="btn-icon btn-edit" onclick="event.stopPropagation();bukaModal('edit',${c.id})"><i class="fas fa-edit"></i></button>
                     <button class="btn-icon btn-delete" onclick="event.stopPropagation();hapusKlien(${c.id})"><i class="fas fa-trash"></i></button>
@@ -97,29 +97,30 @@ function bukaModal(mode, id=null) {
     modal.style.display='block'; overlay.style.display='block';
     const btn = document.getElementById('btnSubmit');
     if(mode==='edit' && id){
-        document.getElementById('modalTitle').innerText='Edit Data Client'; btn.innerText='Edit';
+        document.getElementById('modalTitle').innerText='Edit Client Data'; btn.innerText='Edit';
         const c = clients.find(x=>x.id==id);
-        if(c){document.getElementById('clientId').value=c.id;document.getElementById('noKlien').value=c.no_klien||'';document.getElementById('namaKlien').value=c.nama||'';document.getElementById('emailKlien').value=c.email||'';document.getElementById('teleponKlien').value=c.telepon||'';document.getElementById('sektorKlien').value=c.sektor||'';document.getElementById('nib').value=c.nib||'';document.getElementById('npwp').value=c.npwp?String(c.npwp):'';document.getElementById('tanggalBergabung').value=c.tgl_gabung?c.tgl_gabung.split('T')[0]:'';document.getElementById('alamat').value=c.alamat||'';document.getElementById('statusKlien').value=c.status||'Aktif';}
+        if(c){document.getElementById('clientId').value=c.id;document.getElementById('noKlien').value=c.no_klien||'';document.getElementById('namaKlien').value=c.nama||'';document.getElementById('emailKlien').value=c.email||'';document.getElementById('teleponKlien').value=c.telepon||'';document.getElementById('sektorKlien').value=c.sektor||'';document.getElementById('nib').value=c.nib||'';document.getElementById('npwp').value=c.npwp?String(c.npwp):'';document.getElementById('tanggalBergabung').value=c.tgl_gabung?c.tgl_gabung.split('T')[0]:'';document.getElementById('alamat').value=c.alamat||'';document.getElementById('statusKlien').value=c.status||'Active';}
     } else {
-        document.getElementById('modalTitle').innerText='Tambah Data Client'; btn.innerText='Simpan';
-        formKlien.reset();document.getElementById('clientId').value='';document.getElementById('noKlien').value='Otomatis';document.getElementById('statusKlien').value='Aktif';
+        document.getElementById('modalTitle').innerText='Add Client Data'; btn.innerText='Save';
+        formKlien.reset();document.getElementById('clientId').value='';document.getElementById('noKlien').value='Automatic';document.getElementById('statusKlien').value='Active';
     }
 }
 function tutupModal(){modal.style.display='none';overlay.style.display='none';}
 
     // formKlien listener moved to app.js
 async function hapusKlien(id){
-    if(!await showConfirm('Yakin ingin menghapus klien ini?'))return;
+    if(!await showConfirm('Are you sure you want to delete this client?'))return;
     const r=await fetch(`${API}/clients/${id}`,{method:'DELETE'});
-    if(r.ok){renderTable();showToast('Klien berhasil dihapus');}
+    if(r.ok){renderTable();showToast('Client deleted successfully');}
 }
 
 // === CLIENT DETAIL ===
+// selectClient logic
 function selectClient(id, nama){
     selectedClientId=id;
     document.getElementById('tabelKlienContainer').style.display='none';
     document.getElementById('clientOrgDetail').style.display='block';
-    document.getElementById('clientDetailTitle').innerText=`Struktur Klien: ${nama}`;
+    document.getElementById('clientDetailTitle').innerText=`Client Structure: ${nama}`;
     switchClientTab('struktur');
 }
 function backToClientList(){
@@ -145,7 +146,7 @@ document.getElementById('formSchema')?.addEventListener('submit',async(e)=>{
     e.preventDefault();
     const d={client_id:selectedClientId,bpjs_kes_percent:document.getElementById('schemaBpjsKes').value,bpjs_jht_percent:document.getElementById('schemaBpjsJht').value,tax_method:document.getElementById('schemaTaxMethod').value,cut_off_start:document.getElementById('schemaCutOffStart').value,cut_off_end:document.getElementById('schemaCutOffEnd').value};
     const r=await fetch(`${API}/clients/schema`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
-    if(r.ok) showToast('Skema Payroll berhasil disimpan!');
+    if(r.ok) showToast('Payroll scheme saved successfully!');
 });
 
 function tutupSemuaModal(){tutupModal();tutupModalOrg();tutupModalKaryawan();try{tutupModalPKWT();}catch(e){}try{tutupModalKomponen();}catch(e){}try{tutupModalSlip();}catch(e){}}

@@ -11,7 +11,7 @@ async function loadActivePeriod() {
         // 1. Render dropdown selector on the main page
         const select = document.getElementById('selectPeriodInput');
         if (select) {
-            select.innerHTML = '<option value="">-- Pilih Periode --</option>' + periods.map(p => `
+            select.innerHTML = '<option value="">-- Select Period --</option>' + periods.map(p => `
                 <option value="${p.id}" ${p.id == currentPeriodId ? 'selected' : ''}>${p.nama} (${p.status})</option>
             `).join('');
         }
@@ -22,7 +22,7 @@ async function loadActivePeriod() {
             list.innerHTML = periods.map(p => `
                 <div class="period-item ${p.id == currentPeriodId ? 'active' : ''}" onclick="selectPeriod(${p.id}, '${p.nama}')" style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: ${p.id == currentPeriodId ? '#f0fdf4' : 'transparent'};">
                     <span style="font-weight: 500;">${p.nama}</span>
-                    <span class="status-badge ${p.status && (p.status.toLowerCase().includes('open') || p.status.toLowerCase().includes('terbuka')) ? 'success' : 'danger'}" style="font-size: 11px;">${p.status}</span>
+                    <span class="status-badge ${p.status && (p.status.toLowerCase().includes('open') || p.status.toLowerCase().includes('terbuka') || p.status.toLowerCase().includes('active')) ? 'success' : 'danger'}" style="font-size: 11px;">${p.status}</span>
                 </div>
             `).join('');
         }
@@ -57,7 +57,7 @@ function selectPeriod(id, name) {
         const period = window.loadedPeriods.find(p => p.id == id);
         const status = period ? period.status : 'Open';
         statusBadge.innerText = status;
-        statusBadge.className = 'status-badge ' + (status.toLowerCase().includes('open') || status.toLowerCase().includes('terbuka') ? 'success' : 'danger');
+        statusBadge.className = 'status-badge ' + (status.toLowerCase().includes('open') || status.toLowerCase().includes('terbuka') || status.toLowerCase().includes('active') ? 'success' : 'danger');
     }
 
     document.getElementById('prosesActions').style.display = 'block';
@@ -75,8 +75,8 @@ async function renderCutOffTable() {
     document.getElementById('tabelCutOffBody').innerHTML = data.map(row => `
         <tr>
             <td>${row.employee_name}</td>
-            <td>${row.hari_kerja || 0} Hari</td>
-            <td>${row.jam_lembur || 0} Jam</td>
+            <td>${row.hari_kerja || 0} Days</td>
+            <td>${row.jam_lembur || 0} Hours</td>
             <td>${formatRupiah(row.potongan_absensi)}</td>
             <td>${formatRupiah(row.bonus_tambahan)}</td>
             <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${row.hari_kerja || 22}, ${row.jam_lembur || 0}, ${row.potongan_absensi || 0}, ${row.bonus_tambahan || 0})"><i class="fas fa-edit"></i></button></td>
@@ -103,7 +103,7 @@ async function renderReviewGajiTable() {
                 <td>
                     ${row.status_approval === 'Pending' ? 
                         `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : 
-                        `<button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="Lihat Slip Gaji" style="background:var(--primary-color); color:white; width:30px; height:30px;"><i class="fas fa-eye"></i></button>`
+                        `<button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip" style="background:var(--primary-color); color:white; width:30px; height:30px;"><i class="fas fa-eye"></i></button>`
                     }
                 </td>
             </tr>
@@ -113,14 +113,14 @@ async function renderReviewGajiTable() {
 
 async function generateGaji() {
     if(!currentPeriodId) return;
-    showToast('Menghitung gaji...', 'info');
+    showToast('Calculating salary...', 'info');
     const res = await fetch(`${API_URL}/generate-payroll/${currentPeriodId}`, { method: 'POST' });
-    if (res.ok) { showToast('Gaji berhasil di-generate!', 'success'); renderReviewGajiTable(); }
+    if (res.ok) { showToast('Salary generated successfully!', 'success'); renderReviewGajiTable(); }
 }
 
 async function approveGaji(id) {
     const res = await fetch(`${API_URL}/approve-payroll/${id}`, { method: 'POST' });
-    if (res.ok) { showToast('Gaji disetujui!', 'success'); renderReviewGajiTable(); }
+    if (res.ok) { showToast('Salary approved!', 'success'); renderReviewGajiTable(); }
 }
 
 // ===== UTILS & MODAL CLOSING =====
@@ -197,10 +197,10 @@ function cetakSlip() {
             });
             if (res.ok) {
                 tutupSemuaModal();
-                showToast('Periode baru berhasil dibuka!', 'success');
+                showToast('New period opened successfully!', 'success');
                 loadActivePeriod();
             } else {
-                showToast('Gagal membuka periode baru!', 'error');
+                showToast('Failed to open new period!', 'error');
             }
         });
     }
@@ -210,7 +210,7 @@ function cetakSlip() {
         document.getElementById('formCutOff').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentPeriodId) {
-                showToast('Periode aktif tidak ditemukan!', 'error');
+                showToast('Active period not found!', 'error');
                 return;
             }
             const data = {
@@ -230,13 +230,13 @@ function cetakSlip() {
                 if (res.ok) {
                     tutupSemuaModal();
                     renderCutOffTable();
-                    showToast('Data cut-off berhasil disimpan!', 'success');
+                    showToast('Cut-off data saved successfully!', 'success');
                 } else {
-                    showToast('Gagal menyimpan data cut-off!', 'error');
+                    showToast('Failed to save cut-off data!', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                showToast('Gagal menyimpan data cut-off!', 'error');
+                showToast('Failed to save cut-off data!', 'error');
             }
         });
     }

@@ -13,7 +13,7 @@ async function renderTaxSchemes() {
                 <div class="scheme-card-header">
                     <div class="scheme-card-info">
                         <h4><i class="fas fa-percent" style="color: var(--danger);"></i> ${scheme.nama}</h4>
-                        <div class="scheme-card-desc">Metode: <b>${scheme.metode}</b> | PTKP: <b>${scheme.ptkp_status}</b></div>
+                        <div class="scheme-card-desc">Method: <b>${scheme.metode}</b> | PTKP: <b>${scheme.ptkp_status}</b></div>
                         <div class="scheme-card-desc" style="margin-top: 5px; font-size: 11px; color: #64748b;">
                             <span style="margin-right: 10px;"><i class="fas fa-hand-holding-medical"></i> Kes: <b>${scheme.bpjs_kes_karyawan || 1}% / ${scheme.bpjs_kes_perusahaan || 4}%</b></span>
                             <span style="margin-right: 10px;"><i class="fas fa-shield-alt"></i> JHT: <b>${scheme.bpjs_jht_karyawan || 2}% / ${scheme.bpjs_jht_perusahaan || 3.7}%</b></span>
@@ -103,23 +103,23 @@ if (document.getElementById('formPajak')) {
         if (res.ok) {
             tutupSemuaModal();
             renderTaxSchemes();
-            showToast(id ? 'Skema pajak berhasil diupdate!' : 'Skema pajak berhasil ditambahkan!', 'success');
+            showToast(id ? 'Tax scheme updated successfully!' : 'Tax scheme added successfully!', 'success');
         } else {
-            showToast('Gagal menyimpan skema pajak!', 'error');
+            showToast('Failed to save tax scheme!', 'error');
         }
     });
 }
 
 
 async function hapusPajak(id) {
-    if (!await showConfirm('Apakah Anda yakin ingin menghapus skema pajak ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this tax scheme?')) return;
     try {
         const res = await fetch(`${API_URL}/tax-schemes/${id}`, { method: 'DELETE' });
         if (res.ok) {
             renderTaxSchemes();
-            showToast('Skema pajak berhasil dihapus!', 'success');
+            showToast('Tax scheme deleted successfully!', 'success');
         } else {
-            showToast('Gagal menghapus skema pajak!', 'error');
+            showToast('Failed to delete tax scheme!', 'error');
         }
     } catch (err) { console.error(err); }
 }

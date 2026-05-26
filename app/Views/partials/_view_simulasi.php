@@ -82,7 +82,7 @@
                                 <span id="simTotal" style="font-weight: 800; color: #27ae60; font-size: 22px;">-</span>
                             </div>
                             <p style="font-size: 11px; color: #999; text-align: center; margin-top: 20px; line-height: 1.5;">
-                                *Hasil simulasi ini hanya perkiraan. Nilai riil dapat berbeda tergantung kebijakan potongan BPJS, pajak, dan komponen lainnya.
+                                *Hasil simulasi ini hanya perkiraan. Nilai riil dapat berbeda tergantung kebijakan potongan BPJS, pajak, dan tunjangan lainnya.
                             </p>
                         </div>
                     </div>

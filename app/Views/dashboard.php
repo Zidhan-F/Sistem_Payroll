@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Payroll - Manajemen Klien</title>
+    <title>Payroll System - Client Management</title>
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?= base_url('css/style.css') ?>">
@@ -29,7 +29,7 @@
                         </div>
                         <div class="stat-info">
                             <h4 id="statTotalKlien">0</h4>
-                            <p>Total Klien</p>
+                            <p>Total Clients</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -38,7 +38,7 @@
                         </div>
                         <div class="stat-info">
                             <h4 id="statTotalDivisi">0</h4>
-                            <p>Total Divisi</p>
+                            <p>Total Divisions</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -47,7 +47,7 @@
                         </div>
                         <div class="stat-info">
                             <h4 id="statTotalKaryawan">0</h4>
-                            <p>Total Karyawan</p>
+                            <p>Total Employees</p>
                         </div>
                     </div>
                 </div>
@@ -55,8 +55,8 @@
                 <!-- Quick Actions Panel -->
                 <div class="content-card" style="margin-top: 30px; padding: 25px;">
                     <div style="margin-bottom: 20px;">
-                        <h3 style="font-size: 16px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Menu Aksi Cepat</h3>
-                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Pintas navigasi untuk melakukan tugas administratif utama secara instan.</p>
+                        <h3 style="font-size: 16px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Quick Actions Menu</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;">Navigation shortcuts to perform key administrative tasks instantly.</p>
                     </div>
                     
                     <div class="quick-actions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
@@ -67,7 +67,7 @@
                             </div>
                             <div>
                                 <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Dashboard</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Kembali ke halaman utama.</p>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Return to the main page.</p>
                             </div>
                         </div>
 
@@ -77,8 +77,8 @@
                                 <img src="https://cdn-icons-png.flaticon.com/512/4300/4300058.png" alt="Klien" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Tambah Klien</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Daftarkan perusahaan baru.</p>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Add Client</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Register a new company.</p>
                             </div>
                         </div>
 
@@ -88,8 +88,8 @@
                                 <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Karyawan" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Tambah Karyawan</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Daftarkan karyawan baru.</p>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Add Employee</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Register a new employee.</p>
                             </div>
                         </div>
 
@@ -99,8 +99,8 @@
                                 <img src="https://cdn-icons-png.flaticon.com/512/3135/3135706.png" alt="Struktur Gaji" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Struktur Gaji</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Skema komponen pendapatan.</p>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Salary Structure</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Income allowance scheme.</p>
                             </div>
                         </div>
 
@@ -110,8 +110,8 @@
                                 <img src="https://cdn-icons-png.flaticon.com/512/2040/2040504.png" alt="BPJS & Pajak" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Skema BPJS & Pajak</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Atur skema BPJS & pajak.</p>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">BPJS & Tax Scheme</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Configure BPJS & tax scheme.</p>
                             </div>
                         </div>
 
@@ -121,8 +121,8 @@
                                 <img src="https://cdn-icons-png.flaticon.com/512/1865/1865269.png" alt="Lokasi Kerja" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Lokasi Kerja</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Kelola wilayah & kantor kerja.</p>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Work Location</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Manage work regions & offices.</p>
                             </div>
                         </div>
 
@@ -133,7 +133,7 @@
                             </div>
                             <div>
                                 <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Upload UMK UMP</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Unggah ketetapan UMP & UMK.</p>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Upload regional minimum wage (UMP & UMK) rates.</p>
                             </div>
                         </div>
 
@@ -143,8 +143,8 @@
                                 <img src="https://cdn-icons-png.flaticon.com/512/2489/2489756.png" alt="Setting Skema" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Setting Skema</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Atur parameter & template payroll.</p>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Scheme Settings</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Configure payroll parameters & templates.</p>
                             </div>
                         </div>
                     </div>
@@ -156,11 +156,11 @@
             <div id="viewKlien" class="view-section">
                 <div class="content-card">
                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Klien</h3>
+                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Client Data</h3>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <input type="text" id="cariKlienGlobal" placeholder="Cari klien..." oninput="cariKlienAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <input type="text" id="cariKlienGlobal" placeholder="Search clients..." oninput="cariKlienAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
                             <button class="btn-add" onclick="bukaModal('tambah')" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                                <i class="fas fa-plus"></i> Tambah
+                                <i class="fas fa-plus"></i> Add
                             </button>
                         </div>
                     </div>
@@ -169,12 +169,12 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Nama Klien</th>
-                                    <th>Bisnis Klien</th>
+                                    <th>Client Name</th>
+                                    <th>Client Sector</th>
                                     <th>NPWP</th>
                                     <th>NIB</th>
-                                    <th>Tanggal Bergabung</th>
-                                    <th>Alamat</th>
+                                    <th>Join Date</th>
+                                    <th>Address</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -190,11 +190,11 @@
             <div id="viewManajemenKaryawan" class="view-section">
                 <div class="content-card">
                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Karyawan</h3>
+                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Employee Data</h3>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                            <input type="text" id="cariKaryawanGlobal" placeholder="Cari nama, nik, posisi..." oninput="cariKaryawanGlobalAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <input type="text" id="cariKaryawanGlobal" placeholder="Search name, NIK, position..." oninput="cariKaryawanGlobalAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
                             <button class="btn-add" onclick="bukaModalKaryawanGlobal()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                                <i class="fas fa-plus"></i> Tambah Karyawan
+                                <i class="fas fa-plus"></i> Add Employee
                             </button>
                         </div>
                     </div>
@@ -203,13 +203,13 @@
                         <table style="width: 100%;">
                             <thead>
                                 <tr>
-                                    <th>Perusahaan / Klien</th>
-                                    <th>Employ ID (NIK)</th>
-                                    <th>Nama Karyawan</th>
-                                    <th>Tempat Tanggal Lahir</th>
+                                    <th>Company / Client</th>
+                                    <th>Employee ID (NIK)</th>
+                                    <th>Employee Name</th>
+                                    <th>Place & Date of Birth</th>
                                     <th>NPWP</th>
-                                    <th>Lokasi Kerja</th>
-                                    <th>Kontrak</th>
+                                    <th>Work Location</th>
+                                    <th>Contract</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -225,9 +225,9 @@
             <div id="viewGlobalLokasiKerja" class="view-section">
                 <div class="content-card">
                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Lokasi Kerja</h3>
+                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Work Location Data</h3>
                         <button class="btn-add" onclick="bukaModalLokasiKerja()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                            <i class="fas fa-plus"></i> Tambah Lokasi Kerja
+                            <i class="fas fa-plus"></i> Add Work Location
                         </button>
                     </div>
 
@@ -235,14 +235,14 @@
                         <table style="width: 100%;">
                             <thead>
                                 <tr>
-                                    <th>Lokasi Kerja</th>
+                                    <th>Work Location</th>
                                     <th>Location Code</th>
-                                    <th>Klien / Perusahaan</th>
-                                    <th>Divisi</th>
+                                    <th>Client / Company</th>
+                                    <th>Division</th>
                                     <th>Department</th>
-                                    <th>Posisi / Jabatan</th>
-                                    <th>Provinsi</th>
-                                    <th>Kota/Kabupaten</th>
+                                    <th>Position / Role</th>
+                                    <th>Province</th>
+                                    <th>City/Regency</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -261,24 +261,24 @@
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <button class="btn-back" onclick="backToClientList()">
-                                <i class="fas fa-arrow-left"></i> Kembali
+                                <i class="fas fa-arrow-left"></i> Back
                             </button>
                             <h2 id="clientWorkspaceTitle" style="font-size: 22px; font-weight: 700; color: var(--secondary-color); margin: 0;">🏢 -</h2>
                         </div>
                         <div id="clientWorkspaceMeta" style="font-size: 14px; color: var(--text-muted); font-weight: 500;">
-                            Sektor: <strong id="clientWorkspaceSektor" style="color: var(--primary-color);">-</strong>
+                            Sector: <strong id="clientWorkspaceSektor" style="color: var(--primary-color);">-</strong>
                         </div>
                     </div>
                 </div>
 
                 <!-- Workspace Tabs (Horizontal below client name) -->
                 <div class="workspace-tabs">
-                    <button class="ws-tab active" data-wtab="karyawan" onclick="switchWorkspaceTab('karyawan')">Karyawan</button>
-                    <button class="ws-tab" data-wtab="struktur" onclick="switchWorkspaceTab('struktur')">Struktur Organisasi</button>
-                    <button class="ws-tab" data-wtab="kompensasi" onclick="switchWorkspaceTab('kompensasi')">Pilihan Skema</button>
-                    <button class="ws-tab" data-wtab="setup" onclick="switchWorkspaceTab('setup')">Setup Payroll</button>
-                    <button class="ws-tab" data-wtab="pkwt" onclick="switchWorkspaceTab('pkwt')">Kontrak PKWT</button>
-                    <button class="ws-tab" data-wtab="proses" onclick="switchWorkspaceTab('proses')">Proses Payroll</button>
+                    <button class="ws-tab active" data-wtab="karyawan" onclick="switchWorkspaceTab('karyawan')">Employees</button>
+                    <button class="ws-tab" data-wtab="struktur" onclick="switchWorkspaceTab('struktur')">Org Structure</button>
+                    <button class="ws-tab" data-wtab="kompensasi" onclick="switchWorkspaceTab('kompensasi')">Scheme Selections</button>
+                    <button class="ws-tab" data-wtab="setup" onclick="switchWorkspaceTab('setup')">Payroll Setup</button>
+                    <button class="ws-tab" data-wtab="pkwt" onclick="switchWorkspaceTab('pkwt')">PKWT Contract</button>
+                    <button class="ws-tab" data-wtab="proses" onclick="switchWorkspaceTab('proses')">Process Payroll</button>
                 </div>
 
                 <!-- Content Panels -->
@@ -287,30 +287,30 @@
                         <div id="viewKaryawan" class="w-tab-panel active">
                             <!-- Sub Tabs for Workspace Karyawan -->
                             <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
-                                <button class="sub-tab-btn active" id="subTabLokasiKerja" onclick="switchClientKaryawanSubTab('lokasi_kerja')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Lokasi Kerja</button>
-                                <button class="sub-tab-btn" id="subTabKaryawanData" onclick="switchClientKaryawanSubTab('karyawan_data')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Data Karyawan</button>
+                                <button class="sub-tab-btn active" id="subTabLokasiKerja" onclick="switchClientKaryawanSubTab('lokasi_kerja')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Work Location</button>
+                                <button class="sub-tab-btn" id="subTabKaryawanData" onclick="switchClientKaryawanSubTab('karyawan_data')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Employee Data</button>
                             </div>
 
                             <!-- Sub Panel 1: Lokasi Kerja (Active by default) -->
                             <div id="panelLokasiKerja" class="client-karyawan-subpanel">
                                 <div class="content-card">
                                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Daftar Lokasi Kerja</h3>
+                                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Work Location List</h3>
                                         <button class="btn-add" onclick="bukaModalLokasiKerja()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                                            <i class="fas fa-plus"></i> Tambah Lokasi Kerja
+                                            <i class="fas fa-plus"></i> Add Work Location
                                         </button>
                                     </div>
                                     <div class="table-container">
                                         <table style="width: 100%;">
                                             <thead>
                                                 <tr>
-                                                    <th>Lokasi Kerja</th>
+                                                    <th>Work Location</th>
                                                     <th>Location Code</th>
-                                                    <th>Divisi</th>
+                                                    <th>Division</th>
                                                     <th>Department</th>
-                                                    <th>Posisi / Jabatan</th>
-                                                    <th>Provinsi</th>
-                                                    <th>Kota/Kabupaten</th>
+                                                    <th>Position / Role</th>
+                                                    <th>Province</th>
+                                                    <th>City/Regency</th>
                                                     <th>Action</th>
                                                 </tr>
                                             </thead>
@@ -326,23 +326,23 @@
                             <div id="panelKaryawanData" class="client-karyawan-subpanel" style="display: none;">
                                 <div class="content-card">
                                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Data Karyawan</h3>
+                                        <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Employee Data</h3>
                                         <div class="search-box" style="margin-bottom: 0;">
                                             <i class="fas fa-search"></i>
-                                            <input type="text" id="searchKaryawan" placeholder="Cari nama atau posisi..." onkeyup="filterKaryawan()">
+                                            <input type="text" id="searchKaryawan" placeholder="Search name or position..." onkeyup="filterKaryawan()">
                                         </div>
                                     </div>
                                     <div class="table-container">
                                         <table>
                                             <thead>
                                                 <tr>
-                                                    <th>Perusahaan / Klien</th>
-                                                    <th>Employ ID (NIK)</th>
-                                                    <th>Nama Karyawan</th>
-                                                    <th>Tempat Tanggal Lahir</th>
+                                                    <th>Company / Client</th>
+                                                    <th>Employee ID (NIK)</th>
+                                                    <th>Employee Name</th>
+                                                    <th>Place & Date of Birth</th>
                                                     <th>NPWP</th>
-                                                    <th>Lokasi Kerja</th>
-                                                    <th>Kontrak</th>
+                                                    <th>Work Location</th>
+                                                    <th>Contract</th>
                                                     <th>Action</th>
                                                 </tr>
                                             </thead>
@@ -359,9 +359,9 @@
                         <div id="viewStruktur" class="w-tab-panel">
                             <div class="content-card">
                                 <div class="section-header">
-                                    <h3 style="font-size: 16px; color: var(--secondary-color);">Struktur Organisasi</h3>
+                                    <h3 style="font-size: 16px; color: var(--secondary-color);">Organization Structure</h3>
                                     <button class="btn-add" onclick="bukaModalOrg('divisi', 'tambah')">
-                                        <i class="fas fa-plus"></i> Tambah Divisi
+                                        <i class="fas fa-plus"></i> Add Division
                                     </button>
                                 </div>
 
@@ -378,36 +378,36 @@
                                     <div style="background: rgba(243, 156, 18, 0.1); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
                                         <i class="fas fa-cog" style="font-size: 28px; color: var(--primary-color);"></i>
                                     </div>
-                                    <h3 style="font-size: 18px; font-weight: 700; color: var(--secondary-color);">Konfigurasi Payroll Klien</h3>
-                                    <p style="color: #64748b; font-size: 13px;">Pengaturan skema perhitungan gaji, pajak, dan siklus cut-off bulanan.</p>
+                                    <h3 style="font-size: 18px; font-weight: 700; color: var(--secondary-color);">Client Payroll Configuration</h3>
+                                    <p style="color: #64748b; font-size: 13px;">Settings for salary calculation schemes, taxes, and monthly cut-off cycles.</p>
                                 </div>
 
                                 <div style="display: flex; flex-direction: column; gap: 15px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
                                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Nama Klien</span>
+                                        <span style="font-weight: 500; color: #64748b;">Client Name</span>
                                         <strong id="wSetupClientName" style="color: #1e293b;">-</strong>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Skema Payroll</span>
+                                        <span style="font-weight: 500; color: #64748b;">Payroll Scheme</span>
                                         <span id="wSetupPayrollScheme" class="scheme-badge bulanan" style="font-weight: 600;">-</span>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Skema Pajak</span>
+                                        <span style="font-weight: 500; color: #64748b;">Tax Scheme</span>
                                         <span id="wSetupTaxScheme" class="scheme-badge" style="background:#fee2e2; color:#dc2626; font-weight: 600;">-</span>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Tanggal Pembayaran</span>
-                                        <strong id="wSetupPayDate" style="color: #1e293b;">Tgl -</strong>
+                                        <span style="font-weight: 500; color: #64748b;">Payment Date</span>
+                                        <strong id="wSetupPayDate" style="color: #1e293b;">Date -</strong>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; padding-bottom: 5px;">
-                                        <span style="font-weight: 500; color: #64748b;">Siklus Cut-Off</span>
+                                        <span style="font-weight: 500; color: #64748b;">Cut-Off Cycle</span>
                                         <strong id="wSetupCutoff" style="color: #1e293b;">-</strong>
                                     </div>
                                 </div>
 
                                 <div style="display: flex; justify-content: center;">
                                     <button class="btn-save" onclick="bukaModalSetup(window.selectedClientId, window.selectedClientName)" style="background: var(--primary-color); display: flex; align-items: center; gap: 8px; font-weight: 600; padding: 12px 24px; border-radius: 10px;">
-                                        <i class="fas fa-edit"></i> Edit Konfigurasi
+                                        <i class="fas fa-edit"></i> Edit Configuration
                                     </button>
                                 </div>
                             </div>
@@ -417,21 +417,21 @@
                         <div id="viewPkwt" class="w-tab-panel">
                             <div class="content-card">
                                 <div class="section-header">
-                                    <h3 style="font-size: 16px; color: var(--secondary-color);">Daftar Kontrak PKWT</h3>
+                                    <h3 style="font-size: 16px; color: var(--secondary-color);">PKWT Contract List</h3>
                                     <button class="btn-add" onclick="bukaModalPKWT()">
-                                        <i class="fas fa-plus"></i> Buat Kontrak Baru
+                                        <i class="fas fa-plus"></i> Create New Contract
                                     </button>
                                 </div>
                                 <div class="table-container">
                                     <table>
                                         <thead>
                                             <tr>
-                                                <th>Karyawan</th>
-                                                <th>Klien</th>
-                                                <th>Posisi</th>
-                                                <th>Tgl Mulai</th>
+                                                <th>Employee</th>
+                                                <th>Client</th>
+                                                <th>Position</th>
+                                                <th>Start Date</th>
                                                 <th>Status</th>
-                                                <th>Gaji Pokok</th>
+                                                <th>Basic Salary</th>
                                                 <th>Action</th>
                                             </tr>
                                         </thead>
@@ -444,13 +444,13 @@
                         <!-- Panel: Proses Payroll -->
                         <div id="viewProses" class="w-tab-panel">
                             <div class="section-header" style="margin-bottom: 20px;">
-                                <h3 style="font-size: 16px; color: var(--secondary-color);">Pemrosesan Gaji Bulanan</h3>
+                                <h3 style="font-size: 16px; color: var(--secondary-color);">Monthly Salary Processing</h3>
                                 <div style="display: flex; gap: 12px; align-items: center;">
                                     <select id="selectPeriodInput" onchange="if(this.value) selectPeriod(this.value, this.options[this.selectedIndex].text)" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 200px;">
-                                        <option value="">-- Pilih Periode --</option>
+                                        <option value="">-- Select Period --</option>
                                     </select>
                                     <button class="btn-add" onclick="bukaModalPeriode()" style="background: #2c3e50; font-weight: 600;">
-                                        <i class="fas fa-calendar-plus"></i> Buka Periode Baru
+                                        <i class="fas fa-calendar-plus"></i> Open New Period
                                     </button>
                                 </div>
                             </div>
@@ -458,28 +458,28 @@
                             <div class="content-card">
                                 <div id="prosesEmptyState" style="text-align: center; padding: 60px 20px; color: #a0aec0;">
                                     <i class="fas fa-calendar-check" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5; color: var(--primary-color);"></i>
-                                    <h4 style="font-weight: 700; color: var(--secondary-color); margin-bottom: 5px;">Belum Ada Periode Terpilih</h4>
-                                    <p style="font-size: 13px; color: #718096; max-width: 400px; margin: 0 auto;">Silakan pilih salah satu periode dari menu dropdown di atas atau buka periode baru untuk memproses gaji.</p>
+                                    <h4 style="font-weight: 700; color: var(--secondary-color); margin-bottom: 5px;">No Period Selected Yet</h4>
+                                    <p style="font-size: 13px; color: #718096; max-width: 400px; margin: 0 auto;">Please select a period from the dropdown menu above or open a new period to process payroll.</p>
                                 </div>
 
                                 <div id="prosesActions" style="display: none;">
                                     <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
                                         <div>
-                                            <h4 id="activePeriodName" style="margin:0; color: var(--primary-color);">Pilih Periode</h4>
-                                            <span id="activePeriodStatus" class="status-badge success">Periode Terbuka</span>
+                                            <h4 id="activePeriodName" style="margin:0; color: var(--primary-color);">Select Period</h4>
+                                            <span id="activePeriodStatus" class="status-badge success">Open Period</span>
                                         </div>
                                         <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color);">
-                                            <i class="fas fa-sync-alt"></i> Generate Gaji
+                                            <i class="fas fa-sync-alt"></i> Generate Salary
                                         </button>
                                     </div>
                                     <div class="table-container">
                                         <table id="tabelCutOff">
                                             <thead>
                                                 <tr>
-                                                    <th>Nama Karyawan</th>
-                                                    <th>Hari Kerja</th>
-                                                    <th>Lembur</th>
-                                                    <th>Potongan</th>
+                                                    <th>Employee Name</th>
+                                                    <th>Working Days</th>
+                                                    <th>Overtime</th>
+                                                    <th>Deductions</th>
                                                     <th>Bonus</th>
                                                     <th>Action</th>
                                                 </tr>
@@ -488,15 +488,15 @@
                                         </table>
                                     </div>
                                     <div id="resultSection" style="margin-top: 30px; display: none;">
-                                        <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--success);">HASIL PERHITUNGAN GAJI</h4>
+                                        <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--success);">SALARY CALCULATION RESULTS</h4>
                                         <div class="table-container">
                                             <table>
                                                 <thead>
                                                     <tr>
-                                                        <th>Karyawan</th>
-                                                        <th>Pendapatan</th>
-                                                        <th>Potongan</th>
-                                                        <th>THP</th>
+                                                        <th>Employee</th>
+                                                        <th>Income</th>
+                                                        <th>Deductions</th>
+                                                        <th>Take Home Pay</th>
                                                         <th>Status</th>
                                                         <th>Action</th>
                                                     </tr>
@@ -510,7 +510,7 @@
                         </div>
 
                         <!-- Panel: Pilihan Skema -->
-                                                <div id="viewKompensasi" class="w-tab-panel">
+                        <div id="viewKompensasi" class="w-tab-panel">
                             <div class="content-card" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
 
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
@@ -519,11 +519,11 @@
                                     <div style="margin-bottom: 30px;">
                                         <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                                             <div>
-                                                <h3 style="font-size: 18px; color: var(--secondary-color); margin: 0; font-weight: 700;">Daftar Skema Payroll</h3>
-                                                <p style="font-size: 13px; color: #64748b; margin: 5px 0 0 0;">Kelola skema payroll untuk setiap divisi, departemen, dan posisi</p>
+                                                <h3 style="font-size: 18px; color: var(--secondary-color); margin: 0; font-weight: 700;">Payroll Scheme List</h3>
+                                                <p style="font-size: 13px; color: #64748b; margin: 5px 0 0 0;">Manage payroll schemes for each division, department, and position</p>
                                             </div>
                                             <button class="btn-add" onclick="openModalPilihanSkema()" style="background: #f39c12; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 14px; box-shadow: 0 2px 8px rgba(243, 156, 18, 0.25); transition: all 0.3s;">
-                                                <i class="fas fa-plus"></i> Tambah Skema
+                                                <i class="fas fa-plus"></i> Add Scheme
                                             </button>
                                         </div>
                                         
@@ -531,19 +531,19 @@
                                             <table style="width: 100%; border-collapse: collapse; background: white;">
                                                 <thead>
                                                     <tr style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white;">
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Divisi</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Departemen</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Posisi</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Skema Payroll</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Skema BPJS & Pajak</th>
-                                                        <th style="padding: 15px; text-align: center; font-weight: 600; font-size: 13px;">Aksi</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Division</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Department</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Position</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Payroll Scheme</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">BPJS & Tax Scheme</th>
+                                                        <th style="padding: 15px; text-align: center; font-weight: 600; font-size: 13px;">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tabelPilihanSkemaKlien">
                                                     <tr>
                                                         <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
                                                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                                                            Belum ada skema payroll yang terdaftar. Klik tombol "Tambah Skema" untuk mengkonfigurasi.
+                                                            No payroll schemes registered yet. Click "Add Scheme" to configure.
                                                         </td>
                                                     </tr>
                                                 </tbody>
@@ -564,7 +564,7 @@
                                         </div>
                                         <div id="pilihanSkemaPayrollTemplateContainer"></div>
                                         <select id="pilihanSkemaKompensasi">
-                                            <option value="">-- Pilih Skema Komponen --</option>
+                                            <option value="">-- Select Allowance Scheme --</option>
                                         </select>
                                         <div id="pilihanKompensasiSummary"></div>
                                         <input type="text" id="pilihanSkemaNamaKlien">
@@ -589,7 +589,7 @@
                 <!-- Custom Sub-Tabs for Skema Payroll & UMP/UMK -->
                 <div class="payroll-main-tabs" style="display: none; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; background: #f8fafc; padding: 10px 10px 0 10px; border-radius: 8px 8px 0 0;">
                     <button id="subTabSkema" class="payroll-subtab-btn active" onclick="switchPayrollSubTab('skema')" style="background: white; border: 1px solid #e2e8f0; border-bottom: 1px solid white; padding: 12px 24px; font-weight: 600; font-size: 14px; cursor: pointer; color: #0d6efd; margin-bottom: -1px; border-radius: 6px 6px 0 0; z-index: 2; display: flex; align-items: center; gap: 8px; outline: none;">
-                        <i class="fas fa-file-invoice-dollar"></i> Skema Payroll
+                        <i class="fas fa-file-invoice-dollar"></i> Payroll Scheme
                     </button>
                     <button id="subTabUmr" class="payroll-subtab-btn" onclick="switchPayrollSubTab('umr')" style="background: transparent; border: 1px solid transparent; border-bottom: none; padding: 12px 24px; font-weight: 600; font-size: 14px; cursor: pointer; color: #475569; margin-bottom: -1px; border-radius: 6px 6px 0 0; z-index: 1; display: flex; align-items: center; gap: 8px; outline: none;">
                         <i class="fas fa-file-upload"></i> UMP/UMK
@@ -599,9 +599,9 @@
                 <!-- Sub-tab 1: Skema Payroll Container -->
                 <div id="payrollSkemaContainer">
                     <div class="section-header" style="margin-bottom: 20px;">
-                        <h3 style="font-size: 16px; color: var(--secondary-color);">Master Skema Payroll</h3>
+                        <h3 style="font-size: 16px; color: var(--secondary-color);">Master Payroll Scheme</h3>
                         <button class="btn-add" onclick="bukaModalSkema('tambah')">
-                            <i class="fas fa-plus"></i> Tambah Skema
+                            <i class="fas fa-plus"></i> Add Scheme
                         </button>
                     </div>
                     <div id="payrollSchemesContainer" class="schemes-grid">
@@ -632,7 +632,7 @@
                                     <!-- Search Input Bar -->
                                     <div class="search-box" style="width: 240px; margin-bottom: 0;">
                                         <i class="fas fa-search"></i>
-                                        <input type="text" id="searchUmr" placeholder="Cari Provinsi..." onkeyup="filterUmrTable()">
+                                        <input type="text" id="searchUmr" placeholder="Search Province..." onkeyup="filterUmrTable()">
                                     </div>
 
                                     <!-- Blue Download Template Button -->
@@ -654,9 +654,9 @@
                                 <table style="width: 100%; border-collapse: collapse;">
                                     <thead>
                                         <tr>
-                                            <th id="colUmrCode" style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">Kode Provinsi</th>
-                                            <th id="colUmrName" style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">Provinsi</th>
-                                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">nominal</th>
+                                            <th id="colUmrCode" style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">Province Code</th>
+                                            <th id="colUmrName" style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">Province</th>
+                                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">Amount</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tabelUmrBody">
@@ -668,7 +668,7 @@
                             <!-- Pagination and Entry summary Footer -->
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px; flex-wrap: wrap; gap: 15px;">
                                 <span id="umrPaginationInfo" style="font-size: 14px; color: var(--text-muted); font-weight: 500;">
-                                    Menampilkan 0 - 0 dari 0 data
+                                    Showing 0 - 0 of 0 entries
                                 </span>
                                 <div id="umrPaginationControls" class="pagination" style="display: flex; gap: 5px; list-style: none;">
                                     <!-- Pagination buttons will be dynamically rendered here -->
@@ -681,19 +681,19 @@
                             <div style="background: rgba(40, 167, 69, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
                                 <i class="fas fa-money-bill-wave" style="font-size: 32px; color: #28a745;"></i>
                             </div>
-                            <h3 style="margin-bottom: 10px; color: #2c3e50; font-size: 22px;">Input Gaji Disepakati (Nominal)</h3>
-                            <p style="color: #6c757d; margin-bottom: 30px; font-size: 14px;">Masukkan besaran gaji yang telah disepakati untuk keperluan simulasi.</p>
+                            <h3 style="margin-bottom: 10px; color: #2c3e50; font-size: 22px;">Agreed Salary Input (Nominal)</h3>
+                            <p style="color: #6c757d; margin-bottom: 30px; font-size: 14px;">Enter the agreed salary amount for simulation purposes.</p>
                             
                             <div style="max-width: 400px; margin: 0 auto; text-align: left;">
-                                <label style="font-weight: 600; margin-bottom: 8px; display: block; color: #4a5568;">Nominal Kesepakatan (Rp)</label>
-                                <input type="text" id="inputUmrNominal" placeholder="Contoh: 5000000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 14px 16px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 16px; margin-bottom: 24px; transition: border-color 0.3s;" onfocus="this.style.borderColor='#0d6efd'" onblur="this.style.borderColor='#ddd'">
+                                <label style="font-weight: 600; margin-bottom: 8px; display: block; color: #4a5568;">Agreed Amount (IDR)</label>
+                                <input type="text" id="inputUmrNominal" placeholder="Example: 5000000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 14px 16px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 16px; margin-bottom: 24px; transition: border-color 0.3s;" onfocus="this.style.borderColor='#0d6efd'" onblur="this.style.borderColor='#ddd'">
                                 
                                 <button class="btn-save" onclick="simpanNominalManual()" style="width: 100%; padding: 14px 15px; background: #0d6efd; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; transition: all 0.3s; box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);">
-                                    <i class="fas fa-save"></i> Simpan Nominal
+                                    <i class="fas fa-save"></i> Save Amount
                                 </button>
 
                                 <div id="displayNominalTersimpan" style="margin-top: 25px; padding: 15px; border-radius: 8px; background: #e8fdf0; border: 1px solid #d4edda; text-align: center; display: none;">
-                                    <span style="font-size: 14px; color: #155724; font-weight: 500;">Nominal Aktif Saat Ini:</span>
+                                    <span style="font-size: 14px; color: #155724; font-weight: 500;">Currently Active Amount:</span>
                                     <h4 id="valNominalTersimpan" style="font-size: 22px; color: #2ecc71; margin: 5px 0 0 0; font-weight: 700;">-</h4>
                                 </div>
                             </div>
@@ -705,9 +705,9 @@
             <!-- Section: Skema Pajak (Master) -->
             <div id="viewPajak" class="view-section">
                 <div class="section-header" style="margin-bottom: 20px;">
-                    <h3 style="font-size: 16px; color: var(--secondary-color);">Skema BPJS & Pajak</h3>
+                    <h3 style="font-size: 16px; color: var(--secondary-color);">BPJS & Tax Scheme</h3>
                     <button class="btn-add" onclick="bukaModalPajak('tambah')">
-                        <i class="fas fa-plus"></i> Tambah Skema BPJS & Pajak
+                        <i class="fas fa-plus"></i> Add BPJS & Tax Scheme
                     </button>
                 </div>
                 <div id="taxSchemesContainer" class="schemes-grid">
@@ -722,24 +722,24 @@
                         <div style="background: rgba(52, 152, 219, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
                             <i class="fas fa-calculator" style="font-size: 32px; color: var(--info);"></i>
                         </div>
-                        <h2 style="font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">Upload UMP/UMK</h2>
-                        <p style="color: #666; font-size: 14px;">Hitung estimasi Take Home Pay berdasarkan UMP/UMK daerah</p>
+                        <h2 style="font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 10px;">Regional Minimum Wage (UMP/UMK)</h2>
+                        <p style="color: #666; font-size: 14px;">Calculate Take Home Pay estimation based on regional minimum wage (UMP/UMK)</p>
                     </div>
                     
                     <div style="margin-top: 30px;">
                         <div class="form-group" style="margin-bottom: 20px;">
-                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Tipe Daerah</label>
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Region Type</label>
                             <select id="simulasiType" onchange="loadSimulasiRegions()" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit;">
-                                <option value="UMP">Provinsi (UMP)</option>
-                                <option value="UMK">Kota/Kabupaten (UMK)</option>
-                                <option value="NOMINAL">Nominal (Input Manual)</option>
+                                <option value="UMP">Province (UMP)</option>
+                                <option value="UMK">City/Regency (UMK)</option>
+                                <option value="NOMINAL">Nominal (Manual Input)</option>
                             </select>
                         </div>
 
                         <div class="form-group" style="margin-bottom: 20px;">
-                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Pilih Daerah</label>
+                            <label style="font-weight: 600; margin-bottom: 8px; display: block;">Select Region</label>
                             <select id="simulasiRegion" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit;">
-                                <option value="">-- Pilih Provinsi --</option>
+                                <option value="">-- Select Province --</option>
                                 <option value="p1">ACEH</option>
                                 <option value="p2">SUMATERA UTARA</option>
                                 <option value="p3">SUMATERA BARAT</option>
@@ -782,24 +782,24 @@
                         </div>
 
                         <button class="btn-save" onclick="hitungSimulasiGaji()" style="width: 100%; padding: 15px; background: var(--primary-color); color: white; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; transition: 0.3s; margin-top: 10px;">
-                            <i class="fas fa-search-dollar" style="margin-right: 8px;"></i> Cek Estimasi Gaji
+                            <i class="fas fa-search-dollar" style="margin-right: 8px;"></i> Check Estimated Salary
                         </button>
 
                         <div id="simulasiResult" style="display: none; margin-top: 30px; padding: 25px; background: #f8f9fa; border-radius: 16px; border: 1px solid #eee; animation: fadeIn 0.5s;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                <span style="color: #666; font-size: 14px;">Gaji Pokok:</span>
+                                <span style="color: #666; font-size: 14px;">Basic Salary:</span>
                                 <span id="simBasic" style="font-weight: 600; color: #2c3e50;">-</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                <span style="color: #666; font-size: 14px;">Tunjangan Tetap (10%):</span>
+                                <span style="color: #666; font-size: 14px;">Fixed Allowance (10%):</span>
                                 <span id="simAllowance" style="font-weight: 600; color: #2c3e50;">-</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; padding-top: 20px; border-top: 2px dashed #ddd; margin-top: 20px;">
-                                <span style="font-weight: 700; color: #2c3e50;">Total Estimasi THP:</span>
+                                <span style="font-weight: 700; color: #2c3e50;">Total Estimated THP:</span>
                                 <span id="simTotal" style="font-weight: 800; color: #27ae60; font-size: 22px;">-</span>
                             </div>
                             <p style="font-size: 11px; color: #999; text-align: center; margin-top: 20px; line-height: 1.5;">
-                                *Hasil simulasi ini hanya perkiraan. Nilai riil dapat berbeda tergantung kebijakan potongan BPJS, pajak, dan komponen lainnya.
+                                *This simulation result is an estimate only. The actual value may differ depending on BPJS, tax deductions, and other allowance policies.
                             </p>
                         </div>
                     </div>
@@ -808,17 +808,17 @@
 
 
 
-        <!-- Section: Master Skema Komponen -->
+        <!-- Section: Master Skema Tunjangan -->
         <div id="viewMasterKompensasi" class="view-section">
             <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
                 <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
                     <div>
-                        <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Skema Komponen</h3>
-                        <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola komponen pendapatan dan potongan secara global.</p>
+                        <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Allowance Scheme</h3>
+                        <p style="color: #64748b; font-size: 13px; margin: 0;">Manage income allowances and deductions globally.</p>
                     </div>
                     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                         <button class="btn-add" onclick="bukaModalSkemaKompensasi('tambah')" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px;">
-                            <i class="fas fa-plus"></i> Tambah Skema
+                            <i class="fas fa-plus"></i> Add Scheme
                         </button>
                     </div>
                 </div>
@@ -828,10 +828,10 @@
                         <thead>
                             <tr style="background: #f8fafc;">
                                 <th style="width: 60px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">No</th>
-                                <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Nama / Tipe</th>
-                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Sumber & Nilai</th>
-                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Periode</th>
-                                <th style="width: 150px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Aksi</th>
+                                <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Name / Type</th>
+                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Source & Value</th>
+                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Period</th>
+                                <th style="width: 150px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="compensationSchemesContainer">

@@ -42,7 +42,7 @@ if (loginForm) {
             const data = await response.json();
             
             if (response.ok) {
-                showToast('Login berhasil! Mengalihkan...', 'success');
+                showToast('Login successful! Redirecting...', 'success');
                 localStorage.setItem('user', JSON.stringify(data.user));
                 
                 // Redirect ke dashboard setelah 1.5 detik
@@ -50,11 +50,11 @@ if (loginForm) {
                     window.location.href = BASE_URL + 'index.php/dashboard';
                 }, 1500);
             } else {
-                showToast(data.message || 'Login gagal', 'error');
+                showToast(data.message || 'Login failed', 'error');
             }
         } catch (err) {
             console.error('Error:', err);
-            showToast('Terjadi kesalahan koneksi ke server', 'error');
+            showToast('A server connection error occurred', 'error');
         }
     });
 }

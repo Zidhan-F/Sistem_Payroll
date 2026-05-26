@@ -7,7 +7,7 @@ async function populateMinimumWageDropdown(tipe, selectElementId) {
         const data = await res.json();
         const select = document.getElementById(selectElementId);
         if (select) {
-            select.innerHTML = '<option value="">-- Pilih Wilayah --</option>' +
+            select.innerHTML = '<option value="">-- Select Region --</option>' +
                 data.map(item => `<option value="${item.id}">${item.nama_daerah} (Rp ${parseFloat(item.nominal).toLocaleString('id-ID')})</option>`).join('');
         }
     } catch (err) {
@@ -65,25 +65,25 @@ async function loadWorkspaceSetup() {
         document.getElementById('wSetupClientName').innerText = window.selectedClientName || '-';
         
         if (conf) {
-            let payrollSchemeText = 'Belum Set';
+            let payrollSchemeText = 'Not Set';
             if (conf.payroll_type === 'UMP') {
-                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Not Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
             } else if (conf.payroll_type === 'UMK') {
-                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Not Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
             } else if (conf.payroll_type === 'Nominal') {
                 payrollSchemeText = `Nominal: Rp ${conf.custom_nominal ? parseFloat(conf.custom_nominal).toLocaleString('id-ID') : '-'}`;
             } else if (conf.payroll_type === 'Template') {
-                payrollSchemeText = conf.payroll_scheme_name || 'Belum Set';
+                payrollSchemeText = conf.payroll_scheme_name || 'Not Set';
             }
             document.getElementById('wSetupPayrollScheme').innerText = payrollSchemeText;
-            document.getElementById('wSetupTaxScheme').innerText = conf.tax_scheme_name || 'Belum Set';
-            document.getElementById('wSetupPayDate').innerText = conf.pay_date ? `Tgl ${conf.pay_date}` : 'Belum Set';
-            document.getElementById('wSetupCutoff').innerText = conf.cutoff_start ? `${conf.cutoff_start} s/d ${(conf.cutoff_start - 1)}` : 'Belum Set';
+            document.getElementById('wSetupTaxScheme').innerText = conf.tax_scheme_name || 'Not Set';
+            document.getElementById('wSetupPayDate').innerText = conf.pay_date ? `Date ${conf.pay_date}` : 'Not Set';
+            document.getElementById('wSetupCutoff').innerText = conf.cutoff_start ? `${conf.cutoff_start} to ${(conf.cutoff_start - 1)}` : 'Not Set';
         } else {
-            document.getElementById('wSetupPayrollScheme').innerText = 'Belum Set';
-            document.getElementById('wSetupTaxScheme').innerText = 'Belum Set';
-            document.getElementById('wSetupPayDate').innerText = 'Belum Set';
-            document.getElementById('wSetupCutoff').innerText = 'Belum Set';
+            document.getElementById('wSetupPayrollScheme').innerText = 'Not Set';
+            document.getElementById('wSetupTaxScheme').innerText = 'Not Set';
+            document.getElementById('wSetupPayDate').innerText = 'Not Set';
+            document.getElementById('wSetupCutoff').innerText = 'Not Set';
         }
     } catch (err) {
         console.error(err);
@@ -98,22 +98,22 @@ async function renderClientSetup() {
         const tbody = document.getElementById('tabelSetupBody');
         if (!tbody) return;
         tbody.innerHTML = clientConfigs.map(conf => {
-            let payrollSchemeText = 'Belum Set';
+            let payrollSchemeText = 'Not Set';
             if (conf.payroll_type === 'UMP') {
-                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Not Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
             } else if (conf.payroll_type === 'UMK') {
-                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Not Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
             } else if (conf.payroll_type === 'Nominal') {
                 payrollSchemeText = `Nominal: Rp ${conf.custom_nominal ? parseFloat(conf.custom_nominal).toLocaleString('id-ID') : '-'}`;
             } else if (conf.payroll_type === 'Template') {
-                payrollSchemeText = conf.payroll_scheme_name || 'Belum Set';
+                payrollSchemeText = conf.payroll_scheme_name || 'Not Set';
             }
             return `
                 <tr>
                     <td style="font-weight: 600;">${conf.client_name}</td>
                     <td><span class="scheme-badge bulanan">${payrollSchemeText}</span></td>
-                    <td><span class="scheme-badge" style="background:#e74c3c;">${conf.tax_scheme_name || 'Belum Set'}</span></td>
-                    <td>Tgl ${conf.pay_date || '-'}</td>
+                    <td><span class="scheme-badge" style="background:#e74c3c;">${conf.tax_scheme_name || 'Not Set'}</span></td>
+                    <td>Date ${conf.pay_date || '-'}</td>
                     <td>${conf.cutoff_start || '-'}-${(conf.cutoff_start - 1) || '-'}</td>
                     <td>
                         <button class="btn-icon btn-edit" onclick="bukaModalSetup(${conf.client_id}, '${conf.client_name}')"><i class="fas fa-cog"></i></button>
@@ -135,8 +135,8 @@ async function bukaModalSetup(clientId, clientName) {
     const tRes = await fetch(`${API_URL}/tax-schemes`);
     const tSchemes = await tRes.json();
 
-    document.getElementById('setupPayrollScheme').innerHTML = '<option value="">-- Pilih Skema --</option>' + pSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
-    document.getElementById('setupTaxScheme').innerHTML = '<option value="">-- Pilih Skema --</option>' + tSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+    document.getElementById('setupPayrollScheme').innerHTML = '<option value="">-- Select Scheme --</option>' + pSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+    document.getElementById('setupTaxScheme').innerHTML = '<option value="">-- Select Scheme --</option>' + tSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
     
     const current = clientConfigs.find(c => c.client_id == clientId);
     if(current) {
@@ -200,14 +200,14 @@ async function bukaModalSetup(clientId, clientName) {
             });
             if (res.ok) {
                 tutupSemuaModal();
-                showToast('Setup Payroll berhasil disimpan!', 'success');
+                showToast('Payroll setup saved successfully!', 'success');
                 if (window.selectedClientId) {
                     loadWorkspaceSetup();
                 } else {
                     renderClientSetup();
                 }
             } else {
-                showToast('Gagal menyimpan Setup Payroll!', 'error');
+                showToast('Failed to save payroll setup!', 'error');
             }
         });
     }
@@ -217,7 +217,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
     const summaryDiv = document.getElementById('pilihanKompensasiSummary');
     if (!summaryDiv) return;
     if (!schemeId) {
-        summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Pilih skema komponen di atas untuk melihat detailnya.</p>`;
+        summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Select allowance scheme above to see details.</p>`;
         return;
     }
     try {
@@ -225,7 +225,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
         const schemes = await res.json();
         const scheme = schemes.find(s => s.id == schemeId);
         if (!scheme) {
-            summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Skema tidak ditemukan.</p>`;
+            summaryDiv.innerHTML = `<p style="text-align: center; color: #94a3b8; font-size: 13px; margin: 0;">Scheme not found.</p>`;
             return;
         }
         
@@ -234,7 +234,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
             summaryDiv.innerHTML = `
                 <div style="text-align: center; padding: 10px;">
                     <i class="fas fa-info-circle" style="color: #94a3b8; margin-right: 6px;"></i>
-                    <span style="color: #94a3b8; font-size: 13px;">Belum ada komponen dalam skema ini.</span>
+                    <span style="color: #94a3b8; font-size: 13px;">No components in this scheme yet.</span>
                 </div>`;
             return;
         }
@@ -246,7 +246,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
         
         summaryDiv.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
-                <span style="font-weight: 600; color: #1e293b; font-size: 14px;"><i class="fas fa-list" style="margin-right: 6px; color: var(--primary-color);"></i> ${comps.length} Komponen</span>
+                <span style="font-weight: 600; color: #1e293b; font-size: 14px;"><i class="fas fa-list" style="margin-right: 6px; color: var(--primary-color);"></i> ${comps.length} Components</span>
                 <div style="display: flex; gap: 12px;">
                     <span style="font-size: 12px; background: #dcfce7; color: #16a34a; padding: 4px 10px; border-radius: 20px; font-weight: 600;">+ ${formatRupiah(totalPendapatan)}</span>
                     <span style="font-size: 12px; background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 20px; font-weight: 600;">- ${formatRupiah(totalPotongan)}</span>
@@ -299,7 +299,7 @@ function renderPilihanSkemaTable(configs) {
             <tr>
                 <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
                     <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                    Belum ada skema payroll yang terdaftar. Klik tombol "Tambah Skema" untuk mengkonfigurasi.
+                    No payroll schemes registered yet. Click the "Add Scheme" button to configure.
                 </td>
             </tr>
         `;
@@ -309,7 +309,7 @@ function renderPilihanSkemaTable(configs) {
     tbody.innerHTML = clientConfigs.map(c => {
         return `
             <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 12px 15px; font-weight: 500; color: #334155;">${c.division_name || '<span style="color: #94a3b8; font-style: italic;">Global (Semua)</span>'}</td>
+                <td style="padding: 12px 15px; font-weight: 500; color: #334155;">${c.division_name || '<span style="color: #94a3b8; font-style: italic;">Global (All)</span>'}</td>
                 <td style="padding: 12px 15px; font-weight: 500; color: #334155;">${c.department_name || '-'}</td>
                 <td style="padding: 12px 15px; font-weight: 500; color: #334155;">${c.position_name || '-'}</td>
                 <td style="padding: 12px 15px; font-weight: 600; color: var(--primary-color);">${c.payroll_scheme_name || '-'}</td>
@@ -319,8 +319,8 @@ function renderPilihanSkemaTable(configs) {
                         <button class="btn-action-edit" onclick="editPilihanSkema(${c.setup_id})" style="background: #e0f2fe; color: #0369a1; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Edit">
                             <i class="fas fa-edit"></i> Edit
                         </button>
-                        <button class="btn-action-delete" onclick="deletePilihanSkema(${c.setup_id})" style="background: #fee2e2; color: #b91c1c; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Hapus">
-                            <i class="fas fa-trash-alt"></i> Hapus
+                        <button class="btn-action-delete" onclick="deletePilihanSkema(${c.setup_id})" style="background: #fee2e2; color: #b91c1c; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;" title="Delete">
+                            <i class="fas fa-trash-alt"></i> Delete
                         </button>
                     </div>
                 </td>
@@ -331,7 +331,7 @@ function renderPilihanSkemaTable(configs) {
 
 window.openModalPilihanSkema = async function(conf = null) {
     if (!window.selectedClientId) {
-        showToast('Pilih klien terlebih dahulu!', 'error');
+        showToast('Please select a client first!', 'error');
         return;
     }
     
@@ -339,7 +339,7 @@ window.openModalPilihanSkema = async function(conf = null) {
     if (!modal) return;
 
     // Title & Reset
-    document.getElementById('modalPilihanSkemaTitle').innerText = conf ? 'Edit Skema Client' : 'Tambah Skema Client';
+    document.getElementById('modalPilihanSkemaTitle').innerText = conf ? 'Edit Client Scheme' : 'Add Client Scheme';
     document.getElementById('pilihanSkemaSetupId').value = conf ? (conf.setup_id || '') : '';
     document.getElementById('modalPilihanSkemaNamaKlien').value = window.selectedClientName || '';
 
@@ -347,14 +347,12 @@ window.openModalPilihanSkema = async function(conf = null) {
     const divSelect = document.getElementById('modalPilihanSkemaDivisi');
     const deptSelect = document.getElementById('modalPilihanSkemaDepartemen');
     const posSelect = document.getElementById('modalPilihanSkemaPosisi');
-    const hkSelect = document.getElementById('modalPilihanSkemaHariKerja');
     const psSelect = document.getElementById('modalPilihanSkemaPayroll');
     const tsSelect = document.getElementById('modalPilihanSkemaPajak');
 
-    divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>';
-    deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
-    posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
-    hkSelect.value = '';
+    divSelect.innerHTML = '<option value="">-- Select Division --</option>';
+    deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
+    posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     psSelect.value = '';
     tsSelect.value = '';
 
@@ -364,11 +362,11 @@ window.openModalPilihanSkema = async function(conf = null) {
 
     // Populate dropdown values
     if (window.payrollSchemes) {
-        psSelect.innerHTML = '<option value="">-- Pilih Skema Payroll --</option>' +
-            window.payrollSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.tipe || 'Umum'})</option>`).join('');
+        psSelect.innerHTML = '<option value="">-- Select Payroll Scheme --</option>' +
+            window.payrollSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.tipe || 'General'})</option>`).join('');
     }
     if (window.taxSchemes) {
-        tsSelect.innerHTML = '<option value="">-- Pilih Skema Pajak --</option>' +
+        tsSelect.innerHTML = '<option value="">-- Select Tax Scheme --</option>' +
             window.taxSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.metode || '-'})</option>`).join('');
     }
 
@@ -385,9 +383,8 @@ window.openModalPilihanSkema = async function(conf = null) {
         // Setup cascading triggers inside modal
         divSelect.onchange = () => {
             const divId = divSelect.value;
-            deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
-            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
-            hkSelect.value = '';
+            deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
+            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
             if (divId && Array.isArray(orgHierarchy)) {
                 const division = orgHierarchy.find(d => d.id == divId);
                 if (division && Array.isArray(division.departments)) {
@@ -401,28 +398,17 @@ window.openModalPilihanSkema = async function(conf = null) {
         deptSelect.onchange = () => {
             const divId = divSelect.value;
             const deptId = deptSelect.value;
-            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
-            hkSelect.value = '';
+            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
             if (divId && deptId && Array.isArray(orgHierarchy)) {
                 const division = orgHierarchy.find(d => d.id == divId);
                 if (division && Array.isArray(division.departments)) {
                     const dept = division.departments.find(dp => dp.id == deptId);
                     if (dept && Array.isArray(dept.positions)) {
                         dept.positions.forEach(pos => {
-                            posSelect.innerHTML += `<option value="${pos.id}" data-hari-kerja="${pos.hari_kerja || 5}">${pos.nama}</option>`;
+                            posSelect.innerHTML += `<option value="${pos.id}">${pos.nama}</option>`;
                         });
                     }
                 }
-            }
-        };
-
-        posSelect.onchange = () => {
-            const selectedOpt = posSelect.options[posSelect.selectedIndex];
-            if (selectedOpt && selectedOpt.value) {
-                const hk = selectedOpt.getAttribute('data-hari-kerja') || '5';
-                hkSelect.value = hk;
-            } else {
-                hkSelect.value = '';
             }
         };
 
@@ -438,7 +424,6 @@ window.openModalPilihanSkema = async function(conf = null) {
             }
             if (conf.position_id) {
                 posSelect.value = conf.position_id;
-                posSelect.onchange(); // trigger cascade
             }
             // Set payroll scheme
             if (conf.payroll_scheme_id) {
@@ -449,15 +434,6 @@ window.openModalPilihanSkema = async function(conf = null) {
             if (conf.tax_scheme_id) {
                 tsSelect.value = conf.tax_scheme_id;
                 handleModalPilihanSkemaPajakChange(conf.tax_scheme_id);
-            }
-            // Set working days
-            if (conf.position_id) {
-                setTimeout(() => {
-                    const posOpt = posSelect.querySelector(`option[value="${conf.position_id}"]`);
-                    if (posOpt) {
-                        hkSelect.value = posOpt.getAttribute('data-hari-kerja') || '5';
-                    }
-                }, 100);
             }
         }
 
@@ -486,27 +462,45 @@ window.editPilihanSkema = async function(setupId) {
         openModalPilihanSkema(conf);
     } catch (err) {
         console.error('Error opening edit modal:', err);
-        showToast('Gagal memuat detail konfigurasi', 'error');
+        showToast('Failed to load configuration details', 'error');
     }
 };
 
 window.deletePilihanSkema = async function(setupId) {
-    const confirmed = await showConfirm('Apakah Anda yakin ingin menghapus konfigurasi skema ini?');
-    if (confirmed) {
-        try {
+    try {
+        const cfgRes = await fetch(`${API_URL}/client-configs`);
+        const configs = await cfgRes.json();
+        const confToDelete = configs.find(c => c.setup_id == setupId);
+        if (!confToDelete) return;
+
+        // Check if deleting the global config while specific configs exist
+        const isGlobal = !confToDelete.division_id && !confToDelete.department_id && !confToDelete.position_id;
+        if (isGlobal) {
+            const hasSpecific = configs.some(c => 
+                c.client_id == confToDelete.client_id && 
+                (c.division_id || c.department_id || c.position_id)
+            );
+            if (hasSpecific) {
+                showToast('Cannot delete global scheme because division/department/position specific schemes still exist!', 'error');
+                return;
+            }
+        }
+
+        const confirmed = await showConfirm('Are you sure you want to delete this scheme configuration?');
+        if (confirmed) {
             const res = await fetch(`${API_URL}/client-configs/${setupId}`, {
                 method: 'DELETE'
             });
             if (res.ok) {
-                showToast('Konfigurasi skema berhasil dihapus!', 'success');
+                showToast('Scheme configuration deleted successfully!', 'success');
                 loadPilihanSkema();
             } else {
-                showToast('Gagal menghapus konfigurasi skema!', 'error');
+                showToast('Failed to delete scheme configuration!', 'error');
             }
-        } catch (err) {
-            console.error('Error deleting client config:', err);
-            showToast('Gagal menghapus konfigurasi skema!', 'error');
         }
+    } catch (err) {
+        console.error('Error deleting client config:', err);
+        showToast('Failed to delete scheme configuration!', 'error');
     }
 };
 
@@ -526,7 +520,7 @@ window.lihatDetailSkemaPajakModal = function() {
     
     // Populate modal contents
     document.getElementById('dtlPajakNama').innerText = scheme.nama || '-';
-    document.getElementById('dtlPajakDeskripsi').innerText = scheme.deskripsi || 'Tidak ada deskripsi.';
+    document.getElementById('dtlPajakDeskripsi').innerText = scheme.deskripsi || 'No description.';
     document.getElementById('dtlPajakMetode').innerText = scheme.metode ? scheme.metode.toUpperCase() : '-';
     document.getElementById('dtlPajakPtkp').innerText = scheme.ptkp_default || '-';
     
@@ -562,10 +556,10 @@ window.lihatDetailSkemaPayrollModal = function() {
     
     // Populate modal contents
     document.getElementById('dtlNama').innerText = scheme.nama || '-';
-    document.getElementById('dtlDeskripsi').innerText = scheme.deskripsi || 'Tidak ada deskripsi.';
-    document.getElementById('dtlTipe').innerText = scheme.tipe ? scheme.tipe.toUpperCase() : 'BULANAN';
-    document.getElementById('dtlProrate').innerText = scheme.prorate == 1 ? 'YA' : 'TIDAK';
-    document.getElementById('dtlAbsenTidakPotong').innerText = scheme.absen_tidak_potong == 1 ? 'YA' : 'TIDAK';
+    document.getElementById('dtlDeskripsi').innerText = scheme.deskripsi || 'No description.';
+    document.getElementById('dtlTipe').innerText = scheme.tipe ? scheme.tipe.toUpperCase() : 'MONTHLY';
+    document.getElementById('dtlProrate').innerText = scheme.prorate == 1 ? 'YES' : 'NO';
+    document.getElementById('dtlAbsenTidakPotong').innerText = scheme.absen_tidak_potong == 1 ? 'YES' : 'NO';
     document.getElementById('dtlNominalPotongan').innerText = formatRupiah(scheme.nominal_potongan || 0);
     
     const listCont = document.getElementById('dtlComponentsList');
@@ -597,7 +591,7 @@ window.lihatDetailSkemaPayrollModal = function() {
                             </div>
                             <div class="component-info" style="display: flex; flex-direction: column;">
                                 <span class="comp-name" style="font-size: 13px; font-weight: 600; color: #1e293b;">${c.nama}</span>
-                                <span class="comp-kategori" style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px;">${c.sifat_kompensasi || 'komponen'} • ${c.tipe}</span>
+                                <span class="comp-kategori" style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px;">${c.sifat_kompensasi || 'component'} • ${c.tipe}</span>
                             </div>
                         </div>
                         <div class="component-item-right" style="display: flex; align-items: center; gap: 12px;">
@@ -609,7 +603,7 @@ window.lihatDetailSkemaPayrollModal = function() {
         } else {
             listCont.innerHTML = `
                 <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
-                    Tidak ada komponen tambahan pada skema ini.
+                    No additional allowances in this scheme.
                 </div>
             `;
         }
@@ -622,7 +616,7 @@ window.lihatDetailSkemaPayrollModal = function() {
 
 async function simpanPilihanSkema() {
     if (!window.selectedClientId) {
-        showToast('Pilih klien terlebih dahulu!', 'error');
+        showToast('Please select a client first!', 'error');
         return;
     }
     const setupId = document.getElementById('pilihanSkemaSetupId').value;
@@ -631,27 +625,32 @@ async function simpanPilihanSkema() {
     const divisionId = document.getElementById('modalPilihanSkemaDivisi').value;
     const departmentId = document.getElementById('modalPilihanSkemaDepartemen').value;
     const positionId = document.getElementById('modalPilihanSkemaPosisi').value;
-    const hariKerja = document.getElementById('modalPilihanSkemaHariKerja').value;
 
     if (!payrollSchemeId) {
-        showToast('Pilih Skema Payroll!', 'error');
+        showToast('Select Payroll Scheme!', 'error');
         return;
     }
     if (!taxSchemeId) {
-        showToast('Pilih Skema BPJS & Pajak!', 'error');
+        showToast('Select BPJS & Tax Scheme!', 'error');
         return;
     }
 
     try {
-        // If position is selected, save working days setting to this position
-        if (positionId && hariKerja) {
-            const posRes = await fetch(`${API_URL}/org/posisi/${positionId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hari_kerja: parseInt(hariKerja) })
-            });
-            if (!posRes.ok) {
-                showToast('Gagal menyimpan hari kerja posisi!', 'error');
+        const cfgRes = await fetch(`${API_URL}/client-configs`);
+        const configs = await cfgRes.json();
+
+        // Validation: Must have a global config first
+        const isSpecific = (divisionId || departmentId || positionId);
+        if (isSpecific) {
+            const hasGlobal = configs.some(c => 
+                c.client_id == window.selectedClientId && 
+                !c.division_id && 
+                !c.department_id && 
+                !c.position_id && 
+                c.setup_id != setupId
+            );
+            if (!hasGlobal) {
+                showToast('A global (all) scheme must exist first before adding division/department/position specific schemes!', 'error');
                 return;
             }
         }
@@ -661,17 +660,13 @@ async function simpanPilihanSkema() {
         let cutoffStart = 21;
         
         if (setupId) {
-            const cfgRes = await fetch(`${API_URL}/client-configs`);
-            const configs = await cfgRes.json();
             const existing = configs.find(c => c.setup_id == setupId);
             if (existing) {
                 payDate = existing.pay_date || 25;
                 cutoffStart = existing.cutoff_start || 21;
             }
         } else {
-            // Check if there is already a global config or any config to reuse payDate/cutoffStart
-            const cfgRes = await fetch(`${API_URL}/client-configs`);
-            const configs = await cfgRes.json();
+            // Check if there is already a config to reuse payDate/cutoffStart
             const firstExist = configs.find(c => c.client_id == window.selectedClientId);
             if (firstExist) {
                 payDate = firstExist.pay_date || 25;
@@ -700,16 +695,16 @@ async function simpanPilihanSkema() {
         });
 
         if (res.ok) {
-            showToast('Pilihan skema berhasil disimpan!', 'success');
+            showToast('Scheme choices saved successfully!', 'success');
             tutupModalPilihanSkema();
             loadPilihanSkema(); // reload configurations table
             loadWorkspaceSetup(); // reload workspace setup tab
         } else {
-            showToast('Gagal menyimpan pilihan skema!', 'error');
+            showToast('Failed to save scheme choices!', 'error');
         }
     } catch (err) {
         console.error(err);
-        showToast('Gagal menyimpan pilihan skema!', 'error');
+        showToast('Failed to save scheme choices!', 'error');
     }
 }
 
@@ -734,10 +729,10 @@ window.lihatDetailSkemaPayroll = function() {
     
     // Populate modal contents
     document.getElementById('dtlNama').innerText = scheme.nama || '-';
-    document.getElementById('dtlDeskripsi').innerText = scheme.deskripsi || 'Tidak ada deskripsi.';
-    document.getElementById('dtlTipe').innerText = scheme.tipe ? scheme.tipe.toUpperCase() : 'BULANAN';
-    document.getElementById('dtlProrate').innerText = scheme.prorate == 1 ? 'YA' : 'TIDAK';
-    document.getElementById('dtlAbsenTidakPotong').innerText = scheme.absen_tidak_potong == 1 ? 'YA' : 'TIDAK';
+    document.getElementById('dtlDeskripsi').innerText = scheme.deskripsi || 'No description.';
+    document.getElementById('dtlTipe').innerText = scheme.tipe ? scheme.tipe.toUpperCase() : 'MONTHLY';
+    document.getElementById('dtlProrate').innerText = scheme.prorate == 1 ? 'YES' : 'NO';
+    document.getElementById('dtlAbsenTidakPotong').innerText = scheme.absen_tidak_potong == 1 ? 'YES' : 'NO';
     document.getElementById('dtlNominalPotongan').innerText = formatRupiah(scheme.nominal_potongan || 0);
     
     const listCont = document.getElementById('dtlComponentsList');
@@ -769,7 +764,7 @@ window.lihatDetailSkemaPayroll = function() {
                             </div>
                             <div class="component-info" style="display: flex; flex-direction: column;">
                                 <span class="comp-name" style="font-size: 13px; font-weight: 600; color: #1e293b;">${c.nama}</span>
-                                <span class="comp-kategori" style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px;">${c.sifat_kompensasi || 'komponen'} • ${c.tipe}</span>
+                                <span class="comp-kategori" style="font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px;">${c.sifat_kompensasi || 'component'} • ${c.tipe}</span>
                             </div>
                         </div>
                         <div class="component-item-right" style="display: flex; align-items: center; gap: 12px;">
@@ -781,7 +776,7 @@ window.lihatDetailSkemaPayroll = function() {
         } else {
             listCont.innerHTML = `
                 <div style="text-align: center; padding: 20px; color: #94a3b8; font-size: 13px; background: #f8fafc; border-radius: 8px; border: 1px dashed #e2e8f0;">
-                    Tidak ada komponen tambahan pada skema ini.
+                    No additional allowances in this scheme.
                 </div>
             `;
         }
@@ -808,7 +803,7 @@ window.lihatDetailSkemaPajak = function() {
     
     // Populate modal contents
     document.getElementById('dtlPajakNama').innerText = scheme.nama || '-';
-    document.getElementById('dtlPajakDeskripsi').innerText = scheme.deskripsi || 'Tidak ada deskripsi.';
+    document.getElementById('dtlPajakDeskripsi').innerText = scheme.deskripsi || 'No description.';
     document.getElementById('dtlPajakMetode').innerText = scheme.metode ? scheme.metode.toUpperCase() : '-';
     document.getElementById('dtlPajakPtkp').innerText = scheme.ptkp_default || '-';
     

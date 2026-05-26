@@ -21,13 +21,13 @@ function rowHtmlForEmployee(emp) {
             </td>
             <td>
                 <div style="font-weight: 600;">${emp.tipe_perjanjian || '-'}</div>
-                <div style="font-size: 11px;">${emp.start_contract || '-'} s/d ${emp.end_contract || '-'}</div>
+                <div style="font-size: 11px;">${emp.start_contract || '-'} to ${emp.end_contract || '-'}</div>
             </td>
 
             <td>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn-icon btn-edit" onclick="bukaModalKaryawanGlobalEdit(${emp.id}, ${emp.client_id})" title="Edit Karyawan" style="color: var(--primary-color); background: rgba(41, 128, 185, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-user-edit"></i></button>
-                    <button class="btn-icon btn-delete" onclick="hapusKaryawanGlobal(${emp.id})" title="Hapus Karyawan" style="color: var(--danger); background: rgba(231, 76, 60, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-trash"></i></button>
+                    <button class="btn-icon btn-edit" onclick="bukaModalKaryawanGlobalEdit(${emp.id}, ${emp.client_id})" title="Edit Employee" style="color: var(--primary-color); background: rgba(41, 128, 185, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-user-edit"></i></button>
+                    <button class="btn-icon btn-delete" onclick="hapusKaryawanGlobal(${emp.id})" title="Delete Employee" style="color: var(--danger); background: rgba(231, 76, 60, 0.1); width: 30px; height: 30px; border-radius: 6px;"><i class="fas fa-trash"></i></button>
                 </div>
             </td>
         </tr>
@@ -118,12 +118,12 @@ async function bukaModalKaryawanGlobalEdit(id, clientId) {
 }
 
 async function hapusKaryawanGlobal(id) {
-    if (!await showConfirm('Yakin ingin menghapus karyawan ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this employee?')) return;
     try {
         const res = await fetch(`${API_URL}/employees/${id}`, { method: 'DELETE' });
         if (res.ok) {
             renderManajemenKaryawan();
-            showToast('Karyawan berhasil dihapus', 'success');
+            showToast('Employee deleted successfully', 'success');
         }
     } catch (err) {
         console.error(err);

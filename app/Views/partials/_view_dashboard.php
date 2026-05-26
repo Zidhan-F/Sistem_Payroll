@@ -1,4 +1,4 @@
-﻿            <div id="viewDashboard" class="view-section active">
+            <div id="viewDashboard" class="view-section active">
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon" style="background: rgba(243, 156, 18, 0.1); color: var(--primary-color);">
@@ -6,7 +6,7 @@
                         </div>
                         <div class="stat-info">
                             <h4 id="statTotalKlien">0</h4>
-                            <p>Total Klien</p>
+                            <p>Total Clients</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -15,7 +15,7 @@
                         </div>
                         <div class="stat-info">
                             <h4 id="statTotalDivisi">0</h4>
-                            <p>Total Divisi</p>
+                            <p>Total Divisions</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -24,7 +24,7 @@
                         </div>
                         <div class="stat-info">
                             <h4 id="statTotalKaryawan">0</h4>
-                            <p>Total Karyawan</p>
+                            <p>Total Employees</p>
                         </div>
                     </div>
                 </div>

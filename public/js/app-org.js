@@ -10,12 +10,12 @@ async function renderClientOrg(clientId){
     selectedClientId=clientId;
     const container=document.getElementById('clientOrgContainer');
     if(!container)return;
-    container.innerHTML='<div class="empty-state">Memuat Struktur...</div>';
+    container.innerHTML='<div class="empty-state">Loading Structure...</div>';
     try{
         const r=await fetch(`${API}/org?client_id=${clientId}`);
         orgData=await r.json();
         container.innerHTML='';
-        if(!Array.isArray(orgData)||orgData.length===0){container.innerHTML+='<div class="payroll-empty-state"><i class="fas fa-sitemap"></i><h4>Belum Ada Struktur</h4><p>Silakan klik tombol <b>Tambah Divisi</b> di atas untuk menyusun struktur.</p></div>';return;}
+        if(!Array.isArray(orgData)||orgData.length===0){container.innerHTML+='<div class="payroll-empty-state"><i class="fas fa-sitemap"></i><h4>No Structure Yet</h4><p>Please click the <b>Add Division</b> button above to build the structure.</p></div>';return;}
         orgData.forEach(div=>{
             let h=`<div class="org-level" style="margin-bottom:30px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;">
                 <div class="level-header" style="background:#f1f5f9;padding:12px 20px;cursor:pointer;border-bottom:1px solid #e2e8f0;" onclick="toggleNode(this)">
@@ -44,10 +44,10 @@ async function renderClientOrg(clientId){
                                 <div style="display:flex;flex-direction:column;flex-grow:1;"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#64748b;">${pos.level || 'Posisi'}</span><span style="font-weight:700;color:#1e293b;font-size:13px;">${pos.nama}</span></div>
                                 <div class="action-btns" style="gap:4px;"><button class="btn-icon btn-edit" style="padding:4px;font-size:10px;" onclick="bukaModalOrg('posisi','edit',${pos.id},${dept.id})"><i class="fas fa-edit"></i></button><button class="btn-icon btn-delete" style="padding:4px;font-size:10px;" onclick="hapusOrg('posisi',${pos.id})"><i class="fas fa-trash"></i></button></div></div>`;
                         });
-                    } else h+='<div class="empty-state" style="font-size:11px;color:#94a3b8;grid-column:1/-1;">Belum ada posisi.</div>';
+                    } else h+='<div class="empty-state" style="font-size:11px;color:#94a3b8;grid-column:1/-1;">No positions available.</div>';
                     h+=`</div></div>`;
                 });
-            } else h+='<div class="empty-state" style="font-size:12px;color:#94a3b8;text-align:center;padding:10px;">Belum ada departemen.</div>';
+            } else h+='<div class="empty-state" style="font-size:12px;color:#94a3b8;text-align:center;padding:10px;">No departments available.</div>';
             h+=`</div></div>`;
             container.innerHTML+=h;
         });
@@ -63,7 +63,7 @@ const quickBadges = {
 function tambahDeptInline() {
     const divId = document.getElementById('empDivisionId').value;
     if (!divId) {
-        showToast('Silakan pilih Divisi terlebih dahulu!', 'error');
+        showToast('Please select a Division first!', 'error');
         return;
     }
     bukaModalOrg('department', 'tambah', null, divId);
@@ -72,7 +72,7 @@ function tambahDeptInline() {
 function tambahPosisiInline() {
     const deptId = document.getElementById('empDepartmentId').value;
     if (!deptId) {
-        showToast('Silakan pilih Department terlebih dahulu!', 'error');
+        showToast('Please select a Department first!', 'error');
         return;
     }
     bukaModalOrg('posisi', 'tambah', null, deptId);
@@ -92,10 +92,10 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
     if(document.getElementById('posLevel'))document.getElementById('posLevel').value='';
     
     document.getElementById('orgType').value=type;document.getElementById('orgId').value=id;document.getElementById('orgParentId').value=parentId;
-    const lbl=type==='divisi'?'Divisi':type==='department'?'Departemen':'Posisi/Jabatan';
-    document.getElementById('modalOrgTitle').innerText=(mode==='edit'?'Edit ':'Tambah ')+lbl;
-    document.getElementById('labelOrgName').innerText='Nama '+lbl;
-    document.getElementById('orgName').placeholder='Masukkan nama '+lbl.toLowerCase();
+    const lbl=type==='divisi'?'Division':type==='department'?'Department':'Position';
+    document.getElementById('modalOrgTitle').innerText=(mode==='edit'?'Edit ':'Add ')+lbl;
+    document.getElementById('labelOrgName').innerText=lbl + ' Name';
+    document.getElementById('orgName').placeholder='Enter ' + lbl.toLowerCase() + ' name';
     if(document.getElementById('posEmployeeField')) {
         document.getElementById('posEmployeeField').style.display=type==='posisi'?'block':'none';
     }
@@ -108,8 +108,8 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
     if (badgeContainer) {
         badgeContainer.innerHTML = '';
         const list = quickBadges[type] || [];
-        if (list.length > 0 && mode === 'tambah') {
-            let badgeHTML = '<span style="font-size: 11px; color: #64748b; width: 100%; margin-bottom: 2px; display: block;">Pilihan Cepat (Rekomendasi):</span>';
+        if (list.length > 0 && (mode === 'tambah' || mode === 'add')) {
+            let badgeHTML = '<span style="font-size: 11px; color: #64748b; width: 100%; margin-bottom: 2px; display: block;">Quick Options (Recommended):</span>';
             list.forEach(val => {
                 badgeHTML += `<span class="quick-badge" onclick="document.getElementById('orgName').value='${val}'" style="background: #e2e8f0; color: #334155; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-block; margin-right: 4px; margin-bottom: 4px;">${val}</span>`;
             });
@@ -154,7 +154,7 @@ document.getElementById('formOrg')?.addEventListener('submit',async(e)=>{
     // Retrieve target client ID (from global context or active employee form client selection)
     const targetClientId = selectedClientId || document.getElementById('empClientId')?.value || null;
     
-    if(!name){showToast('Nama harus diisi!','error');return;}
+    if(!name){showToast('Name is required!','error');return;}
     try{
         let r;
         if(id&&id!==''&&id!=='null'){
@@ -194,16 +194,16 @@ document.getElementById('formOrg')?.addEventListener('submit',async(e)=>{
                 }
             }
             
-            showToast('Data berhasil disimpan!');
+            showToast('Data saved successfully!');
         }
-        else{const err=await r.json();showToast('Gagal: '+(err.error||'Server error'),'error');}
-    }catch(e){console.error(e);showToast('Kesalahan koneksi.','error');}
+        else{const err=await r.json();showToast('Failed: '+(err.error||'Server error'),'error');}
+    }catch(e){console.error(e);showToast('Connection error.','error');}
 });
 
 async function hapusOrg(type,id){
-    if(!await showConfirm(`Yakin ingin menghapus ${type} ini?`))return;
+    if(!await showConfirm(`Are you sure you want to delete this ${type}?`))return;
     const r=await fetch(`${API}/org/${type}/${id}`,{method:'DELETE'});
-    if(r.ok){if(selectedClientId)renderClientOrg(selectedClientId);showToast('Berhasil dihapus');}
+    if(r.ok){if(selectedClientId)renderClientOrg(selectedClientId);showToast('Successfully deleted');}
 }
 
 // === EMPLOYEE ===
@@ -222,9 +222,9 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     
     if (!divSelect || !deptSelect || !posSelect) return;
     
-    divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>';
-    deptSelect.innerHTML = '<option value="">-- Pilih Department --</option>';
-    posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+    divSelect.innerHTML = '<option value="">-- Select Division --</option>';
+    deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
+    posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     
     try {
         const r = await fetch(`${API}/org?client_id=${clientId}`);
@@ -239,8 +239,8 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
         // Setup cascading triggers
         divSelect.onchange = () => {
             const divId = divSelect.value;
-            deptSelect.innerHTML = '<option value="">-- Pilih Department --</option>';
-            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+            deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
+            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
             if (divId) {
                 const division = clientOrgHierarchy.find(d => d.id == divId);
                 if (division && Array.isArray(division.departments)) {
@@ -254,7 +254,7 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
         deptSelect.onchange = () => {
             const divId = divSelect.value;
             const deptId = deptSelect.value;
-            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
             if (divId && deptId) {
                 const division = clientOrgHierarchy.find(d => d.id == divId);
                 if (division && Array.isArray(division.departments)) {
@@ -289,11 +289,11 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
 async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
     const locSel = document.getElementById('empWorkLocationId');
     if (!locSel) return;
-    locSel.innerHTML = '<option value="">-- Memuat Lokasi... --</option>';
+    locSel.innerHTML = '<option value="">-- Loading Locations... --</option>';
     try {
         const r = await fetch(`${API}/work-locations?client_id=${clientId}`);
         const locations = await r.json();
-        locSel.innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+        locSel.innerHTML = '<option value="">-- Select Work Location --</option>';
         if (Array.isArray(locations)) {
             locations.forEach(loc => {
                 const opt = document.createElement('option');
@@ -307,7 +307,7 @@ async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
         }
     } catch (e) {
         console.error('Error loading work locations:', e);
-        locSel.innerHTML = '<option value="">-- Gagal memuat lokasi --</option>';
+        locSel.innerHTML = '<option value="">-- Failed to load locations --</option>';
     }
 }
 
@@ -318,7 +318,7 @@ async function bukaModalKaryawan(mode,id=null){
     // Reset form first so it doesn't overwrite values set below!
     document.getElementById('formKaryawan').reset();
     document.getElementById('employeeId').value='';
-    document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+    document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
     document.getElementById('empEmployId').value = '';
     
     const empEmployIdContainer = document.getElementById('empEmployIdContainer');
@@ -342,7 +342,7 @@ async function bukaModalKaryawan(mode,id=null){
     const updateJumlahAnakVisibility = () => {
         if (!statusPernikahanSel || !jumlahAnakContainer) return;
         const val = statusPernikahanSel.value;
-        if (val === 'Sudah' || val === 'Cerai') {
+        if (val === 'Sudah' || val === 'Cerai' || val === 'Married' || val === 'Divorced') {
             jumlahAnakContainer.style.display = 'block';
         } else {
             jumlahAnakContainer.style.display = 'none';
@@ -354,11 +354,11 @@ async function bukaModalKaryawan(mode,id=null){
         statusPernikahanSel.onchange = updateJumlahAnakVisibility;
     }
     
-    cs.innerHTML='<option value="">-- Memuat Klien... --</option>';
+    cs.innerHTML='<option value="">-- Loading Clients... --</option>';
     try {
         const r = await fetch(API + '/clients');
         const clientsData = await r.json();
-        cs.innerHTML = '<option value="">-- Pilih Klien --</option>';
+        cs.innerHTML = '<option value="">-- Select Client --</option>';
         clientsData.forEach(c => {
             cs.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
         });
@@ -367,7 +367,7 @@ async function bukaModalKaryawan(mode,id=null){
         if (typeof window.clients !== 'undefined') window.clients = clientsData;
     } catch (err) {
         console.error('Error fetching clients:', err);
-        cs.innerHTML = '<option value="">-- Gagal memuat --</option>';
+        cs.innerHTML = '<option value="">-- Failed to load --</option>';
     }
 
     cs.onchange = async () => {
@@ -375,7 +375,7 @@ async function bukaModalKaryawan(mode,id=null){
         if (cid) {
             await loadWorkLocationsForSelect(cid);
         } else {
-            document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Pilih Lokasi Kerja --</option>';
+            document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
         }
     };
 
@@ -427,8 +427,8 @@ async function bukaModalKaryawan(mode,id=null){
 async function loadPositions(cid){
     if(!cid)return;const ps=document.getElementById('empPositionId');
     if(!ps) return;
-    ps.innerHTML='<option value="">-- Memuat Posisi... --</option>';
-    try{const r=await fetch(`${API}/positions/client/${cid}`);const p=await r.json();ps.innerHTML='<option value="">-- Pilih Posisi --</option>';if(Array.isArray(p))p.forEach(x=>{ps.innerHTML+=`<option value="${x.id}">${x.nama}</option>`;});}catch(e){console.error(e);}
+    ps.innerHTML='<option value="">-- Loading Positions... --</option>';
+    try{const r=await fetch(`${API}/positions/client/${cid}`);const p=await r.json();ps.innerHTML='<option value="">-- Select Position --</option>';if(Array.isArray(p))p.forEach(x=>{ps.innerHTML+=`<option value="${x.id}">${x.nama}</option>`;});}catch(e){console.error(e);}
 }
 
 document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
@@ -462,10 +462,10 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         if(typeof renderManajemenKaryawan === 'function'){
             renderManajemenKaryawan();
         }
-        showToast('Data karyawan berhasil disimpan');
+        showToast('Employee data saved successfully');
     } else {
         const err = await r.json().catch(() => ({}));
-        let msg = 'Gagal menyimpan data karyawan';
+        let msg = 'Failed to save employee data';
         if (err.messages) msg = Object.values(err.messages).join(', ');
         else if (err.message) msg = err.message;
         showToast(msg, 'error');
@@ -479,9 +479,9 @@ function tutupModalKaryawan(){
     }
 }
 async function hapusKaryawan(id){
-    if(!await showConfirm('Yakin ingin menghapus karyawan ini?'))return;
+    if(!await showConfirm('Are you sure you want to delete this employee?'))return;
     const r=await fetch(`${API}/employees/${id}`,{method:'DELETE'});
-    if(r.ok){if(selectedClientId){renderTableKaryawanClient();renderClientOrg(selectedClientId);}showToast('Karyawan dihapus');}
+    if(r.ok){if(selectedClientId){renderTableKaryawanClient();renderClientOrg(selectedClientId);}showToast('Employee deleted');}
 }
 function bukaModalKaryawanSpecific(){bukaModalKaryawan('tambah');const cs=document.getElementById('empClientId');if(cs){cs.value=selectedClientId;cs.closest('.form-group').style.display='none';}}
 

@@ -66,11 +66,11 @@ async function renderUmrTable() {
             if (tipe === 'UMP') {
                 setActiveTab(tabUmp);
                 const searchEl = document.getElementById('searchUmr');
-                if (searchEl) searchEl.placeholder = 'Cari Provinsi...';
+                if (searchEl) searchEl.placeholder = 'Search Province...';
             } else {
                 setActiveTab(tabUmk);
                 const searchEl = document.getElementById('searchUmr');
-                if (searchEl) searchEl.placeholder = 'Cari Kota/Kabupaten...';
+                if (searchEl) searchEl.placeholder = 'Search City/Regency...';
             }
 
             // Update thead dynamically to match exact formats from UMP/UMK screenshots
@@ -82,7 +82,7 @@ async function renderUmrTable() {
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateCode</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateName</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;" class="col-nominal">Nominal UMP</th>
+                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;" class="col-nominal">UMP Nominal</th>
                         </tr>
                     `;
                 } else {
@@ -92,7 +92,7 @@ async function renderUmrTable() {
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyCode</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">RegencyName</th>
                             <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; text-align: left; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;">StateId</th>
-                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;" class="col-nominal">Nominal UMK</th>
+                            <th style="padding: 12px 15px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500; color: white; background: #0d6efd; font-size: 14px;" class="col-nominal">UMK Nominal</th>
                         </tr>
                     `;
                 }
@@ -109,13 +109,13 @@ async function renderUmrTable() {
             let optionsHtml = '';
             
             if (tipe === 'UMP') {
-                optionsHtml += '<option value="">-- Pilih Provinsi --</option>';
+                optionsHtml += '<option value="">-- Select Province --</option>';
                 const uniqueProvinces = [...new Set(umrAllData.map(row => row.nama_daerah))].sort();
                 uniqueProvinces.forEach(prov => {
                     optionsHtml += `<option value="${prov}" ${prov === prevVal ? 'selected' : ''}>${prov}</option>`;
                 });
             } else {
-                optionsHtml += '<option value="">-- Pilih Kota/Kabupaten --</option>';
+                optionsHtml += '<option value="">-- Select City/Regency --</option>';
                 const uniqueRegencies = [...new Set(umrAllData.map(row => row.nama_daerah))].sort();
                 uniqueRegencies.forEach(reg => {
                     optionsHtml += `<option value="${reg}" ${reg === prevVal ? 'selected' : ''}>${reg}</option>`;
@@ -189,7 +189,7 @@ function renderUmrPage() {
         const colSpan = currentUmrType === 'UMP' ? 4 : 5;
         tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center; padding:40px; color:#aaa;">
                 <i class="fas fa-database" style="font-size:28px; margin-bottom:10px; display:block;"></i>
-                Belum ada data ${currentUmrType}. Klik <b>Upload</b> untuk menambah data.
+                No ${currentUmrType} data available. Click <b>Upload</b> to add data.
            </td></tr>`;
     }
 
@@ -197,8 +197,8 @@ function renderUmrPage() {
     const infoEl = document.getElementById('umrPaginationInfo');
     if (infoEl) {
         infoEl.innerText = totalData > 0
-            ? `Menampilkan ${start + 1} - ${end} dari ${totalData} data`
-            : 'Tidak ada data';
+            ? `Showing ${start + 1} - ${end} of ${totalData} entries`
+            : 'No data';
     }
 
     // Render pagination controls
@@ -261,7 +261,7 @@ function bukaModalUploadUmr() {
     // Change modal title based on type (UMP or UMK)
     const titleEl = document.querySelector('#modalUploadUmr .modal-header h3');
     if (titleEl) {
-        titleEl.textContent = `Upload Data ${currentUmrType}`;
+        titleEl.textContent = `Upload ${currentUmrType} Data`;
     }
     
     // Reset file input
@@ -404,7 +404,7 @@ function downloadTemplateUmr() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    showToast(`Template ${tipe} berhasil diunduh!`, 'success');
+    showToast(`${tipe} template downloaded successfully!`, 'success');
 }
 
 // Drag & Drop + File Input Handling
@@ -423,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (file) {
                 const fileNameEl = document.getElementById('umrFileName');
                 if (fileNameEl) {
-                    fileNameEl.innerText = `ðŸ“Ž ${file.name}`;
+                    fileNameEl.innerText = `📌 ${file.name}`;
                     fileNameEl.style.display = 'block';
                 }
             }
@@ -448,11 +448,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileInput.files = e.dataTransfer.files;
                 const fileNameEl = document.getElementById('umrFileName');
                 if (fileNameEl) {
-                    fileNameEl.innerText = `ðŸ“Ž ${file.name}`;
+                    fileNameEl.innerText = `📌 ${file.name}`;
                     fileNameEl.style.display = 'block';
                 }
             } else {
-                showToast('Hanya file CSV yang diperbolehkan!', 'error');
+                showToast('Only CSV files are allowed!', 'error');
             }
         });
     }
@@ -468,11 +468,11 @@ if (formUploadUmr) {
         const file = fileInput.files[0];
         
         if (!file) {
-            showToast('Pilih file CSV terlebih dahulu!', 'error');
+            showToast('Please select a CSV file first!', 'error');
             return;
         }
 
-        showToast('Membaca dan mengupload data...', 'info');
+        showToast('Reading and uploading data...', 'info');
 
         const reader = new FileReader();
         reader.onload = async (event) => {
@@ -484,7 +484,7 @@ if (formUploadUmr) {
                 const dataLines = lines.slice(1);
                 
                 if (dataLines.length === 0) {
-                    showToast('File CSV kosong!', 'error');
+                    showToast('CSV file is empty!', 'error');
                     return;
                 }
 
@@ -603,13 +603,13 @@ if (formUploadUmr) {
                     tutupModalUploadUmr();
                     umrCurrentPage = 1;
                     renderUmrTable();
-                    showToast(`${items.length} data ${tipe} berhasil di-upload!`, 'success');
+                    showToast(`${items.length} ${tipe} data uploaded successfully!`, 'success');
                 } else {
-                    showToast('Gagal mengupload data!', 'error');
+                    showToast('Failed to upload data!', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                showToast('Error saat memproses file CSV!', 'error');
+                showToast('Error processing CSV file!', 'error');
             }
         };
         reader.readAsText(file);
@@ -641,13 +641,13 @@ if (formManualUmr) {
             if (res.ok) {
                 tutupModalManualUmr();
                 renderUmrTable();
-                showToast('Data berhasil disimpan secara manual!', 'success');
+                showToast('Data saved successfully!', 'success');
             } else {
-                showToast('Gagal menyimpan data!', 'error');
+                showToast('Failed to save data!', 'error');
             }
         } catch (err) {
             console.error(err);
-            showToast('Terjadi kesalahan sistem!', 'error');
+            showToast('System error occurred!', 'error');
         }
     });
 }
@@ -661,10 +661,10 @@ async function loadSimulasiRegions() {
         const select = document.getElementById('simulasiRegion');
         if (savedNominal) {
             const formatted = new Intl.NumberFormat('id-ID').format(savedNominal);
-            select.innerHTML = `<option value="NOMINAL">Nominal Kesepakatan (Rp ${formatted})</option>`;
-            simulasiAllData = [{id: 'NOMINAL', nama_daerah: 'Nominal Kesepakatan', nominal: savedNominal}];
+            select.innerHTML = `<option value="NOMINAL">Agreed Nominal (Rp ${formatted})</option>`;
+            simulasiAllData = [{id: 'NOMINAL', nama_daerah: 'Agreed Nominal', nominal: savedNominal}];
         } else {
-            select.innerHTML = `<option value="">Belum ada nominal disimpan</option>`;
+            select.innerHTML = `<option value="">No nominal saved yet</option>`;
             simulasiAllData = [];
         }
         return;
@@ -1019,7 +1019,7 @@ async function loadSimulasiRegions() {
         }
 
         const select = document.getElementById('simulasiRegion');
-        const placeholderText = type === 'UMP' ? '-- Pilih Provinsi --' : '-- Pilih Kota/Kabupaten --';
+        const placeholderText = type === 'UMP' ? '-- Select Province --' : '-- Select City/Regency --';
         select.innerHTML = `<option value="">${placeholderText}</option>` + 
             simulasiAllData.map(r => `<option value="${r.id}">${r.nama_daerah}</option>`).join('');
     } catch (err) { console.error(err); }
@@ -1063,12 +1063,12 @@ function simpanNominalManual() {
     const inputVal = document.getElementById('inputUmrNominal').value;
     const nominal = parseInt(inputVal.replace(/\./g, ''));
     if (!nominal || nominal <= 0) {
-        showToast('Masukkan nominal gaji yang valid!', 'error');
+        showToast('Please enter a valid salary nominal!', 'error');
         return;
     }
     
     localStorage.setItem('simulasi_nominal', nominal);
-    showToast('Nominal Rp ' + inputVal + ' berhasil disimpan untuk simulasi.', 'success');
+    showToast('Nominal Rp ' + inputVal + ' saved successfully for simulation.', 'success');
     document.getElementById('inputUmrNominal').value = '';
     updateNominalDisplay();
 }
