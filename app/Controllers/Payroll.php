@@ -48,6 +48,8 @@ class Payroll extends ResourceController
         $tahun = $json['tahun'];
         $dataKaryawan = $json['data']; // Array of {employee_id, hadir, alpa, sakit, lembur}
 
+        $daysInMonth = date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun)));
+
         // 1. Ambil Skema Klien
         $clientModel = new ClientModel();
         $schema = $clientModel->find($clientId);
@@ -134,8 +136,8 @@ class Payroll extends ResourceController
             $otRate = $otRateSchema > 0 ? $otRateSchema : ($baseSalary / 173);
             $overtimePay = $otRate * 1.5 * $dk['lembur'];
             
-            // Potongan Absen (Gaji Pokok / 22 hari kerja * jumlah alpa)
-            $potonganAlpa = ($baseSalary / 22) * $dk['alpa'];
+            // Potongan Absen (Gaji Pokok / daysInMonth * jumlah alpa)
+            $potonganAlpa = ($baseSalary / $daysInMonth) * $dk['alpa'];
 
             // Hitung komponen custom
             $customTunjangan = 0;
@@ -482,9 +484,9 @@ class Payroll extends ResourceController
         $jkkRateCo = floatval($taxScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
         $jkmRateCo = floatval($taxScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
 
-        // Wage base for BPJS: must be at least the regional minimum wage (if minimum wage is set)
-        $wageBase = $gajiPokok;
-        if ($minimumWage > 0 && $gajiPokok < $minimumWage) {
+        // Wage base for BPJS: Gaji Bruto as per the requested schema
+        $wageBase = $totalPendapatanKotor;
+        if ($minimumWage > 0 && $wageBase < $minimumWage) {
             $wageBase = $minimumWage;
         }
 

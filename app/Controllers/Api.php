@@ -781,6 +781,12 @@ class Api extends ResourceController
     public function generatePayroll($periodId)
     {
         $clientId = $this->request->getGet('client_id');
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        if (!$period) {
+            return $this->failNotFound('Periode tidak ditemukan');
+        }
+        $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
+
         // 1. Get all PKWTs
         $query = $this->db->table('pkwt');
         if ($clientId) {
@@ -816,6 +822,12 @@ class Api extends ResourceController
                 }
             }
 
+            // Get Client's overtime_rate_per_hour
+            $client = $this->db->table('clients')->where('id', $pkwt->client_id)->get()->getRow();
+            $otRate = ($client && isset($client->overtime_rate_per_hour) && floatval($client->overtime_rate_per_hour) > 0)
+                      ? floatval($client->overtime_rate_per_hour)
+                      : 20000;
+
             // 2. Get Fixed Components from PKWT
             $components = $this->db->table('pkwt_components')->where('pkwt_id', $pkwt->id)->get()->getResult();
             
@@ -850,7 +862,7 @@ class Api extends ResourceController
                 $minimumWage = floatval($emp->umr_nominal);
                 $mwId = $emp->mw_id;
             } else {
-                // Fallback to client config's minimum wage from clientConfig loaded above
+                // Fallback to client config's minimum wage
                 if ($clientConfig && isset($clientConfig->minimum_wage_id)) {
                     $mw = $this->db->table('minimum_wages')->where('id', $clientConfig->minimum_wage_id)->get()->getRow();
                     if ($mw) {
@@ -877,6 +889,7 @@ class Api extends ResourceController
 
             // 5. First pass: Find and calculate Gaji Pokok (Basic Salary)
             $gajiPokok = 0;
+            $unproratedGajiPokok = 0;
             foreach ($components as $comp) {
                 $isBasicSalary = false;
                 if (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') {
@@ -907,6 +920,8 @@ class Api extends ResourceController
                         }
                     }
                     
+                    $unproratedGajiPokok = $base_nilai;
+                    
                     // Scale by period
                     if (isset($comp->periode)) {
                         if ($comp->periode === 'hari') {
@@ -920,7 +935,7 @@ class Api extends ResourceController
                             // bulanan
                             if ($isProrate) {
                                 $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
-                                $base_nilai = $base_nilai * ($days / $stdWorkingDays);
+                                $base_nilai = $base_nilai * ($days / $daysInMonth);
                             }
                         }
                     }
@@ -931,10 +946,11 @@ class Api extends ResourceController
             }
 
             if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
-                $gajiPokok = floatval($emp->gaji_pokok);
+                $unproratedGajiPokok = floatval($emp->gaji_pokok);
+                $gajiPokok = $unproratedGajiPokok;
                 if ($isProrate) {
                     $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
-                    $gajiPokok = $gajiPokok * ($days / $stdWorkingDays);
+                    $gajiPokok = $gajiPokok * ($days / $daysInMonth);
                 }
             }
 
@@ -981,7 +997,8 @@ class Api extends ResourceController
                             $nilai = $base_nilai / 12;
                         } else {
                             // bulanan
-                            if ($isProrate) {
+                            // Tunjangan tetap: Nilai tunjangan tetap bersifat konstan setiap periode (TIDAK terprorate)
+                            if ($isProrate && isset($comp->sifat_kompensasi) && $comp->sifat_kompensasi === 'tidak_tetap') {
                                 $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
                                 $nilai = $base_nilai * ($days / 21);
                             } else {
@@ -1009,11 +1026,17 @@ class Api extends ResourceController
             if ($att) {
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
-                    $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
-                    if ($nominalPotongan > 0 && $potongan_absen == 0) {
-                        $missingDays = $stdWorkingDays - intval($att->hari_kerja);
+                    if ($potongan_absen == 0) {
+                        $missingDays = max(0, $daysInMonth - intval($att->hari_kerja));
                         if ($missingDays > 0) {
-                            $potongan_absen = $missingDays * $nominalPotongan;
+                            if ($isProrate) {
+                                // Pro-rate: potongan = Base Salary * (Hari Tidak Masuk / Hari dalam Bulan)
+                                $potongan_absen = $unproratedGajiPokok * ($missingDays / $daysInMonth);
+                            } else {
+                                // Deduction tetap: potongan = nominal yang ditetapkan per hari absen
+                                $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
+                                $potongan_absen = $missingDays * $nominalPotongan;
+                            }
                         }
                     }
                     $potonganAbsenVal = $potongan_absen;
@@ -1021,8 +1044,8 @@ class Api extends ResourceController
                 }
                 $totalPendapatan += $att->bonus_tambahan;
                 
-                // Simplified Overtime Calculation (e.g., 20.000 per hour)
-                $overtimePay = $att->jam_lembur * 20000; 
+                // Overtime Calculation based on Client's overtime_rate_per_hour
+                $overtimePay = $att->jam_lembur * $otRate; 
                 $totalPendapatan += $overtimePay;
             }
 
@@ -1086,7 +1109,7 @@ class Api extends ResourceController
                 'gaji_pokok' => $gajiPokok,
                 'potongan_absen' => $potonganAbsenVal,
                 'jam_lembur' => ($att) ? floatval($att->jam_lembur) : 0,
-                'lembur_pay' => ($att) ? (floatval($att->jam_lembur) * 20000) : 0,
+                'lembur_pay' => ($att) ? (floatval($att->jam_lembur) * $otRate) : 0,
                 'bonus_tambahan' => ($att) ? floatval($att->bonus_tambahan) : 0,
                 'raw_components' => json_encode($components)
             ];
@@ -1152,6 +1175,10 @@ class Api extends ResourceController
         
         if (!$final) return $this->failNotFound('Data tidak ditemukan');
 
+        // Load active period to calculate calendar days
+        $period = $this->db->table('payroll_periods')->where('id', $final['period_id'])->get()->getRow();
+        $daysInMonth = $period ? date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun))) : 30;
+
         // Get client config to find payroll scheme ID
         $clientConfig = $this->resolveClientConfig($final['client_id'], $final['position_name'] ?? null);
         
@@ -1178,6 +1205,12 @@ class Api extends ResourceController
                 $nominalPotonganAbsen = floatval($absenceConfig->nominal_potongan);
             }
         }
+
+        // Get Client's overtime_rate_per_hour
+        $client = $this->db->table('clients')->where('id', $final['client_id'])->get()->getRow();
+        $otRate = ($client && isset($client->overtime_rate_per_hour) && floatval($client->overtime_rate_per_hour) > 0)
+                  ? floatval($client->overtime_rate_per_hour)
+                  : 20000;
 
         // Get Fixed Components
         $fixed = $this->db->table('pkwt_components')
@@ -1244,6 +1277,7 @@ class Api extends ResourceController
 
         // 2. First pass: Find and calculate Gaji Pokok (Basic Salary)
         $gajiPokok = 0;
+        $unproratedGajiPokok = 0;
         foreach ($fixed as $comp) {
             $isBasicSalary = false;
             if (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') {
@@ -1274,6 +1308,8 @@ class Api extends ResourceController
                     }
                 }
                 
+                $unproratedGajiPokok = $base_nilai;
+
                 // Scale by period
                 if (isset($comp['periode'])) {
                     if ($comp['periode'] === 'hari') {
@@ -1287,7 +1323,7 @@ class Api extends ResourceController
                         // bulanan
                         if ($isProrate) {
                             $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
-                            $base_nilai = $base_nilai * ($days / $stdWorkingDays);
+                            $base_nilai = $base_nilai * ($days / $daysInMonth);
                         }
                     }
                 }
@@ -1298,10 +1334,11 @@ class Api extends ResourceController
         }
 
         if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
-            $gajiPokok = floatval($emp->gaji_pokok);
+            $unproratedGajiPokok = floatval($emp->gaji_pokok);
+            $gajiPokok = $unproratedGajiPokok;
             if ($isProrate) {
                 $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
-                $gajiPokok = $gajiPokok * ($days / $stdWorkingDays);
+                $gajiPokok = $gajiPokok * ($days / $daysInMonth);
             }
         }
 
@@ -1348,7 +1385,8 @@ class Api extends ResourceController
                         $nilai = $base_nilai / 12;
                     } else {
                         // bulanan
-                        if ($isProrate) {
+                        // Tunjangan tetap: Nilai tunjangan tetap bersifat konstan setiap periode (TIDAK terprorate)
+                        if ($isProrate && isset($comp['sifat_kompensasi']) && $comp['sifat_kompensasi'] === 'tidak_tetap') {
                             $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
                             $nilai = $base_nilai * ($days / 21);
                         } else {
@@ -1377,7 +1415,7 @@ class Api extends ResourceController
             if (isset($final['jam_lembur']) && floatval($final['lembur_pay']) > 0) {
                 $earnings[] = ['nama' => 'Lembur', 'nilai' => floatval($final['lembur_pay'])];
             } else if ($att['jam_lembur'] > 0) {
-                $earnings[] = ['nama' => 'Lembur', 'nilai' => $att['jam_lembur'] * 20000];
+                $earnings[] = ['nama' => 'Lembur', 'nilai' => $att['jam_lembur'] * $otRate];
             }
 
             if (isset($final['bonus_tambahan']) && floatval($final['bonus_tambahan']) > 0) {
@@ -1390,11 +1428,15 @@ class Api extends ResourceController
                 $deductions[] = ['nama' => 'Potongan Absen', 'nilai' => floatval($final['potongan_absen'])];
             } else if (!$isAbsenTidakPotong) {
                 $potongan_absen = floatval($att['potongan_absensi']);
-                $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
-                if ($nominalPotongan > 0 && $potongan_absen == 0) {
-                    $missingDays = $stdWorkingDays - intval($att['hari_kerja']);
+                if ($potongan_absen == 0) {
+                    $missingDays = max(0, $daysInMonth - intval($att['hari_kerja']));
                     if ($missingDays > 0) {
-                        $potongan_absen = $missingDays * $nominalPotongan;
+                        if ($isProrate) {
+                            $potongan_absen = $unproratedGajiPokok * ($missingDays / $daysInMonth);
+                        } else {
+                            $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
+                            $potongan_absen = $missingDays * $nominalPotongan;
+                        }
                     }
                 }
                 if ($potongan_absen > 0) {
@@ -1766,9 +1808,9 @@ class Api extends ResourceController
         $jkkRateCo = floatval($taxScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
         $jkmRateCo = floatval($taxScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
 
-        // Wage base for BPJS: must be at least the regional minimum wage (if minimum wage is set)
-        $wageBase = $gajiPokok;
-        if ($minimumWage > 0 && $gajiPokok < $minimumWage) {
+        // Wage base for BPJS: Gaji Bruto as per the requested schema
+        $wageBase = $totalPendapatanKotor;
+        if ($minimumWage > 0 && $wageBase < $minimumWage) {
             $wageBase = $minimumWage;
         }
 
