@@ -4,7 +4,8 @@
 // ===== 7. PROSES PAYROLL BULANAN =====
 async function loadActivePeriod() {
     try {
-        const response = await fetch(`${API_URL}/periods`);
+        const url = window.selectedClientId ? `${API_URL}/periods?client_id=${window.selectedClientId}` : `${API_URL}/periods`;
+        const response = await fetch(url);
         const periods = await response.json();
         window.loadedPeriods = periods;
         
@@ -108,19 +109,40 @@ async function renderReviewGajiTable() {
                 </td>
             </tr>
         `).join('');
-    } else { section.style.display = 'none'; }
+    } else { 
+        section.style.display = 'block';
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:#7f8c8d;">No salary data generated for this period.</td></tr>`;
+    }
 }
 
 async function generateGaji() {
     if(!currentPeriodId) return;
     showToast('Calculating salary...', 'info');
-    const res = await fetch(`${API_URL}/generate-payroll/${currentPeriodId}`, { method: 'POST' });
+    const url = window.selectedClientId ? `${API_URL}/generate-payroll/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/generate-payroll/${currentPeriodId}`;
+    const res = await fetch(url, { method: 'POST' });
     if (res.ok) { showToast('Salary generated successfully!', 'success'); renderReviewGajiTable(); }
 }
 
 async function approveGaji(id) {
     const res = await fetch(`${API_URL}/approve-payroll/${id}`, { method: 'POST' });
     if (res.ok) { showToast('Salary approved!', 'success'); renderReviewGajiTable(); }
+}
+
+// ===== EXPORT =====
+function exportGajiToExcel() {
+    if(!currentPeriodId) {
+        showToast('Please select a period first.', 'warning');
+        return;
+    }
+    
+    // Construct export URL
+    let url = `${API_URL}/export-payroll/${currentPeriodId}`;
+    if (window.selectedClientId) {
+        url += `?client_id=${window.selectedClientId}`;
+    }
+    
+    // Trigger download by opening in a new tab/window
+    window.open(url, '_blank');
 }
 
 // ===== UTILS & MODAL CLOSING =====
@@ -187,6 +209,7 @@ function cetakSlip() {
         document.getElementById('formPeriode').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = {
+                client_id: window.selectedClientId ? parseInt(window.selectedClientId) : null,
                 bulan: parseInt(document.getElementById('periodMonth').value),
                 tahun: parseInt(document.getElementById('periodYear').value)
             };

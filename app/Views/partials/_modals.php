@@ -801,7 +801,6 @@
         <form id="formKaryawan">
             <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
                 <input type="hidden" id="employeeId">
-                <input type="hidden" id="empGajiPokok" value="0">
                 
                 <div class="form-group" id="empClientIdContainer" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Select Company / Client</label>

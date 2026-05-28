@@ -325,8 +325,32 @@ class Migrasi extends BaseController
             ALTER TABLE client_payroll_configs ADD department_id INT NULL");
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = 'position_id')
             ALTER TABLE client_payroll_configs ADD position_id INT NULL");
+        // 18. Tabel Global STO (Struktur Organisasi Global)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'global_divisions')
+            CREATE TABLE global_divisions (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                nama NVARCHAR(255) NOT NULL,
+                created_at DATETIME NULL,
+                updated_at DATETIME NULL
+            )");
 
-        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, dan kolom departemen/posisi client_payroll_configs)";
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'global_departments')
+            CREATE TABLE global_departments (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                nama NVARCHAR(255) NOT NULL,
+                created_at DATETIME NULL,
+                updated_at DATETIME NULL
+            )");
+
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'global_positions')
+            CREATE TABLE global_positions (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                nama NVARCHAR(255) NOT NULL,
+                created_at DATETIME NULL,
+                updated_at DATETIME NULL
+            )");
+
+        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, kolom departemen/posisi client_payroll_configs, dan tabel global STO)";
     }
 
     /**

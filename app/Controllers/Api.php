@@ -729,7 +729,12 @@ class Api extends ResourceController
     // --- PERIODS ---
     public function getPeriods()
     {
-        $data = $this->db->table('payroll_periods')->orderBy('tahun', 'DESC')->orderBy('bulan', 'DESC')->get()->getResult();
+        $clientId = $this->request->getGet('client_id');
+        $query = $this->db->table('payroll_periods')->orderBy('tahun', 'DESC')->orderBy('bulan', 'DESC');
+        if ($clientId) {
+            $query->where('client_id', $clientId);
+        }
+        $data = $query->get()->getResult();
         return $this->respond($data);
     }
 
@@ -1472,6 +1477,128 @@ class Api extends ResourceController
             'earnings' => $earnings,
             'deductions' => $deductions
         ]);
+    }
+
+    public function exportPayrollCsv($periodId)
+    {
+        $clientId = $this->request->getGet('client_id');
+        
+        $query = $this->db->table('payroll_final')
+                          ->select('
+                              payroll_final.*, 
+                              pkwt.employee_name, 
+                              pkwt.position_name, 
+                              pkwt.client_id, 
+                              clients.nama as client_name,
+                              employees.employ_id,
+                              employees.tempat_lahir,
+                              employees.tanggal_lahir,
+                              employees.npwp,
+                              divisions.nama as division_name,
+                              departments.nama as department_name,
+                              work_locations.lokasi_kerja as location_name,
+                              minimum_wages.nominal as min_wage
+                          ')
+                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
+                          ->join('clients', 'clients.id = pkwt.client_id')
+                          ->join('employees', 'employees.nama = pkwt.employee_name AND employees.client_id = pkwt.client_id', 'left')
+                          ->join('positions', 'positions.id = employees.position_id', 'left')
+                          ->join('departments', 'departments.id = positions.department_id', 'left')
+                          ->join('divisions', 'divisions.id = departments.division_id', 'left')
+                          ->join('work_locations', 'work_locations.id = employees.work_location_id', 'left')
+                          ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                          ->where('payroll_final.period_id', $periodId);
+                          
+        if ($clientId) {
+            $query->where('pkwt.client_id', $clientId);
+        }
+        
+        $results = $query->get()->getResultArray();
+        
+        // Define file name
+        $periodInfo = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        $periodName = $periodInfo ? $periodInfo->nama : 'Unknown_Period';
+        $filename = "Payroll_Report_" . str_replace(' ', '_', $periodName) . ".csv";
+        
+        // Set headers for CSV download
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=' . $filename);
+        
+        // Open output stream
+        $output = fopen('php://output', 'w');
+        
+        // Add BOM to fix UTF-8 in Excel
+        fputs($output, $bom =(chr(0xEF) . chr(0xBB) . chr(0xBF)));
+
+        // Write Header Row
+        fputcsv($output, [
+            'No', 
+            'Company / Client',
+            'Employee ID (NIK)',
+            'Employee Name', 
+            'Place & Date of Birth',
+            'NPWP',
+            'Division',
+            'Department',
+            'Position / Role', 
+            'Work Location',
+            'Min. Wage (UMP/UMK)',
+            'Basic Salary', 
+            'Overtime Pay',
+            'Bonus/Lainnya',
+            'Total Income (Pendapatan)', 
+            'Absence Deduction',
+            'BPJS Ketenagakerjaan (Karyawan)',
+            'BPJS Kesehatan (Karyawan)',
+            'Tax (PPh21)',
+            'Total Deductions (Potongan)', 
+            'Take Home Pay', 
+            'Status'
+        ], ';');
+        
+        // Write Data Rows
+        $no = 1;
+        foreach ($results as $row) {
+            $bpjsTK = (float)($row['bpjs_jht_karyawan'] ?? 0) + (float)($row['bpjs_jp_karyawan'] ?? 0);
+            $bpjsKes = (float)($row['bpjs_kes_karyawan'] ?? 0);
+            
+            $placeDob = '';
+            if (!empty($row['tempat_lahir']) && !empty($row['tanggal_lahir'])) {
+                $placeDob = $row['tempat_lahir'] . ', ' . $row['tanggal_lahir'];
+            } elseif (!empty($row['tempat_lahir'])) {
+                $placeDob = $row['tempat_lahir'];
+            } elseif (!empty($row['tanggal_lahir'])) {
+                $placeDob = $row['tanggal_lahir'];
+            }
+            
+            fputcsv($output, [
+                $no++,
+                $row['client_name'] ?? '-',
+                $row['employ_id'] ?? '-',
+                $row['employee_name'] ?? '-',
+                $placeDob ?: '-',
+                $row['npwp'] ?? '-',
+                $row['division_name'] ?? '-',
+                $row['department_name'] ?? '-',
+                $row['position_name'] ?? '-',
+                $row['location_name'] ?? '-',
+                isset($row['min_wage']) ? number_format((float)$row['min_wage'], 0, '', '') : '-',
+                number_format((float)($row['gaji_pokok'] ?? 0), 0, '', ''),
+                number_format((float)($row['lembur_pay'] ?? 0), 0, '', ''),
+                number_format((float)($row['bonus_tambahan'] ?? 0), 0, '', ''),
+                number_format((float)($row['total_pendapatan'] ?? 0), 0, '', ''),
+                number_format((float)($row['potongan_absen'] ?? 0), 0, '', ''),
+                number_format($bpjsTK, 0, '', ''),
+                number_format($bpjsKes, 0, '', ''),
+                number_format((float)($row['pph21'] ?? 0), 0, '', ''),
+                number_format((float)($row['total_potongan'] ?? 0), 0, '', ''),
+                number_format((float)($row['take_home_pay'] ?? 0), 0, '', ''),
+                $row['status_approval'] ?? 'Pending'
+            ], ';');
+        }
+        
+        fclose($output);
+        exit;
     }
 
 

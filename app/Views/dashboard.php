@@ -603,7 +603,12 @@
                                         </table>
                                     </div>
                                     <div id="resultSection" style="margin-top: 30px; display: none;">
-                                        <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--success);">SALARY CALCULATION RESULTS</h4>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                            <h4 style="font-size: 14px; margin: 0; color: var(--success);">SALARY CALCULATION RESULTS</h4>
+                                            <button class="btn-save" onclick="exportGajiToExcel()" style="background: #27ae60; border-radius: 8px; padding: 8px 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                                <i class="fas fa-file-excel"></i> Export CSV/Excel
+                                            </button>
+                                        </div>
                                         <div class="table-container">
                                             <table>
                                                 <thead>

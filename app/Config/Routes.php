@@ -75,6 +75,7 @@ $routes->group('api', function($routes) {
     $routes->get('payroll-results/(:num)', 'Api::getPayrollResults/$1');
     $routes->post('approve-payroll/(:num)', 'Api::approvePayroll/$1');
     $routes->get('slip-details/(:num)', 'Api::getSlipDetails/$1');
+    $routes->get('export-payroll/(:num)', 'Api::exportPayrollCsv/$1');
 
     // Minimum Wages (UMP/UMK)
     $routes->get('minimum-wages', 'Api::getMinimumWages');

@@ -583,10 +583,7 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empStartContract').value = emp.start_contract || '';
         document.getElementById('empEndContract').value = emp.end_contract || '';
         document.getElementById('empTipePerjanjian').value = emp.tipe_perjanjian || '';
-        document.getElementById('empGajiPokok').value = emp.gaji_pokok ? parseFloat(emp.gaji_pokok).toLocaleString('id-ID') : '';
         document.getElementById('empHariKerja').value = emp.hari_kerja || '5';
-        
-        if (typeof calculateDendaAbsen === 'function') calculateDendaAbsen();
         
         await loadWorkLocationsForSelect(emp.client_id, emp.work_location_id);
         await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
@@ -640,7 +637,6 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         start_contract:document.getElementById('empStartContract').value,
         end_contract:document.getElementById('empEndContract').value,
         tipe_perjanjian:document.getElementById('empTipePerjanjian').value,
-        gaji_pokok: document.getElementById('empGajiPokok').value.replace(/\./g, ''),
         hari_kerja: document.getElementById('empHariKerja').value,
         work_location_id:document.getElementById('empWorkLocationId').value || null,
         position_id:document.getElementById('empPositionId')?.value || null
@@ -704,26 +700,16 @@ document.getElementById('empStartContract')?.addEventListener('change', async (e
     }
 });
 
-// Kalkulasi denda absen
+// Kalkulasi denda absen - sekarang dihitung otomatis dari scheme payroll
+// Tidak lagi bergantung pada input manual empGajiPokok
 function calculateDendaAbsen() {
-    const gajiInput = document.getElementById('empGajiPokok').value;
-    const hariKerja = parseInt(document.getElementById('empHariKerja').value || 5);
     const dendaInput = document.getElementById('empDendaAbsen');
-    
-    if (!gajiInput) {
-        dendaInput.value = '';
-        return;
+    if (!dendaInput) return;
+    // Denda absen dihitung otomatis dari scheme melalui checkSchemaAvailability
+    // Jika scheme belum dimuat, tampilkan 'Auto' sebagai placeholder
+    if (!dendaInput.value) {
+        dendaInput.value = 'Auto (from Scheme)';
     }
-    
-    const gaji = parseFloat(gajiInput.replace(/\./g, ''));
-    if (isNaN(gaji)) return;
-    
-    let pembagi = 22;
-    if (hariKerja === 6) pembagi = 26;
-    else if (hariKerja === 7) pembagi = 30;
-    
-    const denda = gaji / pembagi;
-    dendaInput.value = Math.round(denda).toLocaleString('id-ID');
 }
 window.calculateDendaAbsen = calculateDendaAbsen;
 
@@ -769,31 +755,23 @@ async function checkSchemaAvailability() {
                 infoContainer.style.background = '#f0fdf4';
                 infoContainer.style.border = '1px solid #bbf7d0';
 
-                // Auto-fill form fields if data is returned
-                const gajiInput = document.getElementById('empGajiPokok');
+                // Auto-fill form fields from scheme data (no more manual gaji_pokok)
                 const hariKerjaInput = document.getElementById('empHariKerja');
                 const dendaInput = document.getElementById('empDendaAbsen');
 
-                if (gajiInput && data.gaji_pokok > 0) {
-                     gajiInput.value = data.gaji_pokok.toLocaleString('id-ID');
-                     gajiInput.readOnly = true;
-                     gajiInput.style.background = '#f1f5f9';
-                } else if (gajiInput) {
-                     if (gajiInput.readOnly) {
-                          gajiInput.value = '';
-                     }
-                     gajiInput.readOnly = false;
-                     gajiInput.style.background = '#fff';
-                }
-
                 if (hariKerjaInput) {
                      hariKerjaInput.value = data.hari_kerja || 5;
-                     // Usually select cannot be readonly, so we disable pointer events or just leave it
                      hariKerjaInput.style.pointerEvents = 'none';
                      hariKerjaInput.style.background = '#f1f5f9';
                 }
 
-                if (typeof calculateDendaAbsen === 'function') calculateDendaAbsen();
+                if (dendaInput && data.gaji_pokok > 0) {
+                     // Hitung hourly rate dari total fixed salary / 173 jam
+                     const hourlyRate = data.gaji_pokok / 173;
+                     dendaInput.value = 'Rp ' + Math.round(hourlyRate).toLocaleString('id-ID') + ' /jam';
+                } else if (dendaInput) {
+                     dendaInput.value = 'Auto (from Scheme)';
+                }
             }
         }
     } catch (e) {
