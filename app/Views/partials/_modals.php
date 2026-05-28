@@ -271,8 +271,11 @@
 
                 <div class="form-group">
                     <label id="labelOrgName">Division Name</label>
-                    <input type="text" id="orgName" placeholder="Enter name" required>
-                    <div id="quickBadgeContainer" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                    <input type="hidden" id="orgName">
+                    <select id="orgNameSelect" style="width: 100%;" required>
+                        <option value="">-- Select Name --</option>
+                    </select>
+                    <div id="quickBadgeContainer" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; display: none;"></div>
                 </div>
                 <!-- Extra Fields (Hanya untuk Posisi) -->
                 <div id="posExtraFields" style="display: none;">
@@ -798,6 +801,7 @@
         <form id="formKaryawan">
             <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
                 <input type="hidden" id="employeeId">
+                <input type="hidden" id="empGajiPokok" value="0">
                 
                 <div class="form-group" id="empClientIdContainer" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Select Company / Client</label>
@@ -871,25 +875,6 @@
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Basic Salary (Rp)</label>
-                        <input type="text" id="empGajiPokok" required placeholder="0" onkeyup="formatRupiahInput(this); calculateDendaAbsen()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Working Days</label>
-                        <select id="empHariKerja" onchange="calculateDendaAbsen()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            <option value="5">5 Days</option>
-                            <option value="6">6 Days</option>
-                            <option value="7">7 Days</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Daily Wage & Absence Fine (Rp)</label>
-                        <input type="text" id="empDendaAbsen" readonly placeholder="Automatic" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; font-weight: 600; color: #ef4444;">
-                    </div>
-                </div>
-
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Division</label>
                         <select id="empDivisionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                             <option value="">-- Select Division --</option>
@@ -924,6 +909,21 @@
                         <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
                     </div>
                     <small id="empMinimumWageInfo" style="margin-top: 4px; display: block; font-size: 12px; color: #64748b; font-weight: 500;"></small>
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Working Days</label>
+                        <select id="empHariKerja" onchange="calculateDendaAbsen()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <option value="5">5 Days</option>
+                            <option value="6">6 Days</option>
+                            <option value="7">7 Days</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Daily Wage & Absence Fine (Rp)</label>
+                        <input type="text" id="empDendaAbsen" readonly placeholder="Automatic" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f1f5f9; font-weight: 600; color: #ef4444;">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">

@@ -20,4 +20,5 @@
     <script src="<?= base_url('js/modules/app-employee.js?v=' . time()) ?>"></script>
     <!-- Existing separate modules -->
     <script src="<?= base_url('js/app-org.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/app-global-sto.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/app-location.js?v=' . time()) ?>"></script>

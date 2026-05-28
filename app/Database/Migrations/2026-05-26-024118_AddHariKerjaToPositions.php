@@ -16,7 +16,9 @@ class AddHariKerjaToPositions extends Migration
                 'null' => true,
             ],
         ];
-        $this->forge->addColumn('positions', $fields);
+        if (!$this->db->fieldExists('hari_kerja', 'positions')) {
+            $this->forge->addColumn('positions', $fields);
+        }
     }
 
     public function down()
