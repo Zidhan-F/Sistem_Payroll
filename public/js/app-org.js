@@ -132,8 +132,25 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
         document.getElementById('orgName').value=d.nama||'';
         if(document.getElementById('posEmployeeName'))document.getElementById('posEmployeeName').value=d.employeeName||'';
         if(document.getElementById('posLevel'))document.getElementById('posLevel').value=d.level||'';
-    } else {document.getElementById('orgName').value='';if(document.getElementById('posEmployeeName'))document.getElementById('posEmployeeName').value='';if(document.getElementById('posLevel'))document.getElementById('posLevel').value='';}
-    setTimeout(()=>document.getElementById('orgName').focus(),100);
+        if(typeof populateOrgNameSelect === 'function') {
+            populateOrgNameSelect(type, d.nama);
+        }
+    } else {
+        document.getElementById('orgName').value='';
+        if(document.getElementById('posEmployeeName'))document.getElementById('posEmployeeName').value='';
+        if(document.getElementById('posLevel'))document.getElementById('posLevel').value='';
+        if(typeof populateOrgNameSelect === 'function') {
+            populateOrgNameSelect(type, '');
+        }
+    }
+    setTimeout(()=>{
+        const sel = document.getElementById('orgNameSelect');
+        if(sel && sel.tomselect) {
+            sel.tomselect.focus();
+        } else {
+            document.getElementById('orgName').focus();
+        }
+    },100);
 }
 
 function tutupModalOrg(){
@@ -222,6 +239,11 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     
     if (!divSelect || !deptSelect || !posSelect) return;
     
+    // Destroy TomSelect if already initialized to modify innerHTML
+    if (divSelect.tomselect) divSelect.tomselect.destroy();
+    if (deptSelect.tomselect) deptSelect.tomselect.destroy();
+    if (posSelect.tomselect) posSelect.tomselect.destroy();
+    
     divSelect.innerHTML = '<option value="">-- Select Division --</option>';
     deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
     posSelect.innerHTML = '<option value="">-- Select Position --</option>';
@@ -236,26 +258,31 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
             });
         }
         
-        // Setup cascading triggers
-        divSelect.onchange = () => {
-            const divId = divSelect.value;
-            deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
-            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
-            if (divId) {
-                const division = clientOrgHierarchy.find(d => d.id == divId);
-                if (division && Array.isArray(division.departments)) {
-                    division.departments.forEach(dept => {
-                        deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
-                    });
-                }
-            }
-            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
-        };
+        // Re-initialize Division TomSelect
+        new TomSelect(divSelect, {
+            create: false,
+            sortField: { field: "text", direction: "asc" }
+        });
         
-        deptSelect.onchange = () => {
+        // Re-initialize Department TomSelect
+        new TomSelect(deptSelect, {
+            create: false,
+            sortField: { field: "text", direction: "asc" }
+        });
+        
+        // Re-initialize Position TomSelect
+        new TomSelect(posSelect, {
+            create: false,
+            sortField: { field: "text", direction: "asc" }
+        });
+        
+        const onDeptChange = () => {
             const divId = divSelect.value;
             const deptId = deptSelect.value;
+            
+            if (posSelect.tomselect) posSelect.tomselect.destroy();
             posSelect.innerHTML = '<option value="">-- Select Position --</option>';
+            
             if (divId && deptId) {
                 const division = clientOrgHierarchy.find(d => d.id == divId);
                 if (division && Array.isArray(division.departments)) {
@@ -267,23 +294,67 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
                     }
                 }
             }
+            
+            new TomSelect(posSelect, {
+                create: false,
+                sortField: { field: "text", direction: "asc" }
+            });
+            posSelect.tomselect.on('change', onPosChange);
+            
             if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         };
         
-        posSelect.onchange = () => {
+        const onPosChange = () => {
             if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         };
+        
+        // Define listeners on TomSelect change
+        divSelect.tomselect.on('change', () => {
+            const divId = divSelect.value;
+            
+            // Re-populate Department
+            if (deptSelect.tomselect) deptSelect.tomselect.destroy();
+            deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
+            
+            if (posSelect.tomselect) posSelect.tomselect.destroy();
+            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
+            
+            if (divId) {
+                const division = clientOrgHierarchy.find(d => d.id == divId);
+                if (division && Array.isArray(division.departments)) {
+                    division.departments.forEach(dept => {
+                        deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
+                    });
+                }
+            }
+            
+            new TomSelect(deptSelect, {
+                create: false,
+                sortField: { field: "text", direction: "asc" }
+            });
+            new TomSelect(posSelect, {
+                create: false,
+                sortField: { field: "text", direction: "asc" }
+            });
+            
+            // Set listeners on newly created instances
+            deptSelect.tomselect.on('change', onDeptChange);
+            posSelect.tomselect.on('change', onPosChange);
+            
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
+        });
+        
+        deptSelect.tomselect.on('change', onDeptChange);
+        posSelect.tomselect.on('change', onPosChange);
         
         if (selectedDivId) {
-            divSelect.value = selectedDivId;
-            divSelect.onchange();
+            divSelect.tomselect.setValue(selectedDivId);
             
             if (selectedDeptId) {
-                deptSelect.value = selectedDeptId;
-                deptSelect.onchange();
+                deptSelect.tomselect.setValue(selectedDeptId);
                 
                 if (selectedPosId) {
-                    posSelect.value = selectedPosId;
+                    posSelect.tomselect.setValue(selectedPosId);
                 }
             }
         }
@@ -464,9 +535,18 @@ async function bukaModalKaryawan(mode,id=null){
             await loadOrgSelects(cid);
         } else {
             document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
-            const ds = document.getElementById('empDivisionId'); if(ds) ds.innerHTML = '<option value="">-- Select Division --</option>';
-            const deps = document.getElementById('empDepartmentId'); if(deps) deps.innerHTML = '<option value="">-- Select Department --</option>';
-            const ps = document.getElementById('empPositionId'); if(ps) ps.innerHTML = '<option value="">-- Select Position --</option>';
+            const ds = document.getElementById('empDivisionId');
+            const deps = document.getElementById('empDepartmentId');
+            const ps = document.getElementById('empPositionId');
+            if (ds && ds.tomselect) ds.tomselect.destroy();
+            if (deps && deps.tomselect) deps.tomselect.destroy();
+            if (ps && ps.tomselect) ps.tomselect.destroy();
+            if(ds) ds.innerHTML = '<option value="">-- Select Division --</option>';
+            if(deps) deps.innerHTML = '<option value="">-- Select Department --</option>';
+            if(ps) ps.innerHTML = '<option value="">-- Select Position --</option>';
+            if(ds) new TomSelect(ds, { create: false });
+            if(deps) new TomSelect(deps, { create: false });
+            if(ps) new TomSelect(ps, { create: false });
         }
     };
 
@@ -725,3 +805,9 @@ window.checkSchemaAvailability = checkSchemaAvailability;
 
 window.renderClientOrg=renderClientOrg;window.bukaModalOrg=bukaModalOrg;window.tutupModalOrg=tutupModalOrg;window.hapusOrg=hapusOrg;window.toggleNode=toggleNode;window.renderTableKaryawanClient=renderTableKaryawanClient;window.bukaModalKaryawan=bukaModalKaryawan;window.bukaModalKaryawanSpecific=bukaModalKaryawanSpecific;window.tutupModalKaryawan=tutupModalKaryawan;window.hapusKaryawan=hapusKaryawan;window.loadPositions=loadPositions;
 window.tambahDeptInline=tambahDeptInline;window.tambahPosisiInline=tambahPosisiInline;
+
+if (document.getElementById('orgNameSelect')) {
+    document.getElementById('orgNameSelect').addEventListener('change', function() {
+        document.getElementById('orgName').value = this.value;
+    });
+}

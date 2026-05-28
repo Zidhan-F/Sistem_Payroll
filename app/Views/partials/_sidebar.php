@@ -12,6 +12,10 @@
             <i class="fas fa-users"></i>
             <span>Client Management</span>
         </li>
+        <li id="menuSto" onclick="switchView('sto')">
+            <i class="fas fa-sitemap"></i>
+            <span>STO (Struktur Organisasi)</span>
+        </li>
         <li id="menuManajemenKaryawan" class="has-submenu">
             <div class="menu-item-header" onclick="toggleSubmenu(event, 'submenuKaryawan')">
                 <i class="fas fa-user-friends"></i>

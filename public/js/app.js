@@ -351,6 +351,7 @@ function switchView(view) {
     const titles = {
         dashboard: 'Dashboard',
         klien: 'Client Management',
+        sto: 'STO (Struktur Organisasi)',
         manajemenKaryawan: 'Employee Management',
         globalLokasiKerja: 'Employee Management',
         clientWorkspace: 'Client Workspace',
@@ -383,6 +384,7 @@ function switchView(view) {
     // Auto load data based on view
     if (view === 'dashboard') updateDashboardStats();
     if (view === 'klien') renderTable();
+    if (view === 'sto') { if (typeof switchStoTab === 'function') switchStoTab('divisi'); }
     if (view === 'manajemenKaryawan') renderManajemenKaryawan();
     if (view === 'globalLokasiKerja') { if (typeof loadGlobalWorkLocations === 'function') loadGlobalWorkLocations(); }
     if (view === 'payroll') {
@@ -400,7 +402,7 @@ function switchView(view) {
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal(keepSidebarOpen = false) {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     
     const sidebar = document.querySelector('.sidebar');

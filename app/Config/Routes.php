@@ -147,6 +147,22 @@ $routes->group('api', function($routes) {
     $routes->put('org/(:segment)/(:num)', 'Org::update/$1/$2');
     $routes->delete('org/(:segment)/(:num)', 'Org::delete/$1/$2');
 
+    // Global STO
+    $routes->get('global-divisions', 'GlobalSto::getDivisions');
+    $routes->post('global-divisions', 'GlobalSto::createDivision');
+    $routes->put('global-divisions/(:num)', 'GlobalSto::updateDivision/$1');
+    $routes->delete('global-divisions/(:num)', 'GlobalSto::deleteDivision/$1');
+
+    $routes->get('global-departments', 'GlobalSto::getDepartments');
+    $routes->post('global-departments', 'GlobalSto::createDepartment');
+    $routes->put('global-departments/(:num)', 'GlobalSto::updateDepartment/$1');
+    $routes->delete('global-departments/(:num)', 'GlobalSto::deleteDepartment/$1');
+
+    $routes->get('global-positions', 'GlobalSto::getPositions');
+    $routes->post('global-positions', 'GlobalSto::createPosition');
+    $routes->put('global-positions/(:num)', 'GlobalSto::updatePosition/$1');
+    $routes->delete('global-positions/(:num)', 'GlobalSto::deletePosition/$1');
+
     // Payroll Scheme Templates (Multiple schemes per org structure)
     $routes->get('payroll-schemes', 'PayrollScheme::index');
     $routes->get('payroll-schemes/by-org', 'PayrollScheme::getByOrgStructure');

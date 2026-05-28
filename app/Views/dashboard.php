@@ -259,6 +259,118 @@
                 </div>
             </div>
 
+            <!-- Section: STO (Struktur Organisasi) Global -->
+            <div id="viewSto" class="view-section">
+                <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
+                    <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                        <div>
+                            <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Global STO Master</h3>
+                            <p style="color: #64748b; font-size: 13px; margin: 0;">Manage Divisions, Departments, and Positions that can be used across all clients.</p>
+                        </div>
+                    </div>
+
+                    <!-- Custom Tabs for Global STO -->
+                    <div class="workspace-tabs" style="display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                        <button class="ws-tab active" data-stotab="divisi" onclick="switchStoTab('divisi')" style="padding: 10px 20px; font-weight: 600; border: none; background: none; border-bottom: 2px solid var(--primary-color); cursor: pointer; color: var(--primary-color);">Division Master</button>
+                        <button class="ws-tab" data-stotab="departemen" onclick="switchStoTab('departemen')" style="padding: 10px 20px; font-weight: 600; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; color: #64748b;">Department Master</button>
+                        <button class="ws-tab" data-stotab="posisi" onclick="switchStoTab('posisi')" style="padding: 10px 20px; font-weight: 600; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; color: #64748b;">Position Master</button>
+                    </div>
+
+                    <!-- Tab Panel: Division -->
+                    <div id="stoTabDivisi" class="sto-tab-panel" style="display: block;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <input type="text" id="searchGlobalDivisi" placeholder="Search division..." oninput="filterGlobalSto('divisi')" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <button class="btn-add" onclick="bukaModalGlobalSto('divisi', 'tambah')" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px;">
+                                <i class="fas fa-plus"></i> Add Global Division
+                            </button>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8fafc;">
+                                        <th style="width: 60px; text-align: center; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">No</th>
+                                        <th style="text-align: left; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">Division Name</th>
+                                        <th style="width: 150px; text-align: center; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableGlobalDivisiBody">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab Panel: Department -->
+                    <div id="stoTabDepartemen" class="sto-tab-panel" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <input type="text" id="searchGlobalDepartemen" placeholder="Search department..." oninput="filterGlobalSto('departemen')" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <button class="btn-add" onclick="bukaModalGlobalSto('departemen', 'tambah')" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px;">
+                                <i class="fas fa-plus"></i> Add Global Department
+                            </button>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8fafc;">
+                                        <th style="width: 60px; text-align: center; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">No</th>
+                                        <th style="text-align: left; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">Department Name</th>
+                                        <th style="width: 150px; text-align: center; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableGlobalDepartemenBody">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab Panel: Position -->
+                    <div id="stoTabPosisi" class="sto-tab-panel" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <input type="text" id="searchGlobalPosisi" placeholder="Search position..." oninput="filterGlobalSto('posisi')" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <button class="btn-add" onclick="bukaModalGlobalSto('posisi', 'tambah')" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px;">
+                                <i class="fas fa-plus"></i> Add Global Position
+                            </button>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8fafc;">
+                                        <th style="width: 60px; text-align: center; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">No</th>
+                                        <th style="text-align: left; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">Position Name</th>
+                                        <th style="width: 150px; text-align: center; padding: 14px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableGlobalPosisiBody">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Modal: Global STO CRUD -->
+            <div id="modalGlobalSto" class="modal" style="display: none; position: fixed; z-index: 1000; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 400px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+                    <h4 id="globalStoModalTitle" style="margin: 0; color: var(--secondary-color); font-weight: 700; font-size: 16px;">Add Global Division</h4>
+                    <button onclick="tutupModalGlobalSto()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;"><i class="fas fa-times"></i></button>
+                </div>
+                <form id="formGlobalSto" onsubmit="handleGlobalStoSubmit(event)">
+                    <input type="hidden" id="globalStoType" value="divisi">
+                    <input type="hidden" id="globalStoId" value="">
+                    <div style="margin-bottom: 20px;">
+                        <label id="globalStoLabelName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #475569; font-size: 13px;">Division Name</label>
+                        <input type="text" id="globalStoName" required style="width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; box-sizing: border-box;" placeholder="Enter name...">
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="btn-back" onclick="tutupModalGlobalSto()" style="padding: 10px 16px;">Cancel</button>
+                        <button type="submit" class="btn-add" style="padding: 10px 20px; background: var(--primary-color);">Save</button>
+                    </div>
+                </form>
+            </div>
+
             <!-- Section: Client Workspace -->
             <div id="viewClientWorkspace" class="view-section">
                 <!-- Header with Client Name and Back Button -->
