@@ -56,5 +56,9 @@
                 <span>BPJS & Tax Scheme</span>
             </li>
         </ul>
+        <li id="menuLogAktivitas" onclick="switchView('logAktivitas')">
+            <i class="fas fa-history"></i>
+            <span>Activity Log</span>
+        </li>
     </ul>
 </div>

@@ -25,7 +25,7 @@ async function renderLogAktivitas() {
             
             return `
                 <tr>
-                    <td style="font-weight: 500; color: #1e293b;">${log.action || '-'}</td>
+                    <td style="font-weight: 500; color: #1e293b;">${log.description || '-'}</td>
                     <td><span class="scheme-badge rutin" style="text-transform: none;">${log.user_action || '-'}</span></td>
                     <td style="color: #64748b;">${dateStr}</td>
                 </tr>
