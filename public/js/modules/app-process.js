@@ -408,6 +408,21 @@ function bukaModalCutOff(pkwtId, empName, hariKerja = 22, jamLembur = 0, potonga
     document.getElementById('cutoffBonus').value = bonus;
 }
 
+function exportPayrollExcel() {
+    if (!currentPeriodId) {
+        showToast('Please select a period first!', 'error');
+        return;
+    }
+    const clientId = window.selectedClientId || '';
+    if (!clientId) {
+        showToast('Please select a client first!', 'error');
+        return;
+    }
+    
+    // Redirect to download endpoint
+    window.location.href = `${API_URL}/payroll-export/${currentPeriodId}?client_id=${clientId}`;
+}
+
 // Global Closing Handlers
 function tutupModal() { tutupSemuaModal(); }
 function tutupModalSkema() { tutupSemuaModal(); }

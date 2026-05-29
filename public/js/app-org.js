@@ -158,6 +158,10 @@ function tutupModalOrg(){
     if(document.getElementById('modalKaryawan').style.display!=='block'){
         document.getElementById('overlay').style.display='none';
     }
+    if (window.orgNameSelectInstance) {
+        window.orgNameSelectInstance.destroy();
+        window.orgNameSelectInstance = null;
+    }
 }
 
 document.getElementById('formOrg')?.addEventListener('submit',async(e)=>{
