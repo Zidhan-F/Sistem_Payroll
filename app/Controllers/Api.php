@@ -2117,14 +2117,14 @@ class Api extends ResourceController
     {
         // 1. If position is specified, find the client-specific position to get org names,
         //    then map to global STO IDs by name matching
-        $globalPositionId = null;
-        $globalDepartmentId = null;
-        $globalDivisionId = null;
+        $positionId = null;
+        $departmentId = null;
+        $divisionId = null;
         
         if (!empty($positionName)) {
-            // Find the client-specific position and its org hierarchy names
+            // Find the client-specific position and its org hierarchy
             $pos = $this->db->table('positions')
-                      ->select('positions.nama as pos_name, departments.nama as dept_name, divisions.nama as div_name')
+                      ->select('positions.id as position_id, departments.id as department_id, divisions.id as division_id')
                       ->join('departments', 'departments.id = positions.department_id', 'left')
                       ->join('divisions', 'divisions.id = departments.division_id', 'left')
                       ->where('positions.nama', $positionName)
@@ -2133,23 +2133,17 @@ class Api extends ResourceController
                       ->getRow();
             
             if ($pos) {
-                // Map to global STO IDs by name
-                $gPos = $this->db->table('global_positions')->where('nama', $pos->pos_name)->get()->getRow();
-                if ($gPos) $globalPositionId = $gPos->id;
-                
-                $gDept = $this->db->table('global_departments')->where('nama', $pos->dept_name)->get()->getRow();
-                if ($gDept) $globalDepartmentId = $gDept->id;
-                
-                $gDiv = $this->db->table('global_divisions')->where('nama', $pos->div_name)->get()->getRow();
-                if ($gDiv) $globalDivisionId = $gDiv->id;
+                $positionId = $pos->position_id;
+                $departmentId = $pos->department_id;
+                $divisionId = $pos->division_id;
             }
         }
         
-        // 2. Try to search by global position_id
-        if ($globalPositionId) {
+        // 2. Try to search by position_id
+        if ($positionId) {
             $config = $this->db->table('client_payroll_configs')
                          ->where('client_id', $clientId)
-                         ->where('position_id', $globalPositionId)
+                         ->where('position_id', $positionId)
                          ->get()
                          ->getRow();
             if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
@@ -2157,11 +2151,11 @@ class Api extends ResourceController
             }
         }
         
-        // 3. Fallback to global department_id
-        if ($globalDepartmentId) {
+        // 3. Fallback to department_id
+        if ($departmentId) {
             $config = $this->db->table('client_payroll_configs')
                          ->where('client_id', $clientId)
-                         ->where('department_id', $globalDepartmentId)
+                         ->where('department_id', $departmentId)
                          ->where('position_id IS NULL')
                          ->get()
                          ->getRow();
@@ -2170,11 +2164,11 @@ class Api extends ResourceController
             }
         }
         
-        // 4. Fallback to global division_id
-        if ($globalDivisionId) {
+        // 4. Fallback to division_id
+        if ($divisionId) {
             $config = $this->db->table('client_payroll_configs')
                          ->where('client_id', $clientId)
-                         ->where('division_id', $globalDivisionId)
+                         ->where('division_id', $divisionId)
                          ->where('department_id IS NULL')
                          ->where('position_id IS NULL')
                          ->get()

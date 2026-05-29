@@ -650,36 +650,16 @@ window.openModalPilihanSkema = async function() {
     });
 
     try {
-        // Load global STO data + schemes in PARALLEL
-        const [divRes, deptRes, posRes, psRes, tsRes] = await Promise.all([
-            fetch(`${API_URL}/global-divisions`),
-            fetch(`${API_URL}/global-departments`),
-            fetch(`${API_URL}/global-positions`),
+        // Fetch client-specific STO and schemes
+        const [orgRes, psRes, tsRes] = await Promise.all([
+            fetch(`${API_URL}/org?client_id=${window.selectedClientId}`),
             fetch(`${API_URL}/payroll-schemes`),
             fetch(`${API_URL}/tax-schemes`)
         ]);
-        const [globalDivisions, globalDepartments, globalPositions, payrollSchemes, taxSchemes] = await Promise.all([
-            divRes.json(), deptRes.json(), posRes.json(), psRes.json(), tsRes.json()
-        ]);
+        const orgData = await orgRes.json();
+        const payrollSchemes = await psRes.json();
+        const taxSchemes = await tsRes.json();
 
-        // Store globally for reuse
-        window.globalStoData = { divisions: globalDivisions, departments: globalDepartments, positions: globalPositions };
-
-        // Populate divisions
-        if (divSelect) {
-            divSelect.innerHTML = '<option value="">-- Select Division --</option>' +
-                globalDivisions.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
-        }
-        // Populate departments
-        if (deptSelect) {
-            deptSelect.innerHTML = '<option value="">-- Select Department --</option>' +
-                globalDepartments.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
-        }
-        // Populate positions
-        if (posSelect) {
-            posSelect.innerHTML = '<option value="">-- Select Position --</option>' +
-                globalPositions.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
-        }
         // Populate payroll schemes
         if (psSelect) {
             psSelect.innerHTML = '<option value="">-- Pilih Skema Payroll --</option>' +
@@ -691,10 +671,62 @@ window.openModalPilihanSkema = async function() {
                 taxSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
         }
 
-        // Initialize TomSelect on all 5 dropdowns
-        [divSelect, deptSelect, posSelect, psSelect, tsSelect].forEach(el => {
+        // Populate divisions from client STO
+        if (divSelect) {
+            divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>' +
+                orgData.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
+        }
+        if (deptSelect) deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+        if (posSelect) posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+
+        // Initialize non-cascading TomSelects
+        [psSelect, tsSelect].forEach(el => {
             if (el) new TomSelect(el, { create: false, sortField: { field: 'text', direction: 'asc' } });
         });
+
+        // Initialize cascading STO TomSelects
+        let posTs = posSelect ? new TomSelect(posSelect, { create: false, sortField: { field: 'text', direction: 'asc' } }) : null;
+        let deptTs = deptSelect ? new TomSelect(deptSelect, { 
+            create: false, 
+            sortField: { field: 'text', direction: 'asc' },
+            onChange: function(deptId) {
+                if(posTs) {
+                    posTs.clear();
+                    posTs.clearOptions();
+                    if(deptId) {
+                        const divId = divSelect.value;
+                        const division = orgData.find(d => d.id == divId);
+                        if (division && division.departments) {
+                            const dept = division.departments.find(dp => dp.id == deptId);
+                            if (dept && dept.positions) {
+                                dept.positions.forEach(p => posTs.addOption({value: p.id, text: p.nama}));
+                            }
+                        }
+                    }
+                }
+            }
+        }) : null;
+        let divTs = divSelect ? new TomSelect(divSelect, { 
+            create: false, 
+            sortField: { field: 'text', direction: 'asc' },
+            onChange: function(divId) {
+                if(deptTs) {
+                    deptTs.clear();
+                    deptTs.clearOptions();
+                    if(posTs) {
+                        posTs.clear();
+                        posTs.clearOptions();
+                    }
+                    if(divId) {
+                        const division = orgData.find(d => d.id == divId);
+                        if (division && division.departments) {
+                            division.departments.forEach(dp => deptTs.addOption({value: dp.id, text: dp.nama}));
+                        }
+                    }
+                }
+            }
+        }) : null;
+
     } catch (e) {
         console.error('Error loading modal data:', e);
     }
