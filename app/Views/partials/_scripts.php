@@ -5,6 +5,9 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     
+    <!-- SheetJS for client-side Excel (.xlsx) export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
     <!-- Core: Global state, helpers, navigation -->
     <script src="<?= base_url('js/app.js?v=' . time()) ?>"></script>
     <!-- Domain Modules -->

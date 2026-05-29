@@ -1515,6 +1515,10 @@ class Api extends ResourceController
         
         $results = $query->get()->getResultArray();
         
+        if ($this->request->getGet('format') === 'json') {
+            return $this->respond($results);
+        }
+        
         // Define file name
         $periodInfo = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
         $periodName = $periodInfo ? $periodInfo->nama : 'Unknown_Period';

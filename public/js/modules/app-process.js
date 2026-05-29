@@ -129,20 +129,109 @@ async function approveGaji(id) {
 }
 
 // ===== EXPORT =====
-function exportGajiToExcel() {
+async function exportGajiToExcel() {
     if(!currentPeriodId) {
         showToast('Please select a period first.', 'warning');
         return;
     }
     
-    // Construct export URL
-    let url = `${API_URL}/export-payroll/${currentPeriodId}`;
-    if (window.selectedClientId) {
-        url += `?client_id=${window.selectedClientId}`;
-    }
+    showToast('Exporting to Excel...', 'info');
     
-    // Trigger download by opening in a new tab/window
-    window.open(url, '_blank');
+    try {
+        let url = `${API_URL}/export-payroll/${currentPeriodId}?format=json`;
+        if (window.selectedClientId) {
+            url += `&client_id=${window.selectedClientId}`;
+        }
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Failed to fetch export data');
+        }
+        
+        const data = await response.json();
+        if (!data || data.length === 0) {
+            showToast('No payroll data to export.', 'warning');
+            return;
+        }
+        
+        // Format the rows for Excel
+        const formatted = data.map((row, index) => {
+            const bpjsTK = parseFloat(row.bpjs_jht_karyawan || 0) + parseFloat(row.bpjs_jp_karyawan || 0);
+            const bpjsKes = parseFloat(row.bpjs_kes_karyawan || 0);
+            const dob = [row.tempat_lahir, row.tanggal_lahir].filter(Boolean).join(', ') || '-';
+            
+            return {
+                'No': index + 1,
+                'Company / Client': row.client_name || '-',
+                'Employee ID (NIK)': row.employ_id || '-',
+                'Employee Name': row.employee_name || '-',
+                'Place & Date of Birth': dob,
+                'NPWP': row.npwp || '-',
+                'Division': row.division_name || '-',
+                'Department': row.department_name || '-',
+                'Position / Role': row.position_name || '-',
+                'Work Location': row.location_name || '-',
+                'Min. Wage (UMP/UMK)': row.min_wage ? parseFloat(row.min_wage) : 0,
+                'Basic Salary': parseFloat(row.gaji_pokok || 0),
+                'Overtime Pay': parseFloat(row.lembur_pay || 0),
+                'Bonus/Lainnya': parseFloat(row.bonus_tambahan || 0),
+                'Total Income (Pendapatan)': parseFloat(row.total_pendapatan || 0),
+                'Absence Deduction': parseFloat(row.potongan_absen || 0),
+                'BPJS Ketenagakerjaan (Karyawan)': bpjsTK,
+                'BPJS Kesehatan (Karyawan)': bpjsKes,
+                'Tax (PPh21)': parseFloat(row.pph21 || 0),
+                'Total Deductions (Potongan)': parseFloat(row.total_potongan || 0),
+                'Take Home Pay': parseFloat(row.take_home_pay || 0),
+                'Status': row.status_approval || 'Pending'
+            };
+        });
+        
+        // Create SheetJS workbook and worksheet
+        const ws = XLSX.utils.json_to_sheet(formatted);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Payroll Report");
+        
+        // Adjust column widths for clean readability
+        const wscols = [
+            {wch: 5},   // No
+            {wch: 25},  // Company / Client
+            {wch: 18},  // Employee ID (NIK)
+            {wch: 20},  // Employee Name
+            {wch: 22},  // Place & Date of Birth
+            {wch: 20},  // NPWP
+            {wch: 15},  // Division
+            {wch: 15},  // Department
+            {wch: 18},  // Position / Role
+            {wch: 25},  // Work Location
+            {wch: 15},  // Min. Wage (UMP/UMK)
+            {wch: 15},  // Basic Salary
+            {wch: 12},  // Overtime Pay
+            {wch: 15},  // Bonus/Lainnya
+            {wch: 20},  // Total Income (Pendapatan)
+            {wch: 15},  // Absence Deduction
+            {wch: 28},  // BPJS Ketenagakerjaan (Karyawan)
+            {wch: 25},  // BPJS Kesehatan (Karyawan)
+            {wch: 12},  // Tax (PPh21)
+            {wch: 25},  // Total Deductions (Potongan)
+            {wch: 20},  // Take Home Pay
+            {wch: 12}   // Status
+        ];
+        ws['!cols'] = wscols;
+        
+        // Get period name from dropdown selection
+        const select = document.getElementById('selectPeriodInput');
+        let periodText = 'Report';
+        if (select && select.selectedIndex >= 0) {
+            periodText = select.options[select.selectedIndex].text.split('(')[0].trim().replace(/\s+/g, '_');
+        }
+        
+        // Download real .xlsx file
+        XLSX.writeFile(wb, `Payroll_Report_${periodText}.xlsx`);
+        showToast('Export successful!', 'success');
+    } catch (error) {
+        console.error(error);
+        showToast('Export failed: ' + error.message, 'danger');
+    }
 }
 
 // ===== UTILS & MODAL CLOSING =====
