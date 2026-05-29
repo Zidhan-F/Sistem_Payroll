@@ -229,7 +229,12 @@
                                         </table>
                                     </div>
                                     <div id="resultSection" style="margin-top: 30px; display: none;">
-                                        <h4 style="font-size: 14px; margin-bottom: 10px; color: var(--success);">SALARY CALCULATION RESULTS</h4>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                            <h4 style="font-size: 14px; margin: 0; color: var(--success);">SALARY CALCULATION RESULTS</h4>
+                                            <button class="btn-save" onclick="exportPayrollExcel()" style="background: #27ae60; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; color: white; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                                <i class="fas fa-file-excel"></i> Export to Excel
+                                            </button>
+                                        </div>
                                         <div class="table-container">
                                             <table>
                                                 <thead>

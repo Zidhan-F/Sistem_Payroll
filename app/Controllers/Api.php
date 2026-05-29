@@ -508,15 +508,15 @@ class Api extends ResourceController
     public function getClientConfigs()
     {
         $configs = $this->db->table('clients')
-                            ->select('clients.id as client_id, clients.nama as client_name, client_payroll_configs.id as setup_id, payroll_schemes.nama as payroll_scheme_name, tax_schemes.nama as tax_scheme_name, compensation_schemes.nama as compensation_scheme_name, client_payroll_configs.pay_date, client_payroll_configs.cutoff_start, client_payroll_configs.cutoff_end, client_payroll_configs.payroll_scheme_id, client_payroll_configs.tax_scheme_id, client_payroll_configs.compensation_scheme_id, client_payroll_configs.payroll_type, client_payroll_configs.minimum_wage_id, client_payroll_configs.custom_nominal, minimum_wages.nama_daerah as minimum_wage_region, minimum_wages.nominal as minimum_wage_nominal, client_payroll_configs.division_id, client_payroll_configs.department_id, client_payroll_configs.position_id, divisions.nama as division_name, departments.nama as department_name, positions.nama as position_name')
+                            ->select('clients.id as client_id, clients.nama as client_name, client_payroll_configs.id as setup_id, payroll_schemes.nama as payroll_scheme_name, tax_schemes.nama as tax_scheme_name, compensation_schemes.nama as compensation_scheme_name, client_payroll_configs.pay_date, client_payroll_configs.cutoff_start, client_payroll_configs.cutoff_end, client_payroll_configs.payroll_scheme_id, client_payroll_configs.tax_scheme_id, client_payroll_configs.compensation_scheme_id, client_payroll_configs.payroll_type, client_payroll_configs.minimum_wage_id, client_payroll_configs.custom_nominal, minimum_wages.nama_daerah as minimum_wage_region, minimum_wages.nominal as minimum_wage_nominal, client_payroll_configs.division_id, client_payroll_configs.department_id, client_payroll_configs.position_id, global_divisions.nama as division_name, global_departments.nama as department_name, global_positions.nama as position_name')
                             ->join('client_payroll_configs', 'client_payroll_configs.client_id = clients.id', 'left')
                             ->join('payroll_schemes', 'payroll_schemes.id = client_payroll_configs.payroll_scheme_id', 'left')
                             ->join('tax_schemes', 'tax_schemes.id = client_payroll_configs.tax_scheme_id', 'left')
                             ->join('compensation_schemes', 'compensation_schemes.id = client_payroll_configs.compensation_scheme_id', 'left')
                             ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
-                            ->join('divisions', 'divisions.id = client_payroll_configs.division_id', 'left')
-                            ->join('departments', 'departments.id = client_payroll_configs.department_id', 'left')
-                            ->join('positions', 'positions.id = client_payroll_configs.position_id', 'left')
+                            ->join('global_divisions', 'global_divisions.id = client_payroll_configs.division_id', 'left')
+                            ->join('global_departments', 'global_departments.id = client_payroll_configs.department_id', 'left')
+                            ->join('global_positions', 'global_positions.id = client_payroll_configs.position_id', 'left')
                             ->get()
                             ->getResult();
         return $this->respond($configs);
@@ -576,18 +576,18 @@ class Api extends ResourceController
         $configs = $this->db->table('client_payroll_configs')
             ->select('
                 client_payroll_configs.*,
-                divisions.nama as division_name,
-                departments.nama as department_name,
-                positions.nama as position_name,
+                global_divisions.nama as division_name,
+                global_departments.nama as department_name,
+                global_positions.nama as position_name,
                 payroll_schemes.nama as payroll_scheme_name,
                 tax_schemes.nama as tax_scheme_name,
                 compensation_schemes.nama as compensation_scheme_name,
                 minimum_wages.nama_daerah as minimum_wage_region,
                 minimum_wages.nominal as minimum_wage_nominal
             ')
-            ->join('divisions', 'divisions.id = client_payroll_configs.division_id', 'left')
-            ->join('departments', 'departments.id = client_payroll_configs.department_id', 'left')
-            ->join('positions', 'positions.id = client_payroll_configs.position_id', 'left')
+            ->join('global_divisions', 'global_divisions.id = client_payroll_configs.division_id', 'left')
+            ->join('global_departments', 'global_departments.id = client_payroll_configs.department_id', 'left')
+            ->join('global_positions', 'global_positions.id = client_payroll_configs.position_id', 'left')
             ->join('payroll_schemes', 'payroll_schemes.id = client_payroll_configs.payroll_scheme_id', 'left')
             ->join('tax_schemes', 'tax_schemes.id = client_payroll_configs.tax_scheme_id', 'left')
             ->join('compensation_schemes', 'compensation_schemes.id = client_payroll_configs.compensation_scheme_id', 'left')
@@ -2115,32 +2115,41 @@ class Api extends ResourceController
 
     private function resolveClientConfig($clientId, $positionName = null)
     {
-        // 1. If position is specified, try to find the position ID
-        $positionId = null;
-        $departmentId = null;
-        $divisionId = null;
+        // 1. If position is specified, find the client-specific position to get org names,
+        //    then map to global STO IDs by name matching
+        $globalPositionId = null;
+        $globalDepartmentId = null;
+        $globalDivisionId = null;
         
         if (!empty($positionName)) {
+            // Find the client-specific position and its org hierarchy names
             $pos = $this->db->table('positions')
-                      ->select('positions.id as position_id, departments.id as department_id, divisions.id as division_id')
+                      ->select('positions.nama as pos_name, departments.nama as dept_name, divisions.nama as div_name')
                       ->join('departments', 'departments.id = positions.department_id', 'left')
                       ->join('divisions', 'divisions.id = departments.division_id', 'left')
                       ->where('positions.nama', $positionName)
                       ->where('divisions.client_id', $clientId)
                       ->get()
                       ->getRow();
+            
             if ($pos) {
-                $positionId = $pos->position_id;
-                $departmentId = $pos->department_id;
-                $divisionId = $pos->division_id;
+                // Map to global STO IDs by name
+                $gPos = $this->db->table('global_positions')->where('nama', $pos->pos_name)->get()->getRow();
+                if ($gPos) $globalPositionId = $gPos->id;
+                
+                $gDept = $this->db->table('global_departments')->where('nama', $pos->dept_name)->get()->getRow();
+                if ($gDept) $globalDepartmentId = $gDept->id;
+                
+                $gDiv = $this->db->table('global_divisions')->where('nama', $pos->div_name)->get()->getRow();
+                if ($gDiv) $globalDivisionId = $gDiv->id;
             }
         }
         
-        // 2. Try to search by position_id
-        if ($positionId) {
+        // 2. Try to search by global position_id
+        if ($globalPositionId) {
             $config = $this->db->table('client_payroll_configs')
                          ->where('client_id', $clientId)
-                         ->where('position_id', $positionId)
+                         ->where('position_id', $globalPositionId)
                          ->get()
                          ->getRow();
             if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
@@ -2148,11 +2157,11 @@ class Api extends ResourceController
             }
         }
         
-        // 3. Fallback to department_id
-        if ($departmentId) {
+        // 3. Fallback to global department_id
+        if ($globalDepartmentId) {
             $config = $this->db->table('client_payroll_configs')
                          ->where('client_id', $clientId)
-                         ->where('department_id', $departmentId)
+                         ->where('department_id', $globalDepartmentId)
                          ->where('position_id IS NULL')
                          ->get()
                          ->getRow();
@@ -2161,11 +2170,11 @@ class Api extends ResourceController
             }
         }
         
-        // 4. Fallback to division_id
-        if ($divisionId) {
+        // 4. Fallback to global division_id
+        if ($globalDivisionId) {
             $config = $this->db->table('client_payroll_configs')
                          ->where('client_id', $clientId)
-                         ->where('division_id', $divisionId)
+                         ->where('division_id', $globalDivisionId)
                          ->where('department_id IS NULL')
                          ->where('position_id IS NULL')
                          ->get()
@@ -2183,6 +2192,113 @@ class Api extends ResourceController
                   ->where('position_id IS NULL')
                   ->get()
                   ->getRow();
+    }
+
+    public function exportExcel($periodId)
+    {
+        $clientId = $this->request->getGet('client_id');
+        if (!$clientId) {
+            return $this->fail('Client ID required');
+        }
+
+        // Fetch client name for filename
+        $clientName = 'All_Clients';
+        $client = $this->db->table('clients')->where('id', $clientId)->get()->getRow();
+        if ($client) {
+            $clientName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $client->nama);
+        }
+
+        // Fetch period name
+        $periodName = 'Unknown_Period';
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        if ($period) {
+            $periodName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $period->nama);
+        }
+
+        $filename = "Payroll_{$clientName}_{$periodName}.csv";
+
+        // Query payroll results joining employees to get NIK & bank details
+        $query = $this->db->table('payroll_final')
+                         ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, employees.nik, employees.bank_name, employees.no_rekening')
+                         ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
+                         ->join('employees', 'employees.nama = pkwt.employee_name', 'left')
+                         ->where('payroll_final.period_id', $periodId)
+                         ->where('pkwt.client_id', $clientId);
+
+        $data = $query->get()->getResultArray();
+
+        // Stream the CSV
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        $output = fopen('php://output', 'w');
+        
+        // UTF-8 BOM for proper Excel encoding
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Define Headers
+        $headers = [
+            'No', 'NIK', 'Nama Karyawan', 'Jabatan', 'Metode Pajak', 'Status PTKP',
+            'Gaji Pokok', 'Tunjangan Lembur', 'Bonus Tambahan', 'Tunjangan Lainnya',
+            'Total Pendapatan', 'Potongan Absensi', 'BPJS Kes (Karyawan)', 'BPJS JHT (Karyawan)',
+            'BPJS JP (Karyawan)', 'PPh 21', 'Potongan Lainnya', 'Total Potongan',
+            'Take Home Pay (THP)', 'Nama Bank', 'No Rekening'
+        ];
+        fputcsv($output, $headers);
+        
+        $no = 1;
+        foreach ($data as $row) {
+            // Compute Tunjangan Lainnya
+            $lemburPay = floatval($row['lembur_pay'] ?? 0);
+            $bonus = floatval($row['bonus_tambahan'] ?? 0);
+            $taxAllowance = floatval($row['tax_allowance'] ?? 0);
+            $totalPendapatan = floatval($row['total_pendapatan'] ?? 0);
+            $gajiPokok = floatval($row['gaji_pokok'] ?? 0);
+            
+            $tunjanganLainnya = $totalPendapatan - ($gajiPokok + $lemburPay + $bonus + $taxAllowance);
+            if ($tunjanganLainnya < 0) $tunjanganLainnya = 0;
+            
+            // Compute Potongan Lainnya
+            $bpjsKes = floatval($row['bpjs_kes_karyawan'] ?? 0);
+            $bpjsJht = floatval($row['bpjs_jht_karyawan'] ?? 0);
+            $bpjsJp = floatval($row['bpjs_jp_karyawan'] ?? 0);
+            $pph21 = floatval($row['pph21'] ?? 0);
+            $potonganAbsen = floatval($row['potongan_absen'] ?? 0);
+            $totalPotongan = floatval($row['total_potongan'] ?? 0);
+            
+            $taxMethod = $row['tax_method'] ?? 'Gross';
+            $pajakDikurangi = ($taxMethod === 'Net') ? 0 : $pph21;
+            
+            $potonganLainnya = $totalPotongan - ($potonganAbsen + $bpjsKes + $bpjsJht + $bpjsJp + $pajakDikurangi);
+            if ($potonganLainnya < 0) $potonganLainnya = 0;
+            
+            fputcsv($output, [
+                $no++,
+                $row['nik'] ?? '-',
+                $row['employee_name'],
+                $row['position_name'] ?? '-',
+                $taxMethod,
+                $row['ptkp_status'] ?? '-',
+                $gajiPokok,
+                $lemburPay,
+                $bonus,
+                $tunjanganLainnya,
+                $totalPendapatan,
+                $potonganAbsen,
+                $bpjsKes,
+                $bpjsJht,
+                $bpjsJp,
+                $pph21,
+                $potonganLainnya,
+                $totalPotongan,
+                floatval($row['take_home_pay'] ?? 0),
+                $row['bank_name'] ?? '-',
+                $row['no_rekening'] ?? '-'
+            ]);
+        }
+        
+        fclose($output);
+        exit();
     }
 }
 

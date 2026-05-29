@@ -209,10 +209,22 @@ async function populateOrgNameSelect(type, selectedValue = '') {
             placeholder: `Search and select ${type === 'divisi' ? 'division' : type === 'department' ? 'department' : 'position'}...`,
             sortField: { field: "text", direction: "asc" }
         });
+
+        // Sync selected value to the hidden native input #orgName
+        window.orgNameSelectInstance.on('change', function(val) {
+            const orgNameInput = document.getElementById('orgName');
+            if (orgNameInput) {
+                orgNameInput.value = val;
+            }
+        });
         
         // If there's an active select value, set it explicitly in TomSelect
         if (selectedValue) {
             window.orgNameSelectInstance.setValue(selectedValue);
+            const orgNameInput = document.getElementById('orgName');
+            if (orgNameInput) {
+                orgNameInput.value = selectedValue;
+            }
         }
     } catch (err) {
         console.error(`Error loading global list for dropdown:`, err);
