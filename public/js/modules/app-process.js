@@ -78,8 +78,15 @@ async function renderCutOffTable() {
         }
         const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
         const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error('Failed to load attendance data (HTTP ' + res.status + ')');
+        }
         const data = await res.json();
         if (!tbody) return;
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Tidak ada data karyawan aktif untuk periode ini.</td></tr>`;
+            return;
+        }
         tbody.innerHTML = data.map(row => {
             const hariKerja = parseFloat(row.hari_kerja) || 0;
             const jamLembur = parseFloat(row.jam_lembur) || 0;
@@ -95,7 +102,13 @@ async function renderCutOffTable() {
                 <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja || 22}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
             </tr>`;
         }).join('');
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+        console.error(err); 
+        const tbody = document.getElementById('tabelCutOffBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat data cut-off: ${err.message || err}</td></tr>`;
+        }
+    }
 }
 
 async function renderReviewGajiTable() {
@@ -107,6 +120,9 @@ async function renderReviewGajiTable() {
         }
         const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
         const res = await fetch(url);
+        if (!res.ok) {
+            throw new Error('Failed to load payroll results (HTTP ' + res.status + ')');
+        }
         const data = await res.json();
         const section = document.getElementById('resultSection');
         if (!tbody) return;
@@ -131,9 +147,15 @@ async function renderReviewGajiTable() {
             `).join('');
         } else { 
             section.style.display = 'block';
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:#7f8c8d;">No salary data generated for this period.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;
         }
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+        console.error(err); 
+        const tbody = document.getElementById('tabelReviewGajiBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
+        }
+    }
 }
 
 async function generateGaji() {
