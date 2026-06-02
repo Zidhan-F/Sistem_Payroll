@@ -571,9 +571,14 @@ async function loadPositions(cid){
 document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     e.preventDefault();
     const id=document.getElementById('employeeId').value;
+    
+    // Safely resolve client_id ensuring it is never lost/0
+    const rawClientId = selectedClientId || document.getElementById('empClientId').value;
+    const resolvedClientId = rawClientId ? parseInt(rawClientId, 10) : null;
+
     const d={
         nama:document.getElementById('empNama').value,
-        client_id:document.getElementById('empClientId').value,
+        client_id:resolvedClientId,
         tempat_lahir:document.getElementById('empTempatLahir').value,
         tanggal_lahir:document.getElementById('empTanggalLahir').value,
         npwp:document.getElementById('empNpwp').value,
@@ -584,8 +589,10 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         end_contract:document.getElementById('empEndContract').value,
         tipe_perjanjian:document.getElementById('empTipePerjanjian').value,
         hari_kerja: document.getElementById('empHariKerja').value,
-        work_location_id:document.getElementById('empWorkLocationId').value || null,
-        position_id:document.getElementById('empPositionId')?.value || null
+        work_location_id:document.getElementById('empWorkLocationId').value ? parseInt(document.getElementById('empWorkLocationId').value, 10) : null,
+        position_id:document.getElementById('empPositionId')?.value ? parseInt(document.getElementById('empPositionId').value, 10) : null,
+        division_id:document.getElementById('empDivisionId')?.value ? parseInt(document.getElementById('empDivisionId').value, 10) : null,
+        department_id:document.getElementById('empDepartmentId')?.value ? parseInt(document.getElementById('empDepartmentId').value, 10) : null
     };
     // For new employees, generate a dummy nik from employ_id (nik is required by DB)
     if (!id) {
