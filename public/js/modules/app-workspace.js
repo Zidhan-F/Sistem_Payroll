@@ -35,7 +35,191 @@ async function handlePilihanSkemaPayrollTipeChange() {
     }
 }
 
+async function handleSetupPayrollSchemeTipeChange() {
+    const tipe = document.getElementById('setupPayrollSchemeTipe').value;
+    const wilContainer = document.getElementById('setupPayrollSchemeWilayahContainer');
+    const nomContainer = document.getElementById('setupPayrollSchemeNominalContainer');
+    const tplContainer = document.getElementById('setupPayrollSchemeTemplateContainer');
 
+    wilContainer.style.display = 'none';
+    nomContainer.style.display = 'none';
+    tplContainer.style.display = 'none';
+
+    if (tipe === 'UMP' || tipe === 'UMK') {
+        wilContainer.style.display = 'block';
+        await populateMinimumWageDropdown(tipe, 'setupPayrollSchemeWilayah');
+    } else if (tipe === 'Nominal') {
+        nomContainer.style.display = 'block';
+    } else if (tipe === 'Template') {
+        tplContainer.style.display = 'block';
+    }
+}
+
+async function loadWorkspaceSetup() {
+    if (!window.selectedClientId) return;
+    try {
+        const response = await fetch(`${API_URL}/client-configs`);
+        const configs = await response.json();
+        const conf = configs.find(c => c.client_id == window.selectedClientId);
+        
+        document.getElementById('wSetupClientName').innerText = window.selectedClientName || '-';
+        
+        if (conf) {
+            let payrollSchemeText = 'Belum Set';
+            if (conf.payroll_type === 'UMP') {
+                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+            } else if (conf.payroll_type === 'UMK') {
+                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+            } else if (conf.payroll_type === 'Nominal') {
+                payrollSchemeText = `Nominal: Rp ${conf.custom_nominal ? parseFloat(conf.custom_nominal).toLocaleString('id-ID') : '-'}`;
+            } else if (conf.payroll_type === 'Template') {
+                payrollSchemeText = conf.payroll_scheme_name || 'Belum Set';
+            }
+            document.getElementById('wSetupPayrollScheme').innerText = payrollSchemeText;
+            document.getElementById('wSetupBpjsScheme').innerText = conf.bpjs_scheme_name || 'Belum Set';
+            document.getElementById('wSetupTaxScheme').innerText = conf.tax_scheme_name || 'Belum Set';
+            document.getElementById('wSetupPayDate').innerText = conf.pay_date ? `Tgl ${conf.pay_date}` : 'Belum Set';
+            document.getElementById('wSetupCutoff').innerText = conf.cutoff_start ? `${conf.cutoff_start} s/d ${(conf.cutoff_start - 1)}` : 'Belum Set';
+        } else {
+            document.getElementById('wSetupPayrollScheme').innerText = 'Belum Set';
+            document.getElementById('wSetupBpjsScheme').innerText = 'Belum Set';
+            document.getElementById('wSetupTaxScheme').innerText = 'Belum Set';
+            document.getElementById('wSetupPayDate').innerText = 'Belum Set';
+            document.getElementById('wSetupCutoff').innerText = 'Belum Set';
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+// ===== 5. SETUP PAYROLL KLIEN =====
+async function renderClientSetup() {
+    try {
+        const response = await fetch(`${API_URL}/client-configs`);
+        clientConfigs = await response.json();
+        const tbody = document.getElementById('tabelSetupBody');
+        if (!tbody) return;
+        tbody.innerHTML = clientConfigs.map(conf => {
+            let payrollSchemeText = 'Belum Set';
+            if (conf.payroll_type === 'UMP') {
+                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+            } else if (conf.payroll_type === 'UMK') {
+                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Belum Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
+            } else if (conf.payroll_type === 'Nominal') {
+                payrollSchemeText = `Nominal: Rp ${conf.custom_nominal ? parseFloat(conf.custom_nominal).toLocaleString('id-ID') : '-'}`;
+            } else if (conf.payroll_type === 'Template') {
+                payrollSchemeText = conf.payroll_scheme_name || 'Belum Set';
+            }
+            return `
+                <tr>
+                    <td style="font-weight: 600;">${conf.client_name}</td>
+                    <td><span class="scheme-badge bulanan">${payrollSchemeText}</span></td>
+                    <td><span class="scheme-badge" style="background:#e74c3c;">${conf.tax_scheme_name || 'Belum Set'}</span></td>
+                    <td>Tgl ${conf.pay_date || '-'}</td>
+                    <td>${conf.cutoff_start || '-'}-${(conf.cutoff_start - 1) || '-'}</td>
+                    <td>
+                        <button class="btn-icon btn-edit" onclick="bukaModalSetup(${conf.client_id}, '${conf.client_name}')"><i class="fas fa-cog"></i></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) { console.error(err); }
+}
+
+async function bukaModalSetup(clientId, clientName) {
+    document.getElementById('modalSetup').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('setupClientId').value = clientId;
+    document.getElementById('setupClientNama').value = clientName;
+    
+    const pRes = await fetch(`${API_URL}/payroll-schemes`);
+    const pSchemes = await pRes.json();
+    const tRes = await fetch(`${API_URL}/tax-schemes`);
+    const tSchemes = await tRes.json();
+
+    const bpjsOpts = tSchemes.filter(s => s.tipe === 'bpjs');
+    const taxOpts = tSchemes.filter(s => s.tipe === 'pph21');
+
+    document.getElementById('setupPayrollScheme').innerHTML = '<option value="">-- Pilih Skema --</option>' + pSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+    document.getElementById('setupBpjsScheme').innerHTML = '<option value="">-- Pilih Skema BPJS --</option>' + bpjsOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+    document.getElementById('setupTaxScheme').innerHTML = '<option value="">-- Pilih Skema PPh 21 --</option>' + taxOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+    
+    const current = clientConfigs.find(c => c.client_id == clientId);
+    if(current) {
+        document.getElementById('setupPayDate').value = current.pay_date || 25;
+        document.getElementById('setupCutoffStart').value = current.cutoff_start || 21;
+        document.getElementById('setupBpjsScheme').value = current.bpjs_scheme_id || '';
+        document.getElementById('setupTaxScheme').value = current.tax_scheme_id || '';
+        
+        const tipeSelect = document.getElementById('setupPayrollSchemeTipe');
+        if (tipeSelect) {
+            tipeSelect.value = current.payroll_type || '';
+            await handleSetupPayrollSchemeTipeChange();
+            
+            if (current.payroll_type === 'UMP' || current.payroll_type === 'UMK') {
+                const wilSelect = document.getElementById('setupPayrollSchemeWilayah');
+                if (wilSelect && current.minimum_wage_id) {
+                    wilSelect.value = current.minimum_wage_id;
+                }
+            } else if (current.payroll_type === 'Nominal') {
+                const nomInput = document.getElementById('setupPayrollSchemeNominal');
+                if (nomInput && current.custom_nominal) {
+                    nomInput.value = current.custom_nominal;
+                }
+            } else if (current.payroll_type === 'Template') {
+                const tplSelect = document.getElementById('setupPayrollScheme');
+                if (tplSelect && current.payroll_scheme_id) {
+                    tplSelect.value = current.payroll_scheme_id;
+                }
+            }
+        }
+    } else {
+        const tipeSelect = document.getElementById('setupPayrollSchemeTipe');
+        if (tipeSelect) {
+            tipeSelect.value = '';
+            handleSetupPayrollSchemeTipeChange();
+        }
+    }
+}
+
+    // formSetup submit handler
+    if(document.getElementById('formSetup')) {
+        document.getElementById('formSetup').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payrollType = document.getElementById('setupPayrollSchemeTipe').value;
+            const minimumWageId = document.getElementById('setupPayrollSchemeWilayah').value;
+            const customNominal = document.getElementById('setupPayrollSchemeNominal').value;
+            const payrollSchemeId = document.getElementById('setupPayrollScheme').value;
+
+            const data = {
+                client_id: document.getElementById('setupClientId').value,
+                payroll_type: payrollType || null,
+                minimum_wage_id: (payrollType === 'UMP' || payrollType === 'UMK') ? (minimumWageId || null) : null,
+                custom_nominal: (payrollType === 'Nominal') ? (customNominal || null) : null,
+                payroll_scheme_id: (payrollType === 'Template') ? (payrollSchemeId || null) : null,
+                bpjs_scheme_id: document.getElementById('setupBpjsScheme').value || null,
+                tax_scheme_id: document.getElementById('setupTaxScheme').value || null,
+                pay_date: parseInt(document.getElementById('setupPayDate').value),
+                cutoff_start: parseInt(document.getElementById('setupCutoffStart').value)
+            };
+            const res = await fetch(`${API_URL}/client-configs`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                tutupSemuaModal();
+                showToast('Setup Payroll berhasil disimpan!', 'success');
+                if (window.selectedClientId) {
+                    loadWorkspaceSetup();
+                } else {
+                    renderClientSetup();
+                }
+            } else {
+                showToast('Gagal menyimpan Setup Payroll!', 'error');
+            }
+        });
+    }
 
 // ===== PILIHAN SKEMA (Client Workspace Tab) =====
 async function renderPilihanKompensasiSummary(schemeId) {
@@ -199,13 +383,13 @@ async function loadSchemaMappingTable() {
 async function editSchemaMapping(id) {
     try {
         window.editSchemaMappingId = id;
-        await window.openModalPilihanSkema(true);
         
         const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const mappings = await res.json();
         const conf = mappings.find(m => m.id == id);
         if (!conf) return;
         
+        await window.openModalPilihanSkema(true);
         document.getElementById('modalPilihanSkemaTitle').innerText = 'Edit Client Scheme';
         
         // Use TomSelect setValue for org structure dropdowns
@@ -218,12 +402,10 @@ async function editSchemaMapping(id) {
 
         if (conf.division_id && divEl && divEl.tomselect) {
             divEl.tomselect.setValue(conf.division_id);
-        }
-        if (conf.department_id && deptEl && deptEl.tomselect) {
-            deptEl.tomselect.setValue(conf.department_id);
-        }
-        if (conf.position_id && posEl && posEl.tomselect) {
-            posEl.tomselect.setValue(conf.position_id);
+            window.updateModalDeptDropdown(conf.division_id, conf.department_id);
+            if (conf.department_id) {
+                window.updateModalPosDropdown(conf.division_id, conf.department_id, conf.position_id);
+            }
         }
         if (conf.payroll_scheme_id && psEl && psEl.tomselect) {
             psEl.tomselect.setValue(conf.payroll_scheme_id);
@@ -545,7 +727,8 @@ window.simpanPilihanSkema = async function() {
                 loadPilihanSkemaKlienTable(); // reload friend's UI
             }
             await loadSchemaMappingTable();
-
+            // Also update the Setup Payroll tab data
+            loadWorkspaceSetup();
         } else {
             const d = await res.json();
             let msg = 'Gagal menyimpan pilihan skema!';
@@ -558,6 +741,73 @@ window.simpanPilihanSkema = async function() {
         showToast('Gagal menyimpan pilihan skema!', 'error');
     }
 }
+
+window.updateModalDeptDropdown = function(divId, selectedDeptId = '') {
+    const deptSelect = document.getElementById('modalPilihanSkemaDepartemen');
+    if (!deptSelect) return;
+    
+    if (deptSelect.tomselect) {
+        deptSelect.tomselect.destroy();
+    }
+    
+    deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+    
+    if (divId && Array.isArray(wsClientOrgHierarchy)) {
+        const division = wsClientOrgHierarchy.find(d => d.id == divId);
+        if (division && Array.isArray(division.departments)) {
+            division.departments.forEach(dept => {
+                deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
+            });
+        }
+    }
+    
+    new TomSelect(deptSelect, { 
+        create: false, 
+        sortField: { field: 'text', direction: 'asc' } 
+    });
+    
+    deptSelect.tomselect.on('change', (val) => {
+        window.updateModalPosDropdown(divId, val);
+    });
+
+    if (selectedDeptId) {
+        deptSelect.tomselect.setValue(selectedDeptId);
+    } else {
+        window.updateModalPosDropdown(divId, '');
+    }
+};
+
+window.updateModalPosDropdown = function(divId, deptId, selectedPosId = '') {
+    const posSelect = document.getElementById('modalPilihanSkemaPosisi');
+    if (!posSelect) return;
+    
+    if (posSelect.tomselect) {
+        posSelect.tomselect.destroy();
+    }
+    
+    posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+    
+    if (divId && deptId && Array.isArray(wsClientOrgHierarchy)) {
+        const division = wsClientOrgHierarchy.find(d => d.id == divId);
+        if (division && Array.isArray(division.departments)) {
+            const dept = division.departments.find(dp => dp.id == deptId);
+            if (dept && Array.isArray(dept.positions)) {
+                dept.positions.forEach(pos => {
+                    posSelect.innerHTML += `<option value="${pos.id}">${pos.nama}</option>`;
+                });
+            }
+        }
+    }
+    
+    new TomSelect(posSelect, { 
+        create: false, 
+        sortField: { field: 'text', direction: 'asc' } 
+    });
+    
+    if (selectedPosId) {
+        posSelect.tomselect.setValue(selectedPosId);
+    }
+};
 
 window.openModalPilihanSkema = async function(isEdit = false) {
     if (!window.selectedClientId) {
@@ -603,17 +853,13 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     });
 
     try {
-        // Fetch Global STO data and schemes in parallel
-        const [divRes, deptRes, posRes, psRes, tsRes] = await Promise.all([
-            fetch(`${API_URL}/global-divisions`),
-            fetch(`${API_URL}/global-departments`),
-            fetch(`${API_URL}/global-positions`),
+        // Fetch client-specific org hierarchy and schemes in parallel
+        const [orgRes, psRes, tsRes] = await Promise.all([
+            fetch(`${API_URL}/org?client_id=${window.selectedClientId}`),
             fetch(`${API_URL}/payroll-schemes`),
             fetch(`${API_URL}/tax-schemes`)
         ]);
-        const globalDivisions = await divRes.json();
-        const globalDepartments = await deptRes.json();
-        const globalPositions = await posRes.json();
+        wsClientOrgHierarchy = await orgRes.json();
         const payrollSchemes = await psRes.json();
         const taxSchemes = await tsRes.json();
 
@@ -642,28 +888,32 @@ window.openModalPilihanSkema = async function(isEdit = false) {
                 taxOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
         }
 
-        // Populate divisions from Global STO
+        // Populate divisions from client-specific org hierarchy
         if (divSelect) {
             divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>' +
-                globalDivisions.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
+                wsClientOrgHierarchy.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
         }
-        // Populate departments from Global STO
+        // Populate empty placeholders for departments and positions
         if (deptSelect) {
-            deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>' +
-                globalDepartments.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
+            deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
         }
-        // Populate positions from Global STO
         if (posSelect) {
-            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>' +
-                globalPositions.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
+            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
         }
 
-        // Initialize all TomSelects (excluding bpjsSelect)
+        // Initialize all TomSelects
         [psSelect, tsSelect, divSelect, deptSelect, posSelect].forEach(el => {
             if (el) {
                 new TomSelect(el, { create: false, sortField: { field: 'text', direction: 'asc' } });
             }
         });
+
+        // Bind cascading change listeners
+        if (divSelect && divSelect.tomselect) {
+            divSelect.tomselect.on('change', (val) => {
+                window.updateModalDeptDropdown(val);
+            });
+        }
 
         // Trigger change handler if not editing to ensure fields are fresh
         if (!isEdit && bpjsSelect && bpjsSelect.value) {
@@ -673,7 +923,7 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     } catch (e) {
         console.error('Error loading modal data:', e);
     }
-};window.handleModalPilihanSkemaBpjsChange = function(value) {
+};window.handleModalPilihanSkemaBpjsChange = function(value) {
     const fieldsDiv = document.getElementById('modalClientBpjsOverrideFields');
     if (!fieldsDiv) return;
 

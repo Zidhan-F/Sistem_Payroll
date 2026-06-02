@@ -1027,12 +1027,12 @@
                     </div>
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Position / Role</label>
-                        <select id="empPositionId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <select id="empPositionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                             <option value="">-- Select Position --</option>
                         </select>
-                        <div id="schemaInfoContainer" style="margin-top: 6px; font-size: 12px; font-weight: 500; display: none; padding: 6px 10px; border-radius: 6px; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569;"></div>
                     </div>
                 </div>
+                <div id="schemaInfoContainer" style="margin-top: -5px; margin-bottom: 15px; font-size: 12px; font-weight: 500; display: none; padding: 10px 14px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569;"></div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Work Location</label>
