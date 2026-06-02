@@ -1399,16 +1399,33 @@ class Api extends ResourceController
 
             if ($isBasicSalary) {
                 $base_nilai = floatval($comp['nilai']);
+                $sumber_nilai = $comp['sumber_nilai'] ?? 'nominal';
+                
+                // Force check against actual client scheme if available
+                if (isset($clientConfig) && $clientConfig->payroll_scheme_id) {
+                    $schemeComp = $this->db->table('payroll_components')
+                        ->where('scheme_id', $clientConfig->payroll_scheme_id)
+                        ->where('jenis_komponen', 'basic_salary')
+                        ->get()->getRow();
+                    if ($schemeComp) {
+                        $sumber_nilai = $schemeComp->sumber_nilai ?? 'nominal';
+                        $base_nilai = floatval($schemeComp->nilai);
+                    }
+                }
                 
                 // Check source
-                if (isset($comp['sumber_nilai'])) {
-                    if ($comp['sumber_nilai'] === 'ump') {
-                        $base_nilai = $umpWageValue * ($base_nilai / 100);
-                    } else if ($comp['sumber_nilai'] === 'umk') {
-                        $base_nilai = $umkWageValue * ($base_nilai / 100);
-                    } else if ($comp['sumber_nilai'] === 'ump_umk') {
-                        $base_nilai = $minimumWage * ($base_nilai / 100);
-                    } else if ($comp['sumber_nilai'] === 'kompensasi') {
+                if ($sumber_nilai === 'ump') {
+                    $base_nilai = $umpWageValue * ($base_nilai / 100);
+                } else if ($sumber_nilai === 'umk') {
+                    $base_nilai = $umkWageValue * ($base_nilai / 100);
+                } else if ($sumber_nilai === 'ump_umk') {
+                    $base_nilai = $minimumWage * ($base_nilai / 100);
+                } else if ($sumber_nilai === 'nominal') {
+                    // Always use the latest Gaji Pokok from employee data
+                    if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
+                        $base_nilai = floatval($emp->gaji_pokok);
+                    }
+                } else if ($sumber_nilai === 'kompensasi') {
                         $kompTetapValue = 0;
                         foreach ($fixed as $c) {
                             if (($c['jenis_komponen'] ?? '') === 'kompensasi' && ($c['sifat_kompensasi'] ?? '') === 'tetap') {
