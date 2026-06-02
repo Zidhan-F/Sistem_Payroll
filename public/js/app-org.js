@@ -261,6 +261,7 @@ window.updateEmpDeptDropdown = function(clientId, divId, selectedDeptId = '') {
     });
     
     deptSelect.tomselect.on('change', (val) => {
+        if (window.isEmpOrgInitializing) return; // Prevent race during load
         window.updateEmpPosDropdown(clientId, divId, val);
         if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
     });
@@ -268,7 +269,9 @@ window.updateEmpDeptDropdown = function(clientId, divId, selectedDeptId = '') {
     if (selectedDeptId) {
         deptSelect.tomselect.setValue(selectedDeptId);
     } else {
-        window.updateEmpPosDropdown(clientId, divId, '');
+        if (!window.isEmpOrgInitializing) {
+            window.updateEmpPosDropdown(clientId, divId, '');
+        }
     }
 };
 
@@ -300,6 +303,7 @@ window.updateEmpPosDropdown = function(clientId, divId, deptId, selectedPosId = 
     });
     
     posSelect.tomselect.on('change', () => {
+        if (window.isEmpOrgInitializing) return; // Prevent race during load
         if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
     });
     
@@ -341,25 +345,35 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
         
         // Listen to changes to trigger cascading & schema check
         divSelect.tomselect.on('change', (val) => {
+            if (window.isEmpOrgInitializing) return; // Prevent race during load
             window.updateEmpDeptDropdown(clientId, val);
             if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         });
 
         deptSelect.tomselect.on('change', (val) => {
+            if (window.isEmpOrgInitializing) return; // Prevent race during load
             window.updateEmpPosDropdown(clientId, divSelect.value, val);
             if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         });
 
         posSelect.tomselect.on('change', () => {
+            if (window.isEmpOrgInitializing) return; // Prevent race during load
             if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
         });
 
         // Set edit values sequentially if provided
         if (selectedDivId) {
-            divSelect.tomselect.setValue(selectedDivId);
-            window.updateEmpDeptDropdown(clientId, selectedDivId, selectedDeptId);
-            if (selectedDeptId) {
-                window.updateEmpPosDropdown(clientId, selectedDivId, selectedDeptId, selectedPosId);
+            window.isEmpOrgInitializing = true;
+            try {
+                divSelect.tomselect.setValue(selectedDivId);
+                window.updateEmpDeptDropdown(clientId, selectedDivId, selectedDeptId);
+                if (selectedDeptId) {
+                    window.updateEmpPosDropdown(clientId, selectedDivId, selectedDeptId, selectedPosId);
+                }
+            } finally {
+                setTimeout(() => {
+                    window.isEmpOrgInitializing = false;
+                }, 100);
             }
         }
 
