@@ -485,6 +485,21 @@ header {
     box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.12);
 }
 
+/* ===== Global Focus Orange Border for ALL Inputs, Selects & Textareas ===== */
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+    outline: none !important;
+}
+
+input:hover,
+textarea:hover,
+select:hover {
+    border-color: #bbb !important;
+}
+
 /* ===== Table Styles ===== */
 .table-container {
     width: 100%;
@@ -2453,8 +2468,50 @@ body.modal-open, html.modal-open {
     }
 }
 
+/* Styling Tom Select wrapper, control, dropdown and focus/active states to match our design system */
+.ts-wrapper {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+.ts-wrapper .ts-control {
+    border: 1px solid var(--primary-color) !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+    background: var(--white) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    min-height: 45px;
+}
+
+.ts-wrapper:hover .ts-control {
+    border-color: #d6840f !important;
+}
+
+.ts-wrapper.focus .ts-control {
+    border-color: var(--primary-color) !important;
+    box-shadow:
+        0 0 0 3px rgba(243, 156, 18, 0.25),
+        0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+.ts-wrapper.focus:hover .ts-control {
+    border-color: #d6840f !important;
+}
+
+.ts-wrapper.disabled .ts-control {
+    background-color: #f8fafc !important;
+    border-color: rgba(243, 156, 18, 0.4) !important;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
 /* Fix for Tom Select search input inheriting global form group styles */
-.form-group .ts-wrapper .ts-control input {
+.ts-wrapper .ts-control input {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -2464,6 +2521,29 @@ body.modal-open, html.modal-open {
     height: auto !important;
     min-height: 0 !important;
 }
+
+/* Tom Select Dropdown List Styling */
+.ts-dropdown {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    margin-top: 5px !important;
+    overflow: hidden !important;
+    background: var(--white) !important;
+    z-index: 1050 !important;
+}
+
+.ts-dropdown .option {
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.ts-dropdown .option.active {
+    background-color: rgba(243, 156, 18, 0.1) !important;
+    color: var(--primary-dark) !important;
+}
+
 
 /* Premium Sticky Action Column styling for wide tables */
 .table-container th:last-child,

@@ -50,9 +50,24 @@ function bukaModalPKWT() {
     document.getElementById('overlay').style.display = 'block';
     fetch(`${API_URL}/clients`).then(r => r.json()).then(data => {
         const select = document.getElementById('pkwtClientId');
+        if (select.tomselect) {
+            select.tomselect.destroy();
+        }
         select.innerHTML = '<option value="">-- Select Client --</option>' + data.map(c => `<option value="${c.id}">${c.nama}</option>`).join('');
+        
+        new TomSelect(select, {
+            create: false,
+            sortField: { field: "text", direction: "asc" }
+        });
+
+        select.tomselect.on('change', () => {
+            if (typeof window.updatePKWTSchemeInfo === 'function') {
+                window.updatePKWTSchemeInfo();
+            }
+        });
+
         if (window.selectedClientId) {
-            select.value = window.selectedClientId;
+            select.tomselect.setValue(window.selectedClientId);
             if (typeof window.updatePKWTSchemeInfo === 'function') {
                 window.updatePKWTSchemeInfo();
             }

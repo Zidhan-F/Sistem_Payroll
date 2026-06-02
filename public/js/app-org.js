@@ -236,6 +236,78 @@ async function renderTableKaryawanClient(){
 
 let clientOrgHierarchy = [];
 
+window.updateEmpDeptDropdown = function(clientId, divId, selectedDeptId = '') {
+    const deptSelect = document.getElementById('empDepartmentId');
+    if (!deptSelect) return;
+    
+    if (deptSelect.tomselect) {
+        deptSelect.tomselect.destroy();
+    }
+    
+    deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
+    
+    if (divId && Array.isArray(clientOrgHierarchy)) {
+        const division = clientOrgHierarchy.find(d => d.id == divId);
+        if (division && Array.isArray(division.departments)) {
+            division.departments.forEach(dept => {
+                deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
+            });
+        }
+    }
+    
+    new TomSelect(deptSelect, { 
+        create: false, 
+        sortField: { field: 'text', direction: 'asc' } 
+    });
+    
+    deptSelect.tomselect.on('change', (val) => {
+        window.updateEmpPosDropdown(clientId, divId, val);
+        if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
+    });
+
+    if (selectedDeptId) {
+        deptSelect.tomselect.setValue(selectedDeptId);
+    } else {
+        window.updateEmpPosDropdown(clientId, divId, '');
+    }
+};
+
+window.updateEmpPosDropdown = function(clientId, divId, deptId, selectedPosId = '') {
+    const posSelect = document.getElementById('empPositionId');
+    if (!posSelect) return;
+    
+    if (posSelect.tomselect) {
+        posSelect.tomselect.destroy();
+    }
+    
+    posSelect.innerHTML = '<option value="">-- Select Position --</option>';
+    
+    if (divId && deptId && Array.isArray(clientOrgHierarchy)) {
+        const division = clientOrgHierarchy.find(d => d.id == divId);
+        if (division && Array.isArray(division.departments)) {
+            const dept = division.departments.find(dp => dp.id == deptId);
+            if (dept && Array.isArray(dept.positions)) {
+                dept.positions.forEach(pos => {
+                    posSelect.innerHTML += `<option value="${pos.id}">${pos.nama}</option>`;
+                });
+            }
+        }
+    }
+    
+    new TomSelect(posSelect, { 
+        create: false, 
+        sortField: { field: 'text', direction: 'asc' } 
+    });
+    
+    posSelect.tomselect.on('change', () => {
+        if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
+    });
+    
+    if (selectedPosId) {
+        posSelect.tomselect.setValue(selectedPosId);
+    }
+};
+
 async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = null, selectedPosId = null) {
     const divSelect = document.getElementById('empDivisionId');
     const deptSelect = document.getElementById('empDepartmentId');
@@ -253,50 +325,43 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     
     try {
-        const [divRes, deptRes, posRes] = await Promise.all([
-            fetch(`${API}/global-divisions`),
-            fetch(`${API}/global-departments`),
-            fetch(`${API}/global-positions`)
-        ]);
-        const globalDivisions = await divRes.json();
-        const globalDepartments = await deptRes.json();
-        const globalPositions = await posRes.json();
+        const r = await fetch(`${API}/org?client_id=${clientId}`);
+        clientOrgHierarchy = await r.json();
         
-        if (Array.isArray(globalDivisions)) {
-            globalDivisions.forEach(div => {
+        if (Array.isArray(clientOrgHierarchy)) {
+            clientOrgHierarchy.forEach(div => {
                 divSelect.innerHTML += `<option value="${div.id}">${div.nama}</option>`;
             });
         }
-        
-        if (Array.isArray(globalDepartments)) {
-            globalDepartments.forEach(dept => {
-                deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
-            });
-        }
-        
-        if (Array.isArray(globalPositions)) {
-            globalPositions.forEach(pos => {
-                posSelect.innerHTML += `<option value="${pos.id}">${pos.nama}</option>`;
-            });
-        }
 
-        // Initialize TomSelects independently
+        // Initialize TomSelects
         new TomSelect(divSelect, { create: false, sortField: { field: "text", direction: "asc" } });
         new TomSelect(deptSelect, { create: false, sortField: { field: "text", direction: "asc" } });
         new TomSelect(posSelect, { create: false, sortField: { field: "text", direction: "asc" } });
         
-        // Listen to changes to trigger schema check
-        const onChangeTrigger = () => {
+        // Listen to changes to trigger cascading & schema check
+        divSelect.tomselect.on('change', (val) => {
+            window.updateEmpDeptDropdown(clientId, val);
             if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
-        };
+        });
 
-        divSelect.tomselect.on('change', onChangeTrigger);
-        deptSelect.tomselect.on('change', onChangeTrigger);
-        posSelect.tomselect.on('change', onChangeTrigger);
+        deptSelect.tomselect.on('change', (val) => {
+            window.updateEmpPosDropdown(clientId, divSelect.value, val);
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
+        });
 
-        if (selectedDivId) divSelect.tomselect.setValue(selectedDivId);
-        if (selectedDeptId) deptSelect.tomselect.setValue(selectedDeptId);
-        if (selectedPosId) posSelect.tomselect.setValue(selectedPosId);
+        posSelect.tomselect.on('change', () => {
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
+        });
+
+        // Set edit values sequentially if provided
+        if (selectedDivId) {
+            divSelect.tomselect.setValue(selectedDivId);
+            window.updateEmpDeptDropdown(clientId, selectedDivId, selectedDeptId);
+            if (selectedDeptId) {
+                window.updateEmpPosDropdown(clientId, selectedDivId, selectedDeptId, selectedPosId);
+            }
+        }
 
     } catch (e) {
         console.error('Error loading org selects:', e);

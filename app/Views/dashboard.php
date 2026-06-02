@@ -614,13 +614,14 @@
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Department</th>
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Position</th>
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Payroll Scheme</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">BPJS & Tax Scheme</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">BPJS Scheme</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">PPh 21 Scheme</th>
                                                         <th style="padding: 15px; text-align: center; font-weight: 600; font-size: 13px;">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tabelPilihanSkemaKlien">
                                                     <tr>
-                                                        <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                                        <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
                                                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                                                             No payroll schemes registered yet. Click "Add Scheme" to configure.
                                                         </td>
