@@ -959,7 +959,7 @@ class Api extends ResourceController
                     // Scale by period
                     if (isset($comp->periode)) {
                         if ($comp->periode === 'hari') {
-                            $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                            $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                             $base_nilai = $base_nilai * $days;
                         } elseif ($comp->periode === 'minggu') {
                             $base_nilai = $base_nilai * 4;
@@ -968,7 +968,7 @@ class Api extends ResourceController
                         } else {
                             // bulanan
                             if ($isProrate) {
-                                $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                                $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                                 $base_nilai = $base_nilai * ($days / $daysInMonth);
                             }
                         }
@@ -983,7 +983,7 @@ class Api extends ResourceController
                 $unproratedGajiPokok = floatval($emp->gaji_pokok);
                 $gajiPokok = $unproratedGajiPokok;
                 if ($isProrate) {
-                    $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                    $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                     $gajiPokok = $gajiPokok * ($days / $daysInMonth);
                 }
             }
@@ -1036,7 +1036,7 @@ class Api extends ResourceController
                         
                         // Scale by period
                         if ($comp->periode === 'hari') {
-                            $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                            $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                             $nilai = $base_nilai * $days;
                         } elseif ($comp->periode === 'minggu') {
                             $nilai = $base_nilai * 4;
@@ -1046,8 +1046,8 @@ class Api extends ResourceController
                             // bulanan
                             // Tunjangan tetap: Nilai tunjangan tetap bersifat konstan setiap periode (TIDAK terprorate)
                             if ($isProrate && isset($comp->sifat_kompensasi) && $comp->sifat_kompensasi === 'tidak_tetap') {
-                                $days = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
-                                $nilai = $base_nilai * ($days / 21);
+                                $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
+                                $nilai = $base_nilai * ($days / $stdWorkingDays);
                             } else {
                                 $nilai = $base_nilai;
                             }
