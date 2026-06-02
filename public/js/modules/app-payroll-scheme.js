@@ -6,13 +6,17 @@ let payrollSchemes = [];
 
 async function renderPayrollSchemes() {
     try {
+        const container = document.getElementById('payrollSchemesContainer');
+        if (container) {
+            container.innerHTML = `<div style="text-align: center; padding: 40px; color: #94a3b8; width: 100%;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</div>`;
+        }
+
         if (!window.compensationSchemes) {
             const compRes = await fetch(`${API_URL}/compensation-schemes`);
             window.compensationSchemes = await compRes.json();
         }
         const res = await fetch(`${API_URL}/payroll-schemes`);
         payrollSchemes = await res.json();
-        const container = document.getElementById('payrollSchemesContainer');
         if(!container) return;
         container.innerHTML = payrollSchemes.map(scheme => {
             const basic = scheme.components ? scheme.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok') || c.nama.includes('Basic Salary')) : null;

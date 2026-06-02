@@ -77,9 +77,13 @@
 // ===== MASTER SKEMA KOMPENSASI =====
 async function renderMasterKompensasi() {
     try {
+        const container = document.getElementById('compensationSchemesContainer');
+        if (container) {
+            container.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+
         const res = await fetch(`${API_URL}/compensation-schemes`);
         window.compensationSchemes = await res.json();
-        const container = document.getElementById('compensationSchemesContainer');
         if (!container) return;
         
         if (window.compensationSchemes.length === 0) {

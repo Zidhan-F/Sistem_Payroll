@@ -17,6 +17,13 @@ async function renderUmrTable() {
         const tipe = document.getElementById('selectUmrType')?.value || currentUmrType;
         const tahun = document.getElementById('selectUmrYear')?.value || new Date().getFullYear();
         
+        // Show loading state
+        const tbody = document.getElementById('tabelUmrBody');
+        if (tbody) {
+            const colSpan = (tipe === 'UMP') ? 4 : 5;
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+        
         const response = await fetch(`${API_URL}/minimum-wages?tipe=${tipe}&tahun=${tahun}`);
         umrAllData = await response.json();
         
