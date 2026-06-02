@@ -581,6 +581,99 @@ window.simpanPilihanSkema = async function() {
     }
 
     try {
+        if (isModal && bpjsSchemeId) {
+            // Read current override values from form inputs
+            const currentValues = {
+                bpjs_kes_karyawan: parseFloat(document.getElementById('mClientBpjsKesKaryawan').value) || 0,
+                bpjs_kes_perusahaan: parseFloat(document.getElementById('mClientBpjsKesPerusahaan').value) || 0,
+                bpjs_kes_max_salary: parseFormattedNumber(document.getElementById('mClientBpjsKesMaxSalary').value) || 0,
+                bpjs_jht_karyawan: parseFloat(document.getElementById('mClientBpjsJhtKaryawan').value) || 0,
+                bpjs_jht_perusahaan: parseFloat(document.getElementById('mClientBpjsJhtPerusahaan').value) || 0,
+                bpjs_jp_karyawan: parseFloat(document.getElementById('mClientBpjsJpKaryawan').value) || 0,
+                bpjs_jp_perusahaan: parseFloat(document.getElementById('mClientBpjsJpPerusahaan').value) || 0,
+                bpjs_jp_max_salary: parseFormattedNumber(document.getElementById('mClientBpjsJpMaxSalary').value) || 0,
+                bpjs_jkk_perusahaan: parseFloat(document.getElementById('mClientBpjsJkkPerusahaan').value) || 0,
+                bpjs_jkm_perusahaan: parseFloat(document.getElementById('mClientBpjsJkmPerusahaan').value) || 0
+            };
+
+            const original = window.modalClientBpjsOriginalValues;
+            const isModified = !original ||
+                original.bpjs_kes_karyawan !== currentValues.bpjs_kes_karyawan ||
+                original.bpjs_kes_perusahaan !== currentValues.bpjs_kes_perusahaan ||
+                original.bpjs_kes_max_salary !== currentValues.bpjs_kes_max_salary ||
+                original.bpjs_jht_karyawan !== currentValues.bpjs_jht_karyawan ||
+                original.bpjs_jht_perusahaan !== currentValues.bpjs_jht_perusahaan ||
+                original.bpjs_jp_karyawan !== currentValues.bpjs_jp_karyawan ||
+                original.bpjs_jp_perusahaan !== currentValues.bpjs_jp_perusahaan ||
+                original.bpjs_jp_max_salary !== currentValues.bpjs_jp_max_salary ||
+                original.bpjs_jkk_perusahaan !== currentValues.bpjs_jkk_perusahaan ||
+                original.bpjs_jkm_perusahaan !== currentValues.bpjs_jkm_perusahaan;
+
+            if (isModified) {
+                // Find current scheme
+                const selectedScheme = (window.workspaceBpjsSchemes || []).find(s => s.id == bpjsSchemeId);
+                const isAlreadyCustom = selectedScheme && selectedScheme.nama && selectedScheme.nama.startsWith('Custom BPJS -');
+                
+                if (isAlreadyCustom) {
+                    // Update in place
+                    try {
+                        const putRes = await fetch(`${API_URL}/tax-schemes/${bpjsSchemeId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nama: selectedScheme.nama,
+                                tipe: 'bpjs',
+                                ...currentValues
+                            })
+                        });
+                        if (!putRes.ok) {
+                            console.error('Failed to update custom BPJS scheme');
+                        }
+                    } catch (err) {
+                        console.error('Error updating custom BPJS scheme:', err);
+                    }
+                } else {
+                    // Create a new custom BPJS scheme
+                    const clientName = document.getElementById('modalPilihanSkemaNamaKlien').value || 'Client';
+                    const divEl = document.getElementById('modalPilihanSkemaDivisi');
+                    const deptEl = document.getElementById('modalPilihanSkemaDepartemen');
+                    const posEl = document.getElementById('modalPilihanSkemaPosisi');
+                    const divText = divEl && divEl.tomselect ? divEl.tomselect.getItem(divEl.value)?.textContent?.trim() : '';
+                    const deptText = deptEl && deptEl.tomselect ? deptEl.tomselect.getItem(deptEl.value)?.textContent?.trim() : '';
+                    const posText = posEl && posEl.tomselect ? posEl.tomselect.getItem(posEl.value)?.textContent?.trim() : '';
+
+                    let orgInfo = 'General';
+                    if (posText) orgInfo = `Posisi: ${posText}`;
+                    else if (deptText) orgInfo = `Departemen: ${deptText}`;
+                    else if (divText) orgInfo = `Divisi: ${divText}`;
+
+                    const customName = `Custom BPJS - ${clientName} (${orgInfo})`;
+                    
+                    try {
+                        const postRes = await fetch(`${API_URL}/tax-schemes`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nama: customName,
+                                tipe: 'bpjs',
+                                ...currentValues
+                            })
+                        });
+                        if (postRes.ok) {
+                            const resData = await postRes.json();
+                            if (resData && resData.id) {
+                                bpjsSchemeId = resData.id;
+                            }
+                        } else {
+                            console.error('Failed to create custom BPJS scheme');
+                        }
+                    } catch (err) {
+                        console.error('Error creating custom BPJS scheme:', err);
+                    }
+                }
+            }
+        }
+
         // Load existing general config to preserve pay_date and cutoff
         const cfgRes = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const configs = await cfgRes.json();
@@ -703,10 +796,17 @@ window.openModalPilihanSkema = async function() {
         const bpjsOpts = taxSchemes.filter(s => s.tipe === 'bpjs');
         const taxOpts = taxSchemes.filter(s => s.tipe === 'pph21');
 
+        window.workspaceBpjsSchemes = bpjsOpts;
+
         // Populate bpjs schemes
         if (bpjsSelect) {
             bpjsSelect.innerHTML = '<option value="">-- Pilih Skema BPJS --</option>' +
                 bpjsOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+            
+            // Default to the first BPJS option if we are not editing
+            if (!window.editSchemaMappingId && bpjsOpts.length > 0) {
+                bpjsSelect.value = bpjsOpts[0].id;
+            }
         }
         // Populate tax schemes
         if (tsSelect) {
@@ -732,17 +832,85 @@ window.openModalPilihanSkema = async function() {
 
         // Initialize all TomSelects (independent, non-cascading since Global STO is flat)
         [psSelect, bpjsSelect, tsSelect, divSelect, deptSelect, posSelect].forEach(el => {
-            if (el) new TomSelect(el, { create: false, sortField: { field: 'text', direction: 'asc' } });
+            if (el) {
+                const tsInstance = new TomSelect(el, { create: false, sortField: { field: 'text', direction: 'asc' } });
+                if (el.id === 'modalPilihanSkemaBpjs') {
+                    tsInstance.on('change', function(val) {
+                        window.handleModalPilihanSkemaBpjsChange(val);
+                    });
+                }
+            }
         });
+
+        // Trigger change handler if a default BPJS is selected
+        if (bpjsSelect && bpjsSelect.value) {
+            window.handleModalPilihanSkemaBpjsChange(bpjsSelect.value);
+        }
 
     } catch (e) {
         console.error('Error loading modal data:', e);
     }
 };
 
+window.handleModalPilihanSkemaBpjsChange = function(value) {
+    const fieldsDiv = document.getElementById('modalClientBpjsOverrideFields');
+    if (!fieldsDiv) return;
+
+    if (!value) {
+        fieldsDiv.style.display = 'none';
+        window.modalClientBpjsOriginalValues = null;
+        return;
+    }
+
+    const schemes = window.workspaceBpjsSchemes || [];
+    const scheme = schemes.find(s => s.id == value);
+    if (!scheme) {
+        fieldsDiv.style.display = 'none';
+        window.modalClientBpjsOriginalValues = null;
+        return;
+    }
+
+    // Show override fields
+    fieldsDiv.style.display = 'flex';
+
+    // Populate values
+    document.getElementById('mClientBpjsKesKaryawan').value = scheme.bpjs_kes_karyawan !== undefined && scheme.bpjs_kes_karyawan !== null ? scheme.bpjs_kes_karyawan : "1.00";
+    document.getElementById('mClientBpjsKesPerusahaan').value = scheme.bpjs_kes_perusahaan !== undefined && scheme.bpjs_kes_perusahaan !== null ? scheme.bpjs_kes_perusahaan : "4.00";
+    document.getElementById('mClientBpjsKesMaxSalary').value = formatRupiah(scheme.bpjs_kes_max_salary !== undefined && scheme.bpjs_kes_max_salary !== null ? parseFloat(scheme.bpjs_kes_max_salary) : 12000000);
+    
+    document.getElementById('mClientBpjsJhtKaryawan').value = scheme.bpjs_jht_karyawan !== undefined && scheme.bpjs_jht_karyawan !== null ? scheme.bpjs_jht_karyawan : "2.00";
+    document.getElementById('mClientBpjsJhtPerusahaan').value = scheme.bpjs_jht_perusahaan !== undefined && scheme.bpjs_jht_perusahaan !== null ? scheme.bpjs_jht_perusahaan : "3.70";
+    
+    document.getElementById('mClientBpjsJpKaryawan').value = scheme.bpjs_jp_karyawan !== undefined && scheme.bpjs_jp_karyawan !== null ? scheme.bpjs_jp_karyawan : "1.00";
+    document.getElementById('mClientBpjsJpPerusahaan').value = scheme.bpjs_jp_perusahaan !== undefined && scheme.bpjs_jp_perusahaan !== null ? scheme.bpjs_jp_perusahaan : "2.00";
+    document.getElementById('mClientBpjsJpMaxSalary').value = formatRupiah(scheme.bpjs_jp_max_salary !== undefined && scheme.bpjs_jp_max_salary !== null ? parseFloat(scheme.bpjs_jp_max_salary) : 10024600);
+    
+    document.getElementById('mClientBpjsJkkPerusahaan').value = scheme.bpjs_jkk_perusahaan !== undefined && scheme.bpjs_jkk_perusahaan !== null ? scheme.bpjs_jkk_perusahaan : "0.24";
+    document.getElementById('mClientBpjsJkmPerusahaan').value = scheme.bpjs_jkm_perusahaan !== undefined && scheme.bpjs_jkm_perusahaan !== null ? scheme.bpjs_jkm_perusahaan : "0.30";
+
+    // Store original values
+    window.modalClientBpjsOriginalValues = {
+        bpjs_kes_karyawan: parseFloat(scheme.bpjs_kes_karyawan) || 0,
+        bpjs_kes_perusahaan: parseFloat(scheme.bpjs_kes_perusahaan) || 0,
+        bpjs_kes_max_salary: parseFloat(scheme.bpjs_kes_max_salary) || 0,
+        bpjs_jht_karyawan: parseFloat(scheme.bpjs_jht_karyawan) || 0,
+        bpjs_jht_perusahaan: parseFloat(scheme.bpjs_jht_perusahaan) || 0,
+        bpjs_jp_karyawan: parseFloat(scheme.bpjs_jp_karyawan) || 0,
+        bpjs_jp_perusahaan: parseFloat(scheme.bpjs_jp_perusahaan) || 0,
+        bpjs_jp_max_salary: parseFloat(scheme.bpjs_jp_max_salary) || 0,
+        bpjs_jkk_perusahaan: parseFloat(scheme.bpjs_jkk_perusahaan) || 0,
+        bpjs_jkm_perusahaan: parseFloat(scheme.bpjs_jkm_perusahaan) || 0
+    };
+};
+
 window.tutupModalPilihanSkema = function() {
     document.getElementById('modalPilihanSkema').style.display = 'none';
     window.editSchemaMappingId = null;
+    
+    const overrideFields = document.getElementById('modalClientBpjsOverrideFields');
+    if (overrideFields) overrideFields.style.display = 'none';
+    window.modalClientBpjsOriginalValues = null;
+
     // Destroy TomSelect instances
     ['modalPilihanSkemaDivisi', 'modalPilihanSkemaDepartemen', 'modalPilihanSkemaPosisi', 'modalPilihanSkemaPayroll', 'modalPilihanSkemaBpjs', 'modalPilihanSkemaPajak'].forEach(id => {
         const el = document.getElementById(id);

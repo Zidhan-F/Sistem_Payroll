@@ -376,7 +376,12 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('tax_schemes')->insert($data);
-        return $this->respondCreated(['message' => 'Skema pajak berhasil ditambahkan']);
+        $id = $this->db->insertID();
+        return $this->respondCreated([
+            'status' => 'success',
+            'message' => 'Skema pajak berhasil ditambahkan',
+            'id' => $id
+        ]);
     }
 
     public function updateTaxScheme($id)
