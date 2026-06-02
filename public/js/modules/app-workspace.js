@@ -350,7 +350,6 @@ async function loadSchemaMappingTable() {
         const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const mappings = await res.json();
         
-        const tbody = document.getElementById('tabelPilihanSkemaKlien');
         if (!tbody) return;
         
         if (!mappings || mappings.length === 0) {

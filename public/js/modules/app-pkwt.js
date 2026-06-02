@@ -11,7 +11,6 @@ async function renderPKWTTable() {
         const url = window.selectedClientId ? `${API_URL}/pkwt?client_id=${window.selectedClientId}` : `${API_URL}/pkwt`;
         const response = await fetch(url);
         pkwtData = await response.json();
-        const tbody = document.getElementById('tabelPKWTBody');
         if (!tbody) return;
         tbody.innerHTML = pkwtData.map(row => {
             const basicComp = (row.components || []).find(c => c.nama.toLowerCase().includes('gaji pokok') || c.nama.toLowerCase().includes('basic salary'));
