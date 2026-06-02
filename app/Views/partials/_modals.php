@@ -142,7 +142,7 @@
                 </div>
                             <div class="form-group" style="margin: 0;">
                                 <label id="labelNilaiSkemaPayroll" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Basic Salary (IDR)</label>
-                                 <input type="text" id="skemaNilai" placeholder="Enter Basic Salary" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                 <input type="text" id="skemaNilai" placeholder="Enter Basic Salary" onkeyup="handleSkemaNilaiInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
             </div>
                         </div>
 
@@ -1243,7 +1243,7 @@
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label id="labelNilaiSkema">Custom Nominal (IDR)</label>
-                    <input type="text" id="skemaKompensasiNilai" placeholder="Example: 200000" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <input type="text" id="skemaKompensasiNilai" placeholder="Example: 200000" onkeyup="handleSchemeNilaiInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                 </div>
             </div>
             <div class="modal-footer">

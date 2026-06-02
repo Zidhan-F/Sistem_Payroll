@@ -188,7 +188,11 @@ function handleSchemeSumberNilaiChange() {
     if (sumber === 'ump' || sumber === 'umk') {
         if (isPersentase) isPersentase.value = '1';
         if (labelNilai) labelNilai.innerText = `Percentage Value (%) from ${sumber.toUpperCase()}`;
-        if (inputNilai) inputNilai.placeholder = 'e.g., 100';
+        if (inputNilai) {
+            inputNilai.placeholder = 'e.g., 100';
+            const cleanVal = parseFormattedNumber(inputNilai.value);
+            inputNilai.value = cleanVal || '100';
+        }
         if (selectPeriode) {
             selectPeriode.value = 'bulan';
             selectPeriode.disabled = true;
@@ -196,7 +200,12 @@ function handleSchemeSumberNilaiChange() {
     } else {
         if (isPersentase) isPersentase.value = '0';
         if (labelNilai) labelNilai.innerText = 'Custom Nominal (Rp)';
-        if (inputNilai) inputNilai.placeholder = 'e.g., 200000';
+        if (inputNilai) {
+            inputNilai.placeholder = 'e.g., 200000';
+            const cleanVal = parseFormattedNumber(inputNilai.value);
+            inputNilai.value = cleanVal || '';
+            formatRupiahInput(inputNilai);
+        }
         if (selectPeriode) {
             selectPeriode.disabled = false;
         }
@@ -215,7 +224,8 @@ window.handlePayrollSchemeSumberNilaiChange = function() {
         if (labelNilai) labelNilai.innerText = `Percentage Value (%) from ${sumber.toUpperCase()}`;
         if (inputNilai) {
             inputNilai.placeholder = 'e.g., 100';
-            if (inputNilai.value === '') inputNilai.value = '100';
+            const cleanVal = parseFormattedNumber(inputNilai.value);
+            inputNilai.value = cleanVal || '100';
         }
         if (selectPeriode) {
             selectPeriode.value = 'bulan';
@@ -226,11 +236,31 @@ window.handlePayrollSchemeSumberNilaiChange = function() {
         if (labelNilai) labelNilai.innerText = 'Custom Nominal (Rp)';
         if (inputNilai) {
             inputNilai.placeholder = 'e.g., 5000000';
-            if (inputNilai.value === '100') inputNilai.value = '';
+            const cleanVal = parseFormattedNumber(inputNilai.value);
+            inputNilai.value = cleanVal || '';
+            formatRupiahInput(inputNilai);
         }
         if (selectPeriode) {
             selectPeriode.disabled = false;
         }
+    }
+}
+
+window.handleSkemaNilaiInput = function(element) {
+    const sumber = document.getElementById('skemaSumber').value;
+    if (sumber === 'ump' || sumber === 'umk') {
+        element.value = element.value.replace(/[^0-9.,]/g, '');
+    } else {
+        formatRupiahInput(element);
+    }
+}
+
+window.handleSchemeNilaiInput = function(element) {
+    const sumber = document.getElementById('skemaKompensasiSumber').value;
+    if (sumber === 'ump' || sumber === 'umk') {
+        element.value = element.value.replace(/[^0-9.,]/g, '');
+    } else {
+        formatRupiahInput(element);
     }
 }
 
@@ -250,8 +280,12 @@ function bukaModalSkemaKompensasi(mode, id = null) {
                 document.getElementById('skemaKompensasiSumber').value = comp.sumber_nilai || 'nominal';
                 document.getElementById('skemaKompensasiPeriode').value = comp.periode || 'bulan';
                 const elNilai = document.getElementById('skemaKompensasiNilai');
-                elNilai.value = comp.nilai || '0';
-                formatRupiahInput(elNilai);
+                if (comp.sumber_nilai === 'ump' || comp.sumber_nilai === 'umk') {
+                    elNilai.value = parseFloat(comp.nilai) || 0;
+                } else {
+                    elNilai.value = comp.nilai || '0';
+                    formatRupiahInput(elNilai);
+                }
                 document.getElementById('skemaKompensasiIsPersentase').value = comp.is_persentase || '0';
                 document.getElementById('skemaKompensasiSifat').value = comp.sifat_kompensasi || 'tetap';
             } else {
