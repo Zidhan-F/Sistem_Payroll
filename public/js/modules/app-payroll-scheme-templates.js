@@ -272,6 +272,20 @@ async function saveSchemeTemplate() {
         metode_pajak: document.getElementById('schemeMetodePajak').value,
         ptkp_status: document.getElementById('schemePtkpStatus').value,
         
+        // Flag-flag Masuk BPJS & PPh 21
+        bpjs_inc_transport: document.getElementById('schemeBpjsIncTransport').checked ? 1 : 0,
+        pph_inc_transport: document.getElementById('schemePphIncTransport').checked ? 1 : 0,
+        bpjs_inc_makan: document.getElementById('schemeBpjsIncMakan').checked ? 1 : 0,
+        pph_inc_makan: document.getElementById('schemePphIncMakan').checked ? 1 : 0,
+        bpjs_inc_komunikasi: document.getElementById('schemeBpjsIncKomunikasi').checked ? 1 : 0,
+        pph_inc_komunikasi: document.getElementById('schemePphIncKomunikasi').checked ? 1 : 0,
+        bpjs_inc_jabatan: document.getElementById('schemeBpjsIncJabatan').checked ? 1 : 0,
+        pph_inc_jabatan: document.getElementById('schemePphIncJabatan').checked ? 1 : 0,
+        bpjs_inc_kehadiran: document.getElementById('schemeBpjsIncKehadiran').checked ? 1 : 0,
+        pph_inc_kehadiran: document.getElementById('schemePphIncKehadiran').checked ? 1 : 0,
+        bpjs_inc_kinerja: document.getElementById('schemeBpjsIncKinerja').checked ? 1 : 0,
+        pph_inc_kinerja: document.getElementById('schemePphIncKinerja').checked ? 1 : 0,
+        
         is_active: 1
     };
     
@@ -364,6 +378,20 @@ async function editSchemeTemplate(id) {
         
         document.getElementById('schemeMetodePajak').value = scheme.metode_pajak;
         document.getElementById('schemePtkpStatus').value = scheme.ptkp_status;
+        
+        // Populate flags
+        document.getElementById('schemeBpjsIncTransport').checked = scheme.bpjs_inc_transport == 1;
+        document.getElementById('schemePphIncTransport').checked = scheme.pph_inc_transport == 1;
+        document.getElementById('schemeBpjsIncMakan').checked = scheme.bpjs_inc_makan == 1;
+        document.getElementById('schemePphIncMakan').checked = scheme.pph_inc_makan == 1;
+        document.getElementById('schemeBpjsIncKomunikasi').checked = scheme.bpjs_inc_komunikasi == 1;
+        document.getElementById('schemePphIncKomunikasi').checked = scheme.pph_inc_komunikasi == 1;
+        document.getElementById('schemeBpjsIncJabatan').checked = scheme.bpjs_inc_jabatan == 1;
+        document.getElementById('schemePphIncJabatan').checked = scheme.pph_inc_jabatan == 1;
+        document.getElementById('schemeBpjsIncKehadiran').checked = scheme.bpjs_inc_kehadiran == 1;
+        document.getElementById('schemePphIncKehadiran').checked = scheme.pph_inc_kehadiran == 1;
+        document.getElementById('schemeBpjsIncKinerja').checked = scheme.bpjs_inc_kinerja == 1;
+        document.getElementById('schemePphIncKinerja').checked = scheme.pph_inc_kinerja == 1;
         
         // Show modal
         document.getElementById('modalSchemeTemplate').style.display = 'block';

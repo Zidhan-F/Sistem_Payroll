@@ -679,13 +679,17 @@ window.openModalPilihanSkema = async function() {
     });
 
     try {
-        // Fetch client-specific STO and schemes
-        const [orgRes, psRes, tsRes] = await Promise.all([
-            fetch(`${API_URL}/org?client_id=${window.selectedClientId}`),
+        // Fetch Global STO data and schemes in parallel
+        const [divRes, deptRes, posRes, psRes, tsRes] = await Promise.all([
+            fetch(`${API_URL}/global-divisions`),
+            fetch(`${API_URL}/global-departments`),
+            fetch(`${API_URL}/global-positions`),
             fetch(`${API_URL}/payroll-schemes`),
             fetch(`${API_URL}/tax-schemes`)
         ]);
-        const orgData = await orgRes.json();
+        const globalDivisions = await divRes.json();
+        const globalDepartments = await deptRes.json();
+        const globalPositions = await posRes.json();
         const payrollSchemes = await psRes.json();
         const taxSchemes = await tsRes.json();
 
@@ -710,61 +714,26 @@ window.openModalPilihanSkema = async function() {
                 taxOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
         }
 
-        // Populate divisions from client STO
+        // Populate divisions from Global STO
         if (divSelect) {
             divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>' +
-                orgData.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
+                globalDivisions.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
         }
-        if (deptSelect) deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
-        if (posSelect) posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+        // Populate departments from Global STO
+        if (deptSelect) {
+            deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>' +
+                globalDepartments.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
+        }
+        // Populate positions from Global STO
+        if (posSelect) {
+            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>' +
+                globalPositions.map(p => `<option value="${p.id}">${p.nama}</option>`).join('');
+        }
 
-        // Initialize non-cascading TomSelects
-        [psSelect, bpjsSelect, tsSelect].forEach(el => {
+        // Initialize all TomSelects (independent, non-cascading since Global STO is flat)
+        [psSelect, bpjsSelect, tsSelect, divSelect, deptSelect, posSelect].forEach(el => {
             if (el) new TomSelect(el, { create: false, sortField: { field: 'text', direction: 'asc' } });
         });
-
-        // Initialize cascading STO TomSelects
-        let posTs = posSelect ? new TomSelect(posSelect, { create: false, sortField: { field: 'text', direction: 'asc' } }) : null;
-        let deptTs = deptSelect ? new TomSelect(deptSelect, { 
-            create: false, 
-            sortField: { field: 'text', direction: 'asc' },
-            onChange: function(deptId) {
-                if(posTs) {
-                    posTs.clear();
-                    posTs.clearOptions();
-                    if(deptId) {
-                        const divId = divSelect.value;
-                        const division = orgData.find(d => d.id == divId);
-                        if (division && division.departments) {
-                            const dept = division.departments.find(dp => dp.id == deptId);
-                            if (dept && dept.positions) {
-                                dept.positions.forEach(p => posTs.addOption({value: p.id, text: p.nama}));
-                            }
-                        }
-                    }
-                }
-            }
-        }) : null;
-        let divTs = divSelect ? new TomSelect(divSelect, { 
-            create: false, 
-            sortField: { field: 'text', direction: 'asc' },
-            onChange: function(divId) {
-                if(deptTs) {
-                    deptTs.clear();
-                    deptTs.clearOptions();
-                    if(posTs) {
-                        posTs.clear();
-                        posTs.clearOptions();
-                    }
-                    if(divId) {
-                        const division = orgData.find(d => d.id == divId);
-                        if (division && division.departments) {
-                            division.departments.forEach(dp => deptTs.addOption({value: dp.id, text: dp.nama}));
-                        }
-                    }
-                }
-            }
-        }) : null;
 
     } catch (e) {
         console.error('Error loading modal data:', e);

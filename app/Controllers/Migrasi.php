@@ -357,7 +357,39 @@ class Migrasi extends BaseController
                 updated_at DATETIME NULL
             )");
 
-        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, kolom departemen/posisi client_payroll_configs, dan tabel global STO)";
+        // 19. Tambahkan kolom flag BPJS & PPh21 untuk 6 tunjangan di payroll_scheme_templates
+        $allowanceFlags = [
+            'bpjs_inc_transport' => 'TINYINT DEFAULT 0',
+            'pph_inc_transport' => 'TINYINT DEFAULT 1',
+            'bpjs_inc_makan' => 'TINYINT DEFAULT 0',
+            'pph_inc_makan' => 'TINYINT DEFAULT 1',
+            'bpjs_inc_komunikasi' => 'TINYINT DEFAULT 1',
+            'pph_inc_komunikasi' => 'TINYINT DEFAULT 1',
+            'bpjs_inc_jabatan' => 'TINYINT DEFAULT 1',
+            'pph_inc_jabatan' => 'TINYINT DEFAULT 1',
+            'bpjs_inc_kehadiran' => 'TINYINT DEFAULT 0',
+            'pph_inc_kehadiran' => 'TINYINT DEFAULT 1',
+            'bpjs_inc_kinerja' => 'TINYINT DEFAULT 0',
+            'pph_inc_kinerja' => 'TINYINT DEFAULT 1',
+        ];
+        foreach ($allowanceFlags as $col => $def) {
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_scheme_templates') AND name = '$col')
+                ALTER TABLE payroll_scheme_templates ADD $col $def");
+        }
+
+        // 20. Tambahkan kolom is_bpjs dan is_pph21 ke tabel compensation_components dan pkwt_components
+        $compFlags = [
+            'is_bpjs' => 'TINYINT DEFAULT 0',
+            'is_pph21' => 'TINYINT DEFAULT 1',
+        ];
+        foreach ($compFlags as $col => $def) {
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('compensation_components') AND name = '$col')
+                ALTER TABLE compensation_components ADD $col $def");
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt_components') AND name = '$col')
+                ALTER TABLE pkwt_components ADD $col $def");
+        }
+
+        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, kolom departemen/posisi client_payroll_configs, tabel global STO, dan flag BPJS/PPh21 tunjangan)";
     }
 
     /**

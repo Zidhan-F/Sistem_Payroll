@@ -357,8 +357,7 @@ function switchView(view) {
         clientWorkspace: 'Client Workspace',
         payroll: 'Master Payroll Scheme',
         pajak: 'Master Payroll Scheme',
-        masterKompensasi: 'Master Payroll Scheme',
-        logAktivitas: 'Activity Log'
+        masterKompensasi: 'Master Payroll Scheme'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Employee Management';
 
@@ -396,13 +395,12 @@ function switchView(view) {
     }
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
-    if (view === 'logAktivitas') renderLogAktivitas();
 }
 
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal(keepSidebarOpen = false) {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     
     const sidebar = document.querySelector('.sidebar');
@@ -526,4 +524,114 @@ function quickAction(type) {
     }
 }
 window.quickAction = quickAction;
+
+// BPJS Detailed Calculations Modal
+async function bukaDetailBpjsModal(type, id) {
+    try {
+        let kes_emp = 0, kes_co = 0;
+        let jht_emp = 0, jht_co = 0;
+        let jp_emp = 0, jp_co = 0;
+        let jkk_co = 0, jkm_co = 0;
+        let name = '';
+        let period = '';
+
+        if (type === 'pkwt') {
+            const r = await fetch(`${API}/slip-details/${id}`);
+            if (!r.ok) throw new Error('Failed to load slip');
+            const data = await r.json();
+            const info = data.info;
+            name = info.employee_name;
+            period = info.period_name || info.periode;
+            
+            kes_emp = parseFloat(info.bpjs_kes_karyawan) || 0;
+            kes_co = parseFloat(info.bpjs_kes_perusahaan) || 0;
+            jht_emp = parseFloat(info.bpjs_jht_karyawan) || 0;
+            jht_co = parseFloat(info.bpjs_jht_perusahaan) || 0;
+            jp_emp = parseFloat(info.bpjs_jp_karyawan) || 0;
+            jp_co = parseFloat(info.bpjs_jp_perusahaan) || 0;
+            jkk_co = parseFloat(info.bpjs_jkk_perusahaan) || 0;
+            jkm_co = parseFloat(info.bpjs_jkm_perusahaan) || 0;
+        } else {
+            const r = await fetch(`${API}/payroll/slip/${id}`);
+            if (!r.ok) throw new Error('Failed to load slip');
+            const data = await r.json();
+            name = data.employee.nama;
+            period = `${data.payroll.bulan}/${data.payroll.tahun}`;
+            
+            data.details.forEach(d => {
+                const comp = d.nama_komponen;
+                const val = parseFloat(d.jumlah) || 0;
+                if (comp.includes('BPJS Kesehatan') && comp.includes('1%')) kes_emp = val;
+                if (comp.includes('BPJS Kesehatan') && (comp.includes('4%') || comp.includes('Beban Perusahaan'))) kes_co = val;
+                if (comp.includes('JHT') && comp.includes('2%')) jht_emp = val;
+                if (comp.includes('JHT') && (comp.includes('3.7%') || comp.includes('Beban Perusahaan'))) jht_co = val;
+                if (comp.includes('JP') && comp.includes('1%')) jp_emp = val;
+                if (comp.includes('JP') && (comp.includes('2%') || comp.includes('Beban Perusahaan'))) jp_co = val;
+                if (comp.includes('JKK')) jkk_co = val;
+                if (comp.includes('JKM')) jkm_co = val;
+            });
+        }
+
+        // Calculate bases
+        const kes_base = kes_emp > 0 ? (kes_emp / 0.01) : (kes_co > 0 ? (kes_co / 0.04) : 0);
+        const jht_base = jht_emp > 0 ? (jht_emp / 0.02) : (jht_co > 0 ? (jht_co / 0.037) : 0);
+        const jp_base = jp_emp > 0 ? (jp_emp / 0.01) : (jp_co > 0 ? (jp_co / 0.02) : 0);
+        const jkk_base = jkk_co > 0 ? (jkk_co / 0.0024) : jht_base;
+        const jkm_base = jkm_co > 0 ? (jkm_co / 0.003) : jht_base;
+
+        // Render to modal
+        document.getElementById('bpjsModalEmployeeName').innerText = name;
+        document.getElementById('bpjsModalPeriod').innerText = period;
+
+        // 1. BPJS Kesehatan
+        document.getElementById('bpjsKesBase').innerText = formatRupiah(kes_base);
+        document.getElementById('bpjsKesEmp').innerText = formatRupiah(kes_emp);
+        document.getElementById('bpjsKesCo').innerText = formatRupiah(kes_co);
+        document.getElementById('bpjsKesTotal').innerText = formatRupiah(kes_emp + kes_co);
+
+        // 2. BPJS JHT
+        document.getElementById('bpjsJhtBase').innerText = formatRupiah(jht_base);
+        document.getElementById('bpjsJhtEmp').innerText = formatRupiah(jht_emp);
+        document.getElementById('bpjsJhtCo').innerText = formatRupiah(jht_co);
+        document.getElementById('bpjsJhtTotal').innerText = formatRupiah(jht_emp + jht_co);
+
+        // 3. BPJS JP
+        document.getElementById('bpjsJpBase').innerText = formatRupiah(jp_base);
+        document.getElementById('bpjsJpEmp').innerText = formatRupiah(jp_emp);
+        document.getElementById('bpjsJpCo').innerText = formatRupiah(jp_co);
+        document.getElementById('bpjsJpTotal').innerText = formatRupiah(jp_emp + jp_co);
+
+        // 4. BPJS JKK
+        document.getElementById('bpjsJkkBase').innerText = formatRupiah(jkk_base);
+        document.getElementById('bpjsJkkEmp').innerText = formatRupiah(0);
+        document.getElementById('bpjsJkkCo').innerText = formatRupiah(jkk_co);
+        document.getElementById('bpjsJkkTotal').innerText = formatRupiah(jkk_co);
+
+        // 5. BPJS JKM
+        document.getElementById('bpjsJkmBase').innerText = formatRupiah(jkm_base);
+        document.getElementById('bpjsJkmEmp').innerText = formatRupiah(0);
+        document.getElementById('bpjsJkmCo').innerText = formatRupiah(jkm_co);
+        document.getElementById('bpjsJkmTotal').innerText = formatRupiah(jkm_co);
+
+        // Grand Totals
+        const grandEmp = kes_emp + jht_emp + jp_emp;
+        const grandCo = kes_co + jht_co + jp_co + jkk_co + jkm_co;
+        document.getElementById('bpjsGrandEmp').innerText = formatRupiah(grandEmp);
+        document.getElementById('bpjsGrandCo').innerText = formatRupiah(grandCo);
+        document.getElementById('bpjsGrandTotal').innerText = formatRupiah(grandEmp + grandCo);
+
+        // Open Modal
+        document.getElementById('modalDetailBpjs').style.display = 'block';
+    } catch (err) {
+        console.error('Error opening BPJS detail modal:', err);
+        showToast('Gagal memuat rincian perhitungan BPJS', 'error');
+    }
+}
+
+function tutupDetailBpjsModal() {
+    document.getElementById('modalDetailBpjs').style.display = 'none';
+}
+
+window.bukaDetailBpjsModal = bukaDetailBpjsModal;
+window.tutupDetailBpjsModal = tutupDetailBpjsModal;
 

@@ -253,115 +253,51 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     
     try {
-        const r = await fetch(`${API}/org?client_id=${clientId}`);
-        clientOrgHierarchy = await r.json();
+        const [divRes, deptRes, posRes] = await Promise.all([
+            fetch(`${API}/global-divisions`),
+            fetch(`${API}/global-departments`),
+            fetch(`${API}/global-positions`)
+        ]);
+        const globalDivisions = await divRes.json();
+        const globalDepartments = await deptRes.json();
+        const globalPositions = await posRes.json();
         
-        if (Array.isArray(clientOrgHierarchy)) {
-            clientOrgHierarchy.forEach(div => {
+        if (Array.isArray(globalDivisions)) {
+            globalDivisions.forEach(div => {
                 divSelect.innerHTML += `<option value="${div.id}">${div.nama}</option>`;
             });
         }
         
-        // Re-initialize Division TomSelect
-        new TomSelect(divSelect, {
-            create: false,
-            sortField: { field: "text", direction: "asc" }
-        });
-        
-        // Re-initialize Department TomSelect
-        new TomSelect(deptSelect, {
-            create: false,
-            sortField: { field: "text", direction: "asc" }
-        });
-        
-        // Re-initialize Position TomSelect
-        new TomSelect(posSelect, {
-            create: false,
-            sortField: { field: "text", direction: "asc" }
-        });
-        
-        const onDeptChange = () => {
-            const divId = divSelect.value;
-            const deptId = deptSelect.value;
-            
-            if (posSelect.tomselect) posSelect.tomselect.destroy();
-            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
-            
-            if (divId && deptId) {
-                const division = clientOrgHierarchy.find(d => d.id == divId);
-                if (division && Array.isArray(division.departments)) {
-                    const dept = division.departments.find(dp => dp.id == deptId);
-                    if (dept && Array.isArray(dept.positions)) {
-                        dept.positions.forEach(pos => {
-                            posSelect.innerHTML += `<option value="${pos.id}">${pos.nama}</option>`;
-                        });
-                    }
-                }
-            }
-            
-            new TomSelect(posSelect, {
-                create: false,
-                sortField: { field: "text", direction: "asc" }
+        if (Array.isArray(globalDepartments)) {
+            globalDepartments.forEach(dept => {
+                deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
             });
-            posSelect.tomselect.on('change', onPosChange);
-            
-            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
-        };
-        
-        const onPosChange = () => {
-            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
-        };
-        
-        // Define listeners on TomSelect change
-        divSelect.tomselect.on('change', () => {
-            const divId = divSelect.value;
-            
-            // Re-populate Department
-            if (deptSelect.tomselect) deptSelect.tomselect.destroy();
-            deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
-            
-            if (posSelect.tomselect) posSelect.tomselect.destroy();
-            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
-            
-            if (divId) {
-                const division = clientOrgHierarchy.find(d => d.id == divId);
-                if (division && Array.isArray(division.departments)) {
-                    division.departments.forEach(dept => {
-                        deptSelect.innerHTML += `<option value="${dept.id}">${dept.nama}</option>`;
-                    });
-                }
-            }
-            
-            new TomSelect(deptSelect, {
-                create: false,
-                sortField: { field: "text", direction: "asc" }
-            });
-            new TomSelect(posSelect, {
-                create: false,
-                sortField: { field: "text", direction: "asc" }
-            });
-            
-            // Set listeners on newly created instances
-            deptSelect.tomselect.on('change', onDeptChange);
-            posSelect.tomselect.on('change', onPosChange);
-            
-            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
-        });
-        
-        deptSelect.tomselect.on('change', onDeptChange);
-        posSelect.tomselect.on('change', onPosChange);
-        
-        if (selectedDivId) {
-            divSelect.tomselect.setValue(selectedDivId);
-            
-            if (selectedDeptId) {
-                deptSelect.tomselect.setValue(selectedDeptId);
-                
-                if (selectedPosId) {
-                    posSelect.tomselect.setValue(selectedPosId);
-                }
-            }
         }
+        
+        if (Array.isArray(globalPositions)) {
+            globalPositions.forEach(pos => {
+                posSelect.innerHTML += `<option value="${pos.id}">${pos.nama}</option>`;
+            });
+        }
+
+        // Initialize TomSelects independently
+        new TomSelect(divSelect, { create: false, sortField: { field: "text", direction: "asc" } });
+        new TomSelect(deptSelect, { create: false, sortField: { field: "text", direction: "asc" } });
+        new TomSelect(posSelect, { create: false, sortField: { field: "text", direction: "asc" } });
+        
+        // Listen to changes to trigger schema check
+        const onChangeTrigger = () => {
+            if (typeof checkSchemaAvailability === 'function') checkSchemaAvailability();
+        };
+
+        divSelect.tomselect.on('change', onChangeTrigger);
+        deptSelect.tomselect.on('change', onChangeTrigger);
+        posSelect.tomselect.on('change', onChangeTrigger);
+
+        if (selectedDivId) divSelect.tomselect.setValue(selectedDivId);
+        if (selectedDeptId) deptSelect.tomselect.setValue(selectedDeptId);
+        if (selectedPosId) posSelect.tomselect.setValue(selectedPosId);
+
     } catch (e) {
         console.error('Error loading org selects:', e);
     }

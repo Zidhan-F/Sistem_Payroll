@@ -218,6 +218,41 @@ Untuk membuat tabel, jalankan:
 php spark migrate
 ```
 
+## Desain Skema Divisi, Departemen, dan Posisi
+
+Sebelum membuat skema payroll, hierarki organisasi (Divisi → Departemen → Posisi) **harus** dibangun terlebih dahulu. Berikut langkah-langkahnya:
+
+### Langkah 1: Buat Skema Tiap Divisi
+- Mulailah dengan **satu divisi utama** (contoh: **STO**). Divisi pertama ini otomatis dibuat oleh sistem.
+- Untuk menambahkan divisi lain, gunakan opsi **"Tambah Divisi"** secara manual.
+
+### Langkah 2: Masukkan Divisi Baru
+- Pilih **divisi induk** yang tepat saat menambahkan divisi baru (misalnya: menambahkan "Gelobang" di bawah "STO").
+- Nama divisi boleh bebas, namun **selalu pastikan ia terhubung ke node induk** supaya hierarki tidak terputus.
+
+### Langkah 3: Tambah Posisi di Dalam Masing-masing Divisi
+- Posisi harus **mencerminkan data sumber** (seperti daftar karyawan).
+- Jika nama posisi tidak cocok dengan sumber, **perbaiki dulu data sumbernya** sebelum menambahkan posisi ke skema.
+
+### Langkah 4: Hubungkan Semua Divisi ke Hierarki STO
+- Setiap node yang **belum terhubung** akan memunculkan error **"belum ke hubung"**.
+- Pastikan setiap divisi dan posisi memiliki **parent-child relationship** yang jelas.
+
+### Langkah 5: Validasi Hubungan
+- Jalankan pemeriksaan untuk memastikan **tidak ada node terisolasi**.
+- Node yang terputus akan menampilkan pesan **"error nih"**.
+
+### Langkah 6: Simpan dan Perbarui Skema
+- Setelah memperbaiki semua tautan, **simpan perubahan** sebelum melanjutkan ke perhitungan payroll atau integrasi lainnya.
+
+### ⚠️ Hal-hal Penting yang Harus Diingat
+
+1. **Data lokasi diambil dari klien, bukan dari skema lokal** — Pilih skema regional yang sesuai (contoh: Jakarta → WMP) agar data lokasi dan skema tidak konflik.
+2. **"Sudah bikin skema-kema?"** — Pertanyaan ini berarti semua langkah di atas (Langkah 1–6) **harus selesai terlebih dahulu** sebelum melanjutkan ke proses selanjutnya (payroll, dsb).
+3. **Validasi rutin** membantu mencegah error **"belum ke hubung"** atau **"error nih"** yang dapat menghambat proses payroll.
+
+---
+
 ## Catatan Penting
 
 1. **Validasi**: Pastikan kombinasi divisi-departemen-posisi valid (departemen harus dalam divisi yang benar)

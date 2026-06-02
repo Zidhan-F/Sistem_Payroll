@@ -243,28 +243,67 @@ async function bukaSlipGaji(id) {
         const response = await fetch(`${API_URL}/slip-details/${id}`);
         const data = await response.json();
 
-        document.getElementById('slipClientName').innerText = data.info.client_name;
-        document.getElementById('slipPeriod').innerText = data.info.period_name;
-        document.getElementById('slipEmployeeName').innerText = data.info.employee_name;
-        document.getElementById('slipPosition').innerText = data.info.position_name;
-        document.getElementById('slipTHP').innerText = formatRupiah(data.info.take_home_pay);
+        const info = data.info;
+        
+        // Build company burdens array for PKWT
+        const companyBurdens = [];
+        if (parseFloat(info.bpjs_kes_perusahaan) > 0) companyBurdens.push({ name: 'BPJS Kesehatan (4% Beban Perusahaan)', value: parseFloat(info.bpjs_kes_perusahaan) });
+        if (parseFloat(info.bpjs_jht_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JHT (3.7% Beban Perusahaan)', value: parseFloat(info.bpjs_jht_perusahaan) });
+        if (parseFloat(info.bpjs_jp_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JP (2% Beban Perusahaan)', value: parseFloat(info.bpjs_jp_perusahaan) });
+        if (parseFloat(info.bpjs_jkk_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JKK (Beban Perusahaan)', value: parseFloat(info.bpjs_jkk_perusahaan) });
+        if (parseFloat(info.bpjs_jkm_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JKM (Beban Perusahaan)', value: parseFloat(info.bpjs_jkm_perusahaan) });
 
-        const eList = document.getElementById('slipEarningsList');
-        const dList = document.getElementById('slipDeductionsList');
+        const hasBpjs = companyBurdens.length > 0 || parseFloat(info.bpjs_kes_karyawan) > 0 || parseFloat(info.bpjs_jht_karyawan) > 0 || parseFloat(info.bpjs_jp_karyawan) > 0;
 
-        eList.innerHTML = data.earnings.map(e => `
-            <div style="display:flex; justify-content:space-between;">
-                <span>${e.nama}</span>
-                <span>${formatRupiah(e.nilai)}</span>
+        document.getElementById('slipContent').innerHTML = `
+        <div style="text-align:center;border-bottom:2px solid #eee;padding-bottom:15px;margin-bottom:20px;">
+            <h2 style="color:var(--primary-color); margin: 0;">PAYSLIP</h2>
+            <p style="font-size:13px;color:#666; margin: 5px 0 0 0;">Period: ${info.period_name || info.periode}</p>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;font-size:14px;">
+            <div>
+                <p style="margin: 4px 0;"><strong>Name:</strong> ${info.employee_name}</p>
+                <p style="margin: 4px 0;"><strong>NIK:</strong> ${info.employ_id || info.nik_karyawan || '-'}</p>
+                <p style="margin: 4px 0;"><strong>Position:</strong> ${info.position_name || '-'}</p>
             </div>
-        `).join('');
-
-        dList.innerHTML = data.deductions.map(d => `
-            <div style="display:flex; justify-content:space-between;">
-                <span>${d.nama}</span>
-                <span>${formatRupiah(d.nilai)}</span>
+            <div style="text-align:right;">
+                <p style="margin: 4px 0;"><strong>Status:</strong> ${info.status_approval || 'Pending'}</p>
+                <p style="margin: 4px 0;"><strong>Client:</strong> ${info.client_name || '-'}</p>
             </div>
-        `).join('');
+        </div>
+        <table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:20px;">
+            <thead>
+                <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Earnings</th></tr>
+            </thead>
+            <tbody>
+                ${data.earnings.map(e => `<tr><td style="padding:8px 10px;">${e.nama}</td><td style="text-align:right;padding:8px 10px;">${formatRupiah(e.nilai)}</td></tr>`).join('')}
+            </tbody>
+            <thead>
+                <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Deductions</th></tr>
+            </thead>
+            <tbody>
+                ${data.deductions.map(d => `<tr><td style="padding:8px 10px;">${d.nama}</td><td style="text-align:right;color:#e74c3c;padding:8px 10px;">- ${formatRupiah(d.nilai)}</td></tr>`).join('')}
+            </tbody>
+            <tfoot>
+                <tr style="border-top:2px solid #eee;">
+                    <th style="padding:15px 10px;font-size:16px;text-align:left;">TAKE HOME PAY</th>
+                    <th style="padding:15px 10px;font-size:16px;text-align:right;color:var(--success);">${formatRupiah(info.take_home_pay)}</th>
+                </tr>
+            </tfoot>
+        </table>
+        
+        ${companyBurdens.length > 0 ? `
+        <div style="margin-top:20px;border-top:2px dashed #eee;padding-top:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="margin:0;color:#475569;font-size:14px;font-weight:700;text-transform:uppercase;">Beban Perusahaan (Informasi)</h4>
+                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('pkwt', ${id})" style="font-size:12px;color:var(--primary-color);font-weight:600;text-decoration:none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
+            </div>
+            <table style="width:100%;font-size:13px;color:#64748b;">
+                ${companyBurdens.map(d=>`<tr><td style="padding:4px 0;">${d.name}</td><td style="text-align:right;padding:4px 0;">${formatRupiah(d.value)}</td></tr>`).join('')}
+            </table>
+        </div>
+        ` : ''}
+        `;
 
         document.getElementById('modalSlip').style.display = 'block';
         document.getElementById('overlay').style.display = 'block';
@@ -275,6 +314,9 @@ async function bukaSlipGaji(id) {
 
 function tutupModalSlip() {
     document.getElementById('modalSlip').style.display = 'none';
+    if(document.getElementById('modalDetailBpjs')) {
+        document.getElementById('modalDetailBpjs').style.display = 'none';
+    }
     document.getElementById('overlay').style.display = 'none';
 }
 

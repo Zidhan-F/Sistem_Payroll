@@ -45,6 +45,18 @@ class PayrollSchemeTemplateModel extends Model
         'metode_pajak',
         'ptkp_status',
         'is_active',
+        'bpjs_inc_transport',
+        'pph_inc_transport',
+        'bpjs_inc_makan',
+        'pph_inc_makan',
+        'bpjs_inc_komunikasi',
+        'pph_inc_komunikasi',
+        'bpjs_inc_jabatan',
+        'pph_inc_jabatan',
+        'bpjs_inc_kehadiran',
+        'pph_inc_kehadiran',
+        'bpjs_inc_kinerja',
+        'pph_inc_kinerja',
     ];
 
     protected bool $allowEmptyInserts = false;

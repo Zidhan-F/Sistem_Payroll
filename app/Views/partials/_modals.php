@@ -1,6 +1,110 @@
     <!-- Payslip Modal -->
     <div id="overlay" onclick="tutupSemuaModal()"></div>
 
+    <div id="modalSlip" class="modal-skema" style="width: 600px; max-width: 95%; display: none; z-index: 2000;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+            <h3>Pay Slip</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalSlip()"></i>
+        </div>
+        <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
+            <div id="slipContent">
+                <!-- Dynamically populated by JS -->
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+            <button type="button" class="btn-add" onclick="cetakSlip()" style="background: #17a2b8; color: white; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">
+                <i class="fas fa-print"></i> Print Slip
+            </button>
+            <button type="button" class="btn-cancel" onclick="tutupModalSlip()" style="padding: 10px 24px; border-radius: 8px; margin: 0;">Close</button>
+        </div>
+    </div>
+
+    <!-- Modal Detail Perhitungan BPJS -->
+    <div id="modalDetailBpjs" class="modal-skema" style="display: none; width: 750px; max-width: 95%; z-index: 2005;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: white;">Rincian Perhitungan BPJS</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupDetailBpjsModal()"></i>
+        </div>
+        <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
+            <div style="margin-bottom: 20px; font-size: 14px; color: #475569; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div><strong>Nama Karyawan:</strong> <span id="bpjsModalEmployeeName" style="color: #1e293b; font-weight: 600;">-</span></div>
+                <div style="text-align: right;"><strong>Periode:</strong> <span id="bpjsModalPeriod" style="color: #1e293b; font-weight: 600;">-</span></div>
+            </div>
+            <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                    <thead>
+                        <tr style="background: #e2e8f0; border-bottom: 2px solid #cbd5e1; color: #475569; font-weight: 700;">
+                            <th style="padding: 12px 10px;">Program BPJS</th>
+                            <th style="padding: 12px 10px; text-align: right;">Upah Basis</th>
+                            <th style="padding: 12px 10px; text-align: right;">Beban Karyawan</th>
+                            <th style="padding: 12px 10px; text-align: right;">Beban Perusahaan</th>
+                            <th style="padding: 12px 10px; text-align: right;">Total Iuran</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px 10px; font-weight: 600; color: #1e293b;">BPJS Kesehatan</td>
+                            <td style="padding: 12px 10px; text-align: right; font-variant-numeric: tabular-nums;" id="bpjsKesBase">Rp 0</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;" id="bpjsKesEmp">Rp 0 (1%)</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;" id="bpjsKesCo">Rp 0 (4%)</td>
+                            <td style="padding: 12px 10px; text-align: right; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;" id="bpjsKesTotal">Rp 0 (5%)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px 10px; font-weight: 600; color: #1e293b;">BPJS TK - JHT</td>
+                            <td style="padding: 12px 10px; text-align: right; font-variant-numeric: tabular-nums;" id="bpjsJhtBase">Rp 0</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;" id="bpjsJhtEmp">Rp 0 (2%)</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;" id="bpjsJhtCo">Rp 0 (3.7%)</td>
+                            <td style="padding: 12px 10px; text-align: right; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;" id="bpjsJhtTotal">Rp 0 (5.7%)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px 10px; font-weight: 600; color: #1e293b;">BPJS TK - JP</td>
+                            <td style="padding: 12px 10px; text-align: right; font-variant-numeric: tabular-nums;" id="bpjsJpBase">Rp 0</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;" id="bpjsJpEmp">Rp 0 (1%)</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;" id="bpjsJpCo">Rp 0 (2%)</td>
+                            <td style="padding: 12px 10px; text-align: right; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;" id="bpjsJpTotal">Rp 0 (3%)</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px 10px; font-weight: 600; color: #1e293b;">BPJS TK - JKK</td>
+                            <td style="padding: 12px 10px; text-align: right; font-variant-numeric: tabular-nums;" id="bpjsJkkBase">Rp 0</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #94a3b8; font-variant-numeric: tabular-nums;" id="bpjsJkkEmp">Rp 0 (0%)</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;" id="bpjsJkkCo">Rp 0 (0.24%)</td>
+                            <td style="padding: 12px 10px; text-align: right; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;" id="bpjsJkkTotal">Rp 0</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 12px 10px; font-weight: 600; color: #1e293b;">BPJS TK - JKM</td>
+                            <td style="padding: 12px 10px; text-align: right; font-variant-numeric: tabular-nums;" id="bpjsJkmBase">Rp 0</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #94a3b8; font-variant-numeric: tabular-nums;" id="bpjsJkmEmp">Rp 0 (0%)</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;" id="bpjsJkmCo">Rp 0 (0.30%)</td>
+                            <td style="padding: 12px 10px; text-align: right; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums;" id="bpjsJkmTotal">Rp 0</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f8fafc; font-weight: 700; color: #0f172a; border-top: 2px solid #cbd5e1;">
+                            <td style="padding: 12px 10px;">Total Keseluruhan</td>
+                            <td style="padding: 12px 10px; text-align: right;">-</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;" id="bpjsGrandEmp">Rp 0</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #3b82f6; font-variant-numeric: tabular-nums;" id="bpjsGrandCo">Rp 0</td>
+                            <td style="padding: 12px 10px; text-align: right; color: #10b981; font-variant-numeric: tabular-nums;" id="bpjsGrandTotal">Rp 0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; font-size: 12px; color: #1e40af; line-height: 1.6;">
+                <h5 style="margin: 0 0 8px 0; font-weight: 700; font-size: 13px;"><i class="fas fa-info-circle"></i> Catatan Peraturan BPJS:</h5>
+                <ul style="margin: 0; padding-left: 18px;">
+                    <li><strong>BPJS Kesehatan:</strong> Batas upah maksimum Rp 12.000.000 (total iuran 5%: 4% perusahaan, 1% karyawan).</li>
+                    <li><strong>BPJS Ketenagakerjaan (JP):</strong> Batas upah maksimum Rp 10.024.600 (total iuran 3%: 2% perusahaan, 1% karyawan).</li>
+                    <li><strong>BPJS Ketenagakerjaan (JKK & JKM):</strong> 100% ditanggung oleh perusahaan (JKK 0.24%, JKM 0.30% dari upah basis).</li>
+                    <li>Beban BPJS Perusahaan bersifat sebagai informasi tambahan dan tidak memotong upah bersih (Take Home Pay) karyawan.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 15px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+            <button type="button" class="btn-cancel" onclick="tutupDetailBpjsModal()" style="margin: 0; padding: 10px 20px;">Tutup</button>
+        </div>
+    </div>
+
     <!-- Payroll Scheme Form Modal -->
     <div id="modalSkema" class="modal-skema" style="width: 1100px; max-width: 95%;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
@@ -1387,27 +1491,75 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                         <div class="form-group" style="margin: 0;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Transport (IDR)</label>
-                            <input type="text" id="schemeTunjanganTransport" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <input type="text" id="schemeTunjanganTransport" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; margin-bottom: 6px;">
+                            <div style="display: flex; gap: 12px; font-size: 12px; color: #64748b;">
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemeBpjsIncTransport"> BPJS
+                                </label>
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemePphIncTransport" checked> PPh 21
+                                </label>
+                            </div>
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Meal (IDR)</label>
-                            <input type="text" id="schemeTunjanganMakan" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <input type="text" id="schemeTunjanganMakan" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; margin-bottom: 6px;">
+                            <div style="display: flex; gap: 12px; font-size: 12px; color: #64748b;">
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemeBpjsIncMakan"> BPJS
+                                </label>
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemePphIncMakan" checked> PPh 21
+                                </label>
+                            </div>
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Communication (IDR)</label>
-                            <input type="text" id="schemeTunjanganKomunikasi" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <input type="text" id="schemeTunjanganKomunikasi" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; margin-bottom: 6px;">
+                            <div style="display: flex; gap: 12px; font-size: 12px; color: #64748b;">
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemeBpjsIncKomunikasi" checked> BPJS
+                                </label>
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemePphIncKomunikasi" checked> PPh 21
+                                </label>
+                            </div>
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Position (IDR)</label>
-                            <input type="text" id="schemeTunjanganJabatan" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <input type="text" id="schemeTunjanganJabatan" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; margin-bottom: 6px;">
+                            <div style="display: flex; gap: 12px; font-size: 12px; color: #64748b;">
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemeBpjsIncJabatan" checked> BPJS
+                                </label>
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemePphIncJabatan" checked> PPh 21
+                                </label>
+                            </div>
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Attendance (IDR)</label>
-                            <input type="text" id="schemeTunjanganKehadiran" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <input type="text" id="schemeTunjanganKehadiran" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; margin-bottom: 6px;">
+                            <div style="display: flex; gap: 12px; font-size: 12px; color: #64748b;">
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemeBpjsIncKehadiran"> BPJS
+                                </label>
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemePphIncKehadiran" checked> PPh 21
+                                </label>
+                            </div>
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Performance (IDR)</label>
-                            <input type="text" id="schemeTunjanganKinerja" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                            <input type="text" id="schemeTunjanganKinerja" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; margin-bottom: 6px;">
+                            <div style="display: flex; gap: 12px; font-size: 12px; color: #64748b;">
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemeBpjsIncKinerja"> BPJS
+                                </label>
+                                <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="schemePphIncKinerja" checked> PPh 21
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

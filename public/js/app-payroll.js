@@ -245,26 +245,66 @@ async function rejectPayrollAll(){
 async function viewSlip(id){
     const r=await fetch(`${API}/payroll/slip/${id}`);const data=await r.json();
     const slip=data.payroll,emp=data.employee,details=data.details,period=data.period;
+    
+    const companyBurdens = details.filter(d => d.tipe === 'Beban Perusahaan');
+    const hasBpjs = details.some(d => d.nama_komponen.includes('BPJS'));
+
     document.getElementById('slipContent').innerHTML=`
         <div style="text-align:center;border-bottom:2px solid #eee;padding-bottom:15px;margin-bottom:20px;">
-            <h2 style="color:var(--primary-color);">PAYSLIP</h2>
-            <p style="font-size:13px;color:#666;">Period: ${slip.bulan}/${slip.tahun}${period&&period.pay_date?' • Pay Date: '+period.pay_date:''}</p>
+            <h2 style="color:var(--primary-color); margin: 0;">PAYSLIP</h2>
+            <p style="font-size:13px;color:#666; margin: 5px 0 0 0;">Period: ${slip.bulan}/${slip.tahun}${period&&period.pay_date?' • Pay Date: '+period.pay_date:''}</p>
         </div>
         <div style="display:flex;justify-content:space-between;margin-bottom:20px;font-size:14px;">
-            <div><p><strong>Name:</strong> ${emp.nama}</p><p><strong>NIK:</strong> ${emp.nik}</p></div>
-            <div style="text-align:right;"><p><strong>Status:</strong> ${slip.status_pembayaran}</p><p><strong>Account:</strong> ${emp.no_rekening}</p></div>
+            <div>
+                <p style="margin: 4px 0;"><strong>Name:</strong> ${emp.nama}</p>
+                <p style="margin: 4px 0;"><strong>NIK:</strong> ${emp.nik || '-'}</p>
+            </div>
+            <div style="text-align:right;">
+                <p style="margin: 4px 0;"><strong>Status:</strong> ${slip.status_pembayaran}</p>
+                <p style="margin: 4px 0;"><strong>Account:</strong> ${emp.no_rekening || '-'}</p>
+            </div>
         </div>
-        <table style="width:100%;font-size:14px;">
-            <tr style="background:#f8f9fa;"><th colspan="2">Earnings</th></tr>
-            <tr><td>Basic Salary</td><td style="text-align:right;">${formatRupiah(slip.gaji_pokok)}</td></tr>
-            ${details.filter(d=>d.tipe==='Tunjangan' || d.tipe==='Allowance').map(d=>`<tr><td>${d.nama_komponen}</td><td style="text-align:right;">${formatRupiah(d.jumlah)}</td></tr>`).join('')}
-            <tr style="background:#f8f9fa;"><th colspan="2">Deductions</th></tr>
-            ${details.filter(d=>d.tipe==='Potongan' || d.tipe==='Deduction').map(d=>`<tr><td>${d.nama_komponen}</td><td style="text-align:right;color:#e74c3c;">- ${formatRupiah(d.jumlah)}</td></tr>`).join('')}
-            <tr style="border-top:2px solid #eee;"><th style="padding-top:15px;font-size:16px;">TAKE HOME PAY</th><th style="padding-top:15px;font-size:16px;text-align:right;color:var(--success);">${formatRupiah(slip.take_home_pay)}</th></tr>
-        </table>`;
+        <table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:20px;">
+            <thead>
+                <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Earnings</th></tr>
+            </thead>
+            <tbody>
+                <tr><td style="padding:8px 10px;">Basic Salary</td><td style="text-align:right;padding:8px 10px;">${formatRupiah(slip.gaji_pokok)}</td></tr>
+                ${details.filter(d=>d.tipe==='Tunjangan' || d.tipe==='Allowance').map(d=>`<tr><td style="padding:8px 10px;">${d.nama_komponen}</td><td style="text-align:right;padding:8px 10px;">${formatRupiah(d.jumlah)}</td></tr>`).join('')}
+            </tbody>
+            <thead>
+                <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Deductions</th></tr>
+            </thead>
+            <tbody>
+                ${details.filter(d=>d.tipe==='Potongan' || d.tipe==='Deduction').map(d=>`<tr><td style="padding:8px 10px;">${d.nama_komponen}</td><td style="text-align:right;color:#e74c3c;padding:8px 10px;">- ${formatRupiah(d.jumlah)}</td></tr>`).join('')}
+            </tbody>
+            <tfoot>
+                <tr style="border-top:2px solid #eee;">
+                    <th style="padding:15px 10px;font-size:16px;text-align:left;">TAKE HOME PAY</th>
+                    <th style="padding:15px 10px;font-size:16px;text-align:right;color:var(--success);">${formatRupiah(slip.take_home_pay)}</th>
+                </tr>
+            </tfoot>
+        </table>
+        
+        ${companyBurdens.length > 0 ? `
+        <div style="margin-top:20px;border-top:2px dashed #eee;padding-top:15px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="margin:0;color:#475569;font-size:14px;font-weight:700;text-transform:uppercase;">Beban Perusahaan (Informasi)</h4>
+                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('bulk', ${id})" style="font-size:12px;color:var(--primary-color);font-weight:600;text-decoration:none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
+            </div>
+            <table style="width:100%;font-size:13px;color:#64748b;">
+                ${companyBurdens.map(d=>`<tr><td style="padding:4px 0;">${d.nama_komponen}</td><td style="text-align:right;padding:4px 0;">${formatRupiah(d.jumlah)}</td></tr>`).join('')}
+            </table>
+        </div>
+        ` : ''}
+        `;
     document.getElementById('modalSlip').style.display='block';document.getElementById('overlay').style.display='block';
 }
-function tutupModalSlip(){document.getElementById('modalSlip').style.display='none';document.getElementById('overlay').style.display='none';}
+function tutupModalSlip(){
+    document.getElementById('modalSlip').style.display='none';
+    if(document.getElementById('modalDetailBpjs')) document.getElementById('modalDetailBpjs').style.display='none';
+    document.getElementById('overlay').style.display='none';
+}
 
 // Set default bulan
 const now=new Date();

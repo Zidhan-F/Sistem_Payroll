@@ -147,10 +147,23 @@ class Payroll extends ResourceController
             // Potongan Absen (Gaji Pokok / daysInMonth * jumlah alpa)
             $potonganAlpa = ($baseSalary / $daysInMonth) * $dk['alpa'];
 
+            // Match payroll scheme template for organizational matching
+            $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
+            $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
+                $clientId,
+                $emp['division_id'] ?? null,
+                $emp['department_id'] ?? null,
+                $emp['position_id'] ?? null
+            );
+            $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+
             // Hitung komponen custom
             $customTunjangan = 0;
             $customPotongan = 0;
             $customDetails = [];
+
+            $bpjsWageBase = $baseSalary; // Gaji Pokok is always included
+            $pphWageBase = $baseSalary;  // Gaji Pokok is always included
 
             foreach ($components as $comp) {
                 $nilaiKomponen = 0;
@@ -163,12 +176,52 @@ class Payroll extends ResourceController
 
                 if ($comp['tipe'] === 'Tunjangan') {
                     $customTunjangan += $nilaiKomponen;
+
+                    // Resolve inclusion flags
+                    $nameClean = strtolower(trim($comp['nama_komponen'] ?? $comp['nama'] ?? ''));
+                    $isBpjsInc = false;
+                    $isPphInc = true;
+
+                    if ($schemeTemplate) {
+                        if (strpos($nameClean, 'transport') !== false) {
+                            $isBpjsInc = ($schemeTemplate['bpjs_inc_transport'] == 1);
+                            $isPphInc = ($schemeTemplate['pph_inc_transport'] == 1);
+                        } elseif (strpos($nameClean, 'makan') !== false || strpos($nameClean, 'meal') !== false) {
+                            $isBpjsInc = ($schemeTemplate['bpjs_inc_makan'] == 1);
+                            $isPphInc = ($schemeTemplate['pph_inc_makan'] == 1);
+                        } elseif (strpos($nameClean, 'komunikasi') !== false || strpos($nameClean, 'communication') !== false) {
+                            $isBpjsInc = ($schemeTemplate['bpjs_inc_komunikasi'] == 1);
+                            $isPphInc = ($schemeTemplate['pph_inc_komunikasi'] == 1);
+                        } elseif (strpos($nameClean, 'jabatan') !== false || strpos($nameClean, 'position') !== false) {
+                            $isBpjsInc = ($schemeTemplate['bpjs_inc_jabatan'] == 1);
+                            $isPphInc = ($schemeTemplate['pph_inc_jabatan'] == 1);
+                        } elseif (strpos($nameClean, 'kehadiran') !== false || strpos($nameClean, 'attendance') !== false) {
+                            $isBpjsInc = ($schemeTemplate['bpjs_inc_kehadiran'] == 1);
+                            $isPphInc = ($schemeTemplate['pph_inc_kehadiran'] == 1);
+                        } elseif (strpos($nameClean, 'kinerja') !== false || strpos($nameClean, 'performance') !== false) {
+                            $isBpjsInc = ($schemeTemplate['bpjs_inc_kinerja'] == 1);
+                            $isPphInc = ($schemeTemplate['pph_inc_kinerja'] == 1);
+                        } else {
+                            $isBpjsInc = (isset($comp['is_bpjs']) && $comp['is_bpjs'] == 1);
+                            $isPphInc = (!isset($comp['is_pph21']) || $comp['is_pph21'] == 1);
+                        }
+                    } else {
+                        $isBpjsInc = (isset($comp['is_bpjs']) && $comp['is_bpjs'] == 1);
+                        $isPphInc = (!isset($comp['is_pph21']) || $comp['is_pph21'] == 1);
+                    }
+
+                    if ($isBpjsInc) {
+                        $bpjsWageBase += $nilaiKomponen;
+                    }
+                    if ($isPphInc) {
+                        $pphWageBase += $nilaiKomponen;
+                    }
                 } else {
                     $customPotongan += $nilaiKomponen;
                 }
 
                 $customDetails[] = [
-                    'nama_komponen' => $comp['nama_komponen'],
+                    'nama_komponen' => $comp['nama_komponen'] ?? $comp['nama'] ?? '',
                     'tipe' => $comp['tipe'],
                     'jumlah' => $nilaiKomponen
                 ];
@@ -188,11 +241,19 @@ class Payroll extends ResourceController
                 $ptkpStatus = $emp['ptkp'];
             } elseif ($taxScheme && !empty($taxScheme->ptkp_status)) {
                 $ptkpStatus = $taxScheme->ptkp_status;
+            } elseif ($schemeTemplate && !empty($schemeTemplate['ptkp_status'])) {
+                $ptkpStatus = $schemeTemplate['ptkp_status'];
             }
 
-            $totalPendapatanKotor = $baseSalary + $overtimePay + $customTunjangan;
-            $baseBPJS = $baseSalary + $customTunjangan;
-            $calc = $this->calculateBpjsAndTax($baseSalary, $totalPendapatanKotor, $taxScheme, $empMinimumWage, $ptkpStatus, $bpjsScheme, $baseBPJS);
+            // Adjust PPh wage base for attendance variations & overtime
+            $pphWageBaseFinal = $pphWageBase + $overtimePay - $potonganAlpa;
+
+            // Fallback for BPJS wage base to minimumWage if lower
+            if ($empMinimumWage > 0 && $bpjsWageBase < $empMinimumWage) {
+                $bpjsWageBase = $empMinimumWage;
+            }
+
+            $calc = $this->calculateBpjsAndTax($baseSalary, $bpjsWageBase, $pphWageBaseFinal, $schemeTemplate, $taxScheme, $empMinimumWage, $ptkpStatus, $bpjsScheme);
 
             $bpjsKesKaryawan = $calc['bpjs_kes_karyawan'];
             $bpjsJhtKaryawan = $calc['bpjs_jht_karyawan'];
@@ -246,6 +307,13 @@ class Payroll extends ResourceController
             if ($pph21 > 0 && $curTaxMethod !== 'Net') {
                 $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Pajak PPh 21', 'tipe' => 'Potongan', 'jumlah' => $pph21]);
             }
+
+            // Simpan Detail Beban Perusahaan (Informasi)
+            if ($calc['bpjs_kes_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Kesehatan (4% Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_kes_perusahaan']]);
+            if ($calc['bpjs_jht_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JHT (3.7% Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_jht_perusahaan']]);
+            if ($calc['bpjs_jp_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JP (2% Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_jp_perusahaan']]);
+            if ($calc['bpjs_jkk_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JKK (Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_jkk_perusahaan']]);
+            if ($calc['bpjs_jkm_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JKM (Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_jkm_perusahaan']]);
 
             // Simpan Detail custom
             foreach ($customDetails as $cd) {
@@ -451,7 +519,7 @@ class Payroll extends ResourceController
         ]);
     }
 
-    private function calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme = null, $baseBPJS = null)
+    private function calculateBpjsAndTax($gajiPokok, $bpjsWageBase, $pphWageBase, $schemeTemplate, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme = null)
     {
         $result = [
             'bpjs_kes_karyawan' => 0,
@@ -468,57 +536,60 @@ class Payroll extends ResourceController
             'metode_pajak' => 'Gross'
         ];
 
-        if (!$taxScheme) {
-            return $result;
+        // Resolve tax method
+        if ($schemeTemplate) {
+            $result['metode_pajak'] = $schemeTemplate['metode_pajak'] ?? ($taxScheme->metode ?? 'Gross');
+        } elseif ($taxScheme) {
+            $result['metode_pajak'] = $taxScheme->metode ?? 'Gross';
         }
-
-        if (!$bpjsScheme) {
-            $bpjsScheme = $taxScheme;
-        }
-
-        $result['metode_pajak'] = $taxScheme->metode ?? 'Gross';
 
         if ($gajiPokok <= 0) {
             return $result;
         }
 
-        // Rates & limits configuration
-        $kesRateEmp = floatval($bpjsScheme->bpjs_kes_karyawan ?? 1.0) / 100;
-        $kesRateCo = floatval($bpjsScheme->bpjs_kes_perusahaan ?? 4.0) / 100;
-        $kesMaxSal = floatval($bpjsScheme->bpjs_kes_max_salary ?? 12000000);
+        // Determine Rates source
+        $bpjsSrc = $bpjsScheme ?: ($schemeTemplate ?: $taxScheme);
+        $taxSrc = $schemeTemplate ?: $taxScheme;
 
-        $jhtRateEmp = floatval($bpjsScheme->bpjs_jht_karyawan ?? 2.0) / 100;
-        $jhtRateCo = floatval($bpjsScheme->bpjs_jht_perusahaan ?? 3.7) / 100;
-
-        $jpRateEmp = floatval($bpjsScheme->bpjs_jp_karyawan ?? 1.0) / 100;
-        $jpRateCo = floatval($bpjsScheme->bpjs_jp_perusahaan ?? 2.0) / 100;
-        $jpMaxSal = floatval($bpjsScheme->bpjs_jp_max_salary ?? 10024600);
-
-        $jkkRateCo = floatval($bpjsScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
-        $jkmRateCo = floatval($bpjsScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
-
-        // Wage base for BPJS: Gaji Pokok + Tunjangan Tetap (if passed) otherwise Gross
-        $wageBase = ($baseBPJS !== null) ? $baseBPJS : $totalPendapatanKotor;
-        if ($minimumWage > 0 && $wageBase < $minimumWage) {
-            $wageBase = $minimumWage;
+        if (!$bpjsSrc || !$taxSrc) {
+            return $result;
         }
 
+        $isBpjsTemplate = is_array($bpjsSrc);
+        $isTaxTemplate = is_array($taxSrc);
+
+        $result['metode_pajak'] = $isTaxTemplate ? ($taxSrc['metode_pajak'] ?? 'Gross') : ($taxSrc->metode ?? 'Gross');
+
+        $kesRateEmp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_kes_karyawan'] ?? 1.0) : ($bpjsSrc->bpjs_kes_karyawan ?? 1.0)) / 100;
+        $kesRateCo = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_kes_perusahaan'] ?? 4.0) : ($bpjsSrc->bpjs_kes_perusahaan ?? 4.0)) / 100;
+        $kesMaxSal = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_kes_max_salary'] ?? 12000000) : ($bpjsSrc->bpjs_kes_max_salary ?? 12000000));
+
+        $jhtRateEmp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jht_karyawan'] ?? 2.0) : ($bpjsSrc->bpjs_jht_karyawan ?? 2.0)) / 100;
+        $jhtRateCo = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jht_perusahaan'] ?? 3.7) : ($bpjsSrc->bpjs_jht_perusahaan ?? 3.7)) / 100;
+
+        $jpRateEmp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jp_karyawan'] ?? 1.0) : ($bpjsSrc->bpjs_jp_karyawan ?? 1.0)) / 100;
+        $jpRateCo = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jp_perusahaan'] ?? 2.0) : ($bpjsSrc->bpjs_jp_perusahaan ?? 2.0)) / 100;
+        $jpMaxSal = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jp_max_salary'] ?? 10024600) : ($bpjsSrc->bpjs_jp_max_salary ?? 10024600));
+
+        $jkkRateCo = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jkk_perusahaan'] ?? 0.24) : ($bpjsSrc->bpjs_jkk_perusahaan ?? 0.24)) / 100;
+        $jkmRateCo = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jkm_perusahaan'] ?? 0.30) : ($bpjsSrc->bpjs_jkm_perusahaan ?? 0.30)) / 100;
+
         // Apply caps
-        $kesWageBase = min($wageBase, $kesMaxSal);
-        $jpWageBase = min($wageBase, $jpMaxSal);
+        $kesWageBase = min($bpjsWageBase, $kesMaxSal);
+        $jpWageBase = min($bpjsWageBase, $jpMaxSal);
 
         // Calculations
         $result['bpjs_kes_karyawan'] = $kesWageBase * $kesRateEmp;
         $result['bpjs_kes_perusahaan'] = $kesWageBase * $kesRateCo;
 
-        $result['bpjs_jht_karyawan'] = $wageBase * $jhtRateEmp;
-        $result['bpjs_jht_perusahaan'] = $wageBase * $jhtRateCo;
+        $result['bpjs_jht_karyawan'] = $bpjsWageBase * $jhtRateEmp;
+        $result['bpjs_jht_perusahaan'] = $bpjsWageBase * $jhtRateCo;
 
         $result['bpjs_jp_karyawan'] = $jpWageBase * $jpRateEmp;
         $result['bpjs_jp_perusahaan'] = $jpWageBase * $jpRateCo;
 
-        $result['bpjs_jkk_perusahaan'] = $wageBase * $jkkRateCo;
-        $result['bpjs_jkm_perusahaan'] = $wageBase * $jkmRateCo;
+        $result['bpjs_jkk_perusahaan'] = $bpjsWageBase * $jkkRateCo;
+        $result['bpjs_jkm_perusahaan'] = $bpjsWageBase * $jkmRateCo;
 
         // PPh 21 TER 2024 Calculation
         $bpjsCoPremiums = $result['bpjs_kes_perusahaan'] + $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
@@ -529,7 +600,7 @@ class Payroll extends ResourceController
             // Iteration loop for Gross Up
             $allowance = 0;
             for ($i = 0; $i < 5; $i++) {
-                $brutoPajak = $totalPendapatanKotor + $bpjsCoPremiums + $allowance;
+                $brutoPajak = $pphWageBase + $bpjsCoPremiums + $allowance;
                 $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
                 $allowance = $brutoPajak * ($terRate / 100);
             }
@@ -537,7 +608,7 @@ class Payroll extends ResourceController
             $result['pph21'] = $allowance;
             $result['ter_rate'] = $terRate;
         } else {
-            $brutoPajak = $totalPendapatanKotor + $bpjsCoPremiums;
+            $brutoPajak = $pphWageBase + $bpjsCoPremiums;
             $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
             $result['pph21'] = $brutoPajak * ($terRate / 100);
             $result['ter_rate'] = $terRate;

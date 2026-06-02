@@ -148,16 +148,7 @@
                             </div>
                         </div>
 
-                        <!-- Action 8: Activity Log -->
-                        <div class="quick-action-card" onclick="switchView('logAktivitas')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(148, 163, 184, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="fas fa-history" style="font-size: 24px; color: #64748b;"></i>
-                            </div>
-                            <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Activity Log</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">View system logs and history.</p>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
 
@@ -960,8 +951,7 @@
                     </table>
             </div>
         </div>
-        <!-- Section: Log Aktivitas -->
-        <?= view('partials/_view_log') ?>
+        <!-- Section: Log Aktivitas Removed -->
     </div>
 
     <?= view('partials/_modals') ?>
