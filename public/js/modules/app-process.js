@@ -131,8 +131,8 @@ async function renderReviewGajiTable() {
             tbody.innerHTML = data.map(row => `
                 <tr>
                     <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
-                    <td style="color:var(--success);">${formatRupiah(row.total_pendapatan)}</td>
-                    <td style="color:var(--danger);">${formatRupiah(row.total_potongan)}</td>
+                    <td>${formatRupiah(row.total_pendapatan)}</td>
+                    <td>${formatRupiah(row.total_potongan)}</td>
                     <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
                     <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
                     <td>
