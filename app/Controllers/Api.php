@@ -749,16 +749,25 @@ class Api extends ResourceController
             $query->where('client_id', $clientId);
         }
         $data = $query->get()->getResult();
+        foreach ($data as &$row) {
+            $row = $this->formatPeriodRow($row);
+        }
         return $this->respond($data);
     }
 
     public function createPeriod()
     {
         $data = $this->request->getJSON(true);
-        $months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-        $data['nama'] = $months[$data['bulan'] - 1] . " " . $data['tahun'];
         
-        $this->db->table('payroll_periods')->insert($data);
+        $insertData = [
+            'client_id' => $data['client_id'] ?? null,
+            'bulan' => intval($data['bulan']),
+            'tahun' => intval($data['tahun']),
+            'status_cutoff' => 'Open',
+            'pay_date' => null
+        ];
+        
+        $this->db->table('payroll_periods')->insert($insertData);
         return $this->respondCreated(['message' => 'Periode baru berhasil dibuka']);
     }
 
@@ -1217,6 +1226,7 @@ class Api extends ResourceController
         }
 
         $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        $period = $this->formatPeriodRow($period);
         $periodName = $period ? $period->nama : "ID: $periodId";
         $this->logActivity("Men-generate payroll untuk periode: " . $periodName);
         return $this->respond(['message' => 'Gaji bulanan berhasil di-generate untuk periode ini']);
@@ -1259,7 +1269,7 @@ class Api extends ResourceController
     {
         // Get Final Result
         $final = $this->db->table('payroll_final')
-                          ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.client_id, payroll_periods.nama as period_name, clients.nama as client_name')
+                          ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.client_id, payroll_periods.bulan, payroll_periods.tahun, clients.nama as client_name')
                           ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                           ->join('payroll_periods', 'payroll_periods.id = payroll_final.period_id')
                           ->join('clients', 'clients.id = pkwt.client_id')
@@ -1269,8 +1279,12 @@ class Api extends ResourceController
         
         if (!$final) return $this->failNotFound('Data tidak ditemukan');
 
+        $months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        $final['period_name'] = ($months[intval($final['bulan'] ?? 1) - 1] ?? '') . " " . ($final['tahun'] ?? '');
+
         // Load active period to calculate calendar days
         $period = $this->db->table('payroll_periods')->where('id', $final['period_id'])->get()->getRow();
+        $period = $this->formatPeriodRow($period);
         $daysInMonth = $period ? date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun))) : 30;
 
         // Get client config to find payroll scheme ID
@@ -1610,6 +1624,7 @@ class Api extends ResourceController
         
         // Define file name
         $periodInfo = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        $periodInfo = $this->formatPeriodRow($periodInfo);
         $periodName = $periodInfo ? $periodInfo->nama : 'Unknown_Period';
         $filename = "Payroll_Report_" . str_replace(' ', '_', $periodName) . ".csv";
         
@@ -2295,6 +2310,7 @@ class Api extends ResourceController
         // Fetch period name
         $periodName = 'Unknown_Period';
         $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        $period = $this->formatPeriodRow($period);
         if ($period) {
             $periodName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $period->nama);
         }
@@ -2383,6 +2399,31 @@ class Api extends ResourceController
         
         fclose($output);
         exit();
+    }
+
+    private function formatPeriodRow($row)
+    {
+        if (!$row) return $row;
+        $months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        
+        if (is_array($row)) {
+            if (!isset($row['nama']) && isset($row['bulan'], $row['tahun'])) {
+                $row['nama'] = ($months[intval($row['bulan']) - 1] ?? '') . " " . $row['tahun'];
+            }
+            if (!isset($row['status']) && isset($row['status_cutoff'])) {
+                $row['status'] = $row['status_cutoff'];
+            }
+            return $row;
+        } else if (is_object($row)) {
+            if (!isset($row->nama) && isset($row->bulan, $row->tahun)) {
+                $row->nama = ($months[intval($row->bulan) - 1] ?? '') . " " . $row->tahun;
+            }
+            if (!isset($row->status) && isset($row->status_cutoff)) {
+                $row->status = $row->status_cutoff;
+            }
+            return $row;
+        }
+        return $row;
     }
 }
 

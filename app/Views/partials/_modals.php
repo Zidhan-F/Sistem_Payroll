@@ -684,85 +684,87 @@
                             <small style="color: #64748b; font-size: 11px;">Calculation rates and maximum caps for BPJS Kesehatan & Ketenagakerjaan.</small>
                         </div>
                         <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
-                            <option value="">-- Select BPJS Scheme --</option>
+                            <option value="tambah_skema">Tambah Skema</option>
                         </select>
                     </div>
 
                     <!-- BPJS Configuration Inputs (cloned/copied from modalBpjs details) -->
-                    <div id="modalClientBpjsOverrideFields" style="display: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; flex-direction: column; gap: 12px; margin-top: 10px; margin-bottom: 10px;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 14px; font-weight: 700; color: #1e293b;"><i class="fas fa-cog" style="color: var(--primary-color);"></i> BPJS Configuration Rates</h4>
+                    <div id="modalClientBpjsOverrideFields" style="display: flex; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; flex-direction: column; gap: 12px; margin-top: 10px; margin-bottom: 10px;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 14px; font-weight: 700; color: #1e293b;"><i class="fas fa-cog" style="color: var(--primary-color);"></i> BPJS Programs Activation</h4>
+                        <p style="margin: 0; font-size: 12px; color: #64748b;">
+                            Select which BPJS programs are active for this client workspace. Inactive programs will be calculated as 0.
+                        </p>
                         
-                        <!-- BPJS Kesehatan -->
-                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: white;">
-                            <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-hand-holding-medical" style="color: var(--primary-color);"></i> BPJS Kesehatan</h5>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Employee Share (%)</label>
-                                    <input type="number" step="0.01" id="mClientBpjsKesKaryawan" value="1.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 5px;">
+                            <!-- BPJS Kesehatan -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #e0f2fe; display: flex; align-items: center; justify-content: center; color: #0284c7;">
+                                        <i class="fas fa-hand-holding-medical" style="font-size: 16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">BPJS Kesehatan</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsKesDesc">Default: Karyawan 1%, Perusahaan 4%</div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Company Share (%)</label>
-                                    <input type="number" step="0.01" id="mClientBpjsKesPerusahaan" value="4.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
-                                </div>
-                            </div>
-                            <div>
-                                <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">BPJS Kesehatan Max Salary Limit (IDR)</label>
-                                <input type="text" id="mClientBpjsKesMaxSalary" value="12.000.000" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
-                            </div>
-                        </div>
+                                <input type="checkbox" id="mClientBpjsKesActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
 
-                        <!-- BPJS Ketenagakerjaan (JHT & JP) -->
-                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: white;">
-                            <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-shield-alt" style="color: var(--info);"></i> BPJS Ketenagakerjaan</h5>
-                            
                             <!-- JHT -->
-                            <div style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
-                                <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JHT (Old Age Security)</span>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Employee (%)</label>
-                                        <input type="number" step="0.01" id="mClientBpjsJhtKaryawan" value="2.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #dcfce7; display: flex; align-items: center; justify-content: center; color: #16a34a;">
+                                        <i class="fas fa-coins" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Company (%)</label>
-                                        <input type="number" step="0.01" id="mClientBpjsJhtPerusahaan" value="3.70" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Hari Tua (JHT)</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJhtDesc">Default: Karyawan 2%, Perusahaan 3.7%</div>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <!-- JP -->
-                            <div style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
-                                <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JP (Pension Security)</span>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px;">
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Employee (%)</label>
-                                        <input type="number" step="0.01" id="mClientBpjsJpKaryawan" value="1.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
-                                    </div>
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Company (%)</label>
-                                        <input type="number" step="0.01" id="mClientBpjsJpPerusahaan" value="2.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">BPJS Pension Max Salary Limit (IDR)</label>
-                                    <input type="text" id="mClientBpjsJpMaxSalary" value="10.024.600" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
-                                </div>
-                            </div>
+                                <input type="checkbox" id="mClientBpjsJhtActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
 
-                            <!-- JKK & JKM -->
-                            <div>
-                                <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JKK & JKM (Borne by Company)</span>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">JKK (%)</label>
-                                        <input type="number" step="0.001" id="mClientBpjsJkkPerusahaan" value="0.24" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
+                            <!-- JP -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #fef9c3; display: flex; align-items: center; justify-content: center; color: #ca8a04;">
+                                        <i class="fas fa-piggy-bank" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">JKM (%)</label>
-                                        <input type="number" step="0.01" id="mClientBpjsJkmPerusahaan" value="0.30" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px; box-sizing: border-box;">
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Pensiun (JP)</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJpDesc">Default: Karyawan 1%, Perusahaan 2%</div>
                                     </div>
                                 </div>
-                            </div>
+                                <input type="checkbox" id="mClientBpjsJpActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
+
+                            <!-- JKK -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #dc2626;">
+                                        <i class="fas fa-user-shield" style="font-size: 16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kecelakaan Kerja (JKK)</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkkDesc">Default: Perusahaan 0.24%</div>
+                                    </div>
+                                </div>
+                                <input type="checkbox" id="mClientBpjsJkkActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
+
+                            <!-- JKM -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #f3e8ff; display: flex; align-items: center; justify-content: center; color: #9333ea;">
+                                        <i class="fas fa-heartbeat" style="font-size: 16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kematian (JKM)</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkmDesc">Default: Perusahaan 0.3%</div>
+                                    </div>
+                                </div>
+                                <input type="checkbox" id="mClientBpjsJkmActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
                         </div>
                     </div>
 
