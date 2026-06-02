@@ -82,7 +82,13 @@ function formatRupiahInput(element) {
 
 function parseFormattedNumber(val) {
     if (!val) return 0;
-    return parseFloat(String(val).replace(/\./g, '').replace(/,/g, '.')) || 0;
+    // Strip currency symbols/text (anything other than digits, dots, commas, minus)
+    let clean = String(val).replace(/[^0-9.,\-]/g, '');
+    // Remove dot as thousands separator
+    clean = clean.replace(/\./g, '');
+    // Replace comma as decimal separator with dot
+    clean = clean.replace(/,/g, '.');
+    return parseFloat(clean) || 0;
 }
 
 function handleKomponenKompensasiNilaiInput(element) {

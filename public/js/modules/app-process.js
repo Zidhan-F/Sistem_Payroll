@@ -71,56 +71,69 @@ function selectPeriod(id, name) {
 
 async function renderCutOffTable() {
     if(!currentPeriodId) return;
-    const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    document.getElementById('tabelCutOffBody').innerHTML = data.map(row => {
-        const hariKerja = parseFloat(row.hari_kerja) || 0;
-        const jamLembur = parseFloat(row.jam_lembur) || 0;
-        const potongan = parseFloat(row.potongan_absensi) || 0;
-        const bonus = parseFloat(row.bonus_tambahan) || 0;
-        return `
-        <tr>
-            <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
-            <td>${hariKerja} Days</td>
-            <td>${jamLembur} Hours</td>
-            <td>${formatRupiah(potongan)}</td>
-            <td>${formatRupiah(bonus)}</td>
-            <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja || 22}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
-        </tr>`;
-    }).join('');
+    try {
+        const tbody = document.getElementById('tabelCutOffBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+        const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!tbody) return;
+        tbody.innerHTML = data.map(row => {
+            const hariKerja = parseFloat(row.hari_kerja) || 0;
+            const jamLembur = parseFloat(row.jam_lembur) || 0;
+            const potongan = parseFloat(row.potongan_absensi) || 0;
+            const bonus = parseFloat(row.bonus_tambahan) || 0;
+            return `
+            <tr>
+                <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
+                <td>${hariKerja} Days</td>
+                <td>${jamLembur} Hours</td>
+                <td>${formatRupiah(potongan)}</td>
+                <td>${formatRupiah(bonus)}</td>
+                <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja || 22}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
+            </tr>`;
+        }).join('');
+    } catch (err) { console.error(err); }
 }
 
 async function renderReviewGajiTable() {
     if(!currentPeriodId) return;
-    const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const section = document.getElementById('resultSection');
-    const tbody = document.getElementById('tabelReviewGajiBody');
-    if (data.length > 0) {
-        section.style.display = 'block';
-        tbody.innerHTML = data.map(row => `
-            <tr>
-                <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
-                <td style="color:var(--success);">${formatRupiah(row.total_pendapatan)}</td>
-                <td style="color:var(--danger);">${formatRupiah(row.total_potongan)}</td>
-                <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
-                <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
-                <td>
-                    <div style="display:flex; gap:6px; align-items:center;">
-                        ${row.status_approval === 'Pending' ? 
-                            `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : ''
-                        }
-                        <button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip / Details" style="background:var(--primary-color); color:white; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
-    } else { 
-        section.style.display = 'block';
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:#7f8c8d;">No salary data generated for this period.</td></tr>`;
-    }
+    try {
+        const tbody = document.getElementById('tabelReviewGajiBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+        const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const section = document.getElementById('resultSection');
+        if (!tbody) return;
+        if (data.length > 0) {
+            section.style.display = 'block';
+            tbody.innerHTML = data.map(row => `
+                <tr>
+                    <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
+                    <td style="color:var(--success);">${formatRupiah(row.total_pendapatan)}</td>
+                    <td style="color:var(--danger);">${formatRupiah(row.total_potongan)}</td>
+                    <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
+                    <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
+                    <td>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            ${row.status_approval === 'Pending' ? 
+                                `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : ''
+                            }
+                            <button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip / Details" style="background:var(--primary-color); color:white; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        } else { 
+            section.style.display = 'block';
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:#7f8c8d;">No salary data generated for this period.</td></tr>`;
+        }
+    } catch (err) { console.error(err); }
 }
 
 async function generateGaji() {

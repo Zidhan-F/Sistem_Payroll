@@ -62,6 +62,10 @@ let allWorkLocationsGlobal = [];
 
 async function loadGlobalWorkLocations() {
     try {
+        const tbody = document.getElementById('tabelGlobalLokasiKerjaBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
         const r = await fetch('/api/work-locations');
         workLocations = await r.json();
         allWorkLocationsGlobal = [...workLocations];
@@ -122,6 +126,10 @@ function cariLokasiKerjaGlobalAktif() {
 async function loadWorkLocationsForClient() {
     if (!window.selectedClientId) return;
     try {
+        const tbody = document.getElementById('tabelLokasiKerjaBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
         const r = await fetch(`/api/work-locations?client_id=${window.selectedClientId}`);
         workLocations = await r.json();
         renderWorkLocationsTable();

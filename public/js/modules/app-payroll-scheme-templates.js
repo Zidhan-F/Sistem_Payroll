@@ -14,6 +14,10 @@ async function loadSchemeTemplates(clientId) {
     currentClientIdForSchemes = clientId;
     
     try {
+        const tbody = document.getElementById('tabelSkemaTemplates');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
         const response = await fetch(`/api/payroll-schemes?client_id=${clientId}`);
         const schemes = await response.json();
         

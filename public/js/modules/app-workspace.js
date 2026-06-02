@@ -159,10 +159,13 @@ function initCascadingSkemaDropdowns() {
 async function loadSchemaMappingTable() {
     if (!window.selectedClientId) return;
     try {
+        const tbody = document.getElementById('tabelPilihanSkemaKlien');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
         const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const mappings = await res.json();
         
-        const tbody = document.getElementById('tabelPilihanSkemaKlien');
         if (!tbody) return;
         
         if (!mappings || mappings.length === 0) {

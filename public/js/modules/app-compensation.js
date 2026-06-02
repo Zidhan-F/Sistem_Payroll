@@ -287,7 +287,7 @@ function bukaModalSkemaKompensasi(mode, id = null) {
                 if (comp.sumber_nilai === 'ump' || comp.sumber_nilai === 'umk') {
                     elNilai.value = parseFloat(comp.nilai) || 0;
                 } else {
-                    elNilai.value = comp.nilai || '0';
+                    elNilai.value = Math.round(parseFloat(comp.nilai) || 0);
                     formatRupiahInput(elNilai);
                 }
                 document.getElementById('skemaKompensasiIsPersentase').value = comp.is_persentase || '0';
