@@ -480,7 +480,7 @@ function tutupModal() { tutupSemuaModal(); }
 function tutupModalSkema() { tutupSemuaModal(); }
 function tutupModalKomponen() { tutupSemuaModal(); }
 function tutupModalPajak() { tutupSemuaModal(); }
-function tutupModalSetup() { tutupSemuaModal(); }
+
 function tutupModalPKWT() { tutupSemuaModal(); }
 function tutupModalPeriode() { tutupSemuaModal(); }
 function tutupModalCutOff() { tutupSemuaModal(); }

@@ -107,8 +107,6 @@ function switchWorkspaceTab(tab) {
         if (typeof loadSchemeTemplates === 'function' && window.selectedClientId) {
             loadSchemeTemplates(window.selectedClientId);
         }
-    } else if (tab === 'setup') {
-        loadWorkspaceSetup();
     } else if (tab === 'pkwt') {
         renderPKWTTable();
     } else if (tab === 'proses') {
@@ -170,57 +168,6 @@ async function handleSetupPayrollSchemeTipeChange() {
     }
 }
 
-async function loadWorkspaceSetup() {
-    if (!window.selectedClientId) return;
-    try {
-        const response = await fetch(`${API_URL}/client-configs`);
-        const configs = await response.json();
-        const conf = configs.find(c => c.client_id == window.selectedClientId);
-        
-        const elClientName = document.getElementById('wSetupClientName');
-        if (elClientName) elClientName.innerText = window.selectedClientName || '-';
-        
-        const elPayrollScheme = document.getElementById('wSetupPayrollScheme');
-        const elBpjsScheme = document.getElementById('wSetupBpjsScheme');
-        const elTaxScheme = document.getElementById('wSetupTaxScheme');
-        const elPayDate = document.getElementById('wSetupPayDate');
-        const elCutoff = document.getElementById('wSetupCutoff');
-
-        if (conf) {
-            let payrollSchemeText = 'Not Set';
-            if (conf.payroll_type === 'UMP') {
-                payrollSchemeText = `UMP: ${conf.minimum_wage_region || 'Not Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
-            } else if (conf.payroll_type === 'UMK') {
-                payrollSchemeText = `UMK: ${conf.minimum_wage_region || 'Not Set'} (Rp ${conf.minimum_wage_nominal ? parseFloat(conf.minimum_wage_nominal).toLocaleString('id-ID') : '-'})`;
-            } else if (conf.payroll_type === 'Nominal') {
-                payrollSchemeText = `Nominal: Rp ${conf.custom_nominal ? parseFloat(conf.custom_nominal).toLocaleString('id-ID') : '-'}`;
-            } else if (conf.payroll_type === 'Template') {
-                payrollSchemeText = conf.payroll_scheme_name || 'Not Set';
-            }
-            
-            const bpjsText = conf.bpjs_scheme_name || 'Not Set';
-            const bpjsStyle = conf.bpjs_scheme_name ? 'background:#e0f2fe; color:#0369a1; font-weight:600; padding:4px 10px; border-radius:6px; font-size:12px; display:inline-block;' : 'background:#fee2e2; color:#dc2626; font-weight:600; padding:4px 10px; border-radius:6px; font-size:12px; display:inline-block;';
-            
-            const taxText = conf.tax_scheme_name || 'Not Set';
-            const taxStyle = conf.tax_scheme_name ? 'background:#f3e8ff; color:#6b21a8; font-weight:600; padding:4px 10px; border-radius:6px; font-size:12px; display:inline-block;' : 'background:#fee2e2; color:#dc2626; font-weight:600; padding:4px 10px; border-radius:6px; font-size:12px; display:inline-block;';
-
-            if (elPayrollScheme) elPayrollScheme.innerHTML = `<span class="scheme-badge bulanan" style="font-weight:600; padding:4px 10px; border-radius:6px; font-size:12px; display:inline-block;">${payrollSchemeText}</span>`;
-            if (elBpjsScheme) elBpjsScheme.innerHTML = `<span style="${bpjsStyle}">${bpjsText}</span>`;
-            if (elTaxScheme) elTaxScheme.innerHTML = `<span style="${taxStyle}">${taxText}</span>`;
-            if (elPayDate) elPayDate.innerText = conf.pay_date ? `Day ${conf.pay_date}` : 'Not Set';
-            if (elCutoff) elCutoff.innerText = conf.cutoff_start ? `${conf.cutoff_start} to ${(conf.cutoff_start - 1)}` : 'Not Set';
-        } else {
-            const unsetBadge = '<span style="background:#fee2e2; color:#dc2626; font-weight:600; padding:4px 10px; border-radius:6px; font-size:12px; display:inline-block;">Not Set</span>';
-            if (elPayrollScheme) elPayrollScheme.innerHTML = unsetBadge;
-            if (elBpjsScheme) elBpjsScheme.innerHTML = unsetBadge;
-            if (elTaxScheme) elTaxScheme.innerHTML = unsetBadge;
-            if (elPayDate) elPayDate.innerText = 'Not Set';
-            if (elCutoff) elCutoff.innerText = 'Not Set';
-        }
-    } catch (err) {
-        console.error(err);
-    }
-}
 
 function bukaModal(mode, id = null) {
     const modal = document.getElementById('modalClient');

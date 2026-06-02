@@ -931,8 +931,12 @@ class Api extends ResourceController
                 if ($isBasicSalary) {
                     $base_nilai = floatval($comp->nilai);
                     
-                    // Check source
-                    if (isset($comp->sumber_nilai)) {
+                    // Force base_nilai to use Employee's setup if available!
+                    if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
+                        $base_nilai = floatval($emp->gaji_pokok);
+                    } else if ($minimumWage > 0) {
+                        $base_nilai = $minimumWage;
+                    } else if (isset($comp->sumber_nilai)) {
                         if ($comp->sumber_nilai === 'ump') {
                             $base_nilai = $umpWageValue * ($base_nilai / 100);
                         } else if ($comp->sumber_nilai === 'umk') {
@@ -1413,29 +1417,27 @@ class Api extends ResourceController
                     }
                 }
                 
-                // Check source
-                if ($sumber_nilai === 'ump') {
+                // Force base_nilai to use Employee's setup if available!
+                if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
+                    $base_nilai = floatval($emp->gaji_pokok);
+                } else if ($minimumWage > 0) {
+                    $base_nilai = $minimumWage;
+                } else if ($sumber_nilai === 'ump') {
                     $base_nilai = $umpWageValue * ($base_nilai / 100);
                 } else if ($sumber_nilai === 'umk') {
                     $base_nilai = $umkWageValue * ($base_nilai / 100);
                 } else if ($sumber_nilai === 'ump_umk') {
                     $base_nilai = $minimumWage * ($base_nilai / 100);
-                } else if ($sumber_nilai === 'nominal') {
-                    // Always use the latest Gaji Pokok from employee data
-                    if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
-                        $base_nilai = floatval($emp->gaji_pokok);
-                    }
                 } else if ($sumber_nilai === 'kompensasi') {
-                        $kompTetapValue = 0;
-                        foreach ($fixed as $c) {
-                            if (($c['jenis_komponen'] ?? '') === 'kompensasi' && ($c['sifat_kompensasi'] ?? '') === 'tetap') {
-                                $kompTetapValue += floatval($c['nilai']);
-                            }
+                    $kompTetapValue = 0;
+                    foreach ($fixed as $c) {
+                        if (($c['jenis_komponen'] ?? '') === 'kompensasi' && ($c['sifat_kompensasi'] ?? '') === 'tetap') {
+                            $kompTetapValue += floatval($c['nilai']);
                         }
-                        $base_nilai = $kompTetapValue * ($base_nilai / 100);
                     }
+                    $base_nilai = $kompTetapValue * ($base_nilai / 100);
                 }
-                
+
                 $unproratedGajiPokok = $base_nilai;
 
                 // Scale by period

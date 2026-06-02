@@ -20,7 +20,6 @@
                     <button class="ws-tab active" data-wtab="karyawan" onclick="switchWorkspaceTab('karyawan')">Employee</button>
                     <button class="ws-tab" data-wtab="struktur" onclick="switchWorkspaceTab('struktur')">Organization Structure</button>
                     <button class="ws-tab" data-wtab="kompensasi" onclick="switchWorkspaceTab('kompensasi')">Scheme Choices</button>
-                    <button class="ws-tab" data-wtab="setup" onclick="switchWorkspaceTab('setup')">Setup Payroll</button>
                     <button class="ws-tab" data-wtab="pkwt" onclick="switchWorkspaceTab('pkwt')">PKWT Contract</button>
                     <button class="ws-tab" data-wtab="proses" onclick="switchWorkspaceTab('proses')">Process Payroll</button>
                 </div>
@@ -112,61 +111,6 @@
                             </div>
                         </div>
 
-                        <!-- Panel: Setup Payroll Klien -->
-                        <div id="viewSetup" class="w-tab-panel">
-                            <div class="content-card" style="max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
-                                <div style="text-align: center; margin-bottom: 25px;">
-                                    <div style="background: rgba(243, 156, 18, 0.1); width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                                        <i class="fas fa-cog" style="font-size: 28px; color: var(--primary-color);"></i>
-                                    </div>
-                                    <h3 style="font-size: 18px; font-weight: 700; color: var(--secondary-color);">Client Payroll Configuration</h3>
-                                    <p style="color: #64748b; font-size: 13px;">Settings for salary schemes, taxes, and monthly cut-off cycles.</p>
-                                </div>
-
-                                <div class="table-container" style="margin-bottom: 25px; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-                                    <table style="width: 100%; border-collapse: collapse;">
-                                        <thead>
-                                            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                                                <th style="padding: 12px 18px; text-align: left; font-size: 13px; font-weight: 600; color: #475569; width: 40%;">Configuration Item</th>
-                                                <th style="padding: 12px 18px; text-align: left; font-size: 13px; font-weight: 600; color: #475569; width: 60%;">Current Setting</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr style="border-bottom: 1px solid #f1f5f9;">
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-building" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Client Name</td>
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #1e293b; font-weight: 700;" id="wSetupClientName">-</td>
-                                            </tr>
-                                            <tr style="border-bottom: 1px solid #f1f5f9;">
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-money-bill-wave" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Payroll Scheme</td>
-                                                <td style="padding: 14px 18px; font-size: 13px;" id="wSetupPayrollScheme">-</td>
-                                            </tr>
-                                            <tr style="border-bottom: 1px solid #f1f5f9;">
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-shield-alt" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>BPJS Scheme</td>
-                                                <td style="padding: 14px 18px; font-size: 13px;" id="wSetupBpjsScheme">-</td>
-                                            </tr>
-                                            <tr style="border-bottom: 1px solid #f1f5f9;">
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-percent" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Tax Scheme</td>
-                                                <td style="padding: 14px 18px; font-size: 13px;" id="wSetupTaxScheme">-</td>
-                                            </tr>
-                                            <tr style="border-bottom: 1px solid #f1f5f9;">
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-calendar-alt" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Payment Date</td>
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #1e293b; font-weight: 700;" id="wSetupPayDate">-</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-calendar-day" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Cut-Off Cycle</td>
-                                                <td style="padding: 14px 18px; font-size: 13px; color: #1e293b; font-weight: 700;" id="wSetupCutoff">-</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div style="display: flex; justify-content: center;">
-                                    <button class="btn-save" onclick="bukaModalSetup(window.selectedClientId, window.selectedClientName)" style="background: var(--primary-color); display: flex; align-items: center; gap: 8px; font-weight: 600; padding: 12px 24px; border-radius: 10px;">
-                                        <i class="fas fa-edit"></i> Edit Configuration
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Panel: Kontrak PKWT -->
                         <div id="viewPkwt" class="w-tab-panel">
