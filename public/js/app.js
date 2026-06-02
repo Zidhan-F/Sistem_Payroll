@@ -295,8 +295,6 @@ function switchPayrollSub(sub) {
     } else if (sub === 'setting') {
         switchView('payroll');
         switchPayrollSubTab('skema');
-    } else if (sub === 'pajak') {
-        switchView('pajak');
     }
 }
 
@@ -356,13 +354,12 @@ function switchView(view) {
         globalLokasiKerja: 'Employee Management',
         clientWorkspace: 'Client Workspace',
         payroll: 'Master Payroll Scheme',
-        pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Employee Management';
 
     // Highlight and expand parent menu if we are in one of the payroll submenus
-    if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
+    if (view === 'payroll' || view === 'masterKompensasi') {
         const parentMenu = document.getElementById('menuPayroll');
         if (parentMenu) parentMenu.classList.add('active');
         togglePayrollSubmenu(true);
@@ -393,15 +390,33 @@ function switchView(view) {
             switchPayrollSubTab('skema');
         }
     }
-    if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
 }
 
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal(keepSidebarOpen = false) {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
+    
+    // Clean up TomSelect instances from modalPilihanSkema if it was open
+    if (typeof window.tutupModalPilihanSkema === 'function') {
+        try {
+            // Destroy TomSelect instances (excluding bpjs select which is native)
+            ['modalPilihanSkemaDivisi', 'modalPilihanSkemaDepartemen', 'modalPilihanSkemaPosisi', 'modalPilihanSkemaPayroll', 'modalPilihanSkemaPajak'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.tomselect) el.tomselect.destroy();
+            });
+            const overrideFields = document.getElementById('modalClientBpjsOverrideFields');
+            if (overrideFields) overrideFields.style.display = 'none';
+            window.modalClientBpjsOriginalValues = null;
+            window.editSchemaMappingId = null;
+        } catch(e) { /* ignore cleanup errors */ }
+    }
+
+    // Hide additional overlays
+    const extraOverlays = ['overlayPilihSkema'];
+    extraOverlays.forEach(id => { if(document.getElementById(id)) document.getElementById(id).style.display = 'none'; });
     
     const sidebar = document.querySelector('.sidebar');
     const isSidebarActive = sidebar && sidebar.classList.contains('active');
@@ -498,8 +513,7 @@ function quickAction(type) {
     } else if (type === 'proses-payroll') {
         switchView('klien');
         showToast('Please select a client first to process payroll', 'info');
-    } else if (type === 'pengaturan-skema') {
-        switchPayrollSub('pajak');
+
     } else if (type === 'setting-skema') {
         switchPayrollSub('setting');
     } else if (type === 'lokasi-kerja') {

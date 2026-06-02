@@ -20,8 +20,8 @@ function renderClientTableData(data) {
             day: 'numeric'
         }) : '-';
         return `
-            <tr style="cursor: pointer;" onclick="event.target.closest('button') ? null : selectClient(${client.id}, '${client.nama.replace(/'/g, "\\'")}', '${client.sektor.replace(/'/g, "\\'")}')">
-                <td style="font-weight: 600; color: var(--primary-color);">${client.nama}</td>
+            <tr style="cursor: pointer;" title="Click to open workspace for ${client.nama.replace(/"/g, '&quot;')}" onclick="event.target.closest('button') ? null : selectClient(${client.id}, '${client.nama.replace(/'/g, "\\'")}', '${client.sektor.replace(/'/g, "\\'")}')">
+                <td class="client-name-td">${client.nama} <i class="fas fa-chevron-right client-arrow-icon"></i></td>
                 <td>${client.sektor}</td>
                 <td>${client.npwp ? `'${client.npwp}'` : '-'}</td>
                 <td>${client.nib || '-'}</td>
@@ -80,6 +80,9 @@ function backToClientList() {
 }
 
 function switchWorkspaceTab(tab) {
+    // Auto-close any open modals when switching workspace tabs
+    if (typeof tutupSemuaModal === 'function') tutupSemuaModal(true);
+
     document.querySelectorAll('.ws-tab').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.querySelector(`.ws-tab[data-wtab="${tab}"]`);
     if (activeBtn) activeBtn.classList.add('active');

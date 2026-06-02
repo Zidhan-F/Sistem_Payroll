@@ -168,8 +168,12 @@ async function bukaModalSkema(mode, id = null) {
                 document.getElementById('skemaSumber').value = basic.sumber_nilai || 'nominal';
                 document.getElementById('skemaPeriode').value = basic.periode || 'bulan';
                 const elNilai = document.getElementById('skemaNilai');
-                elNilai.value = basic.nilai || 0;
-                formatRupiahInput(elNilai);
+                if (basic.sumber_nilai === 'ump' || basic.sumber_nilai === 'umk') {
+                    elNilai.value = parseFloat(basic.nilai) || 0;
+                } else {
+                    elNilai.value = basic.nilai || 0;
+                    formatRupiahInput(elNilai);
+                }
                 document.getElementById('skemaIsPersentase').value = basic.is_persentase || '0';
             } else {
                 document.getElementById('skemaSumber').value = 'nominal';

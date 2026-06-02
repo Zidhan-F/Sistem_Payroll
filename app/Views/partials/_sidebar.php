@@ -51,9 +51,5 @@
                 <i class="fas fa-cog"></i>
                 <span>Scheme Settings</span>
             </li>
-            <li id="submenu_pajak" onclick="switchPayrollSub('pajak')">
-                <i class="fas fa-percent"></i>
-                <span>BPJS & Tax Scheme</span>
-            </li>
     </ul>
 </div>

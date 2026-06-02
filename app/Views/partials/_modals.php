@@ -142,7 +142,7 @@
                 </div>
                             <div class="form-group" style="margin: 0;">
                                 <label id="labelNilaiSkemaPayroll" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Basic Salary (IDR)</label>
-                                 <input type="text" id="skemaNilai" placeholder="Enter Basic Salary" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                 <input type="text" id="skemaNilai" placeholder="Enter Basic Salary" onkeyup="handleSkemaNilaiInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
             </div>
                         </div>
 
@@ -251,7 +251,7 @@
 
     <!-- Allowance Payroll Form Modal -->
     <div id="modalKomponen" class="modal-skema">
-        <div class="modal-header" style="background: var(--info);">
+        <div class="modal-header" style="background: var(--primary-color);">
             <h3 id="modalKomponenTitle">Add Allowance</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalKomponen()"></i>
         </div>
@@ -684,8 +684,88 @@
                             <small style="color: #64748b; font-size: 11px;">Calculation rates and maximum caps for BPJS Kesehatan & Ketenagakerjaan.</small>
                         </div>
                         <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
-                            <option value="">-- Select BPJS Scheme --</option>
+                            <option value="tambah_skema">Tambah Skema</option>
                         </select>
+                    </div>
+
+                    <!-- BPJS Configuration Inputs (cloned/copied from modalBpjs details) -->
+                    <div id="modalClientBpjsOverrideFields" style="display: flex; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; flex-direction: column; gap: 12px; margin-top: 10px; margin-bottom: 10px;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 14px; font-weight: 700; color: #1e293b;"><i class="fas fa-cog" style="color: var(--primary-color);"></i> BPJS Programs Activation</h4>
+                        <p style="margin: 0; font-size: 12px; color: #64748b;">
+                            Select which BPJS programs are active for this client workspace. Inactive programs will be calculated as 0.
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 5px;">
+                            <!-- BPJS Kesehatan -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #e0f2fe; display: flex; align-items: center; justify-content: center; color: #0284c7;">
+                                        <i class="fas fa-hand-holding-medical" style="font-size: 16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">BPJS Kesehatan</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsKesDesc">Default: Karyawan 1%, Perusahaan 4%</div>
+                                    </div>
+                                </div>
+                                <input type="checkbox" id="mClientBpjsKesActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
+
+                            <!-- JHT -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #dcfce7; display: flex; align-items: center; justify-content: center; color: #16a34a;">
+                                        <i class="fas fa-coins" style="font-size: 16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Hari Tua (JHT)</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJhtDesc">Default: Karyawan 2%, Perusahaan 3.7%</div>
+                                    </div>
+                                </div>
+                                <input type="checkbox" id="mClientBpjsJhtActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
+
+                            <!-- JP -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #fef9c3; display: flex; align-items: center; justify-content: center; color: #ca8a04;">
+                                        <i class="fas fa-piggy-bank" style="font-size: 16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Pensiun (JP)</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJpDesc">Default: Karyawan 1%, Perusahaan 2%</div>
+                                    </div>
+                                </div>
+                                <input type="checkbox" id="mClientBpjsJpActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
+
+                            <!-- JKK -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #dc2626;">
+                                        <i class="fas fa-user-shield" style="font-size: 16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kecelakaan Kerja (JKK)</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkkDesc">Default: Perusahaan 0.24%</div>
+                                    </div>
+                                </div>
+                                <input type="checkbox" id="mClientBpjsJkkActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
+
+                            <!-- JKM -->
+                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #f3e8ff; display: flex; align-items: center; justify-content: center; color: #9333ea;">
+                                        <i class="fas fa-heartbeat" style="font-size: 16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kematian (JKM)</div>
+                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkmDesc">Default: Perusahaan 0.3%</div>
+                                    </div>
+                                </div>
+                                <input type="checkbox" id="mClientBpjsJkmActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                            </label>
+                        </div>
                     </div>
 
                     <!-- Tax Scheme -->
@@ -781,7 +861,7 @@
 
     <!-- Manage Period Modal -->
     <div id="modalPeriode" class="modal-skema">
-        <div class="modal-header" style="background: var(--info);">
+        <div class="modal-header" style="background: var(--primary-color);">
             <h3>Payroll Period Management</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPeriode()"></i>
         </div>
@@ -802,7 +882,7 @@
                         <input type="number" id="periodYear" value="2024" required>
                     </div>
                 </div>
-                <button type="submit" class="btn-save" style="width: 100%; background: var(--info);">Open New Period</button>
+                <button type="submit" class="btn-save" style="width: 100%; background: var(--primary-color);">Open New Period</button>
             </form>
             
             <h4 style="margin-bottom: 10px; font-size: 14px;">Period History</h4>
@@ -1163,7 +1243,7 @@
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label id="labelNilaiSkema">Custom Nominal (IDR)</label>
-                    <input type="text" id="skemaKompensasiNilai" placeholder="Example: 200000" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <input type="text" id="skemaKompensasiNilai" placeholder="Example: 200000" onkeyup="handleSchemeNilaiInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                 </div>
             </div>
             <div class="modal-footer">
@@ -1174,7 +1254,7 @@
     </div>
     <!-- Allowance Component Modal (Master) -->
     <div id="modalKomponenKompensasi" class="modal-skema" style="display: none;">
-        <div class="modal-header" style="background: #10b981;">
+        <div class="modal-header" style="background: var(--primary-color);">
             <h3 id="modalKomponenKompensasiTitle">Add Allowance</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalKomponenKompensasi()"></i>
         </div>
@@ -1415,7 +1495,7 @@
 
     <!-- Payroll Scheme Template Form Modal (Multiple Schemes per Org Structure) -->
     <div id="modalSchemeTemplate" class="modal-skema" style="width: 1200px; max-width: 95%; display: none;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalSchemeTemplateTitle">Add Payroll Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeSchemeTemplateModal()"></i>
         </div>

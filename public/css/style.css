@@ -531,7 +531,7 @@ td {
     padding: 15px;
     border-bottom: 1px solid #eee;
     font-size: 14px;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Zebra striping */
@@ -546,6 +546,43 @@ tbody tr {
 
 tbody tr:hover {
     background: rgba(243, 156, 18, 0.04);
+}
+
+/* Interactive Client Name Link styling */
+.client-name-td {
+    font-weight: 600;
+    color: var(--primary-color);
+    transition: color 0.2s ease;
+}
+
+tbody tr:hover .client-name-td {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.client-arrow-icon {
+    font-size: 10px;
+    color: var(--primary-dark);
+    opacity: 0;
+    margin-left: 6px;
+    transform: translateX(-4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+tbody tr:hover .client-arrow-icon {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Row indicator highlight on hover */
+tbody tr td:first-child {
+    position: relative;
+}
+
+tbody tr:hover td:first-child {
+    box-shadow: inset 3.5px 0 0 0 var(--primary-color);
 }
 
 .action-btns {
