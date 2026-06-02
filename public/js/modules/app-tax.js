@@ -1,98 +1,118 @@
-// ===== TAX MODULE =====
+// ===== TAX & BPJS MODULE =====
 // Extracted from app.js for modular monolith architecture
 
-// ===== 4. TAX SCHEMES (PPh 21) =====
+let taxSchemes = [];
+let bpjsSchemes = [];
+
+// ===== 4. TAX & BPJS SCHEMES =====
 async function renderTaxSchemes() {
     try {
         const response = await fetch(`${API_URL}/tax-schemes`);
-        taxSchemes = await response.json();
-        const container = document.getElementById('taxSchemesContainer');
-        if (!container) return;
-        container.innerHTML = taxSchemes.map(scheme => `
-            <div class="scheme-card" style="border-left: 4px solid var(--danger);">
-                <div class="scheme-card-header">
-                    <div class="scheme-card-info">
-                        <h4><i class="fas fa-percent" style="color: var(--danger);"></i> ${scheme.nama}</h4>
-                        <div class="scheme-card-desc">Method: <b>${scheme.metode}</b> | PTKP: <b>${scheme.ptkp_status}</b></div>
-                        <div class="scheme-card-desc" style="margin-top: 5px; font-size: 11px; color: #64748b;">
-                            <span style="margin-right: 10px;"><i class="fas fa-hand-holding-medical"></i> Kes: <b>${scheme.bpjs_kes_karyawan || 1}% / ${scheme.bpjs_kes_perusahaan || 4}%</b></span>
-                            <span style="margin-right: 10px;"><i class="fas fa-shield-alt"></i> JHT: <b>${scheme.bpjs_jht_karyawan || 2}% / ${scheme.bpjs_jht_perusahaan || 3.7}%</b></span>
-                            <span style="margin-right: 10px;"><i class="fas fa-history"></i> JP: <b>${scheme.bpjs_jp_karyawan || 1}% / ${scheme.bpjs_jp_perusahaan || 2}%</b></span>
-                        </div>
-                    </div>
-                    <div class="scheme-card-actions">
-                        <button class="btn-icon btn-edit" onclick="bukaModalPajak('edit', ${scheme.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon btn-delete" onclick="hapusPajak(${scheme.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+        const allSchemes = await response.json();
+        
+        // Filter schemes by tipe
+        taxSchemes = allSchemes.filter(s => s.tipe === 'pph21');
+        bpjsSchemes = allSchemes.filter(s => s.tipe === 'bpjs');
+
+        // Render using helper functions
+        renderBpjsTable(bpjsSchemes);
+        renderPph21Table(taxSchemes);
     } catch (err) { console.error(err); }
 }
 
-function bukaModalPajak(mode, id = null) {
-    const modal = document.getElementById('modalPajak');
-    document.getElementById('modalPajak').style.display = 'block';
+function bukaModalBpjs(mode, id = null) {
+    document.getElementById('modalBpjs').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
+    
     if (mode === 'edit' && id) {
-        const scheme = taxSchemes.find(s => s.id == id);
+        const scheme = bpjsSchemes.find(s => s.id == id);
         if (scheme) {
-            document.getElementById('pajakId').value = scheme.id;
-            document.getElementById('pajakNama').value = scheme.nama;
-            document.getElementById('pajakMetode').value = scheme.metode;
-            document.getElementById('pajakPtkp').value = scheme.ptkp_status;
-            document.getElementById('pajakDeskripsi').value = scheme.deskripsi;
+            document.getElementById('bpjsId').value = scheme.id;
+            document.getElementById('bpjsNama').value = scheme.nama;
             
-            document.getElementById('pajakBpjsKesKaryawan').value = scheme.bpjs_kes_karyawan !== undefined && scheme.bpjs_kes_karyawan !== null ? scheme.bpjs_kes_karyawan : "1.00";
-            document.getElementById('pajakBpjsKesPerusahaan').value = scheme.bpjs_kes_perusahaan !== undefined && scheme.bpjs_kes_perusahaan !== null ? scheme.bpjs_kes_perusahaan : "4.00";
-            document.getElementById('pajakBpjsKesMaxSalary').value = formatRupiah(scheme.bpjs_kes_max_salary !== undefined && scheme.bpjs_kes_max_salary !== null ? parseFloat(scheme.bpjs_kes_max_salary) : 12000000);
+            document.getElementById('bpjsKesKaryawan').value = scheme.bpjs_kes_karyawan !== undefined && scheme.bpjs_kes_karyawan !== null ? scheme.bpjs_kes_karyawan : "1.00";
+            document.getElementById('bpjsKesPerusahaan').value = scheme.bpjs_kes_perusahaan !== undefined && scheme.bpjs_kes_perusahaan !== null ? scheme.bpjs_kes_perusahaan : "4.00";
+            document.getElementById('bpjsKesMaxSalary').value = formatRupiah(scheme.bpjs_kes_max_salary !== undefined && scheme.bpjs_kes_max_salary !== null ? parseFloat(scheme.bpjs_kes_max_salary) : 12000000);
             
-            document.getElementById('pajakBpjsJhtKaryawan').value = scheme.bpjs_jht_karyawan !== undefined && scheme.bpjs_jht_karyawan !== null ? scheme.bpjs_jht_karyawan : "2.00";
-            document.getElementById('pajakBpjsJhtPerusahaan').value = scheme.bpjs_jht_perusahaan !== undefined && scheme.bpjs_jht_perusahaan !== null ? scheme.bpjs_jht_perusahaan : "3.70";
+            document.getElementById('bpjsJhtKaryawan').value = scheme.bpjs_jht_karyawan !== undefined && scheme.bpjs_jht_karyawan !== null ? scheme.bpjs_jht_karyawan : "2.00";
+            document.getElementById('bpjsJhtPerusahaan').value = scheme.bpjs_jht_perusahaan !== undefined && scheme.bpjs_jht_perusahaan !== null ? scheme.bpjs_jht_perusahaan : "3.70";
             
-            document.getElementById('pajakBpjsJpKaryawan').value = scheme.bpjs_jp_karyawan !== undefined && scheme.bpjs_jp_karyawan !== null ? scheme.bpjs_jp_karyawan : "1.00";
-            document.getElementById('pajakBpjsJpPerusahaan').value = scheme.bpjs_jp_perusahaan !== undefined && scheme.bpjs_jp_perusahaan !== null ? scheme.bpjs_jp_perusahaan : "2.00";
-            document.getElementById('pajakBpjsJpMaxSalary').value = formatRupiah(scheme.bpjs_jp_max_salary !== undefined && scheme.bpjs_jp_max_salary !== null ? parseFloat(scheme.bpjs_jp_max_salary) : 10024600);
+            document.getElementById('bpjsJpKaryawan').value = scheme.bpjs_jp_karyawan !== undefined && scheme.bpjs_jp_karyawan !== null ? scheme.bpjs_jp_karyawan : "1.00";
+            document.getElementById('bpjsJpPerusahaan').value = scheme.bpjs_jp_perusahaan !== undefined && scheme.bpjs_jp_perusahaan !== null ? scheme.bpjs_jp_perusahaan : "2.00";
+            document.getElementById('bpjsJpMaxSalary').value = formatRupiah(scheme.bpjs_jp_max_salary !== undefined && scheme.bpjs_jp_max_salary !== null ? parseFloat(scheme.bpjs_jp_max_salary) : 10024600);
             
-            document.getElementById('pajakBpjsJkkPerusahaan').value = scheme.bpjs_jkk_perusahaan !== undefined && scheme.bpjs_jkk_perusahaan !== null ? scheme.bpjs_jkk_perusahaan : "0.24";
-            document.getElementById('pajakBpjsJkmPerusahaan').value = scheme.bpjs_jkm_perusahaan !== undefined && scheme.bpjs_jkm_perusahaan !== null ? scheme.bpjs_jkm_perusahaan : "0.30";
+            document.getElementById('bpjsJkkPerusahaan').value = scheme.bpjs_jkk_perusahaan !== undefined && scheme.bpjs_jkk_perusahaan !== null ? scheme.bpjs_jkk_perusahaan : "0.24";
+            document.getElementById('bpjsJkmPerusahaan').value = scheme.bpjs_jkm_perusahaan !== undefined && scheme.bpjs_jkm_perusahaan !== null ? scheme.bpjs_jkm_perusahaan : "0.30";
+            
+            document.getElementById('modalBpjsTitle').innerText = 'Edit BPJS Scheme';
         }
     } else {
-        document.getElementById('formPajak').reset();
-        document.getElementById('pajakId').value = '';
-        document.getElementById('pajakBpjsKesKaryawan').value = "1.00";
-        document.getElementById('pajakBpjsKesPerusahaan').value = "4.00";
-        document.getElementById('pajakBpjsKesMaxSalary').value = formatRupiah(12000000);
-        document.getElementById('pajakBpjsJhtKaryawan').value = "2.00";
-        document.getElementById('pajakBpjsJhtPerusahaan').value = "3.70";
-        document.getElementById('pajakBpjsJpKaryawan').value = "1.00";
-        document.getElementById('pajakBpjsJpPerusahaan').value = "2.00";
-        document.getElementById('pajakBpjsJpMaxSalary').value = formatRupiah(10024600);
-        document.getElementById('pajakBpjsJkkPerusahaan').value = "0.24";
-        document.getElementById('pajakBpjsJkmPerusahaan').value = "0.30";
+        document.getElementById('formBpjs').reset();
+        document.getElementById('bpjsId').value = '';
+        document.getElementById('bpjsKesKaryawan').value = "1.00";
+        document.getElementById('bpjsKesPerusahaan').value = "4.00";
+        document.getElementById('bpjsKesMaxSalary').value = formatRupiah(12000000);
+        document.getElementById('bpjsJhtKaryawan').value = "2.00";
+        document.getElementById('bpjsJhtPerusahaan').value = "3.70";
+        document.getElementById('bpjsJpKaryawan').value = "1.00";
+        document.getElementById('bpjsJpPerusahaan').value = "2.00";
+        document.getElementById('bpjsJpMaxSalary').value = formatRupiah(10024600);
+        document.getElementById('bpjsJkkPerusahaan').value = "0.24";
+        document.getElementById('bpjsJkmPerusahaan').value = "0.30";
+        document.getElementById('modalBpjsTitle').innerText = 'Add BPJS Scheme';
     }
 }
 
-// Form Skema Pajak submit handler
-if (document.getElementById('formPajak')) {
-    document.getElementById('formPajak').addEventListener('submit', async (e) => {
+function tutupModalBpjs() {
+    document.getElementById('modalBpjs').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+}
+
+function bukaModalPph21(mode, id = null) {
+    document.getElementById('modalPph21').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+    
+    if (mode === 'edit' && id) {
+        const scheme = taxSchemes.find(s => s.id == id);
+        if (scheme) {
+            document.getElementById('pph21Id').value = scheme.id;
+            document.getElementById('pph21Nama').value = scheme.nama;
+            document.getElementById('pph21Metode').value = scheme.metode;
+            document.getElementById('pph21Ptkp').value = scheme.ptkp_status;
+            document.getElementById('pph21Deskripsi').value = scheme.deskripsi;
+            
+            document.getElementById('modalPph21Title').innerText = 'Edit PPh 21 Scheme';
+        }
+    } else {
+        document.getElementById('formPph21').reset();
+        document.getElementById('pph21Id').value = '';
+        document.getElementById('modalPph21Title').innerText = 'Add PPh 21 Scheme';
+    }
+}
+
+function tutupModalPph21() {
+    document.getElementById('modalPph21').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+}
+
+// Form BPJS submit handler
+if (document.getElementById('formBpjs')) {
+    document.getElementById('formBpjs').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = document.getElementById('pajakId').value;
+        const id = document.getElementById('bpjsId').value;
         const data = {
-            nama: document.getElementById('pajakNama').value,
-            metode: document.getElementById('pajakMetode').value,
-            ptkp_status: document.getElementById('pajakPtkp').value,
-            deskripsi: document.getElementById('pajakDeskripsi').value,
-            bpjs_kes_karyawan: parseFloat(document.getElementById('pajakBpjsKesKaryawan').value) || 0,
-            bpjs_kes_perusahaan: parseFloat(document.getElementById('pajakBpjsKesPerusahaan').value) || 0,
-            bpjs_kes_max_salary: parseFormattedNumber(document.getElementById('pajakBpjsKesMaxSalary').value) || 0,
-            bpjs_jht_karyawan: parseFloat(document.getElementById('pajakBpjsJhtKaryawan').value) || 0,
-            bpjs_jht_perusahaan: parseFloat(document.getElementById('pajakBpjsJhtPerusahaan').value) || 0,
-            bpjs_jp_karyawan: parseFloat(document.getElementById('pajakBpjsJpKaryawan').value) || 0,
-            bpjs_jp_perusahaan: parseFloat(document.getElementById('pajakBpjsJpPerusahaan').value) || 0,
-            bpjs_jp_max_salary: parseFormattedNumber(document.getElementById('pajakBpjsJpMaxSalary').value) || 0,
-            bpjs_jkk_perusahaan: parseFloat(document.getElementById('pajakBpjsJkkPerusahaan').value) || 0,
-            bpjs_jkm_perusahaan: parseFloat(document.getElementById('pajakBpjsJkmPerusahaan').value) || 0
+            nama: document.getElementById('bpjsNama').value,
+            tipe: 'bpjs',
+            bpjs_kes_karyawan: parseFloat(document.getElementById('bpjsKesKaryawan').value) || 0,
+            bpjs_kes_perusahaan: parseFloat(document.getElementById('bpjsKesPerusahaan').value) || 0,
+            bpjs_kes_max_salary: parseFormattedNumber(document.getElementById('bpjsKesMaxSalary').value) || 0,
+            bpjs_jht_karyawan: parseFloat(document.getElementById('bpjsJhtKaryawan').value) || 0,
+            bpjs_jht_perusahaan: parseFloat(document.getElementById('bpjsJhtPerusahaan').value) || 0,
+            bpjs_jp_karyawan: parseFloat(document.getElementById('bpjsJpKaryawan').value) || 0,
+            bpjs_jp_perusahaan: parseFloat(document.getElementById('bpjsJpPerusahaan').value) || 0,
+            bpjs_jp_max_salary: parseFormattedNumber(document.getElementById('bpjsJpMaxSalary').value) || 0,
+            bpjs_jkk_perusahaan: parseFloat(document.getElementById('bpjsJkkPerusahaan').value) || 0,
+            bpjs_jkm_perusahaan: parseFloat(document.getElementById('bpjsJkmPerusahaan').value) || 0
         };
         const url = id ? `${API_URL}/tax-schemes/${id}` : `${API_URL}/tax-schemes`;
         const res = await fetch(url, {
@@ -103,23 +123,185 @@ if (document.getElementById('formPajak')) {
         if (res.ok) {
             tutupSemuaModal();
             renderTaxSchemes();
-            showToast(id ? 'Tax scheme updated successfully!' : 'Tax scheme added successfully!', 'success');
+            showToast(id ? 'BPJS scheme updated successfully!' : 'BPJS scheme added successfully!', 'success');
         } else {
-            showToast('Failed to save tax scheme!', 'error');
+            showToast('Failed to save BPJS scheme!', 'error');
         }
     });
 }
 
+// Form PPh 21 submit handler
+if (document.getElementById('formPph21')) {
+    document.getElementById('formPph21').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('pph21Id').value;
+        const data = {
+            nama: document.getElementById('pph21Nama').value,
+            tipe: 'pph21',
+            metode: document.getElementById('pph21Metode').value,
+            ptkp_status: document.getElementById('pph21Ptkp').value,
+            deskripsi: document.getElementById('pph21Deskripsi').value
+        };
+        const url = id ? `${API_URL}/tax-schemes/${id}` : `${API_URL}/tax-schemes`;
+        const res = await fetch(url, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            tutupSemuaModal();
+            renderTaxSchemes();
+            showToast(id ? 'PPh 21 scheme updated successfully!' : 'PPh 21 scheme added successfully!', 'success');
+        } else {
+            showToast('Failed to save PPh 21 scheme!', 'error');
+        }
+    });
+}
 
 async function hapusPajak(id) {
-    if (!await showConfirm('Are you sure you want to delete this tax scheme?')) return;
+    if (!await showConfirm('Are you sure you want to delete this scheme?')) return;
     try {
         const res = await fetch(`${API_URL}/tax-schemes/${id}`, { method: 'DELETE' });
         if (res.ok) {
             renderTaxSchemes();
-            showToast('Tax scheme deleted successfully!', 'success');
+            showToast('Scheme deleted successfully!', 'success');
         } else {
-            showToast('Failed to delete tax scheme!', 'error');
+            showToast('Failed to delete scheme!', 'error');
         }
     } catch (err) { console.error(err); }
 }
+
+// Tab switcher for BPJS & PPh 21
+function switchTaxTab(tab) {
+    // Update tab button styles
+    document.querySelectorAll('#viewPajak .ws-tab').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.color = '#64748b';
+    });
+
+    const activeBtn = document.querySelector(`#viewPajak .ws-tab[data-taxtab="${tab}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.style.borderBottomColor = 'var(--primary-color)';
+        activeBtn.style.color = 'var(--primary-color)';
+    }
+
+    // Show/hide tab panels
+    document.querySelectorAll('#viewPajak .tax-tab-panel').forEach(panel => {
+        panel.style.display = 'none';
+    });
+
+    const panelId = 'taxTab' + (tab === 'bpjs' ? 'Bpjs' : 'Pph21');
+    const activePanel = document.getElementById(panelId);
+    if (activePanel) {
+        activePanel.style.display = 'block';
+    }
+}
+
+// Search/filter for tax schemes
+function filterTaxScheme(type) {
+    if (type === 'bpjs') {
+        const q = (document.getElementById('searchBpjsScheme')?.value || '').toLowerCase();
+        const filtered = q ? bpjsSchemes.filter(s => s.nama && s.nama.toLowerCase().includes(q)) : bpjsSchemes;
+        renderBpjsTable(filtered);
+    } else {
+        const q = (document.getElementById('searchPph21Scheme')?.value || '').toLowerCase();
+        const filtered = q ? taxSchemes.filter(s => s.nama && s.nama.toLowerCase().includes(q)) : taxSchemes;
+        renderPph21Table(filtered);
+    }
+}
+
+// Helper: render BPJS table body
+function renderBpjsTable(schemes) {
+    const bpjsTableBody = document.getElementById('bpjsSchemesTableBody');
+    if (!bpjsTableBody) return;
+
+    if (!schemes || schemes.length === 0) {
+        bpjsTableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">
+                    <i class="fas fa-inbox" style="font-size: 36px; margin-bottom: 10px; display: block; opacity: 0.4;"></i>
+                    No BPJS schemes found. Click "Add BPJS Scheme" to create one.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    bpjsTableBody.innerHTML = schemes.map(scheme => `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 14px; font-weight: 600; color: var(--secondary-color);">
+                <i class="fas fa-shield-alt" style="color: var(--primary-color); margin-right: 6px;"></i> ${scheme.nama}
+            </td>
+            <td style="padding: 14px;">
+                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_kes_karyawan !== undefined && scheme.bpjs_kes_karyawan !== null ? scheme.bpjs_kes_karyawan : 1}%</b></div>
+                <div style="margin-bottom: 2px;">Perusahaan: <b>${scheme.bpjs_kes_perusahaan !== undefined && scheme.bpjs_kes_perusahaan !== null ? scheme.bpjs_kes_perusahaan : 4}%</b></div>
+                <div style="font-size: 11px; color: #64748b;">Max: IDR ${formatRupiah(parseFloat(scheme.bpjs_kes_max_salary || 12000000))}</div>
+            </td>
+            <td style="padding: 14px;">
+                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_jht_karyawan !== undefined && scheme.bpjs_jht_karyawan !== null ? scheme.bpjs_jht_karyawan : 2}%</b></div>
+                <div>Perusahaan: <b>${scheme.bpjs_jht_perusahaan !== undefined && scheme.bpjs_jht_perusahaan !== null ? scheme.bpjs_jht_perusahaan : 3.7}%</b></div>
+            </td>
+            <td style="padding: 14px;">
+                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_jp_karyawan !== undefined && scheme.bpjs_jp_karyawan !== null ? scheme.bpjs_jp_karyawan : 1}%</b></div>
+                <div style="margin-bottom: 2px;">Perusahaan: <b>${scheme.bpjs_jp_perusahaan !== undefined && scheme.bpjs_jp_perusahaan !== null ? scheme.bpjs_jp_perusahaan : 2}%</b></div>
+                <div style="font-size: 11px; color: #64748b;">Max: IDR ${formatRupiah(parseFloat(scheme.bpjs_jp_max_salary || 10024600))}</div>
+            </td>
+            <td style="padding: 14px;">
+                <div style="margin-bottom: 2px;">JKK (Perush.): <b>${scheme.bpjs_jkk_perusahaan !== undefined && scheme.bpjs_jkk_perusahaan !== null ? scheme.bpjs_jkk_perusahaan : 0.24}%</b></div>
+                <div>JKM (Perush.): <b>${scheme.bpjs_jkm_perusahaan !== undefined && scheme.bpjs_jkm_perusahaan !== null ? scheme.bpjs_jkm_perusahaan : 0.3}%</b></div>
+            </td>
+            <td style="text-align: center; padding: 14px;">
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button class="btn-icon btn-edit" onclick="bukaModalBpjs('edit', ${scheme.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-delete" onclick="hapusPajak(${scheme.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Helper: render PPh 21 table body
+function renderPph21Table(schemes) {
+    const pph21TableBody = document.getElementById('pph21SchemesTableBody');
+    if (!pph21TableBody) return;
+
+    if (!schemes || schemes.length === 0) {
+        pph21TableBody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); font-style: italic; padding: 30px;">
+                    <i class="fas fa-inbox" style="font-size: 36px; margin-bottom: 10px; display: block; opacity: 0.4;"></i>
+                    No PPh 21 schemes found. Click "Add PPh 21 Scheme" to create one.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    pph21TableBody.innerHTML = schemes.map(scheme => `
+        <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 14px; font-weight: 600; color: var(--secondary-color);">
+                <i class="fas fa-calculator" style="color: var(--danger); margin-right: 6px;"></i> ${scheme.nama}
+            </td>
+            <td style="padding: 14px;">
+                <span style="background-color: rgba(243, 156, 18, 0.15); color: var(--primary-dark); padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 12px; border: 1px solid rgba(243, 156, 18, 0.25);">
+                    ${scheme.metode}
+                </span>
+            </td>
+            <td style="padding: 14px; font-weight: 600;">
+                ${scheme.ptkp_status}
+            </td>
+            <td style="padding: 14px; color: #64748b; font-style: italic;">
+                ${scheme.deskripsi || '-'}
+            </td>
+            <td style="text-align: center; padding: 14px;">
+                <div style="display: flex; gap: 8px; justify-content: center;">
+                    <button class="btn-icon btn-edit" onclick="bukaModalPph21('edit', ${scheme.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon btn-delete" onclick="hapusPajak(${scheme.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+

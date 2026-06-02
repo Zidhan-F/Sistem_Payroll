@@ -76,11 +76,13 @@ async function loadWorkspaceSetup() {
                 payrollSchemeText = conf.payroll_scheme_name || 'Belum Set';
             }
             document.getElementById('wSetupPayrollScheme').innerText = payrollSchemeText;
+            document.getElementById('wSetupBpjsScheme').innerText = conf.bpjs_scheme_name || 'Belum Set';
             document.getElementById('wSetupTaxScheme').innerText = conf.tax_scheme_name || 'Belum Set';
             document.getElementById('wSetupPayDate').innerText = conf.pay_date ? `Tgl ${conf.pay_date}` : 'Belum Set';
             document.getElementById('wSetupCutoff').innerText = conf.cutoff_start ? `${conf.cutoff_start} s/d ${(conf.cutoff_start - 1)}` : 'Belum Set';
         } else {
             document.getElementById('wSetupPayrollScheme').innerText = 'Belum Set';
+            document.getElementById('wSetupBpjsScheme').innerText = 'Belum Set';
             document.getElementById('wSetupTaxScheme').innerText = 'Belum Set';
             document.getElementById('wSetupPayDate').innerText = 'Belum Set';
             document.getElementById('wSetupCutoff').innerText = 'Belum Set';
@@ -135,13 +137,19 @@ async function bukaModalSetup(clientId, clientName) {
     const tRes = await fetch(`${API_URL}/tax-schemes`);
     const tSchemes = await tRes.json();
 
+    const bpjsOpts = tSchemes.filter(s => s.tipe === 'bpjs');
+    const taxOpts = tSchemes.filter(s => s.tipe === 'pph21');
+
     document.getElementById('setupPayrollScheme').innerHTML = '<option value="">-- Pilih Skema --</option>' + pSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
-    document.getElementById('setupTaxScheme').innerHTML = '<option value="">-- Pilih Skema --</option>' + tSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+    document.getElementById('setupBpjsScheme').innerHTML = '<option value="">-- Pilih Skema BPJS --</option>' + bpjsOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+    document.getElementById('setupTaxScheme').innerHTML = '<option value="">-- Pilih Skema PPh 21 --</option>' + taxOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
     
     const current = clientConfigs.find(c => c.client_id == clientId);
     if(current) {
         document.getElementById('setupPayDate').value = current.pay_date || 25;
         document.getElementById('setupCutoffStart').value = current.cutoff_start || 21;
+        document.getElementById('setupBpjsScheme').value = current.bpjs_scheme_id || '';
+        document.getElementById('setupTaxScheme').value = current.tax_scheme_id || '';
         
         const tipeSelect = document.getElementById('setupPayrollSchemeTipe');
         if (tipeSelect) {
@@ -189,7 +197,8 @@ async function bukaModalSetup(clientId, clientName) {
                 minimum_wage_id: (payrollType === 'UMP' || payrollType === 'UMK') ? (minimumWageId || null) : null,
                 custom_nominal: (payrollType === 'Nominal') ? (customNominal || null) : null,
                 payroll_scheme_id: (payrollType === 'Template') ? (payrollSchemeId || null) : null,
-                tax_scheme_id: document.getElementById('setupTaxScheme').value,
+                bpjs_scheme_id: document.getElementById('setupBpjsScheme').value || null,
+                tax_scheme_id: document.getElementById('setupTaxScheme').value || null,
                 pay_date: parseInt(document.getElementById('setupPayDate').value),
                 cutoff_start: parseInt(document.getElementById('setupCutoffStart').value)
             };
@@ -341,7 +350,7 @@ async function loadSchemaMappingTable() {
         if (!tbody) return;
         
         if (!mappings || mappings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #94a3b8;"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>No payroll schemes registered yet. Click the "Add Scheme" button to configure.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color: #94a3b8;"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>No payroll schemes registered yet. Click the "Add Scheme" button to configure.</td></tr>';
             return;
         }
         
@@ -352,6 +361,7 @@ async function loadSchemaMappingTable() {
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.department_name || 'Global'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || 'Global'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
+                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.bpjs_scheme_name || '-'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.tax_scheme_name || '-'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0;">
                         <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
@@ -384,6 +394,7 @@ async function editSchemaMapping(id) {
         const deptEl = document.getElementById('modalPilihanSkemaDepartemen');
         const posEl = document.getElementById('modalPilihanSkemaPosisi');
         const psEl = document.getElementById('modalPilihanSkemaPayroll');
+        const bpjsEl = document.getElementById('modalPilihanSkemaBpjs');
         const tsEl = document.getElementById('modalPilihanSkemaPajak');
 
         if (conf.division_id && divEl && divEl.tomselect) {
@@ -397,6 +408,9 @@ async function editSchemaMapping(id) {
         }
         if (conf.payroll_scheme_id && psEl && psEl.tomselect) {
             psEl.tomselect.setValue(conf.payroll_scheme_id);
+        }
+        if (conf.bpjs_scheme_id && bpjsEl && bpjsEl.tomselect) {
+            bpjsEl.tomselect.setValue(conf.bpjs_scheme_id);
         }
         if (conf.tax_scheme_id && tsEl && tsEl.tomselect) {
             tsEl.tomselect.setValue(conf.tax_scheme_id);
@@ -435,10 +449,20 @@ async function loadPilihanSkema() {
         // Load tax schemes for dropdown
         const tsRes = await fetch(`${API_URL}/tax-schemes`);
         const taxSchemes = await tsRes.json();
+        
+        const bpjsOpts = taxSchemes.filter(s => s.tipe === 'bpjs');
+        const taxOpts = taxSchemes.filter(s => s.tipe === 'pph21');
+
+        const bpjsSelect = document.getElementById('pilihanSkemaBpjs');
+        if (bpjsSelect) {
+            bpjsSelect.innerHTML = '<option value="">-- Pilih Skema BPJS --</option>' +
+                bpjsOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+        }
+
         const tsSelect = document.getElementById('pilihanSkemaPajak');
         if (tsSelect) {
             tsSelect.innerHTML = '<option value="">-- Pilih Skema Pajak --</option>' +
-                taxSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.metode || '-'})</option>`).join('');
+                taxOpts.map(s => `<option value="${s.id}">${s.nama} (${s.metode || '-'})</option>`).join('');
         }
 
         // Load global compensation schemes for dropdown
@@ -483,6 +507,7 @@ async function loadPilihanSkema() {
                     }
                 }
             }
+            if (bpjsSelect && conf.bpjs_scheme_id) bpjsSelect.value = conf.bpjs_scheme_id;
             if (tsSelect && conf.tax_scheme_id) tsSelect.value = conf.tax_scheme_id;
             if (compSelect && conf.compensation_scheme_id) {
                 compSelect.value = conf.compensation_scheme_id;
@@ -509,7 +534,7 @@ async function loadPilihanSkema() {
     await loadSchemaMappingTable();
 }
 
-async function simpanPilihanSkema() {
+window.simpanPilihanSkema = async function() {
     if (!window.selectedClientId) {
         showToast('Pilih klien terlebih dahulu!', 'error');
         return;
@@ -517,12 +542,13 @@ async function simpanPilihanSkema() {
     
     const isModal = document.getElementById('modalPilihanSkema') && document.getElementById('modalPilihanSkema').style.display === 'block';
     
-    let payrollType, minimumWageId, customNominal, payrollSchemeId, taxSchemeId, compSchemeId;
+    let payrollType, minimumWageId, customNominal, payrollSchemeId, bpjsSchemeId, taxSchemeId, compSchemeId;
     let level, divId, deptId, posId;
     
     if (isModal) {
         payrollType = 'Template';
         payrollSchemeId = document.getElementById('modalPilihanSkemaPayroll').value;
+        bpjsSchemeId = document.getElementById('modalPilihanSkemaBpjs').value;
         taxSchemeId = document.getElementById('modalPilihanSkemaPajak').value;
         compSchemeId = '';
         divId = document.getElementById('modalPilihanSkemaDivisi').value;
@@ -539,6 +565,7 @@ async function simpanPilihanSkema() {
         minimumWageId = document.getElementById('pilihanSkemaPayrollWilayah').value;
         customNominal = document.getElementById('pilihanSkemaPayrollNominal').value;
         payrollSchemeId = document.getElementById('pilihanSkemaPayroll').value;
+        bpjsSchemeId = document.getElementById('pilihanSkemaBpjs')?.value || null;
         taxSchemeId = document.getElementById('pilihanSkemaPajak').value;
         compSchemeId = document.getElementById('pilihanSkemaKompensasi').value;
         
@@ -548,7 +575,7 @@ async function simpanPilihanSkema() {
         posId = document.getElementById('pilihanSkemaPosisiId')?.value;
     }
 
-    if (!payrollType && !taxSchemeId && !compSchemeId) {
+    if (!payrollType && !bpjsSchemeId && !taxSchemeId && !compSchemeId) {
         showToast('Pilih minimal satu skema!', 'error');
         return;
     }
@@ -565,6 +592,7 @@ async function simpanPilihanSkema() {
             minimum_wage_id: (payrollType === 'UMP' || payrollType === 'UMK') ? (minimumWageId || null) : null,
             custom_nominal: (payrollType === 'Nominal') ? (customNominal || null) : null,
             payroll_scheme_id: (payrollType === 'Template') ? (payrollSchemeId || null) : null,
+            bpjs_scheme_id: bpjsSchemeId || (generalExisting ? generalExisting.bpjs_scheme_id : null),
             tax_scheme_id: taxSchemeId || (generalExisting ? generalExisting.tax_scheme_id : null),
             compensation_scheme_id: compSchemeId || (generalExisting ? generalExisting.compensation_scheme_id : null),
             pay_date: generalExisting ? generalExisting.pay_date : 25,
@@ -642,10 +670,11 @@ window.openModalPilihanSkema = async function() {
     const deptSelect = document.getElementById('modalPilihanSkemaDepartemen');
     const posSelect = document.getElementById('modalPilihanSkemaPosisi');
     const psSelect = document.getElementById('modalPilihanSkemaPayroll');
+    const bpjsSelect = document.getElementById('modalPilihanSkemaBpjs');
     const tsSelect = document.getElementById('modalPilihanSkemaPajak');
 
     // Destroy existing TomSelect instances before repopulating
-    [divSelect, deptSelect, posSelect, psSelect, tsSelect].forEach(el => {
+    [divSelect, deptSelect, posSelect, psSelect, bpjsSelect, tsSelect].forEach(el => {
         if (el && el.tomselect) el.tomselect.destroy();
     });
 
@@ -665,10 +694,20 @@ window.openModalPilihanSkema = async function() {
             psSelect.innerHTML = '<option value="">-- Pilih Skema Payroll --</option>' +
                 payrollSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.tipe || 'Umum'})</option>`).join('');
         }
+        
+        // Filter tax schemes
+        const bpjsOpts = taxSchemes.filter(s => s.tipe === 'bpjs');
+        const taxOpts = taxSchemes.filter(s => s.tipe === 'pph21');
+
+        // Populate bpjs schemes
+        if (bpjsSelect) {
+            bpjsSelect.innerHTML = '<option value="">-- Pilih Skema BPJS --</option>' +
+                bpjsOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+        }
         // Populate tax schemes
         if (tsSelect) {
             tsSelect.innerHTML = '<option value="">-- Pilih Skema Pajak --</option>' +
-                taxSchemes.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+                taxOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
         }
 
         // Populate divisions from client STO
@@ -680,7 +719,7 @@ window.openModalPilihanSkema = async function() {
         if (posSelect) posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
 
         // Initialize non-cascading TomSelects
-        [psSelect, tsSelect].forEach(el => {
+        [psSelect, bpjsSelect, tsSelect].forEach(el => {
             if (el) new TomSelect(el, { create: false, sortField: { field: 'text', direction: 'asc' } });
         });
 
@@ -736,7 +775,7 @@ window.tutupModalPilihanSkema = function() {
     document.getElementById('modalPilihanSkema').style.display = 'none';
     window.editSchemaMappingId = null;
     // Destroy TomSelect instances
-    ['modalPilihanSkemaDivisi', 'modalPilihanSkemaDepartemen', 'modalPilihanSkemaPosisi', 'modalPilihanSkemaPayroll', 'modalPilihanSkemaPajak'].forEach(id => {
+    ['modalPilihanSkemaDivisi', 'modalPilihanSkemaDepartemen', 'modalPilihanSkemaPosisi', 'modalPilihanSkemaPayroll', 'modalPilihanSkemaBpjs', 'modalPilihanSkemaPajak'].forEach(id => {
         const el = document.getElementById(id);
         if (el && el.tomselect) el.tomselect.destroy();
     });
