@@ -611,12 +611,12 @@ window.simpanPilihanSkema = async function() {
                 original.bpjs_jkk_perusahaan !== currentValues.bpjs_jkk_perusahaan ||
                 original.bpjs_jkm_perusahaan !== currentValues.bpjs_jkm_perusahaan;
 
-            if (isModified) {
+            if (bpjsSchemeId === 'tambah_skema' || isModified) {
                 // Find current scheme
                 const selectedScheme = (window.workspaceBpjsSchemes || []).find(s => s.id == bpjsSchemeId);
                 const isAlreadyCustom = selectedScheme && selectedScheme.nama && selectedScheme.nama.startsWith('Custom BPJS -');
                 
-                if (isAlreadyCustom) {
+                if (isAlreadyCustom && bpjsSchemeId !== 'tambah_skema') {
                     // Update in place
                     try {
                         const putRes = await fetch(`${API_URL}/tax-schemes/${bpjsSchemeId}`, {
@@ -771,6 +771,13 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     const bpjsSelect = document.getElementById('modalPilihanSkemaBpjs');
     const tsSelect = document.getElementById('modalPilihanSkemaPajak');
 
+    // Immediately show default BPJS fields and values if we are not editing
+    if (!isEdit) {
+        if (bpjsSelect) {
+            bpjsSelect.value = 'tambah_skema';
+        }
+        window.handleModalPilihanSkemaBpjsChange('tambah_skema');
+    }
 
     // Destroy existing TomSelect instances before repopulating (excluding bpjsSelect)
     [divSelect, deptSelect, posSelect, psSelect, tsSelect].forEach(el => {
@@ -807,15 +814,9 @@ window.openModalPilihanSkema = async function(isEdit = false) {
         // Populate bpjs schemes
         if (bpjsSelect) {
             const currentVal = bpjsSelect.value;
-            bpjsSelect.innerHTML = '<option value="">-- Pilih Skema BPJS --</option>' +
+            bpjsSelect.innerHTML = '<option value="tambah_skema">Tambah Skema</option>' +
                 bpjsOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
-            
-            if (!window.editSchemaMappingId && bpjsOpts.length > 0) {
-                bpjsSelect.value = bpjsOpts[0].id;
-                window.handleModalPilihanSkemaBpjsChange(bpjsOpts[0].id);
-            } else {
-                bpjsSelect.value = currentVal;
-            }
+            bpjsSelect.value = currentVal;
         }
         // Populate tax schemes
         if (tsSelect) {
@@ -868,14 +869,16 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     const schemes = window.workspaceBpjsSchemes || [];
     let baseScheme = null;
 
-    const selected = schemes.find(s => s.id == value);
-    if (selected) {
-        const isAlreadyCustom = selected.nama && selected.nama.startsWith('Custom BPJS -');
-        if (isAlreadyCustom) {
-            // Find a non-custom scheme to use as base rates reference
-            baseScheme = schemes.find(s => !s.nama || !s.nama.startsWith('Custom BPJS -'));
-        } else {
-            baseScheme = selected;
+    if (value !== 'tambah_skema') {
+        const selected = schemes.find(s => s.id == value);
+        if (selected) {
+            const isAlreadyCustom = selected.nama && selected.nama.startsWith('Custom BPJS -');
+            if (isAlreadyCustom) {
+                // Find a non-custom scheme to use as base rates reference
+                baseScheme = schemes.find(s => !s.nama || !s.nama.startsWith('Custom BPJS -'));
+            } else {
+                baseScheme = selected;
+            }
         }
     }
 
@@ -933,9 +936,26 @@ window.openModalPilihanSkema = async function(isEdit = false) {
             bpjs_jkm_perusahaan: parseFloat(selectedScheme.bpjs_jkm_perusahaan) > 0 ? parseFloat(selectedScheme.bpjs_jkm_perusahaan) : 0
         };
     } else {
-        fieldsDiv.style.display = 'none';
-        window.modalClientBpjsOriginalValues = null;
-        window.modalClientBpjsBaseRates = null;
+        // If tambah_skema or nothing found, all checked by default
+        document.getElementById('mClientBpjsKesActive').checked = true;
+        document.getElementById('mClientBpjsJhtActive').checked = true;
+        document.getElementById('mClientBpjsJpActive').checked = true;
+        document.getElementById('mClientBpjsJkkActive').checked = true;
+        document.getElementById('mClientBpjsJkmActive').checked = true;
+
+        window.modalClientBpjsOriginalValues = {
+            is_tambah_skema: true,
+            bpjs_kes_karyawan: baseRates.bpjs_kes_karyawan,
+            bpjs_kes_perusahaan: baseRates.bpjs_kes_perusahaan,
+            bpjs_kes_max_salary: baseRates.bpjs_kes_max_salary,
+            bpjs_jht_karyawan: baseRates.bpjs_jht_karyawan,
+            bpjs_jht_perusahaan: baseRates.bpjs_jht_perusahaan,
+            bpjs_jp_karyawan: baseRates.bpjs_jp_karyawan,
+            bpjs_jp_perusahaan: baseRates.bpjs_jp_perusahaan,
+            bpjs_jp_max_salary: baseRates.bpjs_jp_max_salary,
+            bpjs_jkk_perusahaan: baseRates.bpjs_jkk_perusahaan,
+            bpjs_jkm_perusahaan: baseRates.bpjs_jkm_perusahaan
+        };
     }
 };
 

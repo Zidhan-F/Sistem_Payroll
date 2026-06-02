@@ -684,7 +684,7 @@
                             <small style="color: #64748b; font-size: 11px;">Calculation rates and maximum caps for BPJS Kesehatan & Ketenagakerjaan.</small>
                         </div>
                         <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
-                            <option value="">-- Pilih Skema BPJS --</option>
+                            <option value="tambah_skema">Tambah Skema</option>
                         </select>
                     </div>
 
