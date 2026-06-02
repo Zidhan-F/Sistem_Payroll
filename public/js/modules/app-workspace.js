@@ -609,12 +609,12 @@ window.simpanPilihanSkema = async function() {
                 original.bpjs_jkk_perusahaan !== currentValues.bpjs_jkk_perusahaan ||
                 original.bpjs_jkm_perusahaan !== currentValues.bpjs_jkm_perusahaan;
 
-            if (isModified) {
+            if (bpjsSchemeId === 'tambah_skema' || isModified) {
                 // Find current scheme
                 const selectedScheme = (window.workspaceBpjsSchemes || []).find(s => s.id == bpjsSchemeId);
                 const isAlreadyCustom = selectedScheme && selectedScheme.nama && selectedScheme.nama.startsWith('Custom BPJS -');
                 
-                if (isAlreadyCustom) {
+                if (isAlreadyCustom && bpjsSchemeId !== 'tambah_skema') {
                     // Update in place
                     try {
                         const putRes = await fetch(`${API_URL}/tax-schemes/${bpjsSchemeId}`, {
@@ -801,11 +801,12 @@ window.openModalPilihanSkema = async function() {
         // Populate bpjs schemes
         if (bpjsSelect) {
             bpjsSelect.innerHTML = '<option value="">-- Pilih Skema BPJS --</option>' +
+                '<option value="tambah_skema">+ Tambah Skema</option>' +
                 bpjsOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
             
-            // Default to the first BPJS option if we are not editing
-            if (!window.editSchemaMappingId && bpjsOpts.length > 0) {
-                bpjsSelect.value = bpjsOpts[0].id;
+            // Default to "+ Tambah Skema" option if we are not editing
+            if (!window.editSchemaMappingId) {
+                bpjsSelect.value = 'tambah_skema';
             }
         }
         // Populate tax schemes
@@ -859,6 +860,39 @@ window.handleModalPilihanSkemaBpjsChange = function(value) {
     if (!value) {
         fieldsDiv.style.display = 'none';
         window.modalClientBpjsOriginalValues = null;
+        return;
+    }
+
+    if (value === 'tambah_skema') {
+        fieldsDiv.style.display = 'flex';
+
+        document.getElementById('mClientBpjsKesKaryawan').value = "1.00";
+        document.getElementById('mClientBpjsKesPerusahaan').value = "4.00";
+        document.getElementById('mClientBpjsKesMaxSalary').value = formatRupiah(12000000);
+        
+        document.getElementById('mClientBpjsJhtKaryawan').value = "2.00";
+        document.getElementById('mClientBpjsJhtPerusahaan').value = "3.70";
+        
+        document.getElementById('mClientBpjsJpKaryawan').value = "1.00";
+        document.getElementById('mClientBpjsJpPerusahaan').value = "2.00";
+        document.getElementById('mClientBpjsJpMaxSalary').value = formatRupiah(10024600);
+        
+        document.getElementById('mClientBpjsJkkPerusahaan').value = "0.24";
+        document.getElementById('mClientBpjsJkmPerusahaan').value = "0.30";
+
+        window.modalClientBpjsOriginalValues = {
+            is_tambah_skema: true,
+            bpjs_kes_karyawan: 1.00,
+            bpjs_kes_perusahaan: 4.00,
+            bpjs_kes_max_salary: 12000000,
+            bpjs_jht_karyawan: 2.00,
+            bpjs_jht_perusahaan: 3.70,
+            bpjs_jp_karyawan: 1.00,
+            bpjs_jp_perusahaan: 2.00,
+            bpjs_jp_max_salary: 10024600,
+            bpjs_jkk_perusahaan: 0.24,
+            bpjs_jkm_perusahaan: 0.30
+        };
         return;
     }
 
