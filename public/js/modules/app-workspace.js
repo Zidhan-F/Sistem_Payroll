@@ -265,7 +265,7 @@ async function renderPilihanKompensasiSummary(schemeId) {
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 13px;">
                     <span style="color: #475569;">${c.nama}</span>
                     <span style="font-weight: 600; color: ${c.tipe === 'pendapatan' ? '#16a34a' : '#dc2626'};">
-                        ${c.tipe === 'pendapatan' ? '+' : '-'} ${c.is_persentase == 1 ? c.nilai + '%' : formatRupiah(c.nilai)}
+                        ${c.tipe === 'pendapatan' ? '+' : '-'} ${c.is_persentase == 1 ? parseFloat(c.nilai) + '%' : formatRupiah(c.nilai)}
                     </span>
                 </div>
             `).join('')}
@@ -904,11 +904,11 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     };
 
     // Update label descriptions
-    document.getElementById('mClientBpjsKesDesc').innerText = `Rate: Karyawan ${baseRates.bpjs_kes_karyawan}%, Perusahaan ${baseRates.bpjs_kes_perusahaan}% (Max: ${formatRupiah(baseRates.bpjs_kes_max_salary)})`;
-    document.getElementById('mClientBpjsJhtDesc').innerText = `Rate: Karyawan ${baseRates.bpjs_jht_karyawan}%, Perusahaan ${baseRates.bpjs_jht_perusahaan}%`;
-    document.getElementById('mClientBpjsJpDesc').innerText = `Rate: Karyawan ${baseRates.bpjs_jp_karyawan}%, Perusahaan ${baseRates.bpjs_jp_perusahaan}% (Max: ${formatRupiah(baseRates.bpjs_jp_max_salary)})`;
-    document.getElementById('mClientBpjsJkkDesc').innerText = `Rate: Perusahaan ${baseRates.bpjs_jkk_perusahaan}%`;
-    document.getElementById('mClientBpjsJkmDesc').innerText = `Rate: Perusahaan ${baseRates.bpjs_jkm_perusahaan}%`;
+    document.getElementById('mClientBpjsKesDesc').innerText = `Rate: Karyawan ${parseFloat(baseRates.bpjs_kes_karyawan)}%, Perusahaan ${parseFloat(baseRates.bpjs_kes_perusahaan)}% (Max: ${formatRupiah(baseRates.bpjs_kes_max_salary)})`;
+    document.getElementById('mClientBpjsJhtDesc').innerText = `Rate: Karyawan ${parseFloat(baseRates.bpjs_jht_karyawan)}%, Perusahaan ${parseFloat(baseRates.bpjs_jht_perusahaan)}%`;
+    document.getElementById('mClientBpjsJpDesc').innerText = `Rate: Karyawan ${parseFloat(baseRates.bpjs_jp_karyawan)}%, Perusahaan ${parseFloat(baseRates.bpjs_jp_perusahaan)}% (Max: ${formatRupiah(baseRates.bpjs_jp_max_salary)})`;
+    document.getElementById('mClientBpjsJkkDesc').innerText = `Rate: Perusahaan ${parseFloat(baseRates.bpjs_jkk_perusahaan)}%`;
+    document.getElementById('mClientBpjsJkmDesc').innerText = `Rate: Perusahaan ${parseFloat(baseRates.bpjs_jkm_perusahaan)}%`;
 
     // Show override fields
     fieldsDiv.style.display = 'flex';

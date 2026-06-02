@@ -295,6 +295,8 @@ function switchPayrollSub(sub) {
     } else if (sub === 'setting') {
         switchView('payroll');
         switchPayrollSubTab('skema');
+    } else if (sub === 'pajak') {
+        switchView('pajak');
     }
 }
 
@@ -354,12 +356,13 @@ function switchView(view) {
         globalLokasiKerja: 'Employee Management',
         clientWorkspace: 'Client Workspace',
         payroll: 'Master Payroll Scheme',
+        pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Employee Management';
 
     // Highlight and expand parent menu if we are in one of the payroll submenus
-    if (view === 'payroll' || view === 'masterKompensasi') {
+    if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
         const parentMenu = document.getElementById('menuPayroll');
         if (parentMenu) parentMenu.classList.add('active');
         togglePayrollSubmenu(true);
@@ -390,6 +393,7 @@ function switchView(view) {
             switchPayrollSubTab('skema');
         }
     }
+    if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
 }
 
@@ -513,7 +517,8 @@ function quickAction(type) {
     } else if (type === 'proses-payroll') {
         switchView('klien');
         showToast('Please select a client first to process payroll', 'info');
-
+    } else if (type === 'pengaturan-skema') {
+        switchPayrollSub('pajak');
     } else if (type === 'setting-skema') {
         switchPayrollSub('setting');
     } else if (type === 'lokasi-kerja') {

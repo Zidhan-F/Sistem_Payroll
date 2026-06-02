@@ -19,11 +19,11 @@ async function renderPayrollSchemes() {
             let basicDetails = 'Not configured';
             if (basic) {
                 if (basic.sumber_nilai === 'ump') {
-                    basicDetails = `UMP (${basic.nilai}%)`;
+                    basicDetails = `UMP (${parseFloat(basic.nilai)}%)`;
                 } else if (basic.sumber_nilai === 'umk') {
-                    basicDetails = `UMK (${basic.nilai}%)`;
+                    basicDetails = `UMK (${parseFloat(basic.nilai)}%)`;
                 } else if (basic.sumber_nilai === 'kompensasi') {
-                    basicDetails = `Take from Allowance (${basic.nilai}%)`;
+                    basicDetails = `Take from Allowance (${parseFloat(basic.nilai)}%)`;
                 } else {
                     basicDetails = formatRupiah(basic.nilai);
                 }
@@ -194,13 +194,13 @@ async function bukaModalSkema(mode, id = null) {
                 tetapBody.innerHTML = fixedSaved.map(c => {
                     let valStr = '';
                     if (c.sumber_nilai === 'ump') {
-                        valStr = `${c.nilai}% UMP`;
+                        valStr = `${parseFloat(c.nilai)}% UMP`;
                     } else if (c.sumber_nilai === 'umk') {
-                        valStr = `${c.nilai}% UMK`;
+                        valStr = `${parseFloat(c.nilai)}% UMK`;
                     } else if (c.sumber_nilai === 'ump_umk') {
-                        valStr = `${c.nilai}% UMP/UMK`;
+                        valStr = `${parseFloat(c.nilai)}% UMP/UMK`;
                     } else {
-                        valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                        valStr = c.is_persentase == 1 ? `${parseFloat(c.nilai)}%` : formatRupiahVal(c.nilai);
                     }
                     const dataAttr = encodeURIComponent(JSON.stringify(c));
                     return `
@@ -219,13 +219,13 @@ async function bukaModalSkema(mode, id = null) {
                 tidakTetapBody.innerHTML = variableSaved.map(c => {
                     let valStr = '';
                     if (c.sumber_nilai === 'ump') {
-                        valStr = `${c.nilai}% UMP`;
+                        valStr = `${parseFloat(c.nilai)}% UMP`;
                     } else if (c.sumber_nilai === 'umk') {
-                        valStr = `${c.nilai}% UMK`;
+                        valStr = `${parseFloat(c.nilai)}% UMK`;
                     } else if (c.sumber_nilai === 'ump_umk') {
-                        valStr = `${c.nilai}% UMP/UMK`;
+                        valStr = `${parseFloat(c.nilai)}% UMP/UMK`;
                     } else {
-                        valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                        valStr = c.is_persentase == 1 ? `${parseFloat(c.nilai)}%` : formatRupiahVal(c.nilai);
                     }
                     const dataAttr = encodeURIComponent(JSON.stringify(c));
                     return `
@@ -300,13 +300,13 @@ function bukaModalPilihSkema(sifat) {
             const compsList = (s.components || []).filter(c => c.sifat_kompensasi === sifat).map(c => {
                 let valStr = '';
                 if (c.sumber_nilai === 'ump') {
-                    valStr = `${c.nilai}% UMP`;
+                    valStr = `${parseFloat(c.nilai)}% UMP`;
                 } else if (c.sumber_nilai === 'umk') {
-                    valStr = `${c.nilai}% UMK`;
+                    valStr = `${parseFloat(c.nilai)}% UMK`;
                 } else if (c.sumber_nilai === 'ump_umk') {
-                    valStr = `${c.nilai}% UMP/UMK`;
+                    valStr = `${parseFloat(c.nilai)}% UMP/UMK`;
                 } else {
-                    valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+                    valStr = c.is_persentase == 1 ? `${parseFloat(c.nilai)}%` : formatRupiahVal(c.nilai);
                 }
                 return `<span style="display: inline-block; background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; margin-bottom: 4px;">${c.nama}: ${valStr}</span>`;
             }).join('');
@@ -396,13 +396,13 @@ function terapkanPilihanSkema() {
         const c = item.data;
         let valStr = '';
         if (c.sumber_nilai === 'ump') {
-            valStr = `${c.nilai}% UMP`;
+            valStr = `${parseFloat(c.nilai)}% UMP`;
         } else if (c.sumber_nilai === 'umk') {
-            valStr = `${c.nilai}% UMK`;
+            valStr = `${parseFloat(c.nilai)}% UMK`;
         } else if (c.sumber_nilai === 'ump_umk') {
-            valStr = `${c.nilai}% UMP/UMK`;
+            valStr = `${parseFloat(c.nilai)}% UMP/UMK`;
         } else {
-            valStr = c.is_persentase == 1 ? `${c.nilai}%` : formatRupiahVal(c.nilai);
+            valStr = c.is_persentase == 1 ? `${parseFloat(c.nilai)}%` : formatRupiahVal(c.nilai);
         }
 
         const checkedAttr = item.checked ? 'checked' : '';

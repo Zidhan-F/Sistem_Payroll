@@ -105,13 +105,13 @@ async function renderMasterKompensasi() {
             let nilaiDisplay = '-';
             if (comp) {
                 if (comp.sumber_nilai === 'ump') {
-                    nilaiDisplay = `${comp.nilai}% UMP`;
+                    nilaiDisplay = `${parseFloat(comp.nilai)}% UMP`;
                 } else if (comp.sumber_nilai === 'umk') {
-                    nilaiDisplay = `${comp.nilai}% UMK`;
+                    nilaiDisplay = `${parseFloat(comp.nilai)}% UMK`;
                 } else if (comp.sumber_nilai === 'ump_umk') {
-                    nilaiDisplay = `${comp.nilai}% UMP/UMK`;
+                    nilaiDisplay = `${parseFloat(comp.nilai)}% UMP/UMK`;
                 } else {
-                    nilaiDisplay = comp.is_persentase == 1 ? `${comp.nilai}%` : formatRupiah(comp.nilai);
+                    nilaiDisplay = comp.is_persentase == 1 ? `${parseFloat(comp.nilai)}%` : formatRupiah(comp.nilai);
                 }
             }
 

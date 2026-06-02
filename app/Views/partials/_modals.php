@@ -672,18 +672,9 @@
                         </select>
                     </div>
 
-                    <!-- BPJS Scheme -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
-                        <div style="display: flex; flex-direction: column;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-weight: 600; color: #475569;"><i class="fas fa-shield-alt" style="margin-right: 8px;"></i>BPJS Scheme</span>
-                                <button type="button" id="modalBtnDetailSkemaBpjs" class="btn-detail-bpjs" onclick="lihatDetailSkemaBpjsModal()" style="background: none; border: none; color: #f39c12; cursor: pointer; display: none; align-items: center; gap: 4px; font-size: 13px; font-weight: 600;">
-                                    <i class="fas fa-eye"></i> Scheme Detail
-                                </button>
-                            </div>
-                            <small style="color: #64748b; font-size: 11px;">Calculation rates and maximum caps for BPJS Kesehatan & Ketenagakerjaan.</small>
-                        </div>
-                        <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                    <!-- BPJS Scheme (Hidden from user, defaults to tambah_skema) -->
+                    <div style="display: none;">
+                        <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required>
                             <option value="tambah_skema">Tambah Skema</option>
                         </select>
                     </div>

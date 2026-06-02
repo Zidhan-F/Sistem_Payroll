@@ -235,22 +235,22 @@ function renderBpjsTable(schemes) {
                 <i class="fas fa-shield-alt" style="color: var(--primary-color); margin-right: 6px;"></i> ${scheme.nama}
             </td>
             <td style="padding: 14px;">
-                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_kes_karyawan !== undefined && scheme.bpjs_kes_karyawan !== null ? scheme.bpjs_kes_karyawan : 1}%</b></div>
-                <div style="margin-bottom: 2px;">Perusahaan: <b>${scheme.bpjs_kes_perusahaan !== undefined && scheme.bpjs_kes_perusahaan !== null ? scheme.bpjs_kes_perusahaan : 4}%</b></div>
+                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_kes_karyawan !== undefined && scheme.bpjs_kes_karyawan !== null ? parseFloat(scheme.bpjs_kes_karyawan) : 1}%</b></div>
+                <div style="margin-bottom: 2px;">Perusahaan: <b>${scheme.bpjs_kes_perusahaan !== undefined && scheme.bpjs_kes_perusahaan !== null ? parseFloat(scheme.bpjs_kes_perusahaan) : 4}%</b></div>
                 <div style="font-size: 11px; color: #64748b;">Max: IDR ${formatRupiah(parseFloat(scheme.bpjs_kes_max_salary || 12000000))}</div>
             </td>
             <td style="padding: 14px;">
-                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_jht_karyawan !== undefined && scheme.bpjs_jht_karyawan !== null ? scheme.bpjs_jht_karyawan : 2}%</b></div>
-                <div>Perusahaan: <b>${scheme.bpjs_jht_perusahaan !== undefined && scheme.bpjs_jht_perusahaan !== null ? scheme.bpjs_jht_perusahaan : 3.7}%</b></div>
+                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_jht_karyawan !== undefined && scheme.bpjs_jht_karyawan !== null ? parseFloat(scheme.bpjs_jht_karyawan) : 2}%</b></div>
+                <div>Perusahaan: <b>${scheme.bpjs_jht_perusahaan !== undefined && scheme.bpjs_jht_perusahaan !== null ? parseFloat(scheme.bpjs_jht_perusahaan) : 3.7}%</b></div>
             </td>
             <td style="padding: 14px;">
-                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_jp_karyawan !== undefined && scheme.bpjs_jp_karyawan !== null ? scheme.bpjs_jp_karyawan : 1}%</b></div>
-                <div style="margin-bottom: 2px;">Perusahaan: <b>${scheme.bpjs_jp_perusahaan !== undefined && scheme.bpjs_jp_perusahaan !== null ? scheme.bpjs_jp_perusahaan : 2}%</b></div>
+                <div style="margin-bottom: 2px;">Karyawan: <b>${scheme.bpjs_jp_karyawan !== undefined && scheme.bpjs_jp_karyawan !== null ? parseFloat(scheme.bpjs_jp_karyawan) : 1}%</b></div>
+                <div style="margin-bottom: 2px;">Perusahaan: <b>${scheme.bpjs_jp_perusahaan !== undefined && scheme.bpjs_jp_perusahaan !== null ? parseFloat(scheme.bpjs_jp_perusahaan) : 2}%</b></div>
                 <div style="font-size: 11px; color: #64748b;">Max: IDR ${formatRupiah(parseFloat(scheme.bpjs_jp_max_salary || 10024600))}</div>
             </td>
             <td style="padding: 14px;">
-                <div style="margin-bottom: 2px;">JKK (Perush.): <b>${scheme.bpjs_jkk_perusahaan !== undefined && scheme.bpjs_jkk_perusahaan !== null ? scheme.bpjs_jkk_perusahaan : 0.24}%</b></div>
-                <div>JKM (Perush.): <b>${scheme.bpjs_jkm_perusahaan !== undefined && scheme.bpjs_jkm_perusahaan !== null ? scheme.bpjs_jkm_perusahaan : 0.3}%</b></div>
+                <div style="margin-bottom: 2px;">JKK (Perush.): <b>${scheme.bpjs_jkk_perusahaan !== undefined && scheme.bpjs_jkk_perusahaan !== null ? parseFloat(scheme.bpjs_jkk_perusahaan) : 0.24}%</b></div>
+                <div>JKM (Perush.): <b>${scheme.bpjs_jkm_perusahaan !== undefined && scheme.bpjs_jkm_perusahaan !== null ? parseFloat(scheme.bpjs_jkm_perusahaan) : 0.3}%</b></div>
             </td>
             <td style="text-align: center; padding: 14px;">
                 <div style="display: flex; gap: 8px; justify-content: center;">

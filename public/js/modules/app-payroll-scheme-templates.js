@@ -454,8 +454,8 @@ async function viewSchemeTemplateDetail(id) {
                 <h4>BPJS & Tax</h4>
                 <p>Tax Method: ${scheme.metode_pajak}</p>
                 <p>PTKP Status: ${scheme.ptkp_status}</p>
-                <p>BPJS Kesehatan Employee: ${scheme.bpjs_kes_karyawan}%</p>
-                <p>BPJS JHT Employee: ${scheme.bpjs_jht_karyawan}%</p>
+                <p>BPJS Kesehatan Employee: ${parseFloat(scheme.bpjs_kes_karyawan)}%</p>
+                <p>BPJS JHT Employee: ${parseFloat(scheme.bpjs_jht_karyawan)}%</p>
             </div>
         `;
         
