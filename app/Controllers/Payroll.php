@@ -72,6 +72,14 @@ class Payroll extends ResourceController
             $taxScheme = $db->table('tax_schemes')->where('id', $payrollConfig->tax_scheme_id)->get()->getRow();
         }
 
+        $bpjsScheme = null;
+        if ($payrollConfig && !empty($payrollConfig->bpjs_scheme_id)) {
+            $bpjsScheme = $db->table('tax_schemes')->where('id', $payrollConfig->bpjs_scheme_id)->get()->getRow();
+        }
+        if (!$bpjsScheme) {
+            $bpjsScheme = $taxScheme;
+        }
+
         $minimumWage = 0;
         if ($payrollConfig && !empty($payrollConfig->minimum_wage_id)) {
             $mw = $db->table('minimum_wages')->where('id', $payrollConfig->minimum_wage_id)->get()->getRow();
@@ -183,7 +191,8 @@ class Payroll extends ResourceController
             }
 
             $totalPendapatanKotor = $baseSalary + $overtimePay + $customTunjangan;
-            $calc = $this->calculateBpjsAndTax($baseSalary, $totalPendapatanKotor, $taxScheme, $empMinimumWage, $ptkpStatus);
+            $baseBPJS = $baseSalary + $customTunjangan;
+            $calc = $this->calculateBpjsAndTax($baseSalary, $totalPendapatanKotor, $taxScheme, $empMinimumWage, $ptkpStatus, $bpjsScheme, $baseBPJS);
 
             $bpjsKesKaryawan = $calc['bpjs_kes_karyawan'];
             $bpjsJhtKaryawan = $calc['bpjs_jht_karyawan'];
@@ -442,7 +451,7 @@ class Payroll extends ResourceController
         ]);
     }
 
-    private function calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus)
+    private function calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme = null, $baseBPJS = null)
     {
         $result = [
             'bpjs_kes_karyawan' => 0,
@@ -463,6 +472,10 @@ class Payroll extends ResourceController
             return $result;
         }
 
+        if (!$bpjsScheme) {
+            $bpjsScheme = $taxScheme;
+        }
+
         $result['metode_pajak'] = $taxScheme->metode ?? 'Gross';
 
         if ($gajiPokok <= 0) {
@@ -470,22 +483,22 @@ class Payroll extends ResourceController
         }
 
         // Rates & limits configuration
-        $kesRateEmp = floatval($taxScheme->bpjs_kes_karyawan ?? 1.0) / 100;
-        $kesRateCo = floatval($taxScheme->bpjs_kes_perusahaan ?? 4.0) / 100;
-        $kesMaxSal = floatval($taxScheme->bpjs_kes_max_salary ?? 12000000);
+        $kesRateEmp = floatval($bpjsScheme->bpjs_kes_karyawan ?? 1.0) / 100;
+        $kesRateCo = floatval($bpjsScheme->bpjs_kes_perusahaan ?? 4.0) / 100;
+        $kesMaxSal = floatval($bpjsScheme->bpjs_kes_max_salary ?? 12000000);
 
-        $jhtRateEmp = floatval($taxScheme->bpjs_jht_karyawan ?? 2.0) / 100;
-        $jhtRateCo = floatval($taxScheme->bpjs_jht_perusahaan ?? 3.7) / 100;
+        $jhtRateEmp = floatval($bpjsScheme->bpjs_jht_karyawan ?? 2.0) / 100;
+        $jhtRateCo = floatval($bpjsScheme->bpjs_jht_perusahaan ?? 3.7) / 100;
 
-        $jpRateEmp = floatval($taxScheme->bpjs_jp_karyawan ?? 1.0) / 100;
-        $jpRateCo = floatval($taxScheme->bpjs_jp_perusahaan ?? 2.0) / 100;
-        $jpMaxSal = floatval($taxScheme->bpjs_jp_max_salary ?? 10024600);
+        $jpRateEmp = floatval($bpjsScheme->bpjs_jp_karyawan ?? 1.0) / 100;
+        $jpRateCo = floatval($bpjsScheme->bpjs_jp_perusahaan ?? 2.0) / 100;
+        $jpMaxSal = floatval($bpjsScheme->bpjs_jp_max_salary ?? 10024600);
 
-        $jkkRateCo = floatval($taxScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
-        $jkmRateCo = floatval($taxScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
+        $jkkRateCo = floatval($bpjsScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
+        $jkmRateCo = floatval($bpjsScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
 
-        // Wage base for BPJS: Gaji Bruto as per the requested schema
-        $wageBase = $totalPendapatanKotor;
+        // Wage base for BPJS: Gaji Pokok + Tunjangan Tetap (if passed) otherwise Gross
+        $wageBase = ($baseBPJS !== null) ? $baseBPJS : $totalPendapatanKotor;
         if ($minimumWage > 0 && $wageBase < $minimumWage) {
             $wageBase = $minimumWage;
         }

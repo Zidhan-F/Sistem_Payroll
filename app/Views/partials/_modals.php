@@ -301,133 +301,145 @@
         </form>
     </div>
 
-    <!-- Tax Scheme Form Modal -->
-    <div id="modalPajak" class="modal-skema" style="width: 1000px; max-width: 95%;">
+    <!-- BPJS Scheme Form Modal -->
+    <div id="modalBpjs" class="modal-skema" style="width: 500px; max-width: 95%;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
-            <h3 id="modalPajakTitle">Add BPJS & Tax Scheme</h3>
-            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPajak()"></i>
+            <h3 id="modalBpjsTitle">Add BPJS Scheme</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalBpjs()"></i>
         </div>
-        <form id="formPajak">
-            <div class="modal-body" style="padding: 25px;">
-                <input type="hidden" id="pajakId">
+        <form id="formBpjs">
+            <div class="modal-body" style="padding: 25px; display: flex; flex-direction: column; gap: 15px; max-height: 70vh; overflow-y: auto;">
+                <input type="hidden" id="bpjsId">
+                <input type="hidden" id="bpjsTipe" value="bpjs">
                 
-                <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px;">
-                    <!-- Left Column: Tax -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Tax (PPh 21)</h4>
-                        
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">BPJS & Tax Scheme Name</label>
-                            <input type="text" id="pajakNama" placeholder="Example: Standard BPJS & Tax" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">BPJS Scheme Name</label>
+                    <input type="text" id="bpjsNama" placeholder="Example: Standard BPJS Scheme" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                </div>
+
+                <!-- BPJS Kesehatan -->
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc;">
+                    <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-hand-holding-medical" style="color: var(--primary-color);"></i> BPJS Kesehatan</h5>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+                        <div>
+                            <label style="font-size: 11px; font-weight: 600; color: #64748b;">Employee Share (%)</label>
+                            <input type="number" step="0.01" id="bpjsKesKaryawan" value="1.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
                         </div>
-                        
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Tax Method</label>
-                            <select id="pajakMetode" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
-                                <option value="Gross">Gross (Tax borne by Employee)</option>
-                                <option value="Gross Up">Gross Up (Tax Allowance)</option>
-                                <option value="Nett">Nett (Tax borne by Company)</option>
-                            </select>
+                        <div>
+                            <label style="font-size: 11px; font-weight: 600; color: #64748b;">Company Share (%)</label>
+                            <input type="number" step="0.01" id="bpjsKesPerusahaan" value="4.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
                         </div>
-                        
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Default PTKP Status</label>
-                            <select id="pajakPtkp" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
-                                <option value="TK/0">TK/0 (Single)</option>
-                                <option value="K/0">K/0 (Married)</option>
-                                <option value="K/1">K/1 (Married with 1 Child)</option>
-                                <option value="K/2">K/2 (Married with 2 Children)</option>
-                                <option value="K/3">K/3 (Married with 3 Children)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Description / Notes</label>
-                            <textarea id="pajakDeskripsi" rows="4" placeholder="Enter brief description..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: none;"></textarea>
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">BPJS Kesehatan Max Salary Limit (IDR)</label>
+                        <input type="text" id="bpjsKesMaxSalary" value="12.000.000" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
+                    </div>
+                </div>
+
+                <!-- BPJS Ketenagakerjaan (JHT & JP) -->
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc;">
+                    <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-shield-alt" style="color: var(--info);"></i> BPJS Ketenagakerjaan</h5>
+                    
+                    <!-- JHT -->
+                    <div style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
+                        <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JHT (Old Age Security)</span>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: 600; color: #64748b;">Employee (%)</label>
+                                <input type="number" step="0.01" id="bpjsJhtKaryawan" value="2.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 600; color: #64748b;">Company (%)</label>
+                                <input type="number" step="0.01" id="bpjsJhtPerusahaan" value="3.70" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Right Column: BPJS -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">BPJS Parameters</h4>
-                        
-                        <!-- BPJS Kesehatan -->
-                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: white;">
-                            <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-hand-holding-medical" style="color: var(--primary-color);"></i> BPJS Kesehatan</h5>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b;">Employee Share (%)</label>
-                                    <input type="number" step="0.01" id="pajakBpjsKesKaryawan" value="1.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                </div>
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b;">Company Share (%)</label>
-                                    <input type="number" step="0.01" id="pajakBpjsKesPerusahaan" value="4.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                </div>
+                    <!-- JP -->
+                    <div style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
+                        <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JP (Pension Security)</span>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: 600; color: #64748b;">Employee (%)</label>
+                                <input type="number" step="0.01" id="bpjsJpKaryawan" value="1.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
                             </div>
                             <div>
-                                <label style="font-size: 11px; font-weight: 600; color: #64748b;">BPJS Kesehatan Maximum Salary Limit (IDR)</label>
-                                <input type="text" id="pajakBpjsKesMaxSalary" value="12.000.000" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
+                                <label style="font-size: 11px; font-weight: 600; color: #64748b;">Company (%)</label>
+                                <input type="number" step="0.01" id="bpjsJpPerusahaan" value="2.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
                             </div>
                         </div>
+                        <div>
+                            <label style="font-size: 11px; font-weight: 600; color: #64748b;">BPJS Pension Max Salary Limit (IDR)</label>
+                            <input type="text" id="bpjsJpMaxSalary" value="10.024.600" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
+                        </div>
+                    </div>
 
-                        <!-- BPJS Ketenagakerjaan (JHT & JP) -->
-                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: white;">
-                            <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-shield-alt" style="color: var(--info);"></i> BPJS Ketenagakerjaan</h5>
-                            
-                            <!-- JHT -->
-                            <div style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
-                                <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JHT (Old Age Security)</span>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Employee (%)</label>
-                                        <input type="number" step="0.01" id="pajakBpjsJhtKaryawan" value="2.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                    </div>
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Company (%)</label>
-                                        <input type="number" step="0.01" id="pajakBpjsJhtPerusahaan" value="3.70" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- JP -->
-                            <div style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
-                                <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JP (Pension Security)</span>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px;">
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Employee (%)</label>
-                                        <input type="number" step="0.01" id="pajakBpjsJpKaryawan" value="1.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                    </div>
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">Company (%)</label>
-                                        <input type="number" step="0.01" id="pajakBpjsJpPerusahaan" value="2.00" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                    </div>
-                                </div>
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b;">BPJS Pension Maximum Salary Limit (IDR)</label>
-                                    <input type="text" id="pajakBpjsJpMaxSalary" value="10.024.600" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                </div>
-                            </div>
-
-                            <!-- JKK & JKM -->
+                    <!-- JKK & JKM -->
+                    <div>
+                        <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JKK & JKM (Borne by Company)</span>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
-                                <span style="font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">JKK & JKM (Borne by Company)</span>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">JKK (%)</label>
-                                        <input type="number" step="0.001" id="pajakBpjsJkkPerusahaan" value="0.24" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                    </div>
-                                    <div>
-                                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">JKM (%)</label>
-                                        <input type="number" step="0.01" id="pajakBpjsJkmPerusahaan" value="0.30" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
-                                    </div>
-                                </div>
+                                <label style="font-size: 11px; font-weight: 600; color: #64748b;">JKK (%)</label>
+                                <input type="number" step="0.001" id="bpjsJkkPerusahaan" value="0.24" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: 600; color: #64748b;">JKM (%)</label>
+                                <input type="number" step="0.01" id="bpjsJkmPerusahaan" value="0.30" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
-                <button type="button" class="btn-cancel" onclick="tutupModalPajak()">Cancel</button>
+                <button type="button" class="btn-cancel" onclick="tutupModalBpjs()">Cancel</button>
+                <button type="submit" class="btn-save" style="background: var(--primary-color);">Save</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- PPh 21 Scheme Form Modal -->
+    <div id="modalPph21" class="modal-skema" style="width: 500px; max-width: 95%;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+            <h3 id="modalPph21Title">Add PPh 21 Scheme</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPph21()"></i>
+        </div>
+        <form id="formPph21">
+            <div class="modal-body" style="padding: 25px; display: flex; flex-direction: column; gap: 15px;">
+                <input type="hidden" id="pph21Id">
+                <input type="hidden" id="pph21Tipe" value="pph21">
+                
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">PPh 21 Scheme Name</label>
+                    <input type="text" id="pph21Nama" placeholder="Example: Standard Tax Scheme" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Tax Method</label>
+                    <select id="pph21Metode" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
+                        <option value="Gross">Gross (Tax borne by Employee)</option>
+                        <option value="Gross Up">Gross Up (Tax Allowance)</option>
+                        <option value="Nett">Nett (Tax borne by Company)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Default PTKP Status</label>
+                    <select id="pph21Ptkp" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
+                        <option value="TK/0">TK/0 (Single)</option>
+                        <option value="K/0">K/0 (Married)</option>
+                        <option value="K/1">K/1 (Married with 1 Child)</option>
+                        <option value="K/2">K/2 (Married with 2 Children)</option>
+                        <option value="K/3">K/3 (Married with 3 Children)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Description / Notes</label>
+                    <textarea id="pph21Deskripsi" rows="4" placeholder="Enter brief description..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: none;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                <button type="button" class="btn-cancel" onclick="tutupModalPph21()">Cancel</button>
                 <button type="submit" class="btn-save" style="background: var(--primary-color);">Save</button>
             </div>
         </form>
@@ -473,10 +485,16 @@
                         <!-- Injected by app.js -->
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Select BPJS & Tax Scheme</label>
-                    <select id="setupTaxScheme" required>
-                        <!-- Injected by app.js -->
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>Select BPJS Scheme</label>
+                    <select id="setupBpjsScheme" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <!-- Injected by app-workspace.js -->
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label>Select PPh 21 Scheme</label>
+                    <select id="setupTaxScheme" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <!-- Injected by app-workspace.js -->
                     </select>
                 </div>
                 <div class="form-grid">
@@ -550,16 +568,32 @@
                         </select>
                     </div>
 
-                    <!-- BPJS & Tax Scheme -->
+                    <!-- BPJS Scheme -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
+                        <div style="display: flex; flex-direction: column;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: 600; color: #475569;"><i class="fas fa-shield-alt" style="margin-right: 8px;"></i>BPJS Scheme</span>
+                                <button type="button" id="modalBtnDetailSkemaBpjs" class="btn-detail-bpjs" onclick="lihatDetailSkemaBpjsModal()" style="background: none; border: none; color: #f39c12; cursor: pointer; display: none; align-items: center; gap: 4px; font-size: 13px; font-weight: 600;">
+                                    <i class="fas fa-eye"></i> Scheme Detail
+                                </button>
+                            </div>
+                            <small style="color: #64748b; font-size: 11px;">Calculation rates and maximum caps for BPJS Kesehatan & Ketenagakerjaan.</small>
+                        </div>
+                        <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                            <option value="">-- Select BPJS Scheme --</option>
+                        </select>
+                    </div>
+
+                    <!-- Tax Scheme -->
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; flex-direction: column;">
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-weight: 600; color: #475569;"><i class="fas fa-percent" style="margin-right: 8px;"></i>BPJS & Tax Scheme</span>
+                                <span style="font-weight: 600; color: #475569;"><i class="fas fa-percent" style="margin-right: 8px;"></i>PPh 21 Scheme</span>
                                 <button type="button" id="modalBtnDetailSkemaPajak" class="btn-detail-pajak" onclick="lihatDetailSkemaPajakModal()" style="background: none; border: none; color: #f39c12; cursor: pointer; display: none; align-items: center; gap: 4px; font-size: 13px; font-weight: 600;">
                                     <i class="fas fa-eye"></i> Scheme Detail
                                 </button>
                             </div>
-                            <small style="color: #64748b; font-size: 11px;">Calculation method for BPJS Kesehatan, BPJS Ketenagakerjaan, and tax deductions.</small>
+                            <small style="color: #64748b; font-size: 11px;">Calculation method for PPh 21 tax deductions.</small>
                         </div>
                         <select id="modalPilihanSkemaPajak" onchange="handleModalPilihanSkemaPajakChange(this.value)" required style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
                             <option value="">-- Select Tax Scheme --</option>

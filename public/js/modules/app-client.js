@@ -187,11 +187,13 @@ async function loadWorkspaceSetup() {
                 payrollSchemeText = conf.payroll_scheme_name || 'Not Set';
             }
             document.getElementById('wSetupPayrollScheme').innerText = payrollSchemeText;
+            document.getElementById('wSetupBpjsScheme').innerText = conf.bpjs_scheme_name || 'Not Set';
             document.getElementById('wSetupTaxScheme').innerText = conf.tax_scheme_name || 'Not Set';
             document.getElementById('wSetupPayDate').innerText = conf.pay_date ? `Day ${conf.pay_date}` : 'Not Set';
             document.getElementById('wSetupCutoff').innerText = conf.cutoff_start ? `${conf.cutoff_start} to ${(conf.cutoff_start - 1)}` : 'Not Set';
         } else {
             document.getElementById('wSetupPayrollScheme').innerText = 'Not Set';
+            document.getElementById('wSetupBpjsScheme').innerText = 'Not Set';
             document.getElementById('wSetupTaxScheme').innerText = 'Not Set';
             document.getElementById('wSetupPayDate').innerText = 'Not Set';
             document.getElementById('wSetupCutoff').innerText = 'Not Set';

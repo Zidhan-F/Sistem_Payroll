@@ -133,7 +133,11 @@
                                         <span id="wSetupPayrollScheme" class="scheme-badge bulanan" style="font-weight: 600;">-</span>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">BPJS & Tax Scheme</span>
+                                        <span style="font-weight: 500; color: #64748b;">BPJS Scheme</span>
+                                        <span id="wSetupBpjsScheme" class="scheme-badge" style="background:#e0f2fe; color:#0369a1; font-weight: 600;">-</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                                        <span style="font-weight: 500; color: #64748b;">PPh 21 Tax Scheme</span>
                                         <span id="wSetupTaxScheme" class="scheme-badge" style="background:#fee2e2; color:#dc2626; font-weight: 600;">-</span>
                                     </div>
                                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
@@ -281,13 +285,14 @@
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Department</th>
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Position</th>
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Payroll Scheme</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">BPJS & Tax Scheme</th>
+                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">BPJS Scheme</th>
+                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">PPh 21 Scheme</th>
                                                         <th style="padding: 15px; text-align: center; font-weight: 600; font-size: 13px;">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tabelPilihanSkemaKlien">
                                                     <tr>
-                                                        <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                                        <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
                                                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                                                             No payroll schemes registered yet. Click the "Add Scheme" button to configure.
                                                         </td>
@@ -319,7 +324,8 @@
                                         <select id="pilihanSkemaPosisi"></select>
                                         <select id="pilihanSkemaHariKerja"></select>
                                         <select id="pilihanSkemaPayroll"></select>
-                                        <select id="pilihanSkemaPajak"></select>
+                                        <select id="pilihanSkemaBpjs"></select>
+                                         <select id="pilihanSkemaPajak"></select>
                                         <select id="pilihanSkemaLevel">
                                             <option value="general" selected>general</option>
                                         </select>

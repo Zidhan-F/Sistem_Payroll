@@ -508,10 +508,11 @@ class Api extends ResourceController
     public function getClientConfigs()
     {
         $configs = $this->db->table('clients')
-                            ->select('clients.id as client_id, clients.nama as client_name, client_payroll_configs.id as setup_id, payroll_schemes.nama as payroll_scheme_name, tax_schemes.nama as tax_scheme_name, compensation_schemes.nama as compensation_scheme_name, client_payroll_configs.pay_date, client_payroll_configs.cutoff_start, client_payroll_configs.cutoff_end, client_payroll_configs.payroll_scheme_id, client_payroll_configs.tax_scheme_id, client_payroll_configs.compensation_scheme_id, client_payroll_configs.payroll_type, client_payroll_configs.minimum_wage_id, client_payroll_configs.custom_nominal, minimum_wages.nama_daerah as minimum_wage_region, minimum_wages.nominal as minimum_wage_nominal, client_payroll_configs.division_id, client_payroll_configs.department_id, client_payroll_configs.position_id, global_divisions.nama as division_name, global_departments.nama as department_name, global_positions.nama as position_name')
+                            ->select('clients.id as client_id, clients.nama as client_name, client_payroll_configs.id as setup_id, payroll_schemes.nama as payroll_scheme_name, tax_schemes.nama as tax_scheme_name, bpjs_schemes.nama as bpjs_scheme_name, compensation_schemes.nama as compensation_scheme_name, client_payroll_configs.pay_date, client_payroll_configs.cutoff_start, client_payroll_configs.cutoff_end, client_payroll_configs.payroll_scheme_id, client_payroll_configs.tax_scheme_id, client_payroll_configs.bpjs_scheme_id, client_payroll_configs.compensation_scheme_id, client_payroll_configs.payroll_type, client_payroll_configs.minimum_wage_id, client_payroll_configs.custom_nominal, minimum_wages.nama_daerah as minimum_wage_region, minimum_wages.nominal as minimum_wage_nominal, client_payroll_configs.division_id, client_payroll_configs.department_id, client_payroll_configs.position_id, global_divisions.nama as division_name, global_departments.nama as department_name, global_positions.nama as position_name')
                             ->join('client_payroll_configs', 'client_payroll_configs.client_id = clients.id', 'left')
                             ->join('payroll_schemes', 'payroll_schemes.id = client_payroll_configs.payroll_scheme_id', 'left')
                             ->join('tax_schemes', 'tax_schemes.id = client_payroll_configs.tax_scheme_id', 'left')
+                            ->join('tax_schemes as bpjs_schemes', 'bpjs_schemes.id = client_payroll_configs.bpjs_scheme_id', 'left')
                             ->join('compensation_schemes', 'compensation_schemes.id = client_payroll_configs.compensation_scheme_id', 'left')
                             ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
                             ->join('global_divisions', 'global_divisions.id = client_payroll_configs.division_id', 'left')
@@ -581,6 +582,7 @@ class Api extends ResourceController
                 global_positions.nama as position_name,
                 payroll_schemes.nama as payroll_scheme_name,
                 tax_schemes.nama as tax_scheme_name,
+                bpjs_schemes.nama as bpjs_scheme_name,
                 compensation_schemes.nama as compensation_scheme_name,
                 minimum_wages.nama_daerah as minimum_wage_region,
                 minimum_wages.nominal as minimum_wage_nominal
@@ -590,6 +592,7 @@ class Api extends ResourceController
             ->join('global_positions', 'global_positions.id = client_payroll_configs.position_id', 'left')
             ->join('payroll_schemes', 'payroll_schemes.id = client_payroll_configs.payroll_scheme_id', 'left')
             ->join('tax_schemes', 'tax_schemes.id = client_payroll_configs.tax_scheme_id', 'left')
+            ->join('tax_schemes as bpjs_schemes', 'bpjs_schemes.id = client_payroll_configs.bpjs_scheme_id', 'left')
             ->join('compensation_schemes', 'compensation_schemes.id = client_payroll_configs.compensation_scheme_id', 'left')
             ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
             ->where('client_payroll_configs.client_id', $clientId)
@@ -962,6 +965,7 @@ class Api extends ResourceController
             // 6. Second pass: Calculate all components
             $totalPendapatan = 0;
             $totalPotongan = 0;
+            $tunjanganTetap = 0;
 
             foreach ($components as $comp) {
                 $isBasic = false;
@@ -1021,6 +1025,9 @@ class Api extends ResourceController
 
                 if ($comp->tipe === 'pendapatan') {
                     $totalPendapatan += $nilai;
+                    if (!$isBasic && ($comp->sifat_kompensasi ?? 'tetap') === 'tetap') {
+                        $tunjanganTetap += $nilai;
+                    }
                 } else {
                     $totalPotongan += $nilai;
                 }
@@ -1060,6 +1067,14 @@ class Api extends ResourceController
                 $taxScheme = $this->db->table('tax_schemes')->where('id', $clientConfig->tax_scheme_id)->get()->getRow();
             }
 
+            $bpjsScheme = null;
+            if ($clientConfig && !empty($clientConfig->bpjs_scheme_id)) {
+                $bpjsScheme = $this->db->table('tax_schemes')->where('id', $clientConfig->bpjs_scheme_id)->get()->getRow();
+            }
+            if (!$bpjsScheme) {
+                $bpjsScheme = $taxScheme;
+            }
+
             $ptkpStatus = 'TK/0';
             if ($emp && !empty($emp->ptkp)) {
                 $ptkpStatus = $emp->ptkp;
@@ -1068,9 +1083,10 @@ class Api extends ResourceController
             }
 
             $totalPendapatanKotor = $totalPendapatan;
+            $baseBPJS = $gajiPokok + $tunjanganTetap;
 
             // Resolve BPJS & Tax calculations
-            $calc = $this->calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus);
+            $calc = $this->calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme, $baseBPJS);
 
             // Deductions from Employee: BPJS Kes Karyawan, JHT Karyawan, JP Karyawan
             $employeeBpjsDeductions = $calc['bpjs_kes_karyawan'] + $calc['bpjs_jht_karyawan'] + $calc['bpjs_jp_karyawan'];
@@ -1897,7 +1913,7 @@ class Api extends ResourceController
         ]);
     }
 
-    private function calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus)
+    private function calculateBpjsAndTax($gajiPokok, $totalPendapatanKotor, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme = null, $baseBPJS = null)
     {
         $result = [
             'bpjs_kes_karyawan' => 0,
@@ -1918,6 +1934,10 @@ class Api extends ResourceController
             return $result;
         }
 
+        if (!$bpjsScheme) {
+            $bpjsScheme = $taxScheme;
+        }
+
         $result['metode_pajak'] = $taxScheme->metode ?? 'Gross';
 
         if ($gajiPokok <= 0) {
@@ -1925,22 +1945,22 @@ class Api extends ResourceController
         }
 
         // Rates & limits configuration
-        $kesRateEmp = floatval($taxScheme->bpjs_kes_karyawan ?? 1.0) / 100;
-        $kesRateCo = floatval($taxScheme->bpjs_kes_perusahaan ?? 4.0) / 100;
-        $kesMaxSal = floatval($taxScheme->bpjs_kes_max_salary ?? 12000000);
+        $kesRateEmp = floatval($bpjsScheme->bpjs_kes_karyawan ?? 1.0) / 100;
+        $kesRateCo = floatval($bpjsScheme->bpjs_kes_perusahaan ?? 4.0) / 100;
+        $kesMaxSal = floatval($bpjsScheme->bpjs_kes_max_salary ?? 12000000);
 
-        $jhtRateEmp = floatval($taxScheme->bpjs_jht_karyawan ?? 2.0) / 100;
-        $jhtRateCo = floatval($taxScheme->bpjs_jht_perusahaan ?? 3.7) / 100;
+        $jhtRateEmp = floatval($bpjsScheme->bpjs_jht_karyawan ?? 2.0) / 100;
+        $jhtRateCo = floatval($bpjsScheme->bpjs_jht_perusahaan ?? 3.7) / 100;
 
-        $jpRateEmp = floatval($taxScheme->bpjs_jp_karyawan ?? 1.0) / 100;
-        $jpRateCo = floatval($taxScheme->bpjs_jp_perusahaan ?? 2.0) / 100;
-        $jpMaxSal = floatval($taxScheme->bpjs_jp_max_salary ?? 10024600);
+        $jpRateEmp = floatval($bpjsScheme->bpjs_jp_karyawan ?? 1.0) / 100;
+        $jpRateCo = floatval($bpjsScheme->bpjs_jp_perusahaan ?? 2.0) / 100;
+        $jpMaxSal = floatval($bpjsScheme->bpjs_jp_max_salary ?? 10024600);
 
-        $jkkRateCo = floatval($taxScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
-        $jkmRateCo = floatval($taxScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
+        $jkkRateCo = floatval($bpjsScheme->bpjs_jkk_perusahaan ?? 0.24) / 100;
+        $jkmRateCo = floatval($bpjsScheme->bpjs_jkm_perusahaan ?? 0.30) / 100;
 
-        // Wage base for BPJS: Gaji Bruto as per the requested schema
-        $wageBase = $totalPendapatanKotor;
+        // Wage base for BPJS: Gaji Pokok + Tunjangan Tetap (if passed) otherwise Gross
+        $wageBase = ($baseBPJS !== null) ? $baseBPJS : $totalPendapatanKotor;
         if ($minimumWage > 0 && $wageBase < $minimumWage) {
             $wageBase = $minimumWage;
         }

@@ -47,6 +47,10 @@ class Migrasi extends BaseController
                 ALTER TABLE tax_schemes ADD $col $definition");
         }
 
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('tax_schemes') AND name = 'tipe')
+            ALTER TABLE tax_schemes ADD tipe NVARCHAR(20) DEFAULT 'pph21'");
+        $db->query("UPDATE tax_schemes SET tipe = 'pph21' WHERE tipe IS NULL");
+
 
         // 2. Tabel Mapping (Menempelkan Skema ke Klien)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'client_payroll_configs')
@@ -65,6 +69,9 @@ class Migrasi extends BaseController
         // Ensure compensation_scheme_id column exists for older dbs
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = 'compensation_scheme_id')
             ALTER TABLE client_payroll_configs ADD compensation_scheme_id INT");
+
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = 'bpjs_scheme_id')
+            ALTER TABLE client_payroll_configs ADD bpjs_scheme_id INT NULL");
 
         // Ensure payroll_type, minimum_wage_id, and custom_nominal columns exist for wage integration
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = 'payroll_type')
