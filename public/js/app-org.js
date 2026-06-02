@@ -662,6 +662,24 @@ async function loadPositions(cid){
 
 document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     e.preventDefault();
+    // JS-side validation (novalidate is set on form to avoid browser popup conflicts with TomSelect)
+    const requiredChecks = [
+        { id: 'empNama', label: 'Full Name' },
+        { id: 'empTempatLahir', label: 'Place of Birth' },
+        { id: 'empTanggalLahir', label: 'Date of Birth' },
+        { id: 'empStartContract', label: 'Contract Start' },
+        { id: 'empEndContract', label: 'Contract End' },
+        { id: 'empTipePerjanjian', label: 'Agreement Type' },
+        { id: 'empWorkLocationId', label: 'Work Location' },
+    ];
+    for (const chk of requiredChecks) {
+        const el = document.getElementById(chk.id);
+        if (!el || !el.value) {
+            showToast(`Field "${chk.label}" wajib diisi!`, 'error');
+            if (el) el.focus();
+            return;
+        }
+    }
     const id=document.getElementById('employeeId').value;
     
     // Safely resolve client_id ensuring it is never lost/0

@@ -938,7 +938,7 @@
             <h3 id="modalKaryawanTitle">Add Employee Data</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalKaryawan()"></i>
         </div>
-        <form id="formKaryawan">
+        <form id="formKaryawan" novalidate>
             <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
                 <input type="hidden" id="employeeId">
                 
