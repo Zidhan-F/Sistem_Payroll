@@ -761,9 +761,10 @@ class Api extends ResourceController
     public function getAttendance($periodId)
     {
         $clientId = $this->request->getGet('client_id');
+        $this->syncEmployeesToPKWT($clientId);
         // Get all PKWT and their attendance for this period
         $query = $this->db->table('pkwt')
-                          ->select('pkwt.id as pkwt_id, pkwt.employee_name, payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan')
+                          ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan')
                           ->join('payroll_attendance', "payroll_attendance.pkwt_id = pkwt.id AND payroll_attendance.period_id = $periodId", 'left');
         if ($clientId) {
             $query->where('pkwt.client_id', $clientId);
@@ -795,6 +796,7 @@ class Api extends ResourceController
     public function generatePayroll($periodId)
     {
         $clientId = $this->request->getGet('client_id');
+        $this->syncEmployeesToPKWT($clientId);
         $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
         if (!$period) {
             return $this->failNotFound('Periode tidak ditemukan');
@@ -1221,7 +1223,7 @@ class Api extends ResourceController
     {
         $clientId = $this->request->getGet('client_id');
         $query = $this->db->table('payroll_final')
-                         ->select('payroll_final.*, pkwt.employee_name')
+                         ->select('payroll_final.*, pkwt.employee_name, pkwt.tipe_perjanjian')
                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                          ->where('period_id', $periodId);
         if ($clientId) {
@@ -1240,7 +1242,7 @@ class Api extends ResourceController
         ]);
         
         $final = $this->db->table('payroll_final')
-                          ->select('payroll_final.*, pkwt.employee_name')
+                          ->select('payroll_final.*, pkwt.employee_name, pkwt.tipe_perjanjian')
                           ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                           ->where('payroll_final.id', $id)
                           ->get()
@@ -1254,10 +1256,11 @@ class Api extends ResourceController
     {
         // Get Final Result
         $final = $this->db->table('payroll_final')
-                          ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.client_id, payroll_periods.nama as period_name, clients.nama as client_name')
+                          ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.client_id, payroll_periods.nama as period_name, clients.nama as client_name, employees.employ_id')
                           ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                           ->join('payroll_periods', 'payroll_periods.id = payroll_final.period_id')
                           ->join('clients', 'clients.id = pkwt.client_id')
+                          ->join('employees', 'employees.nama = pkwt.employee_name AND employees.client_id = pkwt.client_id', 'left')
                           ->where('payroll_final.id', $id)
                           ->get()
                           ->getRowArray();
@@ -1572,6 +1575,7 @@ class Api extends ResourceController
                               payroll_final.*, 
                               pkwt.employee_name, 
                               pkwt.position_name, 
+                              pkwt.tipe_perjanjian, 
                               pkwt.client_id, 
                               clients.nama as client_name,
                               employees.employ_id,
@@ -2273,6 +2277,141 @@ class Api extends ResourceController
                   ->getRow();
     }
 
+    private function syncEmployeesToPKWT($clientId = null)
+    {
+        if (empty($clientId)) {
+            return;
+        }
+
+        $activeEmployees = $this->db->table('employees')
+                                     ->select('employees.nama, employees.gaji_pokok, employees.tgl_masuk, employees.tipe_perjanjian, positions.nama as position_name')
+                                     ->join('positions', 'positions.id = employees.position_id', 'left')
+                                     ->where('employees.client_id', $clientId)
+                                     ->where('employees.status', 'Aktif')
+                                     ->get()
+                                     ->getResult();
+
+        foreach ($activeEmployees as $emp) {
+            // Check if PKWT record already exists for this employee
+            $exists = $this->db->table('pkwt')
+                               ->where('client_id', $clientId)
+                               ->where('employee_name', $emp->nama)
+                               ->get()
+                               ->getRow();
+
+            if (!$exists) {
+                // Create PKWT record
+                $tglMulai = !empty($emp->tgl_masuk) ? $emp->tgl_masuk : date('Y-m-d');
+                $tglBerakhir = date('Y-m-d', strtotime('+1 year', strtotime($tglMulai)));
+                
+                $pkwtData = [
+                    'client_id' => $clientId,
+                    'employee_name' => $emp->nama,
+                    'position_name' => $emp->position_name ?? 'Staff',
+                    'tipe_perjanjian' => $emp->tipe_perjanjian ?? 'PKWT',
+                    'start_date' => $tglMulai,
+                    'end_date' => $tglBerakhir,
+                    'status' => 'Active',
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+                
+                $this->db->table('pkwt')->insert($pkwtData);
+                $pkwtId = $this->db->insertID();
+
+                // Get Client Scheme Config
+                $config = $this->resolveClientConfig($clientId, $emp->position_name);
+
+                $hasComponents = false;
+                if ($config && $config->payroll_scheme_id) {
+                    // Fetch components from scheme
+                    $components = $this->db->table('payroll_components')
+                                           ->where('scheme_id', $config->payroll_scheme_id)
+                                           ->get()
+                                           ->getResult();
+
+                    if (!empty($components)) {
+                        $hasComponents = true;
+                        foreach ($components as $comp) {
+                            $nilai = $comp->nilai;
+                            if (stripos($comp->nama, 'Gaji Pokok') !== false || ($comp->jenis_komponen ?? '') === 'basic_salary') {
+                                if (isset($comp->sumber_nilai) && ($comp->sumber_nilai === 'ump' || $comp->sumber_nilai === 'umk' || $comp->sumber_nilai === 'kompensasi')) {
+                                    $nilai = $comp->nilai;
+                                } else {
+                                    $nilai = floatval($emp->gaji_pokok);
+                                }
+                            }
+
+                            $this->db->table('pkwt_components')->insert([
+                                'pkwt_id' => $pkwtId,
+                                'nama' => $comp->nama,
+                                'tipe' => $comp->tipe,
+                                'nilai' => $nilai,
+                                'is_persentase' => $comp->is_persentase,
+                                'jenis_komponen' => $comp->jenis_komponen ?? 'basic_salary',
+                                'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
+                                'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
+                                'periode' => $comp->periode ?? 'bulan',
+                                'is_bpjs' => $comp->is_bpjs ?? 0,
+                                'is_pph21' => $comp->is_pph21 ?? 1
+                            ]);
+                        }
+                    }
+                }
+
+                if (!$hasComponents) {
+                    // Default Gaji Pokok component
+                    $this->db->table('pkwt_components')->insert([
+                        'pkwt_id' => $pkwtId,
+                        'nama' => 'Gaji Pokok',
+                        'tipe' => 'pendapatan',
+                        'nilai' => floatval($emp->gaji_pokok),
+                        'is_persentase' => false,
+                        'is_bpjs' => 1,
+                        'is_pph21' => 1
+                    ]);
+                }
+
+                // Add global compensation scheme components if configured
+                $compensationSchemeId = null;
+                if ($config && $config->payroll_scheme_id) {
+                    $payrollScheme = $this->db->table('payroll_schemes')->where('id', $config->payroll_scheme_id)->get()->getRow();
+                    if ($payrollScheme && !empty($payrollScheme->compensation_scheme_id)) {
+                        $compensationSchemeId = $payrollScheme->compensation_scheme_id;
+                    }
+                }
+                if (!$compensationSchemeId && $config && $config->compensation_scheme_id) {
+                    $compensationSchemeId = $config->compensation_scheme_id;
+                }
+
+                if ($compensationSchemeId) {
+                    $compComponents = $this->db->table('compensation_components')
+                                               ->where('scheme_id', $compensationSchemeId)
+                                               ->get()
+                                               ->getResult();
+                    foreach ($compComponents as $comp) {
+                        $this->db->table('pkwt_components')->insert([
+                            'pkwt_id' => $pkwtId,
+                            'nama' => $comp->nama,
+                            'tipe' => $comp->tipe,
+                            'nilai' => $comp->nilai,
+                            'is_persentase' => $comp->is_persentase,
+                            'jenis_komponen' => $comp->jenis_komponen ?? 'kompensasi',
+                            'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
+                            'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
+                            'periode' => $comp->periode ?? 'bulan',
+                            'is_bpjs' => $comp->is_bpjs ?? 0,
+                            'is_pph21' => $comp->is_pph21 ?? 1
+                        ]);
+                    }
+                }
+            } else if (empty($exists->tipe_perjanjian) && !empty($emp->tipe_perjanjian)) {
+                $this->db->table('pkwt')
+                         ->where('id', $exists->id)
+                         ->update(['tipe_perjanjian' => $emp->tipe_perjanjian]);
+            }
+        }
+    }
+
     public function exportExcel($periodId)
     {
         $clientId = $this->request->getGet('client_id');
@@ -2298,7 +2437,7 @@ class Api extends ResourceController
 
         // Query payroll results joining employees to get NIK & bank details
         $query = $this->db->table('payroll_final')
-                         ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, employees.nik, employees.bank_name, employees.no_rekening')
+                         ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.tipe_perjanjian, employees.nik, employees.bank_name, employees.no_rekening')
                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                          ->join('employees', 'employees.nama = pkwt.employee_name', 'left')
                          ->where('payroll_final.period_id', $periodId)
@@ -2317,7 +2456,7 @@ class Api extends ResourceController
         
         // Define Headers
         $headers = [
-            'No', 'NIK', 'Nama Karyawan', 'Jabatan', 'Metode Pajak', 'Status PTKP',
+            'No', 'NIK', 'Nama Karyawan', 'Tipe Perjanjian', 'Jabatan', 'Metode Pajak', 'Status PTKP',
             'Gaji Pokok', 'Tunjangan Lembur', 'Bonus Tambahan', 'Tunjangan Lainnya',
             'Total Pendapatan', 'Potongan Absensi', 'BPJS Kes (Karyawan)', 'BPJS JHT (Karyawan)',
             'BPJS JP (Karyawan)', 'PPh 21', 'Potongan Lainnya', 'Total Potongan',
@@ -2355,6 +2494,7 @@ class Api extends ResourceController
                 $no++,
                 $row['nik'] ?? '-',
                 $row['employee_name'],
+                $row['tipe_perjanjian'] ?? 'PKWT',
                 $row['position_name'] ?? '-',
                 $taxMethod,
                 $row['ptkp_status'] ?? '-',

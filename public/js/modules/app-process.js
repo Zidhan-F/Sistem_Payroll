@@ -29,7 +29,8 @@ async function loadActivePeriod() {
         }
         
         if (periods.length > 0) {
-            if (!currentPeriodId) {
+            const hasCurrentPeriod = periods.some(p => p.id == currentPeriodId);
+            if (!currentPeriodId || !hasCurrentPeriod) {
                 selectPeriod(periods[0].id, periods[0].nama);
                 if (select) select.value = periods[0].id;
             } else {
@@ -73,16 +74,21 @@ async function renderCutOffTable() {
     const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
     const res = await fetch(url);
     const data = await res.json();
-    document.getElementById('tabelCutOffBody').innerHTML = data.map(row => `
+    document.getElementById('tabelCutOffBody').innerHTML = data.map(row => {
+        const hariKerja = parseFloat(row.hari_kerja) || 0;
+        const jamLembur = parseFloat(row.jam_lembur) || 0;
+        const potongan = parseFloat(row.potongan_absensi) || 0;
+        const bonus = parseFloat(row.bonus_tambahan) || 0;
+        return `
         <tr>
-            <td>${row.employee_name}</td>
-            <td>${row.hari_kerja || 0} Days</td>
-            <td>${row.jam_lembur || 0} Hours</td>
-            <td>${formatRupiah(row.potongan_absensi)}</td>
-            <td>${formatRupiah(row.bonus_tambahan)}</td>
-            <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${row.hari_kerja || 22}, ${row.jam_lembur || 0}, ${row.potongan_absensi || 0}, ${row.bonus_tambahan || 0})"><i class="fas fa-edit"></i></button></td>
-        </tr>
-    `).join('');
+            <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
+            <td>${hariKerja} Days</td>
+            <td>${jamLembur} Hours</td>
+            <td>${formatRupiah(potongan)}</td>
+            <td>${formatRupiah(bonus)}</td>
+            <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja || 22}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
+        </tr>`;
+    }).join('');
 }
 
 async function renderReviewGajiTable() {
@@ -96,16 +102,18 @@ async function renderReviewGajiTable() {
         section.style.display = 'block';
         tbody.innerHTML = data.map(row => `
             <tr>
-                <td>${row.employee_name}</td>
+                <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
                 <td style="color:var(--success);">${formatRupiah(row.total_pendapatan)}</td>
                 <td style="color:var(--danger);">${formatRupiah(row.total_potongan)}</td>
                 <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
                 <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
                 <td>
-                    ${row.status_approval === 'Pending' ? 
-                        `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : 
-                        `<button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip" style="background:var(--primary-color); color:white; width:30px; height:30px;"><i class="fas fa-eye"></i></button>`
-                    }
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        ${row.status_approval === 'Pending' ? 
+                            `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : ''
+                        }
+                        <button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip / Details" style="background:var(--primary-color); color:white; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -165,6 +173,7 @@ async function exportGajiToExcel() {
                 'Company / Client': row.client_name || '-',
                 'Employee ID (NIK)': row.employ_id || '-',
                 'Employee Name': row.employee_name || '-',
+                'Contract Type': row.tipe_perjanjian || 'PKWT',
                 'Place & Date of Birth': dob,
                 'NPWP': row.npwp || '-',
                 'Division': row.division_name || '-',
@@ -197,6 +206,7 @@ async function exportGajiToExcel() {
             {wch: 25},  // Company / Client
             {wch: 18},  // Employee ID (NIK)
             {wch: 20},  // Employee Name
+            {wch: 15},  // Contract Type
             {wch: 22},  // Place & Date of Birth
             {wch: 20},  // NPWP
             {wch: 15},  // Division
@@ -434,20 +444,20 @@ function bukaModalCutOff(pkwtId, empName, hariKerja = 22, jamLembur = 0, potonga
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('cutoffPkwtId').value = pkwtId;
     document.getElementById('cutoffEmployeeName').value = empName;
-    document.getElementById('cutoffHariKerja').value = hariKerja;
-    document.getElementById('cutoffJamLembur').value = jamLembur;
+    document.getElementById('cutoffHariKerja').value = parseFloat(hariKerja) || 0;
+    document.getElementById('cutoffJamLembur').value = parseFloat(jamLembur) || 0;
     
     // Calculate default potongan if nominal_potongan is set and no manual potongan exists yet
-    let finalPotongan = potongan;
-    if (potongan == 0 && window.currentAbsenceConfig && window.currentAbsenceConfig.nominal_potongan > 0) {
+    let finalPotongan = parseFloat(potongan) || 0;
+    if (finalPotongan == 0 && window.currentAbsenceConfig && window.currentAbsenceConfig.nominal_potongan > 0) {
         const nominal = parseFloat(window.currentAbsenceConfig.nominal_potongan) || 0;
-        const missingDays = 21 - hariKerja;
+        const missingDays = 21 - (parseFloat(hariKerja) || 0);
         if (missingDays > 0) {
             finalPotongan = missingDays * nominal;
         }
     }
     document.getElementById('cutoffPotongan').value = finalPotongan;
-    document.getElementById('cutoffBonus').value = bonus;
+    document.getElementById('cutoffBonus').value = parseFloat(bonus) || 0;
 }
 
 function exportPayrollExcel() {

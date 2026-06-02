@@ -31,9 +31,6 @@ function rowHtmlForEmployee(emp) {
                 </div>
             </td>
             <td>
-                <div style="color: #ef4444; font-weight: 600; font-size: 12px;">Rp ${emp.denda_absen ? parseFloat(emp.denda_absen).toLocaleString('id-ID') : '0'}</div>
-            </td>
-            <td>
                 <div style="font-weight: 600;">${emp.tipe_perjanjian || '-'}</div>
                 <div style="font-size: 11px;">${emp.start_contract || '-'} to ${emp.end_contract || '-'}</div>
             </td>

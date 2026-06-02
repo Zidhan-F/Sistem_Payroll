@@ -96,6 +96,10 @@ class Migrasi extends BaseController
                 created_at DATETIME DEFAULT GETDATE()
             )");
 
+        // Ensure tipe_perjanjian column exists in pkwt table for contract types (PKWT, PKWTT, PKHL)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt') AND name = 'tipe_perjanjian')
+            ALTER TABLE pkwt ADD tipe_perjanjian NVARCHAR(50) NULL");
+
         // 4. Tabel Rincian Gaji PKWT
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'pkwt_components')
             CREATE TABLE pkwt_components (

@@ -25,7 +25,6 @@
                                      <th>Position / Role</th>
                                      <th>Work Location</th>
                                      <th>Min. Wage (UMP/UMK)</th>
-                                     <th>Daily Wage / Fine</th>
                                      <th>Contract</th>
                                      <th>Action</th>
                                  </tr>

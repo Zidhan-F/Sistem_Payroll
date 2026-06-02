@@ -416,6 +416,12 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
     document.getElementById('empEmployId').value = '';
     
+    const hariKerjaInput = document.getElementById('empHariKerja');
+    if (hariKerjaInput) {
+        hariKerjaInput.style.pointerEvents = 'auto';
+        hariKerjaInput.style.background = '';
+    }
+    
     const minWageContainer = document.getElementById('empMinimumWageContainer');
     if (minWageContainer) minWageContainer.style.display = 'none';
     
@@ -701,8 +707,8 @@ async function checkSchemaAvailability() {
 
                 if (hariKerjaInput) {
                      hariKerjaInput.value = data.hari_kerja || 5;
-                     hariKerjaInput.style.pointerEvents = 'none';
-                     hariKerjaInput.style.background = '#f1f5f9';
+                     hariKerjaInput.style.pointerEvents = 'auto';
+                     hariKerjaInput.style.background = '';
                 }
 
                 if (dendaInput && data.gaji_pokok > 0) {

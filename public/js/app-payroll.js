@@ -257,7 +257,7 @@ async function viewSlip(id){
         <div style="display:flex;justify-content:space-between;margin-bottom:20px;font-size:14px;">
             <div>
                 <p style="margin: 4px 0;"><strong>Name:</strong> ${emp.nama}</p>
-                <p style="margin: 4px 0;"><strong>NIK:</strong> ${emp.nik || '-'}</p>
+                <p style="margin: 4px 0;"><strong>NIK:</strong> ${emp.employ_id || emp.nik || '-'}</p>
             </div>
             <div style="text-align:right;">
                 <p style="margin: 4px 0;"><strong>Status:</strong> ${slip.status_pembayaran}</p>

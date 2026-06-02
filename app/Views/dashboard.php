@@ -215,7 +215,6 @@
                                     <th>Position / Role</th>
                                     <th>Work Location</th>
                                     <th>Min. Wage (UMP/UMK)</th>
-                                    <th>Daily Wage / Fine</th>
                                     <th>Contract</th>
                                     <th>Action</th>
                                 </tr>
@@ -458,7 +457,6 @@
                                                     <th>Position / Role</th>
                                                     <th>Work Location</th>
                                                     <th>Min. Wage (UMP/UMK)</th>
-                                                    <th>Daily Wage / Fine</th>
                                                     <th>Contract</th>
                                                     <th>Action</th>
                                                 </tr>
@@ -499,27 +497,41 @@
                                     <p style="color: #64748b; font-size: 13px;">Settings for salary calculation schemes, taxes, and monthly cut-off cycles.</p>
                                 </div>
 
-                                <div style="display: flex; flex-direction: column; gap: 15px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
-                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Client Name</span>
-                                        <strong id="wSetupClientName" style="color: #1e293b;">-</strong>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Payroll Scheme</span>
-                                        <span id="wSetupPayrollScheme" class="scheme-badge bulanan" style="font-weight: 600;">-</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Tax Scheme</span>
-                                        <span id="wSetupTaxScheme" class="scheme-badge" style="background:#fee2e2; color:#dc2626; font-weight: 600;">-</span>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                                        <span style="font-weight: 500; color: #64748b;">Payment Date</span>
-                                        <strong id="wSetupPayDate" style="color: #1e293b;">Date -</strong>
-                                    </div>
-                                    <div style="display: flex; justify-content: space-between; padding-bottom: 5px;">
-                                        <span style="font-weight: 500; color: #64748b;">Cut-Off Cycle</span>
-                                        <strong id="wSetupCutoff" style="color: #1e293b;">-</strong>
-                                    </div>
+                                <div class="table-container" style="margin-bottom: 25px; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <thead>
+                                            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                                                <th style="padding: 12px 18px; text-align: left; font-size: 13px; font-weight: 600; color: #475569; width: 40%;">Configuration Item</th>
+                                                <th style="padding: 12px 18px; text-align: left; font-size: 13px; font-weight: 600; color: #475569; width: 60%;">Current Setting</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-building" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Client Name</td>
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #1e293b; font-weight: 700;" id="wSetupClientName">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-money-bill-wave" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Payroll Scheme</td>
+                                                <td style="padding: 14px 18px; font-size: 13px;" id="wSetupPayrollScheme">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-shield-alt" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>BPJS Scheme</td>
+                                                <td style="padding: 14px 18px; font-size: 13px;" id="wSetupBpjsScheme">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-percent" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Tax Scheme</td>
+                                                <td style="padding: 14px 18px; font-size: 13px;" id="wSetupTaxScheme">-</td>
+                                            </tr>
+                                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-calendar-alt" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Payment Date</td>
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #1e293b; font-weight: 700;" id="wSetupPayDate">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #64748b; font-weight: 500;"><i class="fas fa-calendar-day" style="margin-right: 8px; color: #94a3b8; width: 16px; text-align: center;"></i>Cut-Off Cycle</td>
+                                                <td style="padding: 14px 18px; font-size: 13px; color: #1e293b; font-weight: 700;" id="wSetupCutoff">-</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
 
                                 <div style="display: flex; justify-content: center;">
