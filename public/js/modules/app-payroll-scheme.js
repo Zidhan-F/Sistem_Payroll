@@ -161,7 +161,7 @@ async function bukaModalSkema(mode, id = null) {
             } else if (s.nominal_potongan > 0) {
                 if (radioPotongNominal) radioPotongNominal.checked = true;
                 const elPot = document.getElementById('skemaNominalPotongan');
-                elPot.value = s.nominal_potongan;
+                elPot.value = Math.round(parseFloat(s.nominal_potongan) || 0);
                 formatRupiahInput(elPot);
             }
             handleSkemaAbsenRuleChange();
@@ -175,7 +175,7 @@ async function bukaModalSkema(mode, id = null) {
                 if (basic.sumber_nilai === 'ump' || basic.sumber_nilai === 'umk') {
                     elNilai.value = parseFloat(basic.nilai) || 0;
                 } else {
-                    elNilai.value = basic.nilai || 0;
+                    elNilai.value = Math.round(parseFloat(basic.nilai) || 0);
                     formatRupiahInput(elNilai);
                 }
                 document.getElementById('skemaIsPersentase').value = basic.is_persentase || '0';
