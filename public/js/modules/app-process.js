@@ -70,49 +70,62 @@ function selectPeriod(id, name) {
 
 async function renderCutOffTable() {
     if(!currentPeriodId) return;
-    const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    document.getElementById('tabelCutOffBody').innerHTML = data.map(row => `
-        <tr>
-            <td>${row.employee_name}</td>
-            <td>${row.hari_kerja || 0} Days</td>
-            <td>${row.jam_lembur || 0} Hours</td>
-            <td>${formatRupiah(row.potongan_absensi)}</td>
-            <td>${formatRupiah(row.bonus_tambahan)}</td>
-            <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${row.hari_kerja || 22}, ${row.jam_lembur || 0}, ${row.potongan_absensi || 0}, ${row.bonus_tambahan || 0})"><i class="fas fa-edit"></i></button></td>
-        </tr>
-    `).join('');
+    try {
+        const tbody = document.getElementById('tabelCutOffBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+        const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!tbody) return;
+        tbody.innerHTML = data.map(row => `
+            <tr>
+                <td>${row.employee_name}</td>
+                <td>${row.hari_kerja || 0} Days</td>
+                <td>${row.jam_lembur || 0} Hours</td>
+                <td>${formatRupiah(row.potongan_absensi)}</td>
+                <td>${formatRupiah(row.bonus_tambahan)}</td>
+                <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${row.hari_kerja || 22}, ${row.jam_lembur || 0}, ${row.potongan_absensi || 0}, ${row.bonus_tambahan || 0})"><i class="fas fa-edit"></i></button></td>
+            </tr>
+        `).join('');
+    } catch (err) { console.error(err); }
 }
 
 async function renderReviewGajiTable() {
     if(!currentPeriodId) return;
-    const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    const section = document.getElementById('resultSection');
-    const tbody = document.getElementById('tabelReviewGajiBody');
-    if (data.length > 0) {
-        section.style.display = 'block';
-        tbody.innerHTML = data.map(row => `
-            <tr>
-                <td>${row.employee_name}</td>
-                <td style="color:var(--success);">${formatRupiah(row.total_pendapatan)}</td>
-                <td style="color:var(--danger);">${formatRupiah(row.total_potongan)}</td>
-                <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
-                <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
-                <td>
-                    ${row.status_approval === 'Pending' ? 
-                        `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : 
-                        `<button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip" style="background:var(--primary-color); color:white; width:30px; height:30px;"><i class="fas fa-eye"></i></button>`
-                    }
-                </td>
-            </tr>
-        `).join('');
-    } else { 
-        section.style.display = 'block';
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:#7f8c8d;">No salary data generated for this period.</td></tr>`;
-    }
+    try {
+        const tbody = document.getElementById('tabelReviewGajiBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+        const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const section = document.getElementById('resultSection');
+        if (!tbody) return;
+        if (data.length > 0) {
+            section.style.display = 'block';
+            tbody.innerHTML = data.map(row => `
+                <tr>
+                    <td>${row.employee_name}</td>
+                    <td style="color:var(--success);">${formatRupiah(row.total_pendapatan)}</td>
+                    <td style="color:var(--danger);">${formatRupiah(row.total_potongan)}</td>
+                    <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
+                    <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
+                    <td>
+                        ${row.status_approval === 'Pending' ? 
+                            `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : 
+                            `<button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip" style="background:var(--primary-color); color:white; width:30px; height:30px;"><i class="fas fa-eye"></i></button>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        } else { 
+            section.style.display = 'block';
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:#7f8c8d;">No salary data generated for this period.</td></tr>`;
+        }
+    } catch (err) { console.error(err); }
 }
 
 async function generateGaji() {

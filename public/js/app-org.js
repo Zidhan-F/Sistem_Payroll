@@ -10,7 +10,7 @@ async function renderClientOrg(clientId){
     selectedClientId=clientId;
     const container=document.getElementById('clientOrgContainer');
     if(!container)return;
-    container.innerHTML='<div class="empty-state">Loading Structure...</div>';
+    container.innerHTML='<div style="text-align: center; padding: 40px; color: #94a3b8; width: 100%;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</div>';
     try{
         const r=await fetch(`${API}/org?client_id=${clientId}`);
         orgData=await r.json();

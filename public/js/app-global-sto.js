@@ -37,7 +37,7 @@ async function loadGlobalStoData(type) {
     const tableBody = document.getElementById(`tableGlobal${type.charAt(0).toUpperCase() + type.slice(1)}Body`);
     if (!tableBody) return;
 
-    tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #94a3b8;">Loading data...</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>';
 
     try {
         const response = await fetch(`${GLOBAL_STO_API}/global-${type === 'divisi' ? 'divisions' : type === 'departemen' ? 'departments' : 'positions'}`);

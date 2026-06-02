@@ -7,6 +7,15 @@ let bpjsSchemes = [];
 // ===== 4. TAX & BPJS SCHEMES =====
 async function renderTaxSchemes() {
     try {
+        const bpjsTableBody = document.getElementById('bpjsSchemesTableBody');
+        const pph21TableBody = document.getElementById('pph21SchemesTableBody');
+        if (bpjsTableBody) {
+            bpjsTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+        if (pph21TableBody) {
+            pph21TableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+        
         const response = await fetch(`${API_URL}/tax-schemes`);
         const allSchemes = await response.json();
         

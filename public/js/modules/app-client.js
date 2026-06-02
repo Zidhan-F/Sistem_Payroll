@@ -4,6 +4,10 @@
 // ===== 1. KLIEN MODULE =====
 async function renderTable() {
     try {
+        const tbody = document.getElementById('tabelKlienBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
         const response = await fetch(`${API_URL}/clients`);
         clients = await response.json();
         renderClientTableData(clients);

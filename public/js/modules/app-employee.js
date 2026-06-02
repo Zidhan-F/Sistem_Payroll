@@ -50,11 +50,14 @@ function rowHtmlForEmployee(emp) {
 
 async function renderAllEmployees() {
     try {
+        const tbody = document.getElementById('tabelKaryawanBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
         const url = window.selectedClientId ? `${API_URL}/employees?client_id=${window.selectedClientId}` : `${API_URL}/employees`;
         const res = await fetch(url);
         const employees = await res.json();
         window.employees = employees; // Expose globally for app-org.js
-        const tbody = document.getElementById('tabelKaryawanBody');
         if (!tbody) return;
         tbody.innerHTML = employees.map(emp => rowHtmlForEmployee(emp)).join('');
     } catch (err) { console.error(err); }
@@ -85,6 +88,10 @@ let allEmployeesGlobal = [];
 async function renderManajemenKaryawan(list = null) {
     try {
         if (!list) {
+            const tbody = document.getElementById('tabelKaryawanGlobalBody');
+            if (tbody) {
+                tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            }
             const res = await fetch(`${API_URL}/employees`);
             allEmployeesGlobal = await res.json();
             window.allEmployeesGlobal = allEmployeesGlobal;
