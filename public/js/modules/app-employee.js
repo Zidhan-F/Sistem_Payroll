@@ -141,6 +141,9 @@ async function hapusKaryawanGlobal(id) {
         const res = await fetch(`${API_URL}/employees/${id}`, { method: 'DELETE' });
         if (res.ok) {
             renderManajemenKaryawan();
+            if (typeof renderAllEmployees === 'function') {
+                renderAllEmployees();
+            }
             showToast('Employee deleted successfully', 'success');
         }
     } catch (err) {
