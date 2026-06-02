@@ -569,16 +569,18 @@ async function bukaModalKaryawan(mode,id=null){
         await loadWorkLocationsForSelect(selectedClientId);
         if (mode !== 'edit') await loadOrgSelects(selectedClientId);
     }else{
-        cs.disabled=false;
+        cs.disabled=(mode === 'edit'); // Lock client select if in edit mode
         if(clientContainer) clientContainer.style.display = 'block';
     }
     
+    let emp = null;
     if(mode==='edit'&&id){
-        const emp=(window.employees || []).find(e=>e.id==id) || (window.allEmployeesGlobal || []).find(e=>e.id==id);
+        emp=(window.employees || []).find(e=>e.id==id) || (window.allEmployeesGlobal || []).find(e=>e.id==id);
         document.getElementById('employeeId').value=emp.id;
         document.getElementById('empEmployId').value = emp.employ_id || '';
         document.getElementById('empNama').value=emp.nama;
         document.getElementById('empClientId').value=emp.client_id;
+        cs.disabled = true; // Force lock client select during edit
         
         // Populating new fields
         document.getElementById('empTempatLahir').value = emp.tempat_lahir || '';
@@ -607,6 +609,17 @@ async function bukaModalKaryawan(mode,id=null){
         create: false,
         sortField: { field: "text", direction: "asc" }
     });
+    
+    // Explicitly sync TomSelect value and disabled state
+    if (mode === 'edit' && emp) {
+        window.empClientSelectInstance.setValue(emp.client_id);
+        window.empClientSelectInstance.disable();
+    } else if (selectedClientId) {
+        window.empClientSelectInstance.setValue(selectedClientId);
+        window.empClientSelectInstance.disable();
+    } else {
+        window.empClientSelectInstance.enable();
+    }
     
     // Initial check schema
     if (mode === 'edit' && id) {
