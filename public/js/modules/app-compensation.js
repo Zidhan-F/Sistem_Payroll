@@ -77,9 +77,13 @@
 // ===== MASTER SKEMA KOMPENSASI =====
 async function renderMasterKompensasi() {
     try {
+        const container = document.getElementById('compensationSchemesContainer');
+        if (container) {
+            container.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+        }
+
         const res = await fetch(`${API_URL}/compensation-schemes`);
         window.compensationSchemes = await res.json();
-        const container = document.getElementById('compensationSchemesContainer');
         if (!container) return;
         
         if (window.compensationSchemes.length === 0) {
@@ -105,13 +109,13 @@ async function renderMasterKompensasi() {
             let nilaiDisplay = '-';
             if (comp) {
                 if (comp.sumber_nilai === 'ump') {
-                    nilaiDisplay = `${comp.nilai}% UMP`;
+                    nilaiDisplay = `${parseFloat(comp.nilai)}% UMP`;
                 } else if (comp.sumber_nilai === 'umk') {
-                    nilaiDisplay = `${comp.nilai}% UMK`;
+                    nilaiDisplay = `${parseFloat(comp.nilai)}% UMK`;
                 } else if (comp.sumber_nilai === 'ump_umk') {
-                    nilaiDisplay = `${comp.nilai}% UMP/UMK`;
+                    nilaiDisplay = `${parseFloat(comp.nilai)}% UMP/UMK`;
                 } else {
-                    nilaiDisplay = comp.is_persentase == 1 ? `${comp.nilai}%` : formatRupiah(comp.nilai);
+                    nilaiDisplay = comp.is_persentase == 1 ? `${parseFloat(comp.nilai)}%` : formatRupiah(comp.nilai);
                 }
             }
 
