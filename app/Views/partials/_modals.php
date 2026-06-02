@@ -251,7 +251,7 @@
 
     <!-- Allowance Payroll Form Modal -->
     <div id="modalKomponen" class="modal-skema">
-        <div class="modal-header" style="background: var(--info);">
+        <div class="modal-header" style="background: var(--primary-color);">
             <h3 id="modalKomponenTitle">Add Allowance</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalKomponen()"></i>
         </div>
@@ -859,7 +859,7 @@
 
     <!-- Manage Period Modal -->
     <div id="modalPeriode" class="modal-skema">
-        <div class="modal-header" style="background: var(--info);">
+        <div class="modal-header" style="background: var(--primary-color);">
             <h3>Payroll Period Management</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPeriode()"></i>
         </div>
@@ -880,7 +880,7 @@
                         <input type="number" id="periodYear" value="2024" required>
                     </div>
                 </div>
-                <button type="submit" class="btn-save" style="width: 100%; background: var(--info);">Open New Period</button>
+                <button type="submit" class="btn-save" style="width: 100%; background: var(--primary-color);">Open New Period</button>
             </form>
             
             <h4 style="margin-bottom: 10px; font-size: 14px;">Period History</h4>
@@ -1252,7 +1252,7 @@
     </div>
     <!-- Allowance Component Modal (Master) -->
     <div id="modalKomponenKompensasi" class="modal-skema" style="display: none;">
-        <div class="modal-header" style="background: #10b981;">
+        <div class="modal-header" style="background: var(--primary-color);">
             <h3 id="modalKomponenKompensasiTitle">Add Allowance</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalKomponenKompensasi()"></i>
         </div>
@@ -1493,7 +1493,7 @@
 
     <!-- Payroll Scheme Template Form Modal (Multiple Schemes per Org Structure) -->
     <div id="modalSchemeTemplate" class="modal-skema" style="width: 1200px; max-width: 95%; display: none;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalSchemeTemplateTitle">Add Payroll Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeSchemeTemplateModal()"></i>
         </div>
