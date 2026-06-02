@@ -40,6 +40,8 @@ async function loadActivePeriod() {
         } else {
             document.getElementById('prosesActions').style.display = 'none';
             document.getElementById('prosesEmptyState').style.display = 'block';
+            if (document.getElementById('resultSection')) document.getElementById('resultSection').style.display = 'none';
+            if (document.getElementById('resultsEmptyState')) document.getElementById('resultsEmptyState').style.display = 'block';
         }
     } catch (err) { console.error(err); }
 }
@@ -49,6 +51,8 @@ function selectPeriod(id, name) {
     if (!id || id === 'null' || id === '') {
         document.getElementById('prosesActions').style.display = 'none';
         document.getElementById('prosesEmptyState').style.display = 'block';
+        if (document.getElementById('resultSection')) document.getElementById('resultSection').style.display = 'none';
+        if (document.getElementById('resultsEmptyState')) document.getElementById('resultsEmptyState').style.display = 'block';
         return;
     }
     document.getElementById('activePeriodName').innerText = name;
@@ -64,10 +68,42 @@ function selectPeriod(id, name) {
 
     document.getElementById('prosesActions').style.display = 'block';
     document.getElementById('prosesEmptyState').style.display = 'none';
+    if (document.getElementById('resultsEmptyState')) document.getElementById('resultsEmptyState').style.display = 'none';
+    if (document.getElementById('resultSection')) document.getElementById('resultSection').style.display = 'block';
     renderCutOffTable();
     renderReviewGajiTable();
     tutupSemuaModal();
 }
+
+function switchPayrollProcessSubTab(tab) {
+    document.querySelectorAll('.client-proses-subpanel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('#viewProses .sub-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.color = '#64748b';
+        btn.style.borderBottomColor = 'transparent';
+    });
+
+    if (tab === 'processing') {
+        const panel = document.getElementById('panelSalaryProcessing');
+        if (panel) panel.style.display = 'block';
+        const activeBtn = document.getElementById('subTabSalaryProcessing');
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            activeBtn.style.color = 'var(--primary-color)';
+            activeBtn.style.borderBottomColor = 'var(--primary-color)';
+        }
+    } else if (tab === 'results') {
+        const panel = document.getElementById('panelCalculationResults');
+        if (panel) panel.style.display = 'block';
+        const activeBtn = document.getElementById('subTabCalculationResults');
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            activeBtn.style.color = 'var(--primary-color)';
+            activeBtn.style.borderBottomColor = 'var(--primary-color)';
+        }
+    }
+}
+window.switchPayrollProcessSubTab = switchPayrollProcessSubTab;
 
 async function renderCutOffTable() {
     if(!currentPeriodId) return;
@@ -138,9 +174,9 @@ async function renderReviewGajiTable() {
                     <td>
                         <div style="display:flex; gap:6px; align-items:center;">
                             ${row.status_approval === 'Pending' ? 
-                                `<button class="btn-save" onclick="approveGaji(${row.id})" style="padding:5px 10px; font-size:11px;">Approve</button>` : ''
+                                `<button class="btn-neutral" onclick="approveGaji(${row.id})" style="padding:5px 12px; font-size:11px; border-radius:6px; font-weight:600;">Approve</button>` : ''
                             }
-                            <button class="btn-icon" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip / Details" style="background:var(--primary-color); color:white; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
+                            <button class="btn-icon btn-neutral" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip / Details" style="width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
                         </div>
                     </td>
                 </tr>

@@ -20,8 +20,12 @@ async function renderPKWTTable() {
                     <td>${row.client_name}</td>
                     <td>${row.position_name}</td>
                     <td>${new Date(row.start_date).toLocaleDateString()}</td>
-                    <td><span class="status-badge ${row.status && (row.status.toLowerCase() === 'aktif' || row.status.toLowerCase() === 'active') ? 'success' : 'danger'}">${row.status}</span></td>
-                    <td>${formatRupiah(basicComp ? basicComp.nilai : 0)}</td>
+                    <td>${row.end_date ? new Date(row.end_date).toLocaleDateString() : '-'}</td>
+                    <td>${
+                        basicComp && (basicComp.sumber_nilai === 'ump' || basicComp.sumber_nilai === 'umk')
+                            ? `${basicComp.nilai}% ${basicComp.sumber_nilai.toUpperCase()} (${formatRupiah(basicComp.nilai_nominal)})`
+                            : formatRupiah(basicComp ? (basicComp.nilai_nominal || basicComp.nilai) : 0)
+                    }</td>
                     <td><button class="btn-icon btn-delete" onclick="hapusPKWT(${row.id})"><i class="fas fa-trash"></i></button></td>
                 </tr>
             `;

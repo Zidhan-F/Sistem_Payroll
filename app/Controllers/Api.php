@@ -513,16 +513,16 @@ class Api extends ResourceController
     public function getClientConfigs()
     {
         $configs = $this->db->table('clients')
-                            ->select('clients.id as client_id, clients.nama as client_name, client_payroll_configs.id as setup_id, payroll_schemes.nama as payroll_scheme_name, tax_schemes.nama as tax_scheme_name, bpjs_schemes.nama as bpjs_scheme_name, compensation_schemes.nama as compensation_scheme_name, client_payroll_configs.pay_date, client_payroll_configs.cutoff_start, client_payroll_configs.cutoff_end, client_payroll_configs.payroll_scheme_id, client_payroll_configs.tax_scheme_id, client_payroll_configs.bpjs_scheme_id, client_payroll_configs.compensation_scheme_id, client_payroll_configs.payroll_type, client_payroll_configs.minimum_wage_id, client_payroll_configs.custom_nominal, minimum_wages.nama_daerah as minimum_wage_region, minimum_wages.nominal as minimum_wage_nominal, client_payroll_configs.division_id, client_payroll_configs.department_id, client_payroll_configs.position_id, global_divisions.nama as division_name, global_departments.nama as department_name, global_positions.nama as position_name')
+                            ->select('clients.id as client_id, clients.nama as client_name, client_payroll_configs.id as setup_id, payroll_schemes.nama as payroll_scheme_name, tax_schemes.nama as tax_scheme_name, bpjs_schemes.nama as bpjs_scheme_name, compensation_schemes.nama as compensation_scheme_name, client_payroll_configs.pay_date, client_payroll_configs.cutoff_start, client_payroll_configs.cutoff_end, client_payroll_configs.payroll_scheme_id, client_payroll_configs.tax_scheme_id, client_payroll_configs.bpjs_scheme_id, client_payroll_configs.compensation_scheme_id, client_payroll_configs.payroll_type, client_payroll_configs.minimum_wage_id, client_payroll_configs.custom_nominal, minimum_wages.nama_daerah as minimum_wage_region, minimum_wages.nominal as minimum_wage_nominal, client_payroll_configs.division_id, client_payroll_configs.department_id, client_payroll_configs.position_id, divisions.nama as division_name, departments.nama as department_name, positions.nama as position_name')
                             ->join('client_payroll_configs', 'client_payroll_configs.client_id = clients.id', 'left')
                             ->join('payroll_schemes', 'payroll_schemes.id = client_payroll_configs.payroll_scheme_id', 'left')
                             ->join('tax_schemes', 'tax_schemes.id = client_payroll_configs.tax_scheme_id', 'left')
                             ->join('tax_schemes as bpjs_schemes', 'bpjs_schemes.id = client_payroll_configs.bpjs_scheme_id', 'left')
                             ->join('compensation_schemes', 'compensation_schemes.id = client_payroll_configs.compensation_scheme_id', 'left')
                             ->join('minimum_wages', 'minimum_wages.id = client_payroll_configs.minimum_wage_id', 'left')
-                            ->join('global_divisions', 'global_divisions.id = client_payroll_configs.division_id', 'left')
-                            ->join('global_departments', 'global_departments.id = client_payroll_configs.department_id', 'left')
-                            ->join('global_positions', 'global_positions.id = client_payroll_configs.position_id', 'left')
+                            ->join('divisions', 'divisions.id = client_payroll_configs.division_id', 'left')
+                            ->join('departments', 'departments.id = client_payroll_configs.department_id', 'left')
+                            ->join('positions', 'positions.id = client_payroll_configs.position_id', 'left')
                             ->get()
                             ->getResult();
         return $this->respond($configs);
@@ -582,9 +582,9 @@ class Api extends ResourceController
         $configs = $this->db->table('client_payroll_configs')
             ->select('
                 client_payroll_configs.*,
-                global_divisions.nama as division_name,
-                global_departments.nama as department_name,
-                global_positions.nama as position_name,
+                divisions.nama as division_name,
+                departments.nama as department_name,
+                positions.nama as position_name,
                 payroll_schemes.nama as payroll_scheme_name,
                 tax_schemes.nama as tax_scheme_name,
                 bpjs_schemes.nama as bpjs_scheme_name,
@@ -592,9 +592,9 @@ class Api extends ResourceController
                 minimum_wages.nama_daerah as minimum_wage_region,
                 minimum_wages.nominal as minimum_wage_nominal
             ')
-            ->join('global_divisions', 'global_divisions.id = client_payroll_configs.division_id', 'left')
-            ->join('global_departments', 'global_departments.id = client_payroll_configs.department_id', 'left')
-            ->join('global_positions', 'global_positions.id = client_payroll_configs.position_id', 'left')
+            ->join('divisions', 'divisions.id = client_payroll_configs.division_id', 'left')
+            ->join('departments', 'departments.id = client_payroll_configs.department_id', 'left')
+            ->join('positions', 'positions.id = client_payroll_configs.position_id', 'left')
             ->join('payroll_schemes', 'payroll_schemes.id = client_payroll_configs.payroll_scheme_id', 'left')
             ->join('tax_schemes', 'tax_schemes.id = client_payroll_configs.tax_scheme_id', 'left')
             ->join('tax_schemes as bpjs_schemes', 'bpjs_schemes.id = client_payroll_configs.bpjs_scheme_id', 'left')
@@ -629,6 +629,27 @@ class Api extends ResourceController
                                           ->where('pkwt_id', $row['id'])
                                           ->get()
                                           ->getResultArray();
+
+            // Try to find the employee to resolve UMP/UMK nominal
+            $emp = $this->db->table('employees')
+                            ->select('employees.*, minimum_wages.nominal as wage_nominal, minimum_wages.tipe as wage_tipe')
+                            ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                            ->where('employees.client_id', $row['client_id'])
+                            ->where('employees.nama', $row['employee_name'])
+                            ->get()
+                            ->getRow();
+
+            foreach ($row['components'] as &$comp) {
+                $comp['nilai_nominal'] = floatval($comp['nilai']);
+                $isBasic = (stripos($comp['nama'], 'Gaji Pokok') !== false || ($comp['jenis_komponen'] ?? '') === 'basic_salary');
+                if ($isBasic) {
+                    if (isset($comp['sumber_nilai']) && ($comp['sumber_nilai'] === 'ump' || $comp['sumber_nilai'] === 'umk')) {
+                        if ($emp && isset($emp->wage_nominal) && floatval($emp->wage_nominal) > 0) {
+                            $comp['nilai_nominal'] = floatval($emp->wage_nominal) * (floatval($comp['nilai']) / 100);
+                        }
+                    }
+                }
+            }
         }
         
         return $this->respond($data);

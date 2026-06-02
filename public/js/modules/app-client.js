@@ -115,6 +115,9 @@ function switchWorkspaceTab(tab) {
         renderPKWTTable();
     } else if (tab === 'proses') {
         loadActivePeriod();
+        if (typeof switchPayrollProcessSubTab === 'function') {
+            switchPayrollProcessSubTab('processing');
+        }
     }
 }
 

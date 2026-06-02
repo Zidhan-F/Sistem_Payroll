@@ -504,7 +504,7 @@
                                                 <th>Client</th>
                                                 <th>Position</th>
                                                 <th>Start Date</th>
-                                                <th>Status</th>
+                                                <th>End Date</th>
                                                 <th>Basic Salary</th>
                                                 <th>Action</th>
                                             </tr>
@@ -517,53 +517,74 @@
 
                         <!-- Panel: Proses Payroll -->
                         <div id="viewProses" class="w-tab-panel">
-                            <div class="section-header" style="margin-bottom: 20px;">
-                                <h3 style="font-size: 16px; color: var(--secondary-color);">Monthly Salary Processing</h3>
-                                <div style="display: flex; gap: 12px; align-items: center;">
-                                    <select id="selectPeriodInput" onchange="if(this.value) selectPeriod(this.value, this.options[this.selectedIndex].text)" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 200px;">
-                                        <option value="">-- Select Period --</option>
-                                    </select>
-                                    <button class="btn-add" onclick="bukaModalPeriode()" style="background: #2c3e50; font-weight: 600;">
-                                        <i class="fas fa-calendar-plus"></i> Open New Period
-                                    </button>
+                            <!-- Sub Tabs for Process Payroll -->
+                            <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
+                                <button class="sub-tab-btn active" id="subTabSalaryProcessing" onclick="switchPayrollProcessSubTab('processing')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Monthly Salary Processing</button>
+                                <button class="sub-tab-btn" id="subTabCalculationResults" onclick="switchPayrollProcessSubTab('results')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Salary Calculation Results</button>
+                            </div>
+
+                            <!-- Sub Panel 1: Monthly Salary Processing -->
+                            <div id="panelSalaryProcessing" class="client-proses-subpanel">
+                                <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                                    <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Monthly Salary Processing</h3>
+                                    <div style="display: flex; gap: 12px; align-items: center;">
+                                        <select id="selectPeriodInput" onchange="if(this.value) selectPeriod(this.value, this.options[this.selectedIndex].text)" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 200px;">
+                                            <option value="">-- Select Period --</option>
+                                        </select>
+                                        <button class="btn-add" onclick="bukaModalPeriode()" style="background: #2c3e50; font-weight: 600;">
+                                            <i class="fas fa-calendar-plus"></i> Open New Period
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="content-card">
+                                    <div id="prosesEmptyState" style="text-align: center; padding: 60px 20px; color: #a0aec0;">
+                                        <i class="fas fa-calendar-check" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5; color: var(--primary-color);"></i>
+                                        <h4 style="font-weight: 700; color: var(--secondary-color); margin-bottom: 5px;">No Period Selected Yet</h4>
+                                        <p style="font-size: 13px; color: #718096; max-width: 400px; margin: 0 auto;">Please select a period from the dropdown above or open a new period to process payroll.</p>
+                                    </div>
+
+                                    <div id="prosesActions" style="display: none;">
+                                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                                            <div>
+                                                <h4 id="activePeriodName" style="margin:0; color: var(--primary-color);">Select Period</h4>
+                                                <span id="activePeriodStatus" class="status-badge success">Open Period</span>
+                                            </div>
+                                            <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color);">
+                                                <i class="fas fa-sync-alt"></i> Generate Salary
+                                            </button>
+                                        </div>
+                                        <div class="table-container">
+                                            <table id="tabelCutOff">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Employee Name</th>
+                                                        <th>Working Days</th>
+                                                        <th>Overtime</th>
+                                                        <th>Deductions</th>
+                                                        <th>Bonus</th>
+                                                        <th>Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tabelCutOffBody"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="content-card">
-                                <div id="prosesEmptyState" style="text-align: center; padding: 60px 20px; color: #a0aec0;">
-                                    <i class="fas fa-calendar-check" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5; color: var(--primary-color);"></i>
-                                    <h4 style="font-weight: 700; color: var(--secondary-color); margin-bottom: 5px;">No Period Selected Yet</h4>
-                                    <p style="font-size: 13px; color: #718096; max-width: 400px; margin: 0 auto;">Please select a period from the dropdown menu above or open a new period to process payroll.</p>
-                                </div>
+                            <!-- Sub Panel 2: Salary Calculation Results -->
+                            <div id="panelCalculationResults" class="client-proses-subpanel" style="display: none;">
+                                <div class="content-card">
+                                    <div id="resultsEmptyState" style="text-align: center; padding: 60px 20px; color: #a0aec0;">
+                                        <i class="fas fa-calculator" style="font-size: 48px; margin-bottom: 15px; opacity: 0.5; color: var(--primary-color);"></i>
+                                        <h4 style="font-weight: 700; color: var(--secondary-color); margin-bottom: 5px;">No Period Selected Yet</h4>
+                                        <p style="font-size: 13px; color: #718096; max-width: 400px; margin: 0 auto;">Please select a period in the Processing tab first to view calculation results.</p>
+                                    </div>
 
-                                <div id="prosesActions" style="display: none;">
-                                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                                        <div>
-                                            <h4 id="activePeriodName" style="margin:0; color: var(--primary-color);">Select Period</h4>
-                                            <span id="activePeriodStatus" class="status-badge success">Open Period</span>
-                                        </div>
-                                        <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color);">
-                                            <i class="fas fa-sync-alt"></i> Generate Salary
-                                        </button>
-                                    </div>
-                                    <div class="table-container">
-                                        <table id="tabelCutOff">
-                                            <thead>
-                                                <tr>
-                                                    <th>Employee Name</th>
-                                                    <th>Working Days</th>
-                                                    <th>Overtime</th>
-                                                    <th>Deductions</th>
-                                                    <th>Bonus</th>
-                                                    <th>Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="tabelCutOffBody"></tbody>
-                                        </table>
-                                    </div>
-                                    <div id="resultSection" style="margin-top: 30px; display: none;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                            <h4 style="font-size: 14px; margin: 0; color: var(--success);">SALARY CALCULATION RESULTS</h4>
+                                    <div id="resultSection" style="display: none;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px;">
+                                            <h4 style="font-size: 14px; margin: 0; color: #000000; font-weight: 700;">SALARY CALCULATION RESULTS</h4>
                                             <button class="btn-save" onclick="exportGajiToExcel()" style="background: #27ae60; border-radius: 8px; padding: 8px 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                                                 <i class="fas fa-file-excel"></i> Export CSV/Excel
                                             </button>

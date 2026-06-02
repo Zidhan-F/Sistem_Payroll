@@ -620,7 +620,48 @@ tbody tr:hover td:first-child {
 }
 
 .btn-edit {
-    background: var(--info);
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    box-shadow: none;
+}
+
+.btn-icon.btn-edit {
+    color: #475569;
+}
+
+.btn-icon.btn-edit:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-color: #94a3b8;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-neutral {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: none;
+}
+
+.btn-neutral:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    border-color: #94a3b8;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-icon.btn-neutral {
+    color: #475569;
+}
+
+.btn-icon.btn-neutral:hover {
+    color: #1e293b;
+    transform: none;
+    box-shadow: none;
 }
 
 .btn-delete {
