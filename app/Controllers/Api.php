@@ -2126,18 +2126,42 @@ class Api extends ResourceController
                 $loc = $this->db->table('work_locations')->where('id', $workLocId)->get()->getRow();
                 if ($loc && ($loc->kota_kabupaten || $loc->provinsi)) {
                     $year = date('Y');
-                    $daerah = $loc->kota_kabupaten ?: $loc->provinsi;
-                    $mw = $this->db->table('minimum_wages')
-                        ->where('tahun', $year)
-                        ->groupStart()
-                            ->where('nama_daerah', $daerah)
-                            ->orWhere('provinsi', $daerah)
-                        ->groupEnd()
-                        ->orderBy('nominal', 'DESC')
-                        ->get()->getRow();
+                    
+                    if ($config->payroll_type === 'UMK') {
+                        if ($loc->kota_kabupaten) {
+                            $mw = $this->db->table('minimum_wages')
+                                ->where('tahun', $year)
+                                ->where('tipe', 'UMK')
+                                ->where('nama_daerah', $loc->kota_kabupaten)
+                                ->get()->getRow();
+                        }
+                    } else if ($config->payroll_type === 'UMP') {
+                        if ($loc->provinsi) {
+                            $mw = $this->db->table('minimum_wages')
+                                ->where('tahun', $year)
+                                ->where('tipe', 'UMP')
+                                ->where('nama_daerah', $loc->provinsi)
+                                ->get()->getRow();
+                        }
+                    } else { // UMP/UMK
+                        if ($loc->kota_kabupaten) {
+                            $mw = $this->db->table('minimum_wages')
+                                ->where('tahun', $year)
+                                ->where('tipe', 'UMK')
+                                ->where('nama_daerah', $loc->kota_kabupaten)
+                                ->get()->getRow();
+                        }
+                        if (!$mw && $loc->provinsi) {
+                            $mw = $this->db->table('minimum_wages')
+                                ->where('tahun', $year)
+                                ->where('tipe', 'UMP')
+                                ->where('nama_daerah', $loc->provinsi)
+                                ->get()->getRow();
+                        }
+                    }
                     
                     if ($mw) {
-                        $desc .= "Mendeteksi lokasi {$daerah}. ";
+                        $desc .= "Mendeteksi lokasi {$mw->nama_daerah}. ";
                     }
                 }
             }

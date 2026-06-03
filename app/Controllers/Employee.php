@@ -22,7 +22,13 @@ class Employee extends ResourceController
                           ->getResult();
         if (!empty($missingEmps)) {
             foreach ($missingEmps as $emp) {
-                $wageId = $this->resolveMinimumWageId($emp->work_location_id);
+                $wageId = $this->resolveMinimumWageId(
+                    $emp->work_location_id,
+                    $emp->client_id,
+                    $emp->division_id,
+                    $emp->department_id,
+                    $emp->position_id
+                );
                 if ($wageId) {
                     $db->table('employees')->where('id', $emp->id)->update(['minimum_wage_id' => $wageId]);
                 }
@@ -50,7 +56,13 @@ class Employee extends ResourceController
         $data = $this->request->getJSON(true);
         
         if (!empty($data['work_location_id'])) {
-            $data['minimum_wage_id'] = $this->resolveMinimumWageId($data['work_location_id']);
+            $data['minimum_wage_id'] = $this->resolveMinimumWageId(
+                $data['work_location_id'],
+                $data['client_id'] ?? null,
+                $data['division_id'] ?? null,
+                $data['department_id'] ?? null,
+                $data['position_id'] ?? null
+            );
         }
 
         if (isset($data['gaji_pokok']) && isset($data['hari_kerja'])) {
@@ -157,7 +169,13 @@ class Employee extends ResourceController
         $oldEmp = $this->model->find($id);
         
         if (isset($data['work_location_id'])) {
-            $data['minimum_wage_id'] = $this->resolveMinimumWageId($data['work_location_id']);
+            $data['minimum_wage_id'] = $this->resolveMinimumWageId(
+                $data['work_location_id'],
+                $data['client_id'] ?? $oldEmp['client_id'] ?? null,
+                $data['division_id'] ?? $oldEmp['division_id'] ?? null,
+                $data['department_id'] ?? $oldEmp['department_id'] ?? null,
+                $data['position_id'] ?? $oldEmp['position_id'] ?? null
+            );
         }
 
         // Auto-calculate denda_absen if gaji_pokok or hari_kerja is updated
@@ -276,7 +294,44 @@ class Employee extends ResourceController
         return $this->respond(['employ_id' => $employId]);
     }
 
-    private function resolveMinimumWageId($workLocationId)
+    private function resolveClientConfig($clientId, $divisionId = null, $departmentId = null, $positionId = null)
+    {
+        $db = \Config\Database::connect();
+        $config = null;
+        
+        if ($positionId) {
+            $config = $db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('position_id', $positionId)
+                ->get()->getRow();
+        }
+        if (!$config && $departmentId) {
+            $config = $db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('department_id', $departmentId)
+                ->where('position_id IS NULL')
+                ->get()->getRow();
+        }
+        if (!$config && $divisionId) {
+            $config = $db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('division_id', $divisionId)
+                ->where('department_id IS NULL')
+                ->where('position_id IS NULL')
+                ->get()->getRow();
+        }
+        if (!$config) {
+            $config = $db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('division_id IS NULL')
+                ->where('department_id IS NULL')
+                ->where('position_id IS NULL')
+                ->get()->getRow();
+        }
+        return $config;
+    }
+
+    private function resolveMinimumWageId($workLocationId, $clientId = null, $divisionId = null, $departmentId = null, $positionId = null)
     {
         if (!$workLocationId) return null;
         $db = \Config\Database::connect();
@@ -285,24 +340,85 @@ class Employee extends ResourceController
         $loc = $db->table('work_locations')->where('id', $workLocationId)->get()->getRow();
         if (!$loc) return null;
         
-        // 2. Try to match UMK by city/regency
-        if (!empty($loc->kota_kabupaten)) {
-            $search = trim(strtolower($loc->kota_kabupaten));
-            $rows = $db->table('minimum_wages')->where('tipe', 'UMK')->get()->getResult();
-            foreach ($rows as $row) {
-                if (trim(strtolower($row->nama_daerah)) === $search) {
-                    return $row->id;
-                }
+        // 2. Resolve payroll type from config
+        $payrollType = 'UMP/UMK'; // Default fallback
+        if ($clientId) {
+            $config = $this->resolveClientConfig($clientId, $divisionId, $departmentId, $positionId);
+            if ($config && !empty($config->payroll_type)) {
+                $payrollType = $config->payroll_type;
             }
         }
         
-        // 3. Fallback to match UMP by province
-        if (!empty($loc->provinsi)) {
-            $search = trim(strtolower($loc->provinsi));
-            $rows = $db->table('minimum_wages')->where('tipe', 'UMP')->get()->getResult();
-            foreach ($rows as $row) {
-                if (trim(strtolower($row->nama_daerah)) === $search) {
-                    return $row->id;
+        $year = date('Y');
+        
+        // 3. Try to match based on payrollType
+        if ($payrollType === 'UMK') {
+            if (!empty($loc->kota_kabupaten)) {
+                $search = trim(strtolower($loc->kota_kabupaten));
+                $mw = $db->table('minimum_wages')
+                    ->where('tipe', 'UMK')
+                    ->where('tahun', $year)
+                    ->where('nama_daerah', $loc->kota_kabupaten)
+                    ->get()->getRow();
+                if ($mw) return $mw->id;
+                
+                $rows = $db->table('minimum_wages')->where('tipe', 'UMK')->get()->getResult();
+                foreach ($rows as $row) {
+                    if (trim(strtolower($row->nama_daerah)) === $search) {
+                        return $row->id;
+                    }
+                }
+            }
+        } else if ($payrollType === 'UMP') {
+            if (!empty($loc->provinsi)) {
+                $search = trim(strtolower($loc->provinsi));
+                $mw = $db->table('minimum_wages')
+                    ->where('tipe', 'UMP')
+                    ->where('tahun', $year)
+                    ->where('nama_daerah', $loc->provinsi)
+                    ->get()->getRow();
+                if ($mw) return $mw->id;
+                
+                $rows = $db->table('minimum_wages')->where('tipe', 'UMP')->get()->getResult();
+                foreach ($rows as $row) {
+                    if (trim(strtolower($row->nama_daerah)) === $search) {
+                        return $row->id;
+                    }
+                }
+            }
+        } else {
+            // Default/Fallback: UMK first, then UMP
+            if (!empty($loc->kota_kabupaten)) {
+                $search = trim(strtolower($loc->kota_kabupaten));
+                $mw = $db->table('minimum_wages')
+                    ->where('tipe', 'UMK')
+                    ->where('tahun', $year)
+                    ->where('nama_daerah', $loc->kota_kabupaten)
+                    ->get()->getRow();
+                if ($mw) return $mw->id;
+                
+                $rows = $db->table('minimum_wages')->where('tipe', 'UMK')->get()->getResult();
+                foreach ($rows as $row) {
+                    if (trim(strtolower($row->nama_daerah)) === $search) {
+                        return $row->id;
+                    }
+                }
+            }
+            
+            if (!empty($loc->provinsi)) {
+                $search = trim(strtolower($loc->provinsi));
+                $mw = $db->table('minimum_wages')
+                    ->where('tipe', 'UMP')
+                    ->where('tahun', $year)
+                    ->where('nama_daerah', $loc->provinsi)
+                    ->get()->getRow();
+                if ($mw) return $mw->id;
+                
+                $rows = $db->table('minimum_wages')->where('tipe', 'UMP')->get()->getResult();
+                foreach ($rows as $row) {
+                    if (trim(strtolower($row->nama_daerah)) === $search) {
+                        return $row->id;
+                    }
                 }
             }
         }
