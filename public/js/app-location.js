@@ -189,6 +189,58 @@ function tutupModalLokasiKerja() {
 }
 
 let umrDataCached = null;
+
+function updateKotaListBasedOnProvinsi(e) {
+    const provInput = document.getElementById('locProvinsi');
+    const kotaInput = document.getElementById('locKotaKabupaten');
+    const kotaList = document.getElementById('kotaList');
+    if (!provInput || !kotaList || !umrDataCached) return;
+
+    const selectedProvName = provInput.value.trim().toUpperCase();
+
+    // Clear city input value if this update is triggered by user typing or selecting a province,
+    // and the current city value doesn't belong to the newly selected province.
+    if (e && (e.type === 'input' || e.type === 'change') && kotaInput && kotaInput.value) {
+        const currentCity = kotaInput.value.trim().toUpperCase();
+        const matchedCityObj = umrDataCached.find(u => u.tipe === 'UMK' && u.nama_daerah.toUpperCase() === currentCity);
+        const matchedProvObj = umrDataCached.find(u => u.tipe === 'UMP' && u.nama_daerah.toUpperCase() === selectedProvName);
+        
+        if (matchedProvObj && matchedCityObj) {
+            const provCode = matchedProvObj.kode_daerah.trim();
+            if (!matchedCityObj.kode_daerah || !matchedCityObj.kode_daerah.trim().startsWith(provCode)) {
+                kotaInput.value = '';
+            }
+        } else if (selectedProvName !== '') {
+            kotaInput.value = '';
+        }
+    }
+
+    kotaList.innerHTML = '';
+
+    // Find the UMP province record to get its code
+    const matchedProv = umrDataCached.find(u => u.tipe === 'UMP' && u.nama_daerah.toUpperCase() === selectedProvName);
+    
+    let filteredKotas = [];
+    if (matchedProv && matchedProv.kode_daerah) {
+        // If province is selected, filter UMK cities where code starts with province code
+        const provCode = matchedProv.kode_daerah.trim(); // e.g. "ID 12"
+        filteredKotas = umrDataCached.filter(u => 
+            u.tipe === 'UMK' && 
+            u.kode_daerah && 
+            u.kode_daerah.trim().startsWith(provCode)
+        );
+    } else {
+        // If no province is selected (or empty), show all UMK cities
+        filteredKotas = umrDataCached.filter(u => u.tipe === 'UMK');
+    }
+
+    // Populate the datalist
+    const kotas = [...new Set(filteredKotas.map(u => u.nama_daerah))];
+    kotas.forEach(k => {
+        if (k) kotaList.innerHTML += `<option value="${k}"></option>`;
+    });
+}
+
 async function populateProvinsiKotaLists() {
     try {
         if (!umrDataCached) {
@@ -197,11 +249,9 @@ async function populateProvinsiKotaLists() {
         }
         
         const provList = document.getElementById('provinsiList');
-        const kotaList = document.getElementById('kotaList');
-        if (!provList || !kotaList) return;
+        if (!provList) return;
         
         provList.innerHTML = '';
-        kotaList.innerHTML = '';
         
         // Populate Provinsi (UMP)
         const provs = [...new Set(umrDataCached.filter(u => u.tipe === 'UMP').map(u => u.nama_daerah))];
@@ -209,11 +259,8 @@ async function populateProvinsiKotaLists() {
             if (p) provList.innerHTML += `<option value="${p}"></option>`;
         });
         
-        // Populate Kota (UMK)
-        const kotas = [...new Set(umrDataCached.filter(u => u.tipe === 'UMK').map(u => u.nama_daerah))];
-        kotas.forEach(k => {
-            if (k) kotaList.innerHTML += `<option value="${k}"></option>`;
-        });
+        // Populate/Filter Kota (UMK) based on current province input value
+        updateKotaListBasedOnProvinsi();
     } catch (e) {
         console.error('Error fetching minimum wages for datalist', e);
     }
@@ -290,6 +337,9 @@ document.getElementById('locName')?.addEventListener('input', (e) => {
     document.getElementById('locCode').value = initials + id;
 });
 
+document.getElementById('locProvinsi')?.addEventListener('input', updateKotaListBasedOnProvinsi);
+document.getElementById('locProvinsi')?.addEventListener('change', updateKotaListBasedOnProvinsi);
+
 async function editLokasiKerja(id) {
     await bukaModalLokasiKerja();
     const loc = workLocations.find(l => l.id == id);
@@ -301,6 +351,10 @@ async function editLokasiKerja(id) {
     document.getElementById('locName').value = loc.lokasi_kerja;
     document.getElementById('locCode').value = loc.location_code || '';
     document.getElementById('locProvinsi').value = loc.provinsi || '';
+    
+    // Filter city datalist options based on province before setting city value
+    updateKotaListBasedOnProvinsi();
+    
     document.getElementById('locKotaKabupaten').value = loc.kota_kabupaten || '';
     
     const clientSelect = document.getElementById('locClientId');
