@@ -409,7 +409,13 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
 let workLocationsCache = [];
 let minimumWagesCache = [];
 
+let currentSelectedPayrollType = null;
+
 async function handleWorkLocationChange() {
+    await updateLocationMinimumWage(currentSelectedPayrollType);
+}
+
+async function updateLocationMinimumWage(payrollType) {
     const locSel = document.getElementById('empWorkLocationId');
     const minWageInput = document.getElementById('empMinimumWage');
     const minWageInfo = document.getElementById('empMinimumWageInfo');
@@ -443,18 +449,34 @@ async function handleWorkLocationChange() {
     let match = null;
     let wageType = '';
     
-    // 1. Search UMK matching kota_kabupaten
-    if (loc.kota_kabupaten) {
-        const searchName = loc.kota_kabupaten.trim().toLowerCase();
-        match = minimumWagesCache.find(w => w.tipe === 'UMK' && w.nama_daerah.trim().toLowerCase() === searchName);
-        if (match) wageType = 'UMK';
+    // Resolve which type we should show: UMP or UMK
+    let allowedTypes = [];
+    if (payrollType === 'UMK') {
+        allowedTypes = ['UMK'];
+    } else if (payrollType === 'UMP') {
+        allowedTypes = ['UMP'];
+    } else {
+        // Fallback to trying both (UMK first, then UMP)
+        allowedTypes = ['UMK', 'UMP'];
     }
     
-    // 2. Fallback to UMP matching provinsi
-    if (!match && loc.provinsi) {
-        const searchName = loc.provinsi.trim().toLowerCase();
-        match = minimumWagesCache.find(w => w.tipe === 'UMP' && w.nama_daerah.trim().toLowerCase() === searchName);
-        if (match) wageType = 'UMP';
+    for (const type of allowedTypes) {
+        if (type === 'UMK' && loc.kota_kabupaten) {
+            const searchName = loc.kota_kabupaten.trim().toLowerCase();
+            match = minimumWagesCache.find(w => w.tipe === 'UMK' && w.nama_daerah.trim().toLowerCase() === searchName);
+            if (match) {
+                wageType = 'UMK';
+                break;
+            }
+        }
+        if (type === 'UMP' && loc.provinsi) {
+            const searchName = loc.provinsi.trim().toLowerCase();
+            match = minimumWagesCache.find(w => w.tipe === 'UMP' && w.nama_daerah.trim().toLowerCase() === searchName);
+            if (match) {
+                wageType = 'UMP';
+                break;
+            }
+        }
     }
     
     minWageContainer.style.display = 'block';
@@ -464,7 +486,8 @@ async function handleWorkLocationChange() {
         minWageInfo.style.color = '#15803d';
     } else {
         minWageInput.value = '0';
-        minWageInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No UMP/UMK configured for ${loc.kota_kabupaten || loc.provinsi || 'this region'}.`;
+        const targetTypeLabel = (payrollType === 'UMK' || payrollType === 'UMP') ? payrollType : 'UMP/UMK';
+        minWageInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No ${targetTypeLabel} configured for ${loc.kota_kabupaten || loc.provinsi || 'this region'}.`;
         minWageInfo.style.color = '#b91c1c';
     }
 }
@@ -510,6 +533,7 @@ async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
 }
 
 async function bukaModalKaryawan(mode,id=null){
+    currentSelectedPayrollType = null;
     const m=document.getElementById('modalKaryawan'),cs=document.getElementById('empClientId');
     m.style.display='block';document.getElementById('overlay').style.display='block';
     
@@ -836,11 +860,17 @@ async function checkSchemaAvailability() {
                 infoContainer.style.color = '#b91c1c';
                 infoContainer.style.background = '#fef2f2';
                 infoContainer.style.border = '1px solid #fca5a5';
+                
+                currentSelectedPayrollType = null;
+                await updateLocationMinimumWage(null);
             } else {
                 infoContainer.innerHTML = `<i class="fas fa-check-circle"></i> <b>Scheme Available!</b><br>System uses scheme level: <b>${data.level}</b>.<br><small>${data.description}</small>`;
                 infoContainer.style.color = '#15803d';
                 infoContainer.style.background = '#f0fdf4';
                 infoContainer.style.border = '1px solid #bbf7d0';
+
+                currentSelectedPayrollType = data.payroll_type;
+                await updateLocationMinimumWage(data.payroll_type);
 
                 // Auto-fill form fields from scheme data (no more manual gaji_pokok)
                 const hariKerjaInput = document.getElementById('empHariKerja');

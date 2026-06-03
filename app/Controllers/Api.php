@@ -2175,6 +2175,7 @@ class Api extends ResourceController
         return $this->respond([
             'status' => 'success',
             'level' => $level,
+            'payroll_type' => $config->payroll_type ?? null,
             'gaji_pokok' => $gajiPokok,
             'hari_kerja' => $hariKerja,
             'gaji_harian' => round($gajiHarian),
