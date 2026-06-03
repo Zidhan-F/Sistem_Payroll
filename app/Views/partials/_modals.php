@@ -12,8 +12,8 @@
             </div>
         </div>
         <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
-            <button type="button" class="btn-add" onclick="cetakSlip()" style="background: #17a2b8; color: white; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">
-                <i class="fas fa-print"></i> Print Slip
+            <button type="button" class="btn-add" onclick="downloadSlip()" style="background: #28a745; color: white; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; padding: 10px 20px; border: none; cursor: pointer;">
+                <i class="fas fa-download"></i> Download PDF
             </button>
             <button type="button" class="btn-cancel" onclick="tutupModalSlip()" style="padding: 10px 24px; border-radius: 8px; margin: 0;">Close</button>
         </div>

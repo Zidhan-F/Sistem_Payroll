@@ -74,6 +74,7 @@ $routes->group('api', function($routes) {
     $routes->post('generate-payroll/(:num)', 'Api::generatePayroll/$1');
     $routes->get('payroll-results/(:num)', 'Api::getPayrollResults/$1');
     $routes->post('approve-payroll/(:num)', 'Api::approvePayroll/$1');
+    $routes->post('approve-payroll-bulk', 'Api::approvePayrollBulk');
     $routes->get('slip-details/(:num)', 'Api::getSlipDetails/$1');
     $routes->get('export-payroll/(:num)', 'Api::exportPayrollCsv/$1');
     $routes->get('payroll-export/(:num)', 'Api::exportExcel/$1');

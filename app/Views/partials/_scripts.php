@@ -8,6 +8,9 @@
     <!-- SheetJS for client-side Excel (.xlsx) export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
+    <!-- html2pdf.js for client-side PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <!-- Core: Global state, helpers, navigation -->
     <script src="<?= base_url('js/app.js?v=' . time()) ?>"></script>
     <!-- Domain Modules -->

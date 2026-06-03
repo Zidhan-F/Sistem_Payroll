@@ -121,12 +121,55 @@ function showToast(message, type = 'info', duration = 3000) {
     }, duration);
 }
 
-function showConfirm(message, title = 'Confirmation') {
+function showConfirm(message, title = 'Confirmation', okText = 'Yes, Delete', cancelText = 'Cancel', variant = 'danger') {
     return new Promise((resolve) => {
         const overlay = document.getElementById('confirmOverlay');
         const dialog = document.getElementById('confirmDialog');
         document.getElementById('confirmTitle').innerText = title;
         document.getElementById('confirmMessage').innerText = message;
+        
+        const okBtn = document.getElementById('confirmOk');
+        const cancelBtn = document.getElementById('confirmCancel');
+        const iconDiv = document.querySelector('.confirm-icon');
+        const iconEl = iconDiv ? iconDiv.querySelector('i') : null;
+        
+        if (okBtn) okBtn.innerText = okText;
+        if (cancelBtn) cancelBtn.innerText = cancelText;
+        
+        if (okBtn) {
+            okBtn.classList.remove('btn-primary', 'btn-success', 'btn-danger');
+            if (variant === 'primary') {
+                okBtn.classList.add('btn-primary');
+            } else if (variant === 'success') {
+                okBtn.classList.add('btn-success');
+            } else {
+                okBtn.classList.add('btn-danger');
+            }
+        }
+        
+        if (iconDiv && iconEl) {
+            iconDiv.className = 'confirm-icon'; // Reset
+            iconEl.className = 'fas'; // Reset
+            
+            if (variant === 'primary') {
+                iconDiv.style.background = 'linear-gradient(135deg, #dbeafe, #bfdbfe)';
+                iconDiv.style.color = '#2563eb';
+                iconDiv.style.boxShadow = '0 4px 16px rgba(37, 99, 235, 0.2)';
+                iconEl.classList.add('fa-question-circle');
+            } else if (variant === 'success') {
+                iconDiv.style.background = 'linear-gradient(135deg, #d1fae5, #a7f3d0)';
+                iconDiv.style.color = '#059669';
+                iconDiv.style.boxShadow = '0 4px 16px rgba(5, 150, 105, 0.2)';
+                iconEl.classList.add('fa-check-circle');
+            } else {
+                iconDiv.style.background = '';
+                iconDiv.style.color = '';
+                iconDiv.style.boxShadow = '';
+                iconDiv.classList.add('confirm-icon-danger');
+                iconEl.classList.add('fa-exclamation-triangle');
+            }
+        }
+
         overlay.classList.add('show');
         dialog.classList.add('show');
         const handleCancel = () => {

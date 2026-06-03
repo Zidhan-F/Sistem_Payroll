@@ -152,7 +152,7 @@ async function renderReviewGajiTable() {
     try {
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
         const res = await fetch(url);
@@ -166,16 +166,20 @@ async function renderReviewGajiTable() {
             section.style.display = 'block';
             tbody.innerHTML = data.map(row => `
                 <tr>
+                    <td style="text-align: center; vertical-align: middle;">
+                        <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" ${row.status_approval === 'Approved' ? 'disabled checked' : ''} style="transform: scale(1.2); cursor: pointer;">
+                    </td>
                     <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
+                    <td>${row.division_name || '-'}</td>
+                    <td>${row.department_name || '-'}</td>
+                    <td>${row.position_name || '-'}</td>
+                    <td>${row.scheme_name || '-'}</td>
                     <td>${formatRupiah(row.total_pendapatan)}</td>
                     <td>${formatRupiah(row.total_potongan)}</td>
                     <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
                     <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
                     <td>
                         <div style="display:flex; gap:6px; align-items:center;">
-                            ${row.status_approval === 'Pending' ? 
-                                `<button class="btn-neutral" onclick="approveGaji(${row.id})" style="padding:5px 12px; font-size:11px; border-radius:6px; font-weight:600;">Approve</button>` : ''
-                            }
                             <button class="btn-icon btn-neutral" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip / Details" style="width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
                         </div>
                     </td>
@@ -183,14 +187,116 @@ async function renderReviewGajiTable() {
             `).join('');
         } else { 
             section.style.display = 'block';
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;
         }
     } catch (err) { 
         console.error(err); 
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
         }
+    }
+}
+
+// Add event listener for select all checkbox using event delegation
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'selectAllReviewGaji') {
+        const checkboxes = document.querySelectorAll('.review-gaji-checkbox:not(:disabled)');
+        checkboxes.forEach(cb => {
+            cb.checked = e.target.checked;
+        });
+    }
+});
+
+async function approveSelectedGaji() {
+    const checkboxes = document.querySelectorAll('.review-gaji-checkbox:checked:not(:disabled)');
+    if (checkboxes.length === 0) {
+        showToast('Pilih minimal satu data gaji yang berstatus Pending!', 'warning');
+        return;
+    }
+
+    const ids = [];
+    let validationFailed = false;
+    let failMessage = '';
+
+    for (let cb of checkboxes) {
+        const id = cb.getAttribute('data-id');
+        const name = cb.getAttribute('data-employee-name');
+        const scheme = cb.getAttribute('data-scheme');
+        const netSalary = parseFloat(cb.getAttribute('data-net-salary') || 0);
+
+        // Validation 1: Must have a scheme
+        if (!scheme || scheme === '-' || scheme.trim() === '') {
+            validationFailed = true;
+            failMessage = `Gaji untuk karyawan "${name}" tidak dapat disetujui karena belum memiliki skema payroll.`;
+            break;
+        }
+
+        // Validation 2: Net salary must be > 0
+        if (netSalary <= 0) {
+            validationFailed = true;
+            failMessage = `Gaji untuk karyawan "${name}" tidak dapat disetujui karena Net Salary bernilai Rp 0 atau kurang.`;
+            break;
+        }
+
+        ids.push(id);
+    }
+
+    if (validationFailed) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Validasi Gagal',
+                text: failMessage,
+                confirmButtonColor: '#3498db'
+            });
+        } else {
+            showToast(failMessage, 'error');
+        }
+        return;
+    }
+
+    const confirmMsg = `Apakah Anda yakin ingin menyetujui ${ids.length} data gaji yang dipilih?`;
+    let confirmed = false;
+    if (typeof showConfirm === 'function') {
+        confirmed = await showConfirm(confirmMsg, 'Konfirmasi Persetujuan', 'Ya, Setujui', 'Batal', 'primary');
+    } else {
+        confirmed = confirm(confirmMsg);
+    }
+
+    if (!confirmed) return;
+
+    showToast('Approving selected salaries...', 'info');
+
+    try {
+        const res = await fetch(`${API_URL}/approve-payroll-bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids })
+        });
+
+        if (res.ok) {
+            showToast('Semua data gaji terpilih berhasil disetujui!', 'success');
+            const selectAll = document.getElementById('selectAllReviewGaji');
+            if (selectAll) selectAll.checked = false;
+            renderReviewGajiTable();
+        } else {
+            const errData = await res.json();
+            const errMsg = errData.messages?.error || errData.message || 'Gagal menyetujui data gaji terpilih!';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Persetujuan Gagal',
+                    text: errMsg,
+                    confirmButtonColor: '#3498db'
+                });
+            } else {
+                showToast(errMsg, 'error');
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Terjadi kesalahan saat memproses persetujuan.', 'error');
     }
 }
 
@@ -203,8 +309,22 @@ async function generateGaji() {
 }
 
 async function approveGaji(id) {
-    const res = await fetch(`${API_URL}/approve-payroll/${id}`, { method: 'POST' });
-    if (res.ok) { showToast('Salary approved!', 'success'); renderReviewGajiTable(); }
+    // Keep this individual helper but delegate to bulk logic for safety or perform verification
+    showToast('Approving salary...', 'info');
+    try {
+        const res = await fetch(`${API_URL}/approve-payroll/${id}`, { method: 'POST' });
+        if (res.ok) { 
+            showToast('Salary approved!', 'success'); 
+            renderReviewGajiTable(); 
+        } else {
+            const errData = await res.json();
+            const errMsg = errData.messages?.error || errData.message || 'Gagal menyetujui gaji!';
+            showToast(errMsg, 'error');
+        }
+    } catch(err) {
+        console.error(err);
+        showToast('Gagal memproses persetujuan.', 'error');
+    }
 }
 
 // ===== EXPORT =====
@@ -341,17 +461,19 @@ async function bukaSlipGaji(id) {
             <h2 style="color:var(--primary-color); margin: 0;">PAYSLIP</h2>
             <p style="font-size:13px;color:#666; margin: 5px 0 0 0;">Period: ${info.period_name || info.periode}</p>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:20px;font-size:14px;">
-            <div>
-                <p style="margin: 4px 0;"><strong>Name:</strong> ${info.employee_name}</p>
-                <p style="margin: 4px 0;"><strong>NIK:</strong> ${info.employ_id || info.nik_karyawan || '-'}</p>
-                <p style="margin: 4px 0;"><strong>Position:</strong> ${info.position_name || '-'}</p>
-            </div>
-            <div style="text-align:right;">
-                <p style="margin: 4px 0;"><strong>Status:</strong> ${info.status_approval || 'Pending'}</p>
-                <p style="margin: 4px 0;"><strong>Client:</strong> ${info.client_name || '-'}</p>
-            </div>
-        </div>
+        <table style="width:100%; border:none; margin-bottom:20px; font-size:14px; line-height:1.5; border-collapse:collapse;">
+            <tr>
+                <td style="width:60%; vertical-align:top; padding:0; border:none;">
+                    <p style="margin: 4px 0;"><strong>Name:</strong> ${info.employee_name}</p>
+                    <p style="margin: 4px 0;"><strong>NIK:</strong> ${info.employ_id || info.nik_karyawan || '-'}</p>
+                    <p style="margin: 4px 0;"><strong>Position:</strong> ${info.position_name || '-'}</p>
+                </td>
+                <td style="width:40%; text-align:right; vertical-align:top; padding:0; border:none;">
+                    <p style="margin: 4px 0;"><strong>Status:</strong> ${info.status_approval || 'Pending'}</p>
+                    <p style="margin: 4px 0;"><strong>Client:</strong> ${info.client_name || '-'}</p>
+                </td>
+            </tr>
+        </table>
         <table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:20px;">
             <thead>
                 <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Earnings</th></tr>
@@ -367,7 +489,7 @@ async function bukaSlipGaji(id) {
             </tbody>
             <tfoot>
                 <tr style="border-top:2px solid #eee;">
-                    <th style="padding:15px 10px;font-size:16px;text-align:left;">TAKE HOME PAY</th>
+                    <th style="padding:15px 10px;font-size:16px;text-align:left;">NET SALARY</th>
                     <th style="padding:15px 10px;font-size:16px;text-align:right;color:var(--success);">${formatRupiah(info.take_home_pay)}</th>
                 </tr>
             </tfoot>
@@ -401,19 +523,56 @@ function tutupModalSlip() {
     document.getElementById('overlay').style.display = 'none';
 }
 
-function cetakSlip() {
-    const content = document.getElementById('slipContent').innerHTML;
-    const printWindow = window.open('', '', 'height=600,width=800');
-    printWindow.document.write('<html><head><title>Print Pay Slip</title>');
-    printWindow.document.write('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">');
-    printWindow.document.write('<style>body{font-family: "Inter", sans-serif; padding: 40px;} .primary-color{color: #2980b9;} .success{color: #27ae60;} .danger{color: #e74c3c;}</style>');
-    printWindow.document.write('</head><body>');
-    printWindow.document.write(content);
-    printWindow.document.write('</body></html>');
-    printWindow.document.close();
-    setTimeout(() => {
-        printWindow.print();
-    }, 500);
+function downloadSlip() {
+    const element = document.getElementById('slipContent');
+    if (!element) return;
+    
+    let filename = 'payslip.pdf';
+    try {
+        const htmlText = element.innerHTML;
+        // Parse the name and period from the DOM structure
+        const nameMatch = htmlText.match(/Name:<\/strong>\s*([^<]+)/i);
+        const periodMatch = htmlText.match(/Period:\s*([^<|]+)/i);
+        
+        let nameStr = 'employee';
+        let periodStr = '';
+        
+        if (nameMatch && nameMatch[1]) {
+            nameStr = nameMatch[1].trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+        }
+        if (periodMatch && periodMatch[1]) {
+            periodStr = '_' + periodMatch[1].trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+        }
+        
+        filename = `payslip_${nameStr}${periodStr}.pdf`;
+    } catch(e) {
+        console.error('Error generating filename:', e);
+    }
+    
+    // Show loading toast
+    showToast('Generating PDF, please wait...', 'info');
+    
+    // Custom print/download optimizations for html2pdf (A5 Landscape for half-page payslip)
+    const opt = {
+        margin:       [8, 12, 8, 12], // top, left, bottom, right margins in mm
+        filename:     filename,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+            scale: 2.5, 
+            useCORS: true, 
+            letterRendering: true,
+            scrollY: 0,
+            scrollX: 0
+        },
+        jsPDF:        { unit: 'mm', format: 'a5', orientation: 'landscape' }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        showToast('Payslip downloaded successfully!', 'success');
+    }).catch(err => {
+        console.error('PDF Generation Error:', err);
+        showToast('Failed to download PDF', 'error');
+    });
 }
 
     // formPeriode submit handler

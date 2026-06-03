@@ -1574,6 +1574,26 @@ tbody tr:hover td:first-child {
     box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
+.confirm-btn-ok.btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.confirm-btn-ok.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4) !important;
+}
+
+.confirm-btn-ok.btn-success {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+.confirm-btn-ok.btn-success:hover {
+    background: linear-gradient(135deg, #059669, #047857) !important;
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4) !important;
+}
+
 @keyframes confirmFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }

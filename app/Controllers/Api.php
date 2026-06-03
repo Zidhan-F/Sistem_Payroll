@@ -1276,33 +1276,145 @@ class Api extends ResourceController
     {
         $clientId = $this->request->getGet('client_id');
         $query = $this->db->table('payroll_final')
-                         ->select('payroll_final.*, pkwt.employee_name, pkwt.tipe_perjanjian')
+                         ->select('
+                             payroll_final.*, 
+                             pkwt.employee_name, 
+                             pkwt.tipe_perjanjian, 
+                             pkwt.position_name as pkwt_position_name,
+                             pkwt.client_id,
+                             divisions.nama as division_name,
+                             departments.nama as department_name,
+                             positions.nama as position_name
+                         ')
                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
-                         ->where('period_id', $periodId);
+                         ->join('employees', 'employees.nama = pkwt.employee_name AND employees.client_id = pkwt.client_id', 'left')
+                         ->join('positions', 'positions.id = employees.position_id', 'left')
+                         ->join('departments', 'departments.id = positions.department_id', 'left')
+                         ->join('divisions', 'divisions.id = departments.division_id', 'left')
+                         ->where('payroll_final.period_id', $periodId);
         if ($clientId) {
             $query->where('pkwt.client_id', $clientId);
         }
         $data = $query->get()->getResult();
+
+        foreach ($data as &$row) {
+            $row->division_name = $row->division_name ?? '-';
+            $row->department_name = $row->department_name ?? '-';
+            $row->position_name = $row->position_name ?? $row->pkwt_position_name ?? '-';
+
+            // Resolve Scheme Name
+            $schemeName = '-';
+            $clientConfig = $this->resolveClientConfig($row->client_id, $row->position_name);
+            if ($clientConfig) {
+                if ($clientConfig->payroll_type === 'Nominal') {
+                    $schemeName = 'Nominal (Rp ' . number_format($clientConfig->custom_nominal, 0, ',', '.') . ')';
+                } elseif ($clientConfig->payroll_type === 'UMP/UMK' || $clientConfig->payroll_type === 'UMP' || $clientConfig->payroll_type === 'UMK') {
+                    $schemeName = $clientConfig->payroll_type;
+                } elseif ($clientConfig->payroll_type === 'Template' && $clientConfig->payroll_scheme_id) {
+                    $payrollScheme = $this->db->table('payroll_schemes')
+                                              ->where('id', $clientConfig->payroll_scheme_id)
+                                              ->get()
+                                              ->getRow();
+                    if ($payrollScheme) {
+                        $schemeName = $payrollScheme->nama;
+                    } else {
+                        $schemeName = 'Template';
+                    }
+                }
+            }
+            $row->scheme_name = $schemeName;
+        }
+
         return $this->respond($data);
     }
 
     public function approvePayroll($id)
     {
+        $row = $this->db->table('payroll_final')
+                        ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.client_id')
+                        ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
+                        ->where('payroll_final.id', $id)
+                        ->get()
+                        ->getRow();
+        if (!$row) {
+            return $this->failNotFound('Data gaji tidak ditemukan');
+        }
+        
+        // Resolve Scheme
+        $clientConfig = $this->resolveClientConfig($row->client_id, $row->position_name);
+        if (!$clientConfig) {
+            return $this->fail('Gaji untuk karyawan ' . $row->employee_name . ' tidak dapat disetujui karena belum memiliki skema payroll.');
+        }
+        
+        // Check Net Salary (take_home_pay)
+        if (floatval($row->take_home_pay) <= 0) {
+            return $this->fail('Gaji untuk karyawan ' . $row->employee_name . ' tidak dapat disetujui karena Net Salary bernilai Rp 0 atau kurang.');
+        }
+
         $username = $this->request->getHeaderLine('X-User-Action') ?: 'Admin';
         $this->db->table('payroll_final')->where('id', $id)->update([
             'status_approval' => 'Approved',
             'approved_by' => $username
         ]);
         
-        $final = $this->db->table('payroll_final')
-                          ->select('payroll_final.*, pkwt.employee_name, pkwt.tipe_perjanjian')
-                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
-                          ->where('payroll_final.id', $id)
-                          ->get()
-                          ->getRow();
-        $employeeName = $final ? $final->employee_name : 'Unknown';
+        $employeeName = $row->employee_name;
         $this->logActivity("Menyetujui payroll karyawan: " . $employeeName . " (Payroll ID: " . $id . ")");
         return $this->respond(['message' => 'Gaji telah disetujui']);
+    }
+
+    public function approvePayrollBulk()
+    {
+        $json = $this->request->getJSON(true);
+        $ids = $json['ids'] ?? [];
+        if (empty($ids)) {
+            return $this->fail('Tidak ada data gaji yang dipilih.');
+        }
+
+        // Validation check for all selected IDs first
+        foreach ($ids as $id) {
+            $row = $this->db->table('payroll_final')
+                            ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.client_id')
+                            ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
+                            ->where('payroll_final.id', $id)
+                            ->get()
+                            ->getRow();
+            if (!$row) {
+                return $this->failNotFound('Data gaji tidak ditemukan (ID: ' . $id . ')');
+            }
+            
+            // Resolve Scheme
+            $clientConfig = $this->resolveClientConfig($row->client_id, $row->position_name);
+            if (!$clientConfig) {
+                return $this->fail('Gaji untuk karyawan ' . $row->employee_name . ' tidak dapat disetujui karena belum memiliki skema payroll.');
+            }
+            
+            // Check Net Salary (take_home_pay)
+            if (floatval($row->take_home_pay) <= 0) {
+                return $this->fail('Gaji untuk karyawan ' . $row->employee_name . ' tidak dapat disetujui karena Net Salary bernilai Rp 0 atau kurang.');
+            }
+        }
+
+        $username = $this->request->getHeaderLine('X-User-Action') ?: 'Admin';
+        $this->db->table('payroll_final')
+                 ->whereIn('id', $ids)
+                 ->update([
+                     'status_approval' => 'Approved',
+                     'approved_by' => $username
+                 ]);
+                 
+        // Log activity for each approved employee
+        $finals = $this->db->table('payroll_final')
+                          ->select('payroll_final.id, pkwt.employee_name')
+                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
+                          ->whereIn('payroll_final.id', $ids)
+                          ->get()
+                          ->getResult();
+                          
+        foreach ($finals as $final) {
+            $this->logActivity("Menyetujui payroll karyawan: " . $final->employee_name . " (Payroll ID: " . $final->id . ")");
+        }
+        
+        return $this->respond(['status' => 'success', 'message' => 'Semua data gaji terpilih berhasil disetujui']);
     }
 
     public function getSlipDetails($id)
@@ -2277,66 +2389,63 @@ class Api extends ResourceController
 
     private function resolveClientConfig($clientId, $positionName = null)
     {
-        // 1. If position is specified, find the client-specific position to get org names,
-        //    then map to global STO IDs by name matching
-        $positionId = null;
-        $departmentId = null;
-        $divisionId = null;
-        
+        $positions = [];
         if (!empty($positionName)) {
             // Find the client-specific position and its org hierarchy
-            $pos = $this->db->table('positions')
+            $positions = $this->db->table('positions')
                       ->select('positions.id as position_id, departments.id as department_id, divisions.id as division_id')
                       ->join('departments', 'departments.id = positions.department_id', 'left')
                       ->join('divisions', 'divisions.id = departments.division_id', 'left')
                       ->where('positions.nama', $positionName)
                       ->where('divisions.client_id', $clientId)
                       ->get()
-                      ->getRow();
+                      ->getResult();
+        }
+        
+        if (!empty($positions)) {
+            // 2. Try to search by position_id
+            foreach ($positions as $p) {
+                if ($p->position_id) {
+                    $config = $this->db->table('client_payroll_configs')
+                                 ->where('client_id', $clientId)
+                                 ->where('position_id', $p->position_id)
+                                 ->get()
+                                 ->getRow();
+                    if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
+                        return $config;
+                    }
+                }
+            }
             
-            if ($pos) {
-                $positionId = $pos->position_id;
-                $departmentId = $pos->department_id;
-                $divisionId = $pos->division_id;
+            // 3. Fallback to department_id
+            foreach ($positions as $p) {
+                if ($p->department_id) {
+                    $config = $this->db->table('client_payroll_configs')
+                                 ->where('client_id', $clientId)
+                                 ->where('department_id', $p->department_id)
+                                 ->where('position_id IS NULL')
+                                 ->get()
+                                 ->getRow();
+                    if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
+                        return $config;
+                    }
+                }
             }
-        }
-        
-        // 2. Try to search by position_id
-        if ($positionId) {
-            $config = $this->db->table('client_payroll_configs')
-                         ->where('client_id', $clientId)
-                         ->where('position_id', $positionId)
-                         ->get()
-                         ->getRow();
-            if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
-                return $config;
-            }
-        }
-        
-        // 3. Fallback to department_id
-        if ($departmentId) {
-            $config = $this->db->table('client_payroll_configs')
-                         ->where('client_id', $clientId)
-                         ->where('department_id', $departmentId)
-                         ->where('position_id IS NULL')
-                         ->get()
-                         ->getRow();
-            if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
-                return $config;
-            }
-        }
-        
-        // 4. Fallback to division_id
-        if ($divisionId) {
-            $config = $this->db->table('client_payroll_configs')
-                         ->where('client_id', $clientId)
-                         ->where('division_id', $divisionId)
-                         ->where('department_id IS NULL')
-                         ->where('position_id IS NULL')
-                         ->get()
-                         ->getRow();
-            if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
-                return $config;
+            
+            // 4. Fallback to division_id
+            foreach ($positions as $p) {
+                if ($p->division_id) {
+                    $config = $this->db->table('client_payroll_configs')
+                                 ->where('client_id', $clientId)
+                                 ->where('division_id', $p->division_id)
+                                 ->where('department_id IS NULL')
+                                 ->where('position_id IS NULL')
+                                 ->get()
+                                 ->getRow();
+                    if ($config && ($config->payroll_scheme_id || $config->tax_scheme_id || $config->compensation_scheme_id)) {
+                        return $config;
+                    }
+                }
             }
         }
         

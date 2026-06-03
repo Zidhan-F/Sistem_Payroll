@@ -585,18 +585,28 @@
                                     <div id="resultSection" style="display: none;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px;">
                                             <h4 style="font-size: 14px; margin: 0; color: #000000; font-weight: 700;">SALARY CALCULATION RESULTS</h4>
-                                            <button class="btn-save" onclick="exportGajiToExcel()" style="background: #27ae60; border-radius: 8px; padding: 8px 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                            <div style="display: flex; gap: 10px;">
+                                                 <button class="btn-save" id="btnApproveSelectedGaji" onclick="approveSelectedGaji()" style="background: #3498db; border-radius: 8px; padding: 8px 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; border: none; color: white; cursor: pointer;">
+                                                     <i class="fas fa-check-double"></i> Approve Selected
+                                                 </button>
+                                                 <button class="btn-save" onclick="exportGajiToExcel()" style="background: #27ae60; border-radius: 8px; padding: 8px 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
                                                 <i class="fas fa-file-excel"></i> Export CSV/Excel
                                             </button>
+                                             </div>
                                         </div>
                                         <div class="table-container">
                                             <table>
                                                 <thead>
                                                     <tr>
+                                                        <th style="width: 40px; text-align: center; vertical-align: middle;"><input type="checkbox" id="selectAllReviewGaji" style="transform: scale(1.2); cursor: pointer;"></th>
                                                         <th>Employee</th>
-                                                        <th>Income</th>
-                                                        <th>Deductions</th>
+                                                        <th>Division</th>
+                                                        <th>Department</th>
+                                                        <th>Position</th>
+                                                        <th>Scheme</th>
                                                         <th>Take Home Pay</th>
+                                                        <th>Deductions</th>
+                                                        <th>Net Salary</th>
                                                         <th>Status</th>
                                                         <th>Action</th>
                                                     </tr>

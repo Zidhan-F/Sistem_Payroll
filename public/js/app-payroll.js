@@ -188,7 +188,7 @@ function buildPayrollTable(ce,existPay,phase){
 }
 
 async function prosesPayrollBulk(){
-    if(!await showConfirm('Generate salary based on attendance data?'))return;
+    if(!await showConfirm('Generate salary based on attendance data?', 'Generate Salary', 'Yes, Generate', 'Cancel', 'primary'))return;
     const bulan=document.getElementById('payrollBulan').value,tahun=document.getElementById('payrollTahun').value;
     const rows=document.querySelectorAll('.cutoff-row'),data=[];
     rows.forEach(row=>{data.push({employee_id:row.dataset.empid,hadir:parseFloat(row.querySelector('.input-hadir').value)||0,sakit:parseFloat(row.querySelector('.input-sakit').value)||0,alpa:parseFloat(row.querySelector('.input-alpa').value)||0,lembur:parseFloat(row.querySelector('.input-lembur').value)||0});});
@@ -228,7 +228,7 @@ async function forceApproveAll(){
 }
 
 async function approvePayroll(id){
-    if(!await showConfirm('Approve this payroll?'))return;
+    if(!await showConfirm('Approve this payroll?', 'Confirm Approval', 'Yes, Approve', 'Cancel', 'primary'))return;
     const r=await fetch(`${API}/payroll/approve/${id}`,{method:'POST'});
     if(r.ok){showToast('Payroll Approved!');filterPayrollByClient();}
 }
@@ -254,16 +254,18 @@ async function viewSlip(id){
             <h2 style="color:var(--primary-color); margin: 0;">PAYSLIP</h2>
             <p style="font-size:13px;color:#666; margin: 5px 0 0 0;">Period: ${slip.bulan}/${slip.tahun}${period&&period.pay_date?' • Pay Date: '+period.pay_date:''}</p>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:20px;font-size:14px;">
-            <div>
-                <p style="margin: 4px 0;"><strong>Name:</strong> ${emp.nama}</p>
-                <p style="margin: 4px 0;"><strong>NIK:</strong> ${emp.nik || '-'}</p>
-            </div>
-            <div style="text-align:right;">
-                <p style="margin: 4px 0;"><strong>Status:</strong> ${slip.status_pembayaran}</p>
-                <p style="margin: 4px 0;"><strong>Account:</strong> ${emp.no_rekening || '-'}</p>
-            </div>
-        </div>
+        <table style="width:100%; border:none; margin-bottom:20px; font-size:14px; line-height:1.5; border-collapse:collapse;">
+            <tr>
+                <td style="width:60%; vertical-align:top; padding:0; border:none;">
+                    <p style="margin: 4px 0;"><strong>Name:</strong> ${emp.nama}</p>
+                    <p style="margin: 4px 0;"><strong>NIK:</strong> ${emp.nik || '-'}</p>
+                </td>
+                <td style="width:40%; text-align:right; vertical-align:top; padding:0; border:none;">
+                    <p style="margin: 4px 0;"><strong>Status:</strong> ${slip.status_pembayaran}</p>
+                    <p style="margin: 4px 0;"><strong>Account:</strong> ${emp.no_rekening || '-'}</p>
+                </td>
+            </tr>
+        </table>
         <table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:20px;">
             <thead>
                 <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Earnings</th></tr>
@@ -280,7 +282,7 @@ async function viewSlip(id){
             </tbody>
             <tfoot>
                 <tr style="border-top:2px solid #eee;">
-                    <th style="padding:15px 10px;font-size:16px;text-align:left;">TAKE HOME PAY</th>
+                    <th style="padding:15px 10px;font-size:16px;text-align:left;">NET SALARY</th>
                     <th style="padding:15px 10px;font-size:16px;text-align:right;color:var(--success);">${formatRupiah(slip.take_home_pay)}</th>
                 </tr>
             </tfoot>
