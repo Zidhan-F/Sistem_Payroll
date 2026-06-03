@@ -118,6 +118,7 @@ async function renderCutOffTable() {
             throw new Error('Failed to load attendance data (HTTP ' + res.status + ')');
         }
         const data = await res.json();
+        window.currentPeriodAttendance = data;
         if (!tbody) return;
         if (!data || data.length === 0) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Tidak ada data karyawan aktif untuk periode ini.</td></tr>`;
@@ -555,4 +556,351 @@ function tutupModalPajak() { tutupSemuaModal(); }
 function tutupModalPKWT() { tutupSemuaModal(); }
 function tutupModalPeriode() { tutupSemuaModal(); }
 function tutupModalCutOff() { tutupSemuaModal(); }
+
+// ===== EXCEL ATTENDANCE UPLOAD =====
+let parsedAttendanceData = [];
+
+function bukaModalUploadAbsensi() {
+    if (!currentPeriodId) {
+        showToast('Please select a period first.', 'warning');
+        return;
+    }
+    document.getElementById('modalUploadAbsensi').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('fileAbsensiExcel').value = '';
+    document.getElementById('labelAbsensiFilename').innerText = 'No file chosen';
+    document.getElementById('uploadAbsensiLogs').innerHTML = 'Waiting for file...';
+    parsedAttendanceData = [];
+    
+    const btn = document.getElementById('btnSaveUploadedAbsensi');
+    if (btn) {
+        btn.disabled = true;
+        btn.style.cursor = 'not-allowed';
+        btn.style.opacity = '0.5';
+    }
+}
+
+function tutupModalUploadAbsensi() {
+    document.getElementById('modalUploadAbsensi').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+}
+
+function downloadAbsensiTemplate() {
+    if (!currentPeriodId) {
+        showToast('Please select a period first.', 'warning');
+        return;
+    }
+    const activePeriod = window.loadedPeriods?.find(p => p.id == currentPeriodId);
+    if (!activePeriod) {
+        showToast('Period details not found.', 'error');
+        return;
+    }
+    const employees = window.currentPeriodAttendance || [];
+    if (employees.length === 0) {
+        showToast('No active employees found in this client/period to generate template.', 'warning');
+        return;
+    }
+
+    const month = parseInt(activePeriod.bulan);
+    const year = parseInt(activePeriod.tahun);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const templateData = [];
+
+    employees.forEach(emp => {
+        const empId = emp.employ_id || emp.nik || '';
+        const empName = emp.employee_name || '';
+        const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateObj = new Date(year, month - 1, d);
+            const dayOfWeek = dateObj.getDay();
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayName = dayNames[dayOfWeek];
+            const tglHariStr = `${dateStr} ${dayName}`;
+
+            let jamMasuk = '08:00';
+            let jamKeluar = '17:00';
+            let status = 'Hadir';
+
+            // Determine if it is a rest day
+            let isRestDay = false;
+            if (workDaysConfig === 5) {
+                isRestDay = (dayOfWeek === 0 || dayOfWeek === 6); // Sat, Sun
+            } else if (workDaysConfig === 6) {
+                isRestDay = (dayOfWeek === 0); // Sun
+            }
+
+            if (isRestDay) {
+                jamMasuk = '';
+                jamKeluar = '';
+                status = 'Off';
+            }
+
+            templateData.push({
+                'Employee ID': empId,
+                'Nama': empName,
+                'Tgl dan Hari': tglHariStr,
+                'Jam Masuk': jamMasuk,
+                'Jam Keluar': jamKeluar,
+                'Status': status
+            });
+        }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Template");
+    
+    // Auto-fit column widths
+    const max_widths = [15, 25, 20, 12, 12, 12];
+    worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+    const filename = `Attendance_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+    showToast('Template downloaded successfully!', 'success');
+}
+
+function parseExcelDate(val) {
+    if (val instanceof Date) return val;
+    if (typeof val === 'number') {
+        // Excel serial date to JS date
+        return new Date((val - 25569) * 86400 * 1000);
+    }
+    if (typeof val === 'string') {
+        let clean = val.replace(/[a-zA-Z]/g, '').trim();
+        let parts = clean.split(/[-/]/);
+        if (parts.length === 3) {
+            if (parts[0].length === 4) {
+                return new Date(parts[0], parts[1] - 1, parts[2]);
+            } else {
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+        }
+        let parsed = Date.parse(clean);
+        if (!isNaN(parsed)) return new Date(parsed);
+    }
+    return null;
+}
+
+function handleAbsensiFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    document.getElementById('labelAbsensiFilename').innerText = file.name;
+    const logsDiv = document.getElementById('uploadAbsensiLogs');
+    logsDiv.innerHTML = "Reading file...\n";
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+
+            if (json.length === 0) {
+                logsDiv.innerHTML += "Error: Excel file is empty.\n";
+                return;
+            }
+
+            logsDiv.innerHTML += `Parsed ${json.length} rows from sheet "${sheetName}".\n`;
+            processParsedAttendance(json);
+        } catch (err) {
+            console.error(err);
+            logsDiv.innerHTML += `Error parsing file: ${err.message || err}\n`;
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function processParsedAttendance(rows) {
+    const logsDiv = document.getElementById('uploadAbsensiLogs');
+    const employees = window.currentPeriodAttendance || [];
+    if (employees.length === 0) {
+        logsDiv.innerHTML += "Error: No active employees loaded in context.\n";
+        return;
+    }
+
+    // Group the Excel rows by Employee ID or Name
+    const excelByEmp = {};
+    rows.forEach(row => {
+        const keys = Object.keys(row);
+        const empIdKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'employeeid');
+        const nameKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'nama' || k.toLowerCase().replace(/\s+/g, '') === 'name');
+        const tglKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'tgldanhari' || k.toLowerCase().replace(/\s+/g, '') === 'tanggal' || k.toLowerCase().replace(/\s+/g, '') === 'date');
+        const checkinKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jammasuk' || k.toLowerCase().replace(/\s+/g, '') === 'checkin');
+        const checkoutKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jamkeluar' || k.toLowerCase().replace(/\s+/g, '') === 'checkout');
+        const statusKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'status');
+
+        const empId = String(row[empIdKey] || '').trim();
+        const empName = String(row[nameKey] || '').trim();
+        const tglVal = row[tglKey];
+        const checkin = String(row[checkinKey] || '').trim();
+        const checkout = String(row[checkoutKey] || '').trim();
+        const status = String(row[statusKey] || '').trim();
+
+        const key = empId || empName.toLowerCase();
+        if (!key) return;
+
+        if (!excelByEmp[key]) {
+            excelByEmp[key] = [];
+        }
+        excelByEmp[key].push({
+            dateVal: tglVal,
+            checkin: checkin,
+            checkout: checkout,
+            status: status
+        });
+    });
+
+    const finalAttendance = [];
+    let logText = "";
+
+    employees.forEach(emp => {
+        const empId = String(emp.employ_id || emp.nik || '').trim();
+        const empName = String(emp.employee_name || '').trim();
+        
+        let matchedRows = excelByEmp[empId] || excelByEmp[empName.toLowerCase()];
+        if (!matchedRows) {
+            const matchingKey = Object.keys(excelByEmp).find(k => 
+                k.toLowerCase() === empName.toLowerCase() || 
+                empName.toLowerCase().includes(k.toLowerCase()) ||
+                k.toLowerCase().includes(empName.toLowerCase())
+            );
+            if (matchingKey) {
+                matchedRows = excelByEmp[matchingKey];
+            }
+        }
+
+        if (!matchedRows) {
+            logText += `⚠️ Employee not found in Excel: "${empName}" (ID: ${empId || 'N/A'}). Will use default/current values.\n`;
+            return;
+        }
+
+        const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+        let totalHadir = 0;
+        let totalLembur = 0;
+        let totalAlfa = 0;
+        
+        matchedRows.forEach(row => {
+            const dateObj = parseExcelDate(row.dateVal);
+            if (!dateObj) return;
+
+            const dayOfWeek = dateObj.getDay();
+            const statusNorm = row.status.toLowerCase().trim();
+
+            let isRestDay = false;
+            if (workDaysConfig === 5) {
+                isRestDay = (dayOfWeek === 0 || dayOfWeek === 6);
+            } else if (workDaysConfig === 6) {
+                isRestDay = (dayOfWeek === 0);
+            }
+
+            let hasTimes = false;
+            let checkinTime = null;
+            let checkoutTime = null;
+
+            if (row.checkin && row.checkout && row.checkin !== 'null' && row.checkout !== 'null') {
+                const ciParts = row.checkin.split(':');
+                const coParts = row.checkout.split(':');
+                if (ciParts.length >= 2 && coParts.length >= 2) {
+                    hasTimes = true;
+                    checkinTime = new Date(2000, 0, 1, parseInt(ciParts[0]), parseInt(ciParts[1]), 0);
+                    checkoutTime = new Date(2000, 0, 1, parseInt(coParts[0]), parseInt(coParts[1]), 0);
+                    if (checkoutTime < checkinTime) {
+                        checkoutTime.setDate(checkoutTime.getDate() + 1);
+                    }
+                }
+            }
+
+            const isPresent = (statusNorm === 'hadir' || statusNorm === 'present' || (statusNorm === '' && hasTimes));
+            if (isPresent) {
+                totalHadir++;
+            }
+
+            if (isPresent && hasTimes) {
+                const diffHrs = (checkoutTime - checkinTime) / (1000 * 60 * 60);
+                if (isRestDay) {
+                    const ot = Math.max(0, diffHrs - (diffHrs > 4 ? 1 : 0));
+                    totalLembur += ot;
+                } else {
+                    const ot = Math.max(0, diffHrs - 9);
+                    totalLembur += ot;
+                }
+            }
+
+            const isAbsent = (statusNorm === 'alfa' || statusNorm === 'absent' || statusNorm === 'missing');
+            if (isAbsent && !isRestDay) {
+                totalAlfa++;
+            }
+        });
+
+        const gajiPokok = parseFloat(emp.gaji_pokok || 0);
+        const divider = (workDaysConfig === 5) ? 22 : ((workDaysConfig === 6) ? 26 : 30);
+        const dendaAbsenPerDay = gajiPokok / divider;
+        const totalPotongan = totalAlfa * dendaAbsenPerDay;
+
+        logText += `✅ Parsed "${empName}":\n`;
+        logText += `   - Work week config: ${workDaysConfig} days (${workDaysConfig === 5 ? 'Sat/Sun off' : workDaysConfig === 6 ? 'Sun off' : 'No off'})\n`;
+        logText += `   - Attended: ${totalHadir} Days, Overtime: ${totalLembur.toFixed(1)} Hours\n`;
+        logText += `   - Absent (Alfa): ${totalAlfa} Days => Deduction: ${formatRupiah(totalPotongan)}\n`;
+
+        finalAttendance.push({
+            period_id: currentPeriodId,
+            pkwt_id: emp.pkwt_id,
+            hari_kerja: totalHadir,
+            jam_lembur: parseFloat(totalLembur.toFixed(1)),
+            potongan_absensi: parseFloat(totalPotongan.toFixed(2)),
+            bonus_tambahan: parseFloat(emp.bonus_tambahan || 0)
+        });
+    });
+
+    parsedAttendanceData = finalAttendance;
+    logsDiv.innerHTML += "\n" + logText;
+    logsDiv.innerHTML += `\nSuccess: Ready to apply ${finalAttendance.length} records.`;
+    
+    const btn = document.getElementById('btnSaveUploadedAbsensi');
+    if (btn) {
+        btn.disabled = false;
+        btn.style.cursor = 'pointer';
+        btn.style.opacity = '1';
+    }
+}
+
+async function saveUploadedAbsensi() {
+    if (parsedAttendanceData.length === 0) {
+        showToast('No parsed data to apply.', 'warning');
+        return;
+    }
+
+    showToast('Applying attendance records...', 'info');
+    try {
+        const res = await fetch(`${API_URL}/attendance-bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parsedAttendanceData)
+        });
+
+        if (res.ok) {
+            showToast('Attendance logs successfully imported!', 'success');
+            tutupModalUploadAbsensi();
+            renderCutOffTable();
+        } else {
+            const err = await res.json();
+            showToast(`Failed: ${err.message || 'Error occurred'}`, 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(`Error saving: ${err.message || err}`, 'error');
+    }
+}
+
+window.bukaModalUploadAbsensi = bukaModalUploadAbsensi;
+window.tutupModalUploadAbsensi = tutupModalUploadAbsensi;
+window.downloadAbsensiTemplate = downloadAbsensiTemplate;
+window.handleAbsensiFileSelect = handleAbsensiFileSelect;
+window.saveUploadedAbsensi = saveUploadedAbsensi;
 

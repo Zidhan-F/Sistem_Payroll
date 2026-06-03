@@ -77,6 +77,7 @@ $routes->group('api', function($routes) {
     $routes->post('periods', 'Api::createPeriod');
     $routes->get('attendance/(:num)', 'Api::getAttendance/$1');
     $routes->post('attendance', 'Api::saveAttendance');
+    $routes->post('attendance-bulk', 'Api::saveAttendanceBulk');
     $routes->post('generate-payroll/(:num)', 'Api::generatePayroll/$1');
     $routes->get('payroll-results/(:num)', 'Api::getPayrollResults/$1');
     $routes->post('approve-payroll/(:num)', 'Api::approvePayroll/$1');

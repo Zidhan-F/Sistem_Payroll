@@ -785,7 +785,9 @@ class Api extends ResourceController
         $this->syncEmployeesToPKWT($clientId);
         // Get all PKWT and their attendance for this period
         $query = $this->db->table('pkwt')
-                          ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan')
+                          ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan, employees.employ_id, employees.nik, employees.hari_kerja as employee_hari_kerja, positions.hari_kerja as position_hari_kerja')
+                          ->join('employees', 'employees.nama = pkwt.employee_name AND employees.client_id = pkwt.client_id', 'left')
+                          ->join('positions', 'positions.id = employees.position_id', 'left')
                           ->join('payroll_attendance', "payroll_attendance.pkwt_id = pkwt.id AND payroll_attendance.period_id = $periodId", 'left');
         if ($clientId) {
             $query->where('pkwt.client_id', $clientId);
@@ -811,6 +813,52 @@ class Api extends ResourceController
             $this->db->table('payroll_attendance')->insert($data);
         }
         return $this->respond(['message' => 'Data cut-off berhasil disimpan']);
+    }
+
+    public function saveAttendanceBulk()
+    {
+        $data = $this->request->getJSON(true);
+        if (empty($data) || !is_array($data)) {
+            return $this->failValidationError('Data payload tidak valid');
+        }
+
+        $db = \Config\Database::connect();
+        $db->transStart();
+        
+        $count = 0;
+        foreach ($data as $item) {
+            if (empty($item['period_id']) || empty($item['pkwt_id'])) {
+                continue;
+            }
+            
+            $saveData = [
+                'period_id' => intval($item['period_id']),
+                'pkwt_id' => intval($item['pkwt_id']),
+                'hari_kerja' => floatval($item['hari_kerja'] ?? 0),
+                'jam_lembur' => floatval($item['jam_lembur'] ?? 0),
+                'potongan_absensi' => floatval($item['potongan_absensi'] ?? 0),
+                'bonus_tambahan' => floatval($item['bonus_tambahan'] ?? 0)
+            ];
+            
+            $existing = $db->table('payroll_attendance')
+                           ->where('period_id', $saveData['period_id'])
+                           ->where('pkwt_id', $saveData['pkwt_id'])
+                           ->get()->getRow();
+                           
+            if ($existing) {
+                $db->table('payroll_attendance')->where('id', $existing->id)->update($saveData);
+            } else {
+                $db->table('payroll_attendance')->insert($saveData);
+            }
+            $count++;
+        }
+        
+        $db->transComplete();
+        if ($db->transStatus() === false) {
+            return $this->fail('Gagal menyimpan data absensi massal');
+        }
+        
+        return $this->respond(['message' => "Berhasil mengimpor $count data absensi"]);
     }
 
     // --- GENERATE PAYROLL ---
