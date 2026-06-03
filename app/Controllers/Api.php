@@ -2114,20 +2114,45 @@ class Api extends ResourceController
             return $this->respond(['status' => 'error', 'message' => 'Skema tidak ditemukan']);
         }
 
+        $effectivePayrollType = $config->payroll_type;
+        $resolvedPayrollType = $config->payroll_type;
+        if ($config->payroll_type === 'Template' && $config->payroll_scheme_id) {
+            $basicComp = $this->db->table('payroll_components')
+                ->where('scheme_id', $config->payroll_scheme_id)
+                ->groupStart()
+                    ->where('jenis_komponen', 'basic_salary')
+                    ->orLike('nama', 'Gaji Pokok')
+                ->groupEnd()
+                ->get()
+                ->getRow();
+            if ($basicComp && !empty($basicComp->sumber_nilai)) {
+                if ($basicComp->sumber_nilai === 'ump') {
+                    $resolvedPayrollType = 'UMP';
+                    $effectivePayrollType = 'UMP';
+                } else if ($basicComp->sumber_nilai === 'umk') {
+                    $resolvedPayrollType = 'UMK';
+                    $effectivePayrollType = 'UMK';
+                } else if ($basicComp->sumber_nilai === 'ump_umk') {
+                    $resolvedPayrollType = 'UMP/UMK';
+                    $effectivePayrollType = 'UMP/UMK';
+                }
+            }
+        }
+
         $gajiPokok = 0;
         $desc = "Tipe Skema: {$config->payroll_type}. ";
 
         if ($config->payroll_type === 'Nominal') {
             $gajiPokok = floatval($config->custom_nominal);
             $desc .= "Menggunakan nominal kustom Rp " . number_format($gajiPokok, 0, ',', '.');
-        } else if ($config->payroll_type === 'UMP/UMK' || $config->payroll_type === 'UMP' || $config->payroll_type === 'UMK') {
+        } else if ($effectivePayrollType === 'UMP/UMK' || $effectivePayrollType === 'UMP' || $effectivePayrollType === 'UMK') {
             $mw = null;
             if ($workLocId) {
                 $loc = $this->db->table('work_locations')->where('id', $workLocId)->get()->getRow();
                 if ($loc && ($loc->kota_kabupaten || $loc->provinsi)) {
                     $year = date('Y');
                     
-                    if ($config->payroll_type === 'UMK') {
+                    if ($effectivePayrollType === 'UMK') {
                         if ($loc->kota_kabupaten) {
                             $mw = $this->db->table('minimum_wages')
                                 ->where('tahun', $year)
@@ -2135,7 +2160,7 @@ class Api extends ResourceController
                                 ->where('nama_daerah', $loc->kota_kabupaten)
                                 ->get()->getRow();
                         }
-                    } else if ($config->payroll_type === 'UMP') {
+                    } else if ($effectivePayrollType === 'UMP') {
                         if ($loc->provinsi) {
                             $mw = $this->db->table('minimum_wages')
                                 ->where('tahun', $year)
@@ -2199,7 +2224,7 @@ class Api extends ResourceController
         return $this->respond([
             'status' => 'success',
             'level' => $level,
-            'payroll_type' => $config->payroll_type ?? null,
+            'payroll_type' => $resolvedPayrollType,
             'gaji_pokok' => $gajiPokok,
             'hari_kerja' => $hariKerja,
             'gaji_harian' => round($gajiHarian),

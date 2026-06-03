@@ -346,6 +346,25 @@ class Employee extends ResourceController
             $config = $this->resolveClientConfig($clientId, $divisionId, $departmentId, $positionId);
             if ($config && !empty($config->payroll_type)) {
                 $payrollType = $config->payroll_type;
+                if ($payrollType === 'Template' && !empty($config->payroll_scheme_id)) {
+                    $basicComp = $db->table('payroll_components')
+                        ->where('scheme_id', $config->payroll_scheme_id)
+                        ->groupStart()
+                            ->where('jenis_komponen', 'basic_salary')
+                            ->orLike('nama', 'Gaji Pokok')
+                        ->groupEnd()
+                        ->get()
+                        ->getRow();
+                    if ($basicComp && !empty($basicComp->sumber_nilai)) {
+                        if ($basicComp->sumber_nilai === 'ump') {
+                            $payrollType = 'UMP';
+                        } else if ($basicComp->sumber_nilai === 'umk') {
+                            $payrollType = 'UMK';
+                        } else if ($basicComp->sumber_nilai === 'ump_umk') {
+                            $payrollType = 'UMP/UMK';
+                        }
+                    }
+                }
             }
         }
         
