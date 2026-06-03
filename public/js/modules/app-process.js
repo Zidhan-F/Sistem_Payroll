@@ -579,16 +579,16 @@ async function bukaModalUploadAbsensi() {
 
     // Load clients
     try {
-        const res = await fetch(`${API_URL}/client-configs`);
+        const res = await fetch(`${API_URL}/clients`);
         const configs = res.ok ? await res.json() : [];
         const clientSelect = document.getElementById('modalUploadAbsensiClient');
         
         clientSelect.innerHTML = '<option value="">-- Select Client --</option>' + configs.map(c => `
-            <option value="${c.client_id}">${c.client_name}</option>
+            <option value="${c.id}">${c.nama}</option>
         `).join('');
 
         // If client is already active in workspace, auto-select it!
-        if (window.selectedClientId && configs.some(c => c.client_id == window.selectedClientId)) {
+        if (window.selectedClientId && configs.some(c => c.id == window.selectedClientId)) {
             clientSelect.value = window.selectedClientId;
             onAbsensiClientChanged();
         } else {
