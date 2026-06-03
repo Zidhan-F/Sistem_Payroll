@@ -267,7 +267,7 @@ window.updateEmpDeptDropdown = function(clientId, divId, selectedDeptId = '') {
     });
 
     if (selectedDeptId) {
-        deptSelect.tomselect.setValue(selectedDeptId);
+        deptSelect.tomselect.setValue(selectedDeptId, true);
     } else {
         if (!window.isEmpOrgInitializing) {
             window.updateEmpPosDropdown(clientId, divId, '');
@@ -308,7 +308,7 @@ window.updateEmpPosDropdown = function(clientId, divId, deptId, selectedPosId = 
     });
     
     if (selectedPosId) {
-        posSelect.tomselect.setValue(selectedPosId);
+        posSelect.tomselect.setValue(selectedPosId, true);
     }
 };
 
@@ -332,6 +332,25 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
         const r = await fetch(`${API}/org?client_id=${clientId}`);
         clientOrgHierarchy = await r.json();
         
+        // Resolve selectedDivId and selectedDeptId from selectedPosId if missing
+        if (selectedPosId && (!selectedDivId || !selectedDeptId) && Array.isArray(clientOrgHierarchy)) {
+            for (const div of clientOrgHierarchy) {
+                if (Array.isArray(div.departments)) {
+                    for (const dept of div.departments) {
+                        if (Array.isArray(dept.positions)) {
+                            const pos = dept.positions.find(p => p.id == selectedPosId);
+                            if (pos) {
+                                selectedDivId = div.id;
+                                selectedDeptId = dept.id;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (selectedDivId) break;
+            }
+        }
+
         if (Array.isArray(clientOrgHierarchy)) {
             clientOrgHierarchy.forEach(div => {
                 divSelect.innerHTML += `<option value="${div.id}">${div.nama}</option>`;
@@ -365,7 +384,7 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
         if (selectedDivId) {
             window.isEmpOrgInitializing = true;
             try {
-                divSelect.tomselect.setValue(selectedDivId);
+                divSelect.tomselect.setValue(selectedDivId, true);
                 window.updateEmpDeptDropdown(clientId, selectedDivId, selectedDeptId);
                 if (selectedDeptId) {
                     window.updateEmpPosDropdown(clientId, selectedDivId, selectedDeptId, selectedPosId);
