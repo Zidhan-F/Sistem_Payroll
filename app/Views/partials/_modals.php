@@ -1014,19 +1014,34 @@
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Division</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label style="font-weight: 600; margin: 0;">Division</label>
+                            <a href="javascript:void(0)" onclick="tambahDivisiInline()" style="font-size: 11px; color: var(--primary-color); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" style="width: 12px; height: 12px; object-fit: contain;"> Add
+                            </a>
+                        </div>
                         <select id="empDivisionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                             <option value="">-- Select Division --</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Department</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label style="font-weight: 600; margin: 0;">Department</label>
+                            <a href="javascript:void(0)" onclick="tambahDeptInline()" style="font-size: 11px; color: var(--primary-color); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" style="width: 12px; height: 12px; object-fit: contain;"> Add
+                            </a>
+                        </div>
                         <select id="empDepartmentId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                             <option value="">-- Select Department --</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Position / Role</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label style="font-weight: 600; margin: 0;">Position / Role</label>
+                            <a href="javascript:void(0)" onclick="tambahPosisiInline()" style="font-size: 11px; color: var(--primary-color); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" style="width: 12px; height: 12px; object-fit: contain;"> Add
+                            </a>
+                        </div>
                         <select id="empPositionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                             <option value="">-- Select Position --</option>
                         </select>
@@ -1699,6 +1714,48 @@
             <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
                 <button type="button" class="btn-cancel" onclick="closeSchemeTemplateModal()" style="padding: 10px 24px; border-radius: 8px;">Cancel</button>
                 <button type="submit" class="btn-save" style="background: #0d6efd; padding: 10px 24px; border-radius: 8px;">Save Scheme</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Master Payroll Schedule Modal -->
+    <div id="modalSchedule" class="modal-skema" style="display: none; width: 600px; max-width: 95%;">
+        <div class="modal-header" style="background: var(--primary-color);">
+            <h3 id="modalScheduleTitle">Add Payroll Schedule</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalSchedule()"></i>
+        </div>
+        <form id="formSchedule">
+            <div class="modal-body" style="padding: 20px;">
+                <input type="hidden" id="scheduleId">
+                
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Schedule Name</label>
+                    <input type="text" id="scheduleNama" placeholder="Example: Standard Office Schedule" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                </div>
+
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Pay Day (Date)</label>
+                        <input type="number" id="schedulePayDate" min="1" max="31" placeholder="25" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Cut-off Start Day</label>
+                        <input type="number" id="scheduleCutoffStart" min="1" max="31" placeholder="21" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Cut-off End Day</label>
+                        <input type="number" id="scheduleCutoffEnd" min="1" max="31" placeholder="20" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Description</label>
+                    <textarea id="scheduleDeskripsi" placeholder="Describe this schedule..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 80px; resize: vertical; font-family: inherit;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+                <button type="button" class="btn-cancel" onclick="tutupModalSchedule()" style="padding: 10px 24px; border-radius: 8px;">Cancel</button>
+                <button type="submit" class="btn-save" style="background: #0d6efd; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: pointer;">Save Schedule</button>
             </div>
         </form>
     </div>

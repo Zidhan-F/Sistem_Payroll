@@ -55,6 +55,12 @@ $routes->group('api', function($routes) {
     $routes->put('compensation-components/(:num)', 'Api::updateCompensationComponent/$1');
     $routes->delete('compensation-components/(:num)', 'Api::deleteCompensationComponent/$1');
 
+    // Schedule Templates
+    $routes->get('schedule-templates', 'Api::getScheduleTemplates');
+    $routes->post('schedule-templates', 'Api::createScheduleTemplate');
+    $routes->put('schedule-templates/(:num)', 'Api::updateScheduleTemplate/$1');
+    $routes->delete('schedule-templates/(:num)', 'Api::deleteScheduleTemplate/$1');
+
     // Client Configs
     $routes->get('client-configs', 'Api::getClientConfigs');
     $routes->get('client-configs-mapping/(:num)', 'Api::getClientConfigMappings/$1');
