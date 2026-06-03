@@ -1721,29 +1721,21 @@
         <form id="formSchedule">
             <div class="modal-body" style="padding: 20px;">
                 <input type="hidden" id="scheduleId">
+                <input type="hidden" id="scheduleCutoffStart" value="21">
+                <input type="hidden" id="scheduleCutoffEnd" value="20">
                 
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Schedule Name</label>
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Title</label>
                     <input type="text" id="scheduleNama" placeholder="Example: Standard Office Schedule" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                 </div>
 
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Pay Day (Date)</label>
-                        <input type="number" id="schedulePayDate" min="1" max="31" placeholder="25" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Cut-off Start Day</label>
-                        <input type="number" id="scheduleCutoffStart" min="1" max="31" placeholder="21" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                    </div>
-                    <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Cut-off End Day</label>
-                        <input type="number" id="scheduleCutoffEnd" min="1" max="31" placeholder="20" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                    </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Tanggal</label>
+                    <input type="number" id="schedulePayDate" min="1" max="31" placeholder="25" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                 </div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Description</label>
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Deskripsi</label>
                     <textarea id="scheduleDeskripsi" placeholder="Describe this schedule..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 80px; resize: vertical; font-family: inherit;"></textarea>
                 </div>
             </div>

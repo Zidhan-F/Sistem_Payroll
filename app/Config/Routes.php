@@ -61,6 +61,16 @@ $routes->group('api', function($routes) {
     $routes->put('schedule-templates/(:num)', 'Api::updateScheduleTemplate/$1');
     $routes->delete('schedule-templates/(:num)', 'Api::deleteScheduleTemplate/$1');
 
+    // System Settings
+    $routes->get('system-settings', 'Api::getSystemSettings');
+    $routes->put('system-settings', 'Api::updateSystemSettings');
+
+    // Attendance Logs (Log Kehadiran Harian)
+    $routes->get('attendance-logs', 'Api::getAttendanceLogs');
+    $routes->post('attendance-logs', 'Api::saveAttendanceLogs');
+    $routes->delete('attendance-logs/(:num)', 'Api::deleteAttendanceLog/$1');
+    $routes->get('attendance-summary', 'Api::getAttendanceSummary');
+
     // Client Configs
     $routes->get('client-configs', 'Api::getClientConfigs');
     $routes->get('client-configs-mapping/(:num)', 'Api::getClientConfigMappings/$1');

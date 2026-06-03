@@ -500,7 +500,12 @@ class Api extends ResourceController
     // --- SCHEDULE TEMPLATES ---
     public function getScheduleTemplates()
     {
-        $schedules = $this->db->table('payroll_schedules')->get()->getResultArray();
+        $tahun = $this->request->getGet('tahun');
+        $builder = $this->db->table('payroll_schedules');
+        if ($tahun) {
+            $builder->where('tahun', intval($tahun));
+        }
+        $schedules = $builder->get()->getResultArray();
         return $this->respond($schedules);
     }
 
@@ -512,7 +517,8 @@ class Api extends ResourceController
             'pay_date' => isset($data['pay_date']) ? intval($data['pay_date']) : 25,
             'cutoff_start' => isset($data['cutoff_start']) ? intval($data['cutoff_start']) : 21,
             'cutoff_end' => isset($data['cutoff_end']) ? intval($data['cutoff_end']) : 20,
-            'deskripsi' => $data['deskripsi'] ?? null
+            'deskripsi' => $data['deskripsi'] ?? null,
+            'tahun' => isset($data['tahun']) ? intval($data['tahun']) : intval(date('Y'))
         ];
 
         $this->db->table('payroll_schedules')->insert($insertData);
@@ -528,7 +534,8 @@ class Api extends ResourceController
             'pay_date' => isset($data['pay_date']) ? intval($data['pay_date']) : 25,
             'cutoff_start' => isset($data['cutoff_start']) ? intval($data['cutoff_start']) : 21,
             'cutoff_end' => isset($data['cutoff_end']) ? intval($data['cutoff_end']) : 20,
-            'deskripsi' => $data['deskripsi'] ?? null
+            'deskripsi' => $data['deskripsi'] ?? null,
+            'tahun' => isset($data['tahun']) ? intval($data['tahun']) : intval(date('Y'))
         ];
 
         $this->db->table('payroll_schedules')->where('id', $id)->update($updateData);
@@ -543,6 +550,176 @@ class Api extends ResourceController
         $this->db->table('payroll_schedules')->where('id', $id)->delete();
         $this->logActivity("Menghapus master schedule ID: " . $id . " (" . $name . ")");
         return $this->respondDeleted(['message' => 'Schedule template berhasil dihapus']);
+    }
+
+    // --- SYSTEM SETTINGS ---
+    public function getSystemSettings()
+    {
+        $settings = $this->db->table('system_settings')->get()->getResultArray();
+        // Return as key-value map for easier frontend consumption
+        $map = [];
+        foreach ($settings as $s) {
+            $map[$s['setting_key']] = [
+                'id' => $s['id'],
+                'value' => $s['setting_value'],
+                'description' => $s['description']
+            ];
+        }
+        return $this->respond($map);
+    }
+
+    public function updateSystemSettings()
+    {
+        $data = $this->request->getJSON(true);
+        if (!$data || !is_array($data)) {
+            return $this->failValidationErrors('Data pengaturan tidak valid');
+        }
+
+        foreach ($data as $key => $value) {
+            $existing = $this->db->table('system_settings')->where('setting_key', $key)->get()->getRow();
+            if ($existing) {
+                $this->db->table('system_settings')->where('setting_key', $key)->update(['setting_value' => strval($value)]);
+            } else {
+                $this->db->table('system_settings')->insert([
+                    'setting_key' => $key,
+                    'setting_value' => strval($value),
+                    'description' => ''
+                ]);
+            }
+        }
+        $this->logActivity("Mengupdate system settings: " . implode(', ', array_keys($data)));
+        return $this->respond(['message' => 'Pengaturan berhasil disimpan']);
+    }
+
+    // --- ATTENDANCE LOGS (Log Kehadiran Harian) ---
+    public function getAttendanceLogs()
+    {
+        $employeeId = $this->request->getGet('employee_id');
+        $clientId = $this->request->getGet('client_id');
+        $bulan = $this->request->getGet('bulan');
+        $tahun = $this->request->getGet('tahun');
+
+        $builder = $this->db->table('attendance_logs')
+            ->select('attendance_logs.*, employees.nama as employee_name')
+            ->join('employees', 'employees.id = attendance_logs.employee_id', 'left');
+
+        if ($employeeId) $builder->where('attendance_logs.employee_id', intval($employeeId));
+        if ($clientId) $builder->where('attendance_logs.client_id', intval($clientId));
+        if ($bulan && $tahun) {
+            $startDate = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
+            $endDate = date('Y-m-t', strtotime($startDate));
+            $builder->where('attendance_logs.log_date >=', $startDate);
+            $builder->where('attendance_logs.log_date <=', $endDate);
+        }
+
+        $builder->orderBy('attendance_logs.log_date', 'ASC');
+        $logs = $builder->get()->getResultArray();
+        return $this->respond($logs);
+    }
+
+    public function saveAttendanceLogs()
+    {
+        $data = $this->request->getJSON(true);
+        
+        if (!$data || !isset($data['logs']) || !is_array($data['logs'])) {
+            return $this->failValidationErrors('Data kehadiran tidak valid');
+        }
+
+        $clientId = $data['client_id'] ?? null;
+        $saved = 0;
+
+        foreach ($data['logs'] as $log) {
+            if (empty($log['employee_id']) || empty($log['log_date'])) continue;
+
+            $employeeId = intval($log['employee_id']);
+            $logDate = $log['log_date'];
+            $status = $log['status'] ?? 'Hadir';
+
+            // Upsert: update existing or insert new
+            $existing = $this->db->table('attendance_logs')
+                ->where('employee_id', $employeeId)
+                ->where('log_date', $logDate)
+                ->get()->getRow();
+
+            $logData = [
+                'employee_id' => $employeeId,
+                'log_date' => $logDate,
+                'status' => $status,
+                'check_in' => $log['check_in'] ?? null,
+                'check_out' => $log['check_out'] ?? null,
+                'notes' => $log['notes'] ?? null,
+                'client_id' => $clientId
+            ];
+
+            if ($existing) {
+                $this->db->table('attendance_logs')->where('id', $existing->id)->update($logData);
+            } else {
+                $this->db->table('attendance_logs')->insert($logData);
+            }
+            $saved++;
+        }
+
+        $this->logActivity("Menyimpan {$saved} log kehadiran harian" . ($clientId ? " untuk client ID {$clientId}" : ''));
+        return $this->respondCreated(['message' => "{$saved} log kehadiran berhasil disimpan", 'count' => $saved]);
+    }
+
+    public function deleteAttendanceLog($id)
+    {
+        $log = $this->db->table('attendance_logs')->where('id', $id)->get()->getRow();
+        if (!$log) {
+            return $this->failNotFound('Log kehadiran tidak ditemukan');
+        }
+        $this->db->table('attendance_logs')->where('id', $id)->delete();
+        $this->logActivity("Menghapus log kehadiran ID: " . $id);
+        return $this->respondDeleted(['message' => 'Log kehadiran berhasil dihapus']);
+    }
+
+    // Helper: Get attendance summary for an employee in a period
+    public function getAttendanceSummary()
+    {
+        $employeeId = $this->request->getGet('employee_id');
+        $bulan = $this->request->getGet('bulan');
+        $tahun = $this->request->getGet('tahun');
+
+        if (!$employeeId || !$bulan || !$tahun) {
+            return $this->failValidationErrors('employee_id, bulan, dan tahun wajib diisi');
+        }
+
+        $startDate = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $logs = $this->db->table('attendance_logs')
+            ->where('employee_id', intval($employeeId))
+            ->where('log_date >=', $startDate)
+            ->where('log_date <=', $endDate)
+            ->get()->getResultArray();
+
+        $summary = [
+            'hadir' => 0,
+            'absen' => 0,
+            'sakit' => 0,
+            'izin' => 0,
+            'cuti' => 0,
+            'total_logs' => count($logs)
+        ];
+
+        foreach ($logs as $log) {
+            $status = strtolower($log['status']);
+            if ($status === 'hadir') $summary['hadir']++;
+            elseif ($status === 'absen') $summary['absen']++;
+            elseif ($status === 'sakit') $summary['sakit']++;
+            elseif ($status === 'izin') $summary['izin']++;
+            elseif ($status === 'cuti') $summary['cuti']++;
+        }
+
+        // Get standard work days from system settings
+        $stdDays = $this->db->table('system_settings')->where('setting_key', 'standard_work_days')->get()->getRow();
+        $standardWorkDays = $stdDays ? intval($stdDays->setting_value) : 20;
+
+        $summary['standard_work_days'] = $standardWorkDays;
+        $summary['is_full_month'] = ($summary['hadir'] >= $standardWorkDays);
+
+        return $this->respond($summary);
     }
 
     public function createCompensationComponent()
@@ -2241,7 +2418,13 @@ class Api extends ResourceController
             
             if ($mw) {
                 $gajiPokok = floatval($mw->nominal);
-                $desc .= "Menggunakan UMR {$mw->nama_daerah} (Rp " . number_format($gajiPokok, 0, ',', '.') . ")";
+                if ($config->payroll_type === 'Template' && isset($basicComp) && in_array($basicComp->sumber_nilai, ['ump', 'umk', 'ump_umk'])) {
+                    $multiplier = floatval($basicComp->nilai);
+                    $gajiPokok = $gajiPokok * ($multiplier / 100);
+                    $desc .= "Menggunakan UMR {$mw->nama_daerah} (Rp " . number_format($mw->nominal, 0, ',', '.') . ") dengan multiplier {$multiplier}% menjadi Rp " . number_format($gajiPokok, 0, ',', '.');
+                } else {
+                    $desc .= "Menggunakan UMR {$mw->nama_daerah} (Rp " . number_format($gajiPokok, 0, ',', '.') . ")";
+                }
             } else {
                 $desc .= "UMR tidak ditemukan untuk lokasi ini.";
             }

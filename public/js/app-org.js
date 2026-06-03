@@ -424,7 +424,7 @@ async function handleWorkLocationChange() {
     await updateLocationMinimumWage(currentSelectedPayrollType);
 }
 
-async function updateLocationMinimumWage(payrollType) {
+async function updateLocationMinimumWage(payrollType, customWage = null, customInfo = null) {
     const locSel = document.getElementById('empWorkLocationId');
     const minWageInput = document.getElementById('empMinimumWage');
     const minWageInfo = document.getElementById('empMinimumWageInfo');
@@ -494,13 +494,23 @@ async function updateLocationMinimumWage(payrollType) {
     
     minWageContainer.style.display = 'block';
     if (match) {
-        minWageInput.value = parseFloat(match.nominal).toLocaleString('id-ID');
-        minWageInfo.innerHTML = `<i class="fas fa-check-circle"></i> Auto-filled using <b>${wageType}</b> for <b>${match.nama_daerah}</b> (Rp ${parseFloat(match.nominal).toLocaleString('id-ID')})`;
+        const valToShow = customWage !== null ? customWage : match.nominal;
+        minWageInput.value = parseFloat(valToShow).toLocaleString('id-ID');
+        if (customInfo) {
+            minWageInfo.innerHTML = customInfo;
+        } else {
+            minWageInfo.innerHTML = `<i class="fas fa-check-circle"></i> Auto-filled using <b>${wageType}</b> for <b>${match.nama_daerah}</b> (Rp ${parseFloat(match.nominal).toLocaleString('id-ID')})`;
+        }
         minWageInfo.style.color = '#15803d';
     } else {
-        minWageInput.value = '0';
-        const targetTypeLabel = (payrollType === 'UMK' || payrollType === 'UMP') ? payrollType : 'UMP/UMK';
-        minWageInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No ${targetTypeLabel} configured for ${loc.kota_kabupaten || loc.provinsi || 'this region'}.`;
+        const valToShow = customWage !== null ? customWage : 0;
+        minWageInput.value = parseFloat(valToShow).toLocaleString('id-ID');
+        if (customInfo) {
+            minWageInfo.innerHTML = customInfo;
+        } else {
+            const targetTypeLabel = (payrollType === 'UMK' || payrollType === 'UMP') ? payrollType : 'UMP/UMK';
+            minWageInfo.innerHTML = `<i class="fas fa-exclamation-triangle"></i> No ${targetTypeLabel} configured for ${loc.kota_kabupaten || loc.provinsi || 'this region'}.`;
+        }
         minWageInfo.style.color = '#b91c1c';
     }
 }
@@ -883,7 +893,13 @@ async function checkSchemaAvailability() {
                 infoContainer.style.border = '1px solid #bbf7d0';
 
                 currentSelectedPayrollType = data.payroll_type;
-                await updateLocationMinimumWage(data.payroll_type);
+                let customWage = null;
+                let customInfo = null;
+                if (data.gaji_pokok > 0) {
+                    customWage = data.gaji_pokok;
+                    customInfo = `<i class="fas fa-check-circle"></i> Auto-filled using <b>${data.payroll_type}</b> adjusted to <b>Rp ${parseFloat(data.gaji_pokok).toLocaleString('id-ID')}</b>`;
+                }
+                await updateLocationMinimumWage(data.payroll_type, customWage, customInfo);
 
                 // Auto-fill form fields from scheme data (no more manual gaji_pokok)
                 const hariKerjaInput = document.getElementById('empHariKerja');
