@@ -1767,6 +1767,21 @@
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadAbsensi()"></i>
         </div>
         <div class="modal-body" style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Client</label>
+                    <select id="modalUploadAbsensiClient" onchange="onAbsensiClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="">-- Select Client --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Period</label>
+                    <select id="modalUploadAbsensiPeriod" onchange="onAbsensiPeriodChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;" disabled>
+                        <option value="">-- Select Client First --</option>
+                    </select>
+                </div>
+            </div>
+
             <div style="background: rgba(39, 174, 96, 0.08); border: 1px dashed #27ae60; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
                 <i class="fas fa-file-excel" style="font-size: 36px; color: #27ae60; margin-bottom: 10px; display: block;"></i>
                 <span style="font-size: 14px; font-weight: 600; color: #2c3e50; display: block; margin-bottom: 5px;">Select Excel Attendance File</span>

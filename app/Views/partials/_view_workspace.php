@@ -175,14 +175,9 @@
                                                 <h4 id="activePeriodName" style="margin:0; color: var(--primary-color);">Select Period</h4>
                                                 <span id="activePeriodStatus" class="status-badge success">Open Period</span>
                                             </div>
-                                            <div style="display: flex; gap: 8px;">
-                                                <button class="btn-add" onclick="bukaModalUploadAbsensi()" style="background: #27ae60; font-weight: 600; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; border-radius: 8px;">
-                                                    <img src="https://cdn-icons-png.flaticon.com/512/337/337947.png" style="width: 16px; height: 16px; filter: brightness(0) invert(1);" /> Upload Attendance
-                                                </button>
-                                                <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color);">
-                                                    <i class="fas fa-sync-alt"></i> Generate Salary
-                                                </button>
-                                            </div>
+                                            <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color);">
+                                                <i class="fas fa-sync-alt"></i> Generate Salary
+                                            </button>
                                         </div>
                                         <div class="table-container">
                                             <table id="tabelCutOff">

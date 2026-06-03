@@ -560,23 +560,44 @@ function tutupModalCutOff() { tutupSemuaModal(); }
 // ===== EXCEL ATTENDANCE UPLOAD =====
 let parsedAttendanceData = [];
 
-function bukaModalUploadAbsensi() {
-    if (!currentPeriodId) {
-        showToast('Please select a period first.', 'warning');
-        return;
-    }
+async function bukaModalUploadAbsensi() {
     document.getElementById('modalUploadAbsensi').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
+    
+    // Reset file input & UI
     document.getElementById('fileAbsensiExcel').value = '';
     document.getElementById('labelAbsensiFilename').innerText = 'No file chosen';
     document.getElementById('uploadAbsensiLogs').innerHTML = 'Waiting for file...';
     parsedAttendanceData = [];
     
-    const btn = document.getElementById('btnSaveUploadedAbsensi');
-    if (btn) {
-        btn.disabled = true;
-        btn.style.cursor = 'not-allowed';
-        btn.style.opacity = '0.5';
+    const saveBtn = document.getElementById('btnSaveUploadedAbsensi');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.cursor = 'not-allowed';
+        saveBtn.style.opacity = '0.5';
+    }
+
+    // Load clients
+    try {
+        const res = await fetch(`${API_URL}/client-configs`);
+        const configs = res.ok ? await res.json() : [];
+        const clientSelect = document.getElementById('modalUploadAbsensiClient');
+        
+        clientSelect.innerHTML = '<option value="">-- Select Client --</option>' + configs.map(c => `
+            <option value="${c.client_id}">${c.client_name}</option>
+        `).join('');
+
+        // If client is already active in workspace, auto-select it!
+        if (window.selectedClientId && configs.some(c => c.client_id == window.selectedClientId)) {
+            clientSelect.value = window.selectedClientId;
+            onAbsensiClientChanged();
+        } else {
+            document.getElementById('modalUploadAbsensiPeriod').innerHTML = '<option value="">-- Select Client First --</option>';
+            document.getElementById('modalUploadAbsensiPeriod').disabled = true;
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to load clients list', 'error');
     }
 }
 
@@ -585,19 +606,86 @@ function tutupModalUploadAbsensi() {
     document.getElementById('overlay').style.display = 'none';
 }
 
-function downloadAbsensiTemplate() {
-    if (!currentPeriodId) {
-        showToast('Please select a period first.', 'warning');
+async function onAbsensiClientChanged() {
+    const clientId = document.getElementById('modalUploadAbsensiClient').value;
+    const periodSelect = document.getElementById('modalUploadAbsensiPeriod');
+    
+    if (!clientId) {
+        periodSelect.innerHTML = '<option value="">-- Select Client First --</option>';
+        periodSelect.disabled = true;
         return;
     }
-    const activePeriod = window.loadedPeriods?.find(p => p.id == currentPeriodId);
+
+    periodSelect.innerHTML = '<option value="">Loading periods...</option>';
+    periodSelect.disabled = true;
+
+    try {
+        const res = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+        const periods = res.ok ? await res.json() : [];
+        window.modalUploadPeriods = periods;
+
+        if (periods.length === 0) {
+            periodSelect.innerHTML = '<option value="">No periods available</option>';
+            return;
+        }
+
+        periodSelect.innerHTML = '<option value="">-- Select Period --</option>' + periods.map(p => `
+            <option value="${p.id}">${p.nama} (${p.status})</option>
+        `).join('');
+        periodSelect.disabled = false;
+
+        // Auto-select active period if it matches
+        if (typeof currentPeriodId !== 'undefined' && currentPeriodId && periods.some(p => p.id == currentPeriodId)) {
+            periodSelect.value = currentPeriodId;
+            onAbsensiPeriodChanged();
+        }
+    } catch (e) {
+        console.error(e);
+        periodSelect.innerHTML = '<option value="">Error loading periods</option>';
+    }
+}
+
+async function onAbsensiPeriodChanged() {
+    const clientId = document.getElementById('modalUploadAbsensiClient').value;
+    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
+    const logsDiv = document.getElementById('uploadAbsensiLogs');
+    
+    if (!clientId || !periodId) {
+        window.currentPeriodAttendance = [];
+        return;
+    }
+
+    logsDiv.innerHTML = "Fetching active employees for this period...\n";
+    try {
+        const res = await fetch(`${API_URL}/attendance/${periodId}?client_id=${clientId}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        window.currentPeriodAttendance = data;
+        logsDiv.innerHTML += `Loaded ${data.length} active employees from database.\nReady to select attendance Excel file.\n`;
+    } catch (e) {
+        console.error(e);
+        logsDiv.innerHTML += `Error loading employee roster: ${e.message || e}\n`;
+    }
+}
+
+function downloadAbsensiTemplate() {
+    const clientId = document.getElementById('modalUploadAbsensiClient').value;
+    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
+
+    if (!clientId || !periodId) {
+        showToast('Please select Client and Period first.', 'warning');
+        return;
+    }
+
+    const activePeriod = window.modalUploadPeriods?.find(p => p.id == periodId);
     if (!activePeriod) {
         showToast('Period details not found.', 'error');
         return;
     }
+
     const employees = window.currentPeriodAttendance || [];
     if (employees.length === 0) {
-        showToast('No active employees found in this client/period to generate template.', 'warning');
+        showToast('No active employees found to generate template.', 'warning');
         return;
     }
 
@@ -665,7 +753,6 @@ function downloadAbsensiTemplate() {
 function parseExcelDate(val) {
     if (val instanceof Date) return val;
     if (typeof val === 'number') {
-        // Excel serial date to JS date
         return new Date((val - 25569) * 86400 * 1000);
     }
     if (typeof val === 'string') {
@@ -687,6 +774,13 @@ function parseExcelDate(val) {
 function handleAbsensiFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    const clientId = document.getElementById('modalUploadAbsensiClient').value;
+    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
+    if (!clientId || !periodId) {
+        showToast('Please select Client and Period first before selecting file.', 'warning');
+        return;
+    }
 
     document.getElementById('labelAbsensiFilename').innerText = file.name;
     const logsDiv = document.getElementById('uploadAbsensiLogs');
@@ -717,6 +811,7 @@ function handleAbsensiFileSelect(event) {
 }
 
 function processParsedAttendance(rows) {
+    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
     const logsDiv = document.getElementById('uploadAbsensiLogs');
     const employees = window.currentPeriodAttendance || [];
     if (employees.length === 0) {
@@ -849,7 +944,7 @@ function processParsedAttendance(rows) {
         logText += `   - Absent (Alfa): ${totalAlfa} Days => Deduction: ${formatRupiah(totalPotongan)}\n`;
 
         finalAttendance.push({
-            period_id: currentPeriodId,
+            period_id: periodId,
             pkwt_id: emp.pkwt_id,
             hari_kerja: totalHadir,
             jam_lembur: parseFloat(totalLembur.toFixed(1)),
@@ -887,7 +982,11 @@ async function saveUploadedAbsensi() {
         if (res.ok) {
             showToast('Attendance logs successfully imported!', 'success');
             tutupModalUploadAbsensi();
-            renderCutOffTable();
+            // Refresh table if we are currently looking at the same period inside workspace
+            const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
+            if (typeof currentPeriodId !== 'undefined' && window.currentPeriodId == periodId) {
+                renderCutOffTable();
+            }
         } else {
             const err = await res.json();
             showToast(`Failed: ${err.message || 'Error occurred'}`, 'error');
@@ -900,6 +999,8 @@ async function saveUploadedAbsensi() {
 
 window.bukaModalUploadAbsensi = bukaModalUploadAbsensi;
 window.tutupModalUploadAbsensi = tutupModalUploadAbsensi;
+window.onAbsensiClientChanged = onAbsensiClientChanged;
+window.onAbsensiPeriodChanged = onAbsensiPeriodChanged;
 window.downloadAbsensiTemplate = downloadAbsensiTemplate;
 window.handleAbsensiFileSelect = handleAbsensiFileSelect;
 window.saveUploadedAbsensi = saveUploadedAbsensi;
