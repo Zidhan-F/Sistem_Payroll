@@ -2149,39 +2149,49 @@ class Api extends ResourceController
             $mw = null;
             if ($workLocId) {
                 $loc = $this->db->table('work_locations')->where('id', $workLocId)->get()->getRow();
-                if ($loc && ($loc->kota_kabupaten || $loc->provinsi)) {
+                if ($loc) {
                     $year = date('Y');
+                    $searchCity = !empty($loc->kota_kabupaten) ? trim(strtolower($loc->kota_kabupaten)) : null;
+                    $searchProv = !empty($loc->provinsi) ? trim(strtolower($loc->provinsi)) : null;
                     
                     if ($effectivePayrollType === 'UMK') {
-                        if ($loc->kota_kabupaten) {
-                            $mw = $this->db->table('minimum_wages')
-                                ->where('tahun', $year)
-                                ->where('tipe', 'UMK')
-                                ->where('nama_daerah', $loc->kota_kabupaten)
-                                ->get()->getRow();
+                        if ($searchCity) {
+                            $mw = $this->db->table('minimum_wages')->where(['tahun' => $year, 'tipe' => 'UMK', 'nama_daerah' => $loc->kota_kabupaten])->get()->getRow();
+                            if (!$mw) {
+                                $mw = $this->db->table('minimum_wages')->where(['tahun' => $year, 'tipe' => 'UMK'])->where('LOWER(nama_daerah)', $searchCity)->get()->getRow();
+                            }
+                            if (!$mw) {
+                                $mw = $this->db->table('minimum_wages')->where('tipe', 'UMK')->where('LOWER(nama_daerah)', $searchCity)->orderBy('tahun', 'DESC')->get()->getRow();
+                            }
                         }
                     } else if ($effectivePayrollType === 'UMP') {
-                        if ($loc->provinsi) {
-                            $mw = $this->db->table('minimum_wages')
-                                ->where('tahun', $year)
-                                ->where('tipe', 'UMP')
-                                ->where('nama_daerah', $loc->provinsi)
-                                ->get()->getRow();
+                        if ($searchProv) {
+                            $mw = $this->db->table('minimum_wages')->where(['tahun' => $year, 'tipe' => 'UMP', 'nama_daerah' => $loc->provinsi])->get()->getRow();
+                            if (!$mw) {
+                                $mw = $this->db->table('minimum_wages')->where(['tahun' => $year, 'tipe' => 'UMP'])->where('LOWER(nama_daerah)', $searchProv)->get()->getRow();
+                            }
+                            if (!$mw) {
+                                $mw = $this->db->table('minimum_wages')->where('tipe', 'UMP')->where('LOWER(nama_daerah)', $searchProv)->orderBy('tahun', 'DESC')->get()->getRow();
+                            }
                         }
                     } else { // UMP/UMK
-                        if ($loc->kota_kabupaten) {
-                            $mw = $this->db->table('minimum_wages')
-                                ->where('tahun', $year)
-                                ->where('tipe', 'UMK')
-                                ->where('nama_daerah', $loc->kota_kabupaten)
-                                ->get()->getRow();
+                        if ($searchCity) {
+                            $mw = $this->db->table('minimum_wages')->where(['tahun' => $year, 'tipe' => 'UMK', 'nama_daerah' => $loc->kota_kabupaten])->get()->getRow();
+                            if (!$mw) {
+                                $mw = $this->db->table('minimum_wages')->where(['tahun' => $year, 'tipe' => 'UMK'])->where('LOWER(nama_daerah)', $searchCity)->get()->getRow();
+                            }
+                            if (!$mw) {
+                                $mw = $this->db->table('minimum_wages')->where('tipe', 'UMK')->where('LOWER(nama_daerah)', $searchCity)->orderBy('tahun', 'DESC')->get()->getRow();
+                            }
                         }
-                        if (!$mw && $loc->provinsi) {
-                            $mw = $this->db->table('minimum_wages')
-                                ->where('tahun', $year)
-                                ->where('tipe', 'UMP')
-                                ->where('nama_daerah', $loc->provinsi)
-                                ->get()->getRow();
+                        if (!$mw && $searchProv) {
+                            $mw = $this->db->table('minimum_wages')->where(['tahun' => $year, 'tipe' => 'UMP', 'nama_daerah' => $loc->provinsi])->get()->getRow();
+                            if (!$mw) {
+                                $mw = $this->db->table('minimum_wages')->where(['tahun' => $year, 'tipe' => 'UMP'])->where('LOWER(nama_daerah)', $searchProv)->get()->getRow();
+                            }
+                            if (!$mw) {
+                                $mw = $this->db->table('minimum_wages')->where('tipe', 'UMP')->where('LOWER(nama_daerah)', $searchProv)->orderBy('tahun', 'DESC')->get()->getRow();
+                            }
                         }
                     }
                     

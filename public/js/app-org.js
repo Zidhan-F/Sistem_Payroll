@@ -460,10 +460,17 @@ async function updateLocationMinimumWage(payrollType) {
         allowedTypes = ['UMK', 'UMP'];
     }
     
+    const currentYear = new Date().getFullYear().toString();
+    
     for (const type of allowedTypes) {
         if (type === 'UMK' && loc.kota_kabupaten) {
             const searchName = loc.kota_kabupaten.trim().toLowerCase();
-            match = minimumWagesCache.find(w => w.tipe === 'UMK' && w.nama_daerah.trim().toLowerCase() === searchName);
+            // Try matching current year first
+            match = minimumWagesCache.find(w => w.tipe === 'UMK' && w.nama_daerah.trim().toLowerCase() === searchName && String(w.tahun) === currentYear);
+            // Fallback to any year
+            if (!match) {
+                match = minimumWagesCache.find(w => w.tipe === 'UMK' && w.nama_daerah.trim().toLowerCase() === searchName);
+            }
             if (match) {
                 wageType = 'UMK';
                 break;
@@ -471,7 +478,12 @@ async function updateLocationMinimumWage(payrollType) {
         }
         if (type === 'UMP' && loc.provinsi) {
             const searchName = loc.provinsi.trim().toLowerCase();
-            match = minimumWagesCache.find(w => w.tipe === 'UMP' && w.nama_daerah.trim().toLowerCase() === searchName);
+            // Try matching current year first
+            match = minimumWagesCache.find(w => w.tipe === 'UMP' && w.nama_daerah.trim().toLowerCase() === searchName && String(w.tahun) === currentYear);
+            // Fallback to any year
+            if (!match) {
+                match = minimumWagesCache.find(w => w.tipe === 'UMP' && w.nama_daerah.trim().toLowerCase() === searchName);
+            }
             if (match) {
                 wageType = 'UMP';
                 break;
