@@ -346,6 +346,8 @@ function switchPayrollSub(sub) {
         switchPayrollSubTab('skema');
     } else if (sub === 'pajak') {
         switchView('pajak');
+    } else if (sub === 'schedule') {
+        switchView('schedule');
     }
 }
 
@@ -406,7 +408,8 @@ function switchView(view) {
         clientWorkspace: 'Client Workspace',
         payroll: 'Master Payroll Scheme',
         pajak: 'Master Payroll Scheme',
-        masterKompensasi: 'Master Payroll Scheme'
+        masterKompensasi: 'Master Payroll Scheme',
+        schedule: 'Schedule'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Employee Management';
 
@@ -444,12 +447,13 @@ function switchView(view) {
     }
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
+    if (view === 'schedule') { if (typeof renderMasterSchedule === 'function') renderMasterSchedule(); }
 }
 
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal(keepSidebarOpen = false) {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema', 'modalSchedule'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     
     // Clean up TomSelect instances from modalPilihanSkema if it was open

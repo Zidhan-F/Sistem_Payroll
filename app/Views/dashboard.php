@@ -198,7 +198,7 @@
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <input type="text" id="cariKaryawanGlobal" placeholder="Search name, NIK, position..." oninput="cariKaryawanGlobalAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
                             <button class="btn-add" onclick="bukaModalKaryawanGlobal()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
-                                <i class="fas fa-plus"></i> Add Employee
+                                <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" style="width: 16px; height: 16px; object-fit: contain; filter: brightness(0) invert(1);"> Add Employee
                             </button>
                         </div>
                     </div>
@@ -814,6 +814,7 @@
             </div>
 
             <?= view('partials/_view_pajak') ?>
+            <?= view('partials/_view_schedule') ?>
 
             <!-- Section: Simulasi Gaji -->
             <div id="viewSimulasi" class="view-section">

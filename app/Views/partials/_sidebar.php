@@ -56,4 +56,9 @@
                 <span>BPJS & Tax Scheme</span>
             </li>
     </ul>
+    <li id="menuSchedule" onclick="switchView('schedule')">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Schedule</span>
+    </li>
+    </ul>
 </div>

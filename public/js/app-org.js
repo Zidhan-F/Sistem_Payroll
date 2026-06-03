@@ -60,6 +60,15 @@ const quickBadges = {
     posisi: ['Staff', 'Supervisor', 'Manager', 'Senior', 'Intern']
 };
 
+function tambahDivisiInline() {
+    const targetClientId = document.getElementById('empClientId').value;
+    if (!targetClientId) {
+        showToast('Please select a Company / Client first!', 'error');
+        return;
+    }
+    bukaModalOrg('divisi', 'tambah', null, null);
+}
+
 function tambahDeptInline() {
     const divId = document.getElementById('empDivisionId').value;
     if (!divId) {
@@ -903,7 +912,7 @@ async function checkSchemaAvailability() {
 window.checkSchemaAvailability = checkSchemaAvailability;
 
 window.renderClientOrg=renderClientOrg;window.bukaModalOrg=bukaModalOrg;window.tutupModalOrg=tutupModalOrg;window.hapusOrg=hapusOrg;window.toggleNode=toggleNode;window.renderTableKaryawanClient=renderTableKaryawanClient;window.bukaModalKaryawan=bukaModalKaryawan;window.bukaModalKaryawanSpecific=bukaModalKaryawanSpecific;window.tutupModalKaryawan=tutupModalKaryawan;window.hapusKaryawan=hapusKaryawan;window.loadPositions=loadPositions;
-window.tambahDeptInline=tambahDeptInline;window.tambahPosisiInline=tambahPosisiInline;
+window.tambahDeptInline=tambahDeptInline;window.tambahPosisiInline=tambahPosisiInline;window.tambahDivisiInline=tambahDivisiInline;
 
 if (document.getElementById('orgNameSelect')) {
     document.getElementById('orgNameSelect').addEventListener('change', function() {

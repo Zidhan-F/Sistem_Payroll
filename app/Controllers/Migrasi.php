@@ -395,7 +395,29 @@ class Migrasi extends BaseController
                 ALTER TABLE payroll_components ADD $col $def");
         }
 
-        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, kolom departemen/posisi client_payroll_configs, tabel global STO, dan flag BPJS/PPh21 tunjangan)";
+        // 21. Tabel Master Schedule (Master Payroll Schedule Templates)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'payroll_schedules')
+            CREATE TABLE payroll_schedules (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                nama NVARCHAR(100) NOT NULL,
+                pay_date INT DEFAULT 25,
+                cutoff_start INT DEFAULT 21,
+                cutoff_end INT DEFAULT 20,
+                deskripsi NVARCHAR(MAX) NULL,
+                created_at DATETIME DEFAULT GETDATE()
+            )");
+
+        // Seed default schedules if empty
+        $scheduleCountObj = $db->query("SELECT COUNT(*) as [count] FROM payroll_schedules")->getRow();
+        $scheduleCount = $scheduleCountObj ? intval($scheduleCountObj->count) : 0;
+        if ($scheduleCount == 0) {
+            $db->query("INSERT INTO payroll_schedules (nama, pay_date, cutoff_start, cutoff_end, deskripsi) 
+                VALUES ('Standard Schedule (25th)', 25, 21, 20, 'Standard payroll cycle with payday on the 25th, cutoff period from the 21st of the previous month to the 20th of the current month.')");
+            $db->query("INSERT INTO payroll_schedules (nama, pay_date, cutoff_start, cutoff_end, deskripsi) 
+                VALUES ('End of Month Schedule', 30, 26, 25, 'Payroll cycle with payday on the 30th/End of month, cutoff period from the 26th of the previous month to the 25th of the current month.')");
+        }
+
+        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, kolom departemen/posisi client_payroll_configs, tabel global STO, flag BPJS/PPh21 tunjangan, dan tabel payroll_schedules)";
     }
 
     /**

@@ -497,6 +497,54 @@ class Api extends ResourceController
         return $this->respondDeleted(['message' => 'Skema kompensasi berhasil dihapus']);
     }
 
+    // --- SCHEDULE TEMPLATES ---
+    public function getScheduleTemplates()
+    {
+        $schedules = $this->db->table('payroll_schedules')->get()->getResultArray();
+        return $this->respond($schedules);
+    }
+
+    public function createScheduleTemplate()
+    {
+        $data = $this->request->getJSON(true);
+        $insertData = [
+            'nama' => $data['nama'] ?? '',
+            'pay_date' => isset($data['pay_date']) ? intval($data['pay_date']) : 25,
+            'cutoff_start' => isset($data['cutoff_start']) ? intval($data['cutoff_start']) : 21,
+            'cutoff_end' => isset($data['cutoff_end']) ? intval($data['cutoff_end']) : 20,
+            'deskripsi' => $data['deskripsi'] ?? null
+        ];
+
+        $this->db->table('payroll_schedules')->insert($insertData);
+        $this->logActivity("Membuat master schedule baru: " . ($insertData['nama'] ?? ''));
+        return $this->respondCreated(['message' => 'Schedule template berhasil ditambahkan']);
+    }
+
+    public function updateScheduleTemplate($id)
+    {
+        $data = $this->request->getJSON(true);
+        $updateData = [
+            'nama' => $data['nama'] ?? '',
+            'pay_date' => isset($data['pay_date']) ? intval($data['pay_date']) : 25,
+            'cutoff_start' => isset($data['cutoff_start']) ? intval($data['cutoff_start']) : 21,
+            'cutoff_end' => isset($data['cutoff_end']) ? intval($data['cutoff_end']) : 20,
+            'deskripsi' => $data['deskripsi'] ?? null
+        ];
+
+        $this->db->table('payroll_schedules')->where('id', $id)->update($updateData);
+        $this->logActivity("Mengupdate master schedule ID: " . $id . " (" . ($updateData['nama'] ?? '') . ")");
+        return $this->respond(['message' => 'Schedule template berhasil diupdate']);
+    }
+
+    public function deleteScheduleTemplate($id)
+    {
+        $schedule = $this->db->table('payroll_schedules')->where('id', $id)->get()->getRow();
+        $name = $schedule ? $schedule->nama : 'Unknown';
+        $this->db->table('payroll_schedules')->where('id', $id)->delete();
+        $this->logActivity("Menghapus master schedule ID: " . $id . " (" . $name . ")");
+        return $this->respondDeleted(['message' => 'Schedule template berhasil dihapus']);
+    }
+
     public function createCompensationComponent()
     {
         $data = $this->request->getJSON(true);
