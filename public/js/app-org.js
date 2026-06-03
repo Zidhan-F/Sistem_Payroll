@@ -329,6 +329,14 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     
     try {
+        // Fetch the client's org hierarchy (divisions > departments > positions)
+        if (clientId) {
+            const orgRes = await fetch(`${API}/org?client_id=${clientId}`);
+            clientOrgHierarchy = await orgRes.json();
+            if (!Array.isArray(clientOrgHierarchy)) clientOrgHierarchy = [];
+        } else {
+            clientOrgHierarchy = [];
+        }
         // Resolve selectedDivId and selectedDeptId from selectedPosId if missing
         if (selectedPosId && (!selectedDivId || !selectedDeptId) && Array.isArray(clientOrgHierarchy)) {
             for (const div of clientOrgHierarchy) {
