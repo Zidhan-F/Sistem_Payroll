@@ -919,7 +919,6 @@ window.openModalPilihanSkema = async function(isEdit = false) {
         if (!isEdit && bpjsSelect && bpjsSelect.value) {
             window.handleModalPilihanSkemaBpjsChange(bpjsSelect.value);
         }
-
     } catch (e) {
         console.error('Error loading modal data:', e);
     }

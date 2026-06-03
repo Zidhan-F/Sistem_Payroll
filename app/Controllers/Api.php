@@ -1026,6 +1026,19 @@ class Api extends ResourceController
             $bpjsWageBase = 0;
             $pphWageBase = 0;
 
+            // Match payroll scheme template for organizational matching
+            $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
+            $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
+                $pkwt->client_id,
+                $emp->division_id ?? null,
+                $emp->department_id ?? null,
+                $emp->position_id ?? null
+            );
+            $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+
+            $bpjsWageBase = 0;
+            $pphWageBase = 0;
+
             foreach ($components as $comp) {
                 $isBasic = false;
                 if (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') {

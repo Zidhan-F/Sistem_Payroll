@@ -329,9 +329,6 @@ async function loadOrgSelects(clientId, selectedDivId = null, selectedDeptId = n
     posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     
     try {
-        const r = await fetch(`${API}/org?client_id=${clientId}`);
-        clientOrgHierarchy = await r.json();
-        
         // Resolve selectedDivId and selectedDeptId from selectedPosId if missing
         if (selectedPosId && (!selectedDivId || !selectedDeptId) && Array.isArray(clientOrgHierarchy)) {
             for (const div of clientOrgHierarchy) {
