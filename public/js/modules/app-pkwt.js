@@ -23,7 +23,7 @@ async function renderPKWTTable() {
                     <td>${row.end_date ? new Date(row.end_date).toLocaleDateString() : '-'}</td>
                     <td>${
                         basicComp && (basicComp.sumber_nilai === 'ump' || basicComp.sumber_nilai === 'umk')
-                            ? `${basicComp.nilai}% ${basicComp.sumber_nilai.toUpperCase()} (${formatRupiah(basicComp.nilai_nominal)})`
+                            ? `${parseFloat(basicComp.nilai)}% ${basicComp.sumber_nilai.toUpperCase()} (${formatRupiah(basicComp.nilai_nominal)})`
                             : formatRupiah(basicComp ? (basicComp.nilai_nominal || basicComp.nilai) : 0)
                     }</td>
                     <td><button class="btn-icon btn-delete" onclick="hapusPKWT(${row.id})"><i class="fas fa-trash"></i></button></td>

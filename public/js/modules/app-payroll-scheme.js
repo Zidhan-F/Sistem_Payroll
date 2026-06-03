@@ -82,7 +82,9 @@ async function renderPayrollSchemes() {
                         jenis_komponen: 'kompensasi',
                         sumber_nilai: comp.sumber_nilai || 'nominal',
                         periode: comp.periode || 'bulan',
-                        sifat_kompensasi: comp.sifat_kompensasi || 'tetap'
+                        sifat_kompensasi: comp.sifat_kompensasi || 'tetap',
+                        is_bpjs: (comp.is_bpjs === true || comp.is_bpjs == 1) ? 1 : 0,
+                        is_pph21: (comp.is_pph21 === false || comp.is_pph21 == 0) ? 0 : 1
                     });
                 } catch (err) {
                     console.error('Error parsing checkbox data-comp:', err);

@@ -48,6 +48,10 @@ class Payroll extends ResourceController
         $tahun = $json['tahun'];
         $dataKaryawan = $json['data']; // Array of {employee_id, hadir, alpa, sakit, lembur}
 
+        // Synchronize employees to PKWT first to make sure contracts/components are up-to-date
+        $apiController = new \App\Controllers\Api();
+        $apiController->syncEmployeesToPKWT($clientId);
+
         $daysInMonth = date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun)));
 
         // 1. Ambil Skema Klien
@@ -127,6 +131,144 @@ class Payroll extends ResourceController
             $emp = $employeeModel->find($dk['employee_id']);
             if (!$emp) continue;
 
+            // Get employee's active PKWT
+            $pkwt = $db->table('pkwt')
+                       ->where('client_id', $clientId)
+                       ->where('employee_name', $emp['nama'])
+                       ->where('status', 'Active')
+                       ->get()
+                       ->getRow();
+
+            // Resolve employee-specific minimum wage and UMP/UMK values
+            $empMinimumWage = $minimumWage;
+            $empMwId = null;
+            if ($payrollConfig && !empty($payrollConfig->minimum_wage_id)) {
+                $empMwId = $payrollConfig->minimum_wage_id;
+            }
+            if (!empty($emp['minimum_wage_id'])) {
+                $empMwId = $emp['minimum_wage_id'];
+                $mw = $db->table('minimum_wages')->where('id', $emp['minimum_wage_id'])->get()->getRow();
+                if ($mw) {
+                    $empMinimumWage = floatval($mw->nominal);
+                }
+            }
+
+            // Get employee's work location province for UMP lookup fallback
+            $empProvince = null;
+            if (!empty($emp['work_location_id'])) {
+                $wl = $db->table('work_locations')->where('id', $emp['work_location_id'])->get()->getRow();
+                if ($wl && !empty($wl->provinsi)) {
+                    $empProvince = $wl->provinsi;
+                }
+            }
+
+            $umpWageValue = $empMinimumWage;
+            $umkWageValue = $empMinimumWage;
+            $currentYear = date('Y');
+            if ($empMwId) {
+                $currentWage = $db->table('minimum_wages')->where('id', $empMwId)->get()->getRow();
+                if ($currentWage) {
+                    $wageYear = $currentWage->tahun ?: $currentYear;
+                    if ($currentWage->tipe === 'UMP') {
+                        // Try current year first
+                        if ($currentWage->tahun == $currentYear) {
+                            $umpWageValue = floatval($currentWage->nominal);
+                        } else {
+                            $searchName = $currentWage->nama_daerah ?: $currentWage->provinsi;
+                            $newerUmp = $db->table('minimum_wages')
+                                           ->where('tipe', 'UMP')
+                                           ->where('tahun', $currentYear)
+                                           ->groupStart()
+                                               ->where('nama_daerah', $searchName)
+                                               ->orWhere('provinsi', $searchName)
+                                           ->groupEnd()
+                                           ->get()
+                                           ->getRow();
+                            $umpWageValue = $newerUmp ? floatval($newerUmp->nominal) : floatval($currentWage->nominal);
+                        }
+                        $umkWageValue = $umpWageValue;
+                    } else if ($currentWage->tipe === 'UMK') {
+                        // For UMK, try current year
+                        if ($currentWage->tahun == $currentYear) {
+                            $umkWageValue = floatval($currentWage->nominal);
+                        } else {
+                            $newerUmk = $db->table('minimum_wages')
+                                           ->where('tipe', 'UMK')
+                                           ->where('tahun', $currentYear)
+                                           ->where('nama_daerah', $currentWage->nama_daerah)
+                                           ->get()
+                                           ->getRow();
+                            $umkWageValue = $newerUmk ? floatval($newerUmk->nominal) : floatval($currentWage->nominal);
+                        }
+                        
+                        // Find corresponding UMP by kode_daerah province code first
+                        $umpFound = false;
+                        if (!empty($currentWage->kode_daerah)) {
+                            $parts = explode(' ', $currentWage->kode_daerah);
+                            if (count($parts) >= 2) {
+                                $codeParts = explode('.', $parts[1]);
+                                $provCode = $codeParts[0];
+                                $umpByCode = $db->table('minimum_wages')
+                                                ->where('tipe', 'UMP')
+                                                ->where('tahun', $currentYear)
+                                                ->like('kode_daerah', "ID $provCode", 'after')
+                                                ->get()
+                                                ->getRow();
+                                if (!$umpByCode) {
+                                    $umpByCode = $db->table('minimum_wages')
+                                                    ->where('tipe', 'UMP')
+                                                    ->where('tahun', $wageYear)
+                                                    ->like('kode_daerah', "ID $provCode", 'after')
+                                                    ->get()
+                                                    ->getRow();
+                                }
+                                if ($umpByCode) {
+                                    $umpWageValue = floatval($umpByCode->nominal);
+                                    $umpFound = true;
+                                }
+                            }
+                        }
+                        
+                        // If not found by code, try by province name
+                        if (!$umpFound) {
+                            $provinceSearchNames = [];
+                            if (!empty($currentWage->provinsi)) $provinceSearchNames[] = $currentWage->provinsi;
+                            if (!empty($empProvince)) {
+                                $provinceSearchNames[] = $empProvince;
+                                $provinceSearchNames[] = strtoupper($empProvince);
+                            }
+                            
+                            $yearsToTry = array_unique([$currentYear, $wageYear]);
+                            foreach ($yearsToTry as $tryYear) {
+                                foreach ($provinceSearchNames as $provName) {
+                                    if (empty($provName)) continue;
+                                    $umpWage = $db->table('minimum_wages')
+                                                  ->where('tipe', 'UMP')
+                                                  ->where('tahun', $tryYear)
+                                                  ->groupStart()
+                                                      ->where('nama_daerah', $provName)
+                                                      ->orWhere('provinsi', $provName)
+                                                      ->orWhere('nama_daerah', strtoupper($provName))
+                                                      ->orWhere('provinsi', strtoupper($provName))
+                                                  ->groupEnd()
+                                                  ->get()
+                                                  ->getRow();
+                                    if ($umpWage) {
+                                        $umpWageValue = floatval($umpWage->nominal);
+                                        $umpFound = true;
+                                        break 2;
+                                    }
+                                }
+                            }
+                            
+                            if (!$umpFound) {
+                                $umpWageValue = $umkWageValue; // fallback UMP to UMK
+                            }
+                        }
+                    }
+                }
+            }
+
             $baseSalary = floatval($emp['gaji_pokok'] ?? 0);
             if ($payrollConfig) {
                 if ($payrollConfig->payroll_type === 'UMP' || $payrollConfig->payroll_type === 'UMK') {
@@ -137,6 +279,66 @@ class Payroll extends ResourceController
                     if ($payrollConfig->custom_nominal > 0) {
                         $baseSalary = floatval($payrollConfig->custom_nominal);
                     }
+                }
+            }
+
+            $empComponents = [];
+            if ($pkwt) {
+                $dbComponents = $db->table('pkwt_components')
+                                   ->where('pkwt_id', $pkwt->id)
+                                   ->get()
+                                   ->getResultArray();
+                
+                foreach ($dbComponents as $comp) {
+                    $isBasic = (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') || (stripos($comp['nama'], 'Gaji Pokok') !== false);
+                    if ($isBasic) {
+                        $sumber_nilai = $comp['sumber_nilai'] ?? 'nominal';
+                        $base_nilai = floatval($comp['nilai']);
+                        if ($sumber_nilai === 'ump') {
+                            $baseSalary = $umpWageValue * ($base_nilai / 100);
+                        } else if ($sumber_nilai === 'umk') {
+                            $baseSalary = $umkWageValue * ($base_nilai / 100);
+                        } else if ($sumber_nilai === 'ump_umk') {
+                            $baseSalary = $empMinimumWage * ($base_nilai / 100);
+                        } else {
+                            // Force base_nilai to use Employee's setup if available!
+                            if ($emp && isset($emp['gaji_pokok']) && floatval($emp['gaji_pokok']) > 0) {
+                                $baseSalary = floatval($emp['gaji_pokok']);
+                            } else if ($empMinimumWage > 0) {
+                                $baseSalary = $empMinimumWage;
+                            } else {
+                                $baseSalary = $base_nilai;
+                            }
+                        }
+                    } else {
+                        $empComponents[] = [
+                            'nama_komponen' => $comp['nama'],
+                            'tipe' => ($comp['tipe'] === 'pendapatan') ? 'Tunjangan' : 'Potongan',
+                            'jenis_nilai' => (intval($comp['is_persentase']) === 1) ? 'Persentase' : 'Tetap',
+                            'nilai' => floatval($comp['nilai']),
+                            'is_bpjs' => intval($comp['is_bpjs'] ?? 0),
+                            'is_pph21' => intval($comp['is_pph21'] ?? 1),
+                            'jenis_komponen' => $comp['jenis_komponen'] ?? '',
+                            'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? '',
+                            'sumber_nilai' => $comp['sumber_nilai'] ?? '',
+                            'periode' => $comp['periode'] ?? ''
+                        ];
+                    }
+                }
+            } else {
+                foreach ($components as $comp) {
+                    $empComponents[] = [
+                        'nama_komponen' => $comp['nama_komponen'] ?? $comp['nama'] ?? '',
+                        'tipe' => $comp['tipe'],
+                        'jenis_nilai' => $comp['jenis_nilai'],
+                        'nilai' => $comp['nilai'],
+                        'is_bpjs' => isset($comp['is_bpjs']) ? intval($comp['is_bpjs']) : 0,
+                        'is_pph21' => isset($comp['is_pph21']) ? intval($comp['is_pph21']) : 1,
+                        'jenis_komponen' => $comp['jenis_komponen'] ?? '',
+                        'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? '',
+                        'sumber_nilai' => $comp['sumber_nilai'] ?? '',
+                        'periode' => $comp['periode'] ?? ''
+                    ];
                 }
             }
 
@@ -165,50 +367,57 @@ class Payroll extends ResourceController
             $bpjsWageBase = $baseSalary; // Gaji Pokok is always included
             $pphWageBase = $baseSalary;  // Gaji Pokok is always included
 
-            foreach ($components as $comp) {
+            foreach ($empComponents as $comp) {
                 $nilaiKomponen = 0;
-                if ($comp['jenis_nilai'] === 'Tetap') {
-                    $nilaiKomponen = floatval($comp['nilai']);
+                
+                if (!empty($comp['jenis_komponen'])) {
+                    // New Master Compensation component logic
+                    $base_nilai = floatval($comp['nilai']);
+                    
+                    if (isset($comp['sumber_nilai'])) {
+                        if ($comp['sumber_nilai'] === 'ump') {
+                            $base_nilai = $umpWageValue * ($base_nilai / 100);
+                        } else if ($comp['sumber_nilai'] === 'umk') {
+                            $base_nilai = $umkWageValue * ($base_nilai / 100);
+                        } else if ($comp['sumber_nilai'] === 'ump_umk') {
+                            $base_nilai = $empMinimumWage * ($base_nilai / 100);
+                        }
+                    }
+                    
+                    // Scale by period
+                    if (($comp['periode'] ?? '') === 'hari') {
+                        $nilaiKomponen = $base_nilai * intval($dk['hadir']);
+                    } elseif (($comp['periode'] ?? '') === 'minggu') {
+                        $nilaiKomponen = $base_nilai * 4;
+                    } elseif (($comp['periode'] ?? '') === 'tahun') {
+                        $nilaiKomponen = $base_nilai / 12;
+                    } else {
+                        // bulanan
+                        $isProrateAbs = false;
+                        if ($payrollConfig && ($payrollConfig->prorate == 1)) {
+                            $isProrateAbs = true;
+                        }
+                        if ($isProrateAbs && isset($comp['sifat_kompensasi']) && $comp['sifat_kompensasi'] === 'tidak_tetap') {
+                            $nilaiKomponen = $base_nilai * (intval($dk['hadir']) / $daysInMonth);
+                        } else {
+                            $nilaiKomponen = $base_nilai;
+                        }
+                    }
                 } else {
-                    // Persentase dari gaji pokok
-                    $nilaiKomponen = $baseSalary * (floatval($comp['nilai']) / 100);
+                    // Legacy components
+                    if ($comp['jenis_nilai'] === 'Tetap') {
+                        $nilaiKomponen = floatval($comp['nilai']);
+                    } else {
+                        // Persentase dari gaji pokok
+                        $nilaiKomponen = $baseSalary * (floatval($comp['nilai']) / 100);
+                    }
                 }
 
                 if ($comp['tipe'] === 'Tunjangan') {
                     $customTunjangan += $nilaiKomponen;
 
-                    // Resolve inclusion flags
-                    $nameClean = strtolower(trim($comp['nama_komponen'] ?? $comp['nama'] ?? ''));
-                    $isBpjsInc = false;
-                    $isPphInc = true;
-
-                    if ($schemeTemplate) {
-                        if (strpos($nameClean, 'transport') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_transport'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_transport'] == 1);
-                        } elseif (strpos($nameClean, 'makan') !== false || strpos($nameClean, 'meal') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_makan'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_makan'] == 1);
-                        } elseif (strpos($nameClean, 'komunikasi') !== false || strpos($nameClean, 'communication') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_komunikasi'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_komunikasi'] == 1);
-                        } elseif (strpos($nameClean, 'jabatan') !== false || strpos($nameClean, 'position') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_jabatan'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_jabatan'] == 1);
-                        } elseif (strpos($nameClean, 'kehadiran') !== false || strpos($nameClean, 'attendance') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_kehadiran'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_kehadiran'] == 1);
-                        } elseif (strpos($nameClean, 'kinerja') !== false || strpos($nameClean, 'performance') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_kinerja'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_kinerja'] == 1);
-                        } else {
-                            $isBpjsInc = (isset($comp['is_bpjs']) && $comp['is_bpjs'] == 1);
-                            $isPphInc = (!isset($comp['is_pph21']) || $comp['is_pph21'] == 1);
-                        }
-                    } else {
-                        $isBpjsInc = (isset($comp['is_bpjs']) && $comp['is_bpjs'] == 1);
-                        $isPphInc = (!isset($comp['is_pph21']) || $comp['is_pph21'] == 1);
-                    }
+                    $isBpjsInc = ($comp['is_bpjs'] == 1);
+                    $isPphInc = ($comp['is_pph21'] == 1);
 
                     if ($isBpjsInc) {
                         $bpjsWageBase += $nilaiKomponen;
