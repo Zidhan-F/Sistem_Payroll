@@ -245,7 +245,9 @@ class Api extends ResourceController
             'jenis_komponen' => 'basic_salary',
             'sumber_nilai' => $requestData['sumber_nilai'] ?? 'nominal',
             'periode' => $requestData['periode'] ?? 'bulan',
-            'sifat_kompensasi' => 'tetap'
+            'sifat_kompensasi' => 'tetap',
+            'is_bpjs' => 1,
+            'is_pph21' => 1
         ];
         
         $this->db->table('payroll_components')->insert($componentData);
@@ -262,7 +264,9 @@ class Api extends ResourceController
                     'jenis_komponen' => 'kompensasi',
                     'sumber_nilai' => $comp['sumber_nilai'] ?? 'nominal',
                     'periode' => $comp['periode'] ?? 'bulan',
-                    'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? 'tetap'
+                    'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? 'tetap',
+                    'is_bpjs' => isset($comp['is_bpjs']) ? intval($comp['is_bpjs']) : 0,
+                    'is_pph21' => isset($comp['is_pph21']) ? intval($comp['is_pph21']) : 1
                 ];
                 $this->db->table('payroll_components')->insert($compData);
             }
@@ -296,7 +300,9 @@ class Api extends ResourceController
             'jenis_komponen' => 'basic_salary',
             'sumber_nilai' => $requestData['sumber_nilai'] ?? 'nominal',
             'periode' => $requestData['periode'] ?? 'bulan',
-            'sifat_kompensasi' => 'tetap'
+            'sifat_kompensasi' => 'tetap',
+            'is_bpjs' => 1,
+            'is_pph21' => 1
         ];
         
         $existing = $this->db->table('payroll_components')->where('scheme_id', $id)->where('jenis_komponen', 'basic_salary')->get()->getRow();
@@ -325,7 +331,9 @@ class Api extends ResourceController
                     'jenis_komponen' => 'kompensasi',
                     'sumber_nilai' => $comp['sumber_nilai'] ?? 'nominal',
                     'periode' => $comp['periode'] ?? 'bulan',
-                    'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? 'tetap'
+                    'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? 'tetap',
+                    'is_bpjs' => isset($comp['is_bpjs']) ? intval($comp['is_bpjs']) : 0,
+                    'is_pph21' => isset($comp['is_pph21']) ? intval($comp['is_pph21']) : 1
                 ];
                 $this->db->table('payroll_components')->insert($compData);
             }
@@ -644,8 +652,19 @@ class Api extends ResourceController
                 $isBasic = (stripos($comp['nama'], 'Gaji Pokok') !== false || ($comp['jenis_komponen'] ?? '') === 'basic_salary');
                 if ($isBasic) {
                     if (isset($comp['sumber_nilai']) && ($comp['sumber_nilai'] === 'ump' || $comp['sumber_nilai'] === 'umk')) {
-                        if ($emp && isset($emp->wage_nominal) && floatval($emp->wage_nominal) > 0) {
-                            $comp['nilai_nominal'] = floatval($emp->wage_nominal) * (floatval($comp['nilai']) / 100);
+                        // Resolve proper UMP/UMK values using the enhanced resolver
+                        $mwId = ($emp && isset($emp->minimum_wage_id)) ? $emp->minimum_wage_id : null;
+                        $empProvince = null;
+                        if ($emp && !empty($emp->work_location_id)) {
+                            $wl = $this->db->table('work_locations')->where('id', $emp->work_location_id)->get()->getRow();
+                            if ($wl && !empty($wl->provinsi)) {
+                                $empProvince = $wl->provinsi;
+                            }
+                        }
+                        $resolved = $this->resolveUmpUmk($mwId, null, $empProvince);
+                        $wageValue = ($comp['sumber_nilai'] === 'ump') ? $resolved['ump'] : $resolved['umk'];
+                        if ($wageValue > 0) {
+                            $comp['nilai_nominal'] = $wageValue * (floatval($comp['nilai']) / 100);
                         }
                     }
                 }
@@ -665,88 +684,7 @@ class Api extends ResourceController
         $this->db->table('pkwt')->insert($data);
         $pkwtId = $this->db->insertID();
 
-        // 2. Get Client Scheme Config
-        $config = $this->resolveClientConfig($data['client_id'], $data['position_name'] ?? null);
-
-        if ($config && $config->payroll_scheme_id) {
-            // 3. Fetch components from scheme
-            $components = $this->db->table('payroll_components')
-                                   ->where('scheme_id', $config->payroll_scheme_id)
-                                   ->get()
-                                   ->getResult();
-
-            foreach ($components as $comp) {
-                $nilai = $comp->nilai;
-                // If this is a basic salary component, and its source is nominal, use the manual input
-                if (stripos($comp->nama, 'Gaji Pokok') !== false || ($comp->jenis_komponen ?? '') === 'basic_salary') {
-                    if (isset($comp->sumber_nilai) && ($comp->sumber_nilai === 'ump' || $comp->sumber_nilai === 'umk' || $comp->sumber_nilai === 'kompensasi')) {
-                        $nilai = $comp->nilai; // Keep the percentage from template
-                    } else {
-                        $nilai = $basicSalary; // Use the manual input
-                    }
-                }
-
-                $this->db->table('pkwt_components')->insert([
-                    'pkwt_id' => $pkwtId,
-                    'nama' => $comp->nama,
-                    'tipe' => $comp->tipe,
-                    'nilai' => $nilai,
-                    'is_persentase' => $comp->is_persentase,
-                    'jenis_komponen' => $comp->jenis_komponen ?? 'basic_salary',
-                    'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
-                    'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
-                    'periode' => $comp->periode ?? 'bulan',
-                    'is_bpjs' => $comp->is_bpjs ?? 0,
-                    'is_pph21' => $comp->is_pph21 ?? 1
-                ]);
-            }
-        } else {
-            // If no scheme, at least insert the basic salary as a component
-            $this->db->table('pkwt_components')->insert([
-                'pkwt_id' => $pkwtId,
-                'nama' => 'Gaji Pokok',
-                'tipe' => 'pendapatan',
-                'nilai' => $basicSalary,
-                'is_persentase' => false,
-                'is_bpjs' => 1, // Gaji Pokok always counts for BPJS
-                'is_pph21' => 1  // Gaji Pokok always counts for PPh21
-            ]);
-        }
-
-        // 4. Fetch components from global compensation scheme (if configured)
-        // Resolve compensation scheme ID from payroll scheme or fallback to client config
-        $compensationSchemeId = null;
-        if ($config && $config->payroll_scheme_id) {
-            $payrollScheme = $this->db->table('payroll_schemes')->where('id', $config->payroll_scheme_id)->get()->getRow();
-            if ($payrollScheme && !empty($payrollScheme->compensation_scheme_id)) {
-                $compensationSchemeId = $payrollScheme->compensation_scheme_id;
-            }
-        }
-        if (!$compensationSchemeId && $config && $config->compensation_scheme_id) {
-            $compensationSchemeId = $config->compensation_scheme_id;
-        }
-
-        if ($compensationSchemeId) {
-            $compComponents = $this->db->table('compensation_components')
-                                       ->where('scheme_id', $compensationSchemeId)
-                                       ->get()
-                                       ->getResult();
-            foreach ($compComponents as $comp) {
-                $this->db->table('pkwt_components')->insert([
-                    'pkwt_id' => $pkwtId,
-                    'nama' => $comp->nama,
-                    'tipe' => $comp->tipe,
-                    'nilai' => $comp->nilai,
-                    'is_persentase' => $comp->is_persentase,
-                    'jenis_komponen' => $comp->jenis_komponen ?? 'kompensasi',
-                    'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
-                    'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
-                    'periode' => $comp->periode ?? 'bulan',
-                    'is_bpjs' => $comp->is_bpjs ?? 0,
-                    'is_pph21' => $comp->is_pph21 ?? 1
-                ]);
-            }
-        }
+        $this->syncPKWTComponents($pkwtId, $basicSalary);
 
         $this->logActivity("Membuat PKWT baru untuk karyawan: " . ($data['employee_name'] ?? ''));
         return $this->respondCreated(['message' => 'PKWT berhasil dibuat dan gaji telah tergenerate']);
@@ -923,8 +861,15 @@ class Api extends ResourceController
                 }
             }
 
-            // Resolve UMP and UMK values
-            $resolvedWages = $this->resolveUmpUmk($mwId);
+            // Resolve UMP and UMK values - pass employee's work location province for UMP lookup
+            $empProvince = null;
+            if ($emp && !empty($emp->work_location_id)) {
+                $wl = $this->db->table('work_locations')->where('id', $emp->work_location_id)->get()->getRow();
+                if ($wl && !empty($wl->provinsi)) {
+                    $empProvince = $wl->provinsi;
+                }
+            }
+            $resolvedWages = $this->resolveUmpUmk($mwId, null, $empProvince);
             $umpWageValue = $resolvedWages['ump'];
             $umkWageValue = $resolvedWages['umk'];
 
@@ -951,27 +896,28 @@ class Api extends ResourceController
 
                 if ($isBasicSalary) {
                     $base_nilai = floatval($comp->nilai);
+                    $sumber_nilai = $comp->sumber_nilai ?? 'nominal';
                     
-                    // Force base_nilai to use Employee's setup if available!
-                    if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
-                        $base_nilai = floatval($emp->gaji_pokok);
-                    } else if ($minimumWage > 0) {
-                        $base_nilai = $minimumWage;
-                    } else if (isset($comp->sumber_nilai)) {
-                        if ($comp->sumber_nilai === 'ump') {
-                            $base_nilai = $umpWageValue * ($base_nilai / 100);
-                        } else if ($comp->sumber_nilai === 'umk') {
-                            $base_nilai = $umkWageValue * ($base_nilai / 100);
-                        } else if ($comp->sumber_nilai === 'ump_umk') {
-                            $base_nilai = $minimumWage * ($base_nilai / 100);
-                        } else if ($comp->sumber_nilai === 'kompensasi') {
-                            $kompTetapValue = 0;
-                            foreach ($components as $c) {
-                                if (($c->jenis_komponen ?? '') === 'kompensasi' && ($c->sifat_kompensasi ?? '') === 'tetap') {
-                                    $kompTetapValue += floatval($c->nilai);
-                                }
+                    if ($sumber_nilai === 'ump') {
+                        $base_nilai = $umpWageValue * ($base_nilai / 100);
+                    } else if ($sumber_nilai === 'umk') {
+                        $base_nilai = $umkWageValue * ($base_nilai / 100);
+                    } else if ($sumber_nilai === 'ump_umk') {
+                        $base_nilai = $minimumWage * ($base_nilai / 100);
+                    } else if ($sumber_nilai === 'kompensasi') {
+                        $kompTetapValue = 0;
+                        foreach ($components as $c) {
+                            if (($c->jenis_komponen ?? '') === 'kompensasi' && ($c->sifat_kompensasi ?? '') === 'tetap') {
+                                $kompTetapValue += floatval($c->nilai);
                             }
-                            $base_nilai = $kompTetapValue * ($base_nilai / 100);
+                        }
+                        $base_nilai = $kompTetapValue * ($base_nilai / 100);
+                    } else {
+                        // Force base_nilai to use Employee's setup if available!
+                        if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
+                            $base_nilai = floatval($emp->gaji_pokok);
+                        } else if ($minimumWage > 0) {
+                            $base_nilai = $minimumWage;
                         }
                     }
                     
@@ -1106,29 +1052,6 @@ class Api extends ResourceController
                     if ($isBasic) {
                         $isBpjsInc = true;
                         $isPphInc = true;
-                    } elseif ($schemeTemplate) {
-                        if (strpos($nameClean, 'transport') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_transport'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_transport'] == 1);
-                        } elseif (strpos($nameClean, 'makan') !== false || strpos($nameClean, 'meal') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_makan'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_makan'] == 1);
-                        } elseif (strpos($nameClean, 'komunikasi') !== false || strpos($nameClean, 'communication') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_komunikasi'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_komunikasi'] == 1);
-                        } elseif (strpos($nameClean, 'jabatan') !== false || strpos($nameClean, 'position') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_jabatan'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_jabatan'] == 1);
-                        } elseif (strpos($nameClean, 'kehadiran') !== false || strpos($nameClean, 'attendance') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_kehadiran'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_kehadiran'] == 1);
-                        } elseif (strpos($nameClean, 'kinerja') !== false || strpos($nameClean, 'performance') !== false) {
-                            $isBpjsInc = ($schemeTemplate['bpjs_inc_kinerja'] == 1);
-                            $isPphInc = ($schemeTemplate['pph_inc_kinerja'] == 1);
-                        } else {
-                            $isBpjsInc = (isset($comp->is_bpjs) && $comp->is_bpjs == 1);
-                            $isPphInc = (!isset($comp->is_pph21) || $comp->is_pph21 == 1);
-                        }
                     } else {
                         $isBpjsInc = (isset($comp->is_bpjs) && $comp->is_bpjs == 1);
                         $isPphInc = (!isset($comp->is_pph21) || $comp->is_pph21 == 1);
@@ -1521,8 +1444,15 @@ class Api extends ResourceController
             }
         }
 
-        // Resolve UMP and UMK values
-        $resolvedWages = $this->resolveUmpUmk($mwId);
+        // Resolve UMP and UMK values - pass employee's work location province for UMP lookup
+        $empProvince = null;
+        if ($emp && !empty($emp->work_location_id)) {
+            $wl = $this->db->table('work_locations')->where('id', $emp->work_location_id)->get()->getRow();
+            if ($wl && !empty($wl->provinsi)) {
+                $empProvince = $wl->provinsi;
+            }
+        }
+        $resolvedWages = $this->resolveUmpUmk($mwId, null, $empProvince);
         $umpWageValue = $resolvedWages['ump'];
         $umkWageValue = $resolvedWages['umk'];
 
@@ -1563,12 +1493,7 @@ class Api extends ResourceController
                     }
                 }
                 
-                // Force base_nilai to use Employee's setup if available!
-                if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
-                    $base_nilai = floatval($emp->gaji_pokok);
-                } else if ($minimumWage > 0) {
-                    $base_nilai = $minimumWage;
-                } else if ($sumber_nilai === 'ump') {
+                if ($sumber_nilai === 'ump') {
                     $base_nilai = $umpWageValue * ($base_nilai / 100);
                 } else if ($sumber_nilai === 'umk') {
                     $base_nilai = $umkWageValue * ($base_nilai / 100);
@@ -1582,6 +1507,13 @@ class Api extends ResourceController
                         }
                     }
                     $base_nilai = $kompTetapValue * ($base_nilai / 100);
+                } else {
+                    // Force base_nilai to use Employee's setup if available!
+                    if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
+                        $base_nilai = floatval($emp->gaji_pokok);
+                    } else if ($minimumWage > 0) {
+                        $base_nilai = $minimumWage;
+                    }
                 }
 
                 $unproratedGajiPokok = $base_nilai;
@@ -1979,7 +1911,7 @@ class Api extends ResourceController
         ]);
     }
 
-    protected function resolveUmpUmk($minimumWageId, $tahun = null)
+    protected function resolveUmpUmk($minimumWageId, $tahun = null, $employeeProvince = null)
     {
         $res = ['ump' => 0, 'umk' => 0];
         if (!$minimumWageId) return $res;
@@ -1987,30 +1919,111 @@ class Api extends ResourceController
         $currentWage = $this->db->table('minimum_wages')->where('id', $minimumWageId)->get()->getRow();
         if (!$currentWage) return $res;
 
-        $year = $tahun ?: $currentWage->tahun ?: date('Y');
+        // Try current year first, then wage record's year
+        $currentYear = date('Y');
+        $wageYear = $currentWage->tahun ?: $currentYear;
+        $year = $tahun ?: $currentYear;
 
         if ($currentWage->tipe === 'UMP') {
-            $res['ump'] = floatval($currentWage->nominal);
+            // If the stored UMP is for the current year, use it directly
+            if ($currentWage->tahun == $currentYear) {
+                $res['ump'] = floatval($currentWage->nominal);
+            } else {
+                // Try to find a more recent UMP for the same region
+                $searchName = $currentWage->nama_daerah ?: $currentWage->provinsi;
+                $newerUmp = $this->db->table('minimum_wages')
+                                     ->where('tipe', 'UMP')
+                                     ->where('tahun', $currentYear)
+                                     ->groupStart()
+                                         ->where('nama_daerah', $searchName)
+                                         ->orWhere('provinsi', $searchName)
+                                     ->groupEnd()
+                                     ->get()
+                                     ->getRow();
+                $res['ump'] = $newerUmp ? floatval($newerUmp->nominal) : floatval($currentWage->nominal);
+            }
             // Fallback UMK to the same value
-            $res['umk'] = floatval($currentWage->nominal);
+            $res['umk'] = $res['ump'];
         } else if ($currentWage->tipe === 'UMK') {
-            $res['umk'] = floatval($currentWage->nominal);
+            // For UMK, also try to find the current year's UMK
+            if ($currentWage->tahun == $currentYear) {
+                $res['umk'] = floatval($currentWage->nominal);
+            } else {
+                $searchName = $currentWage->nama_daerah;
+                $newerUmk = $this->db->table('minimum_wages')
+                                     ->where('tipe', 'UMK')
+                                     ->where('tahun', $currentYear)
+                                     ->where('nama_daerah', $searchName)
+                                     ->get()
+                                     ->getRow();
+                $res['umk'] = $newerUmk ? floatval($newerUmk->nominal) : floatval($currentWage->nominal);
+            }
             
             // Find corresponding UMP for the province
-            $provinceName = $currentWage->provinsi ?: $currentWage->nama_daerah;
-            $umpWage = $this->db->table('minimum_wages')
-                                ->where('tipe', 'UMP')
-                                ->where('tahun', $year)
-                                ->groupStart()
-                                    ->where('nama_daerah', $provinceName)
-                                    ->orWhere('provinsi', $provinceName)
-                                ->groupEnd()
-                                ->get()
-                                ->getRow();
+            // Build list of province names to search for
+            $provinceSearchNames = [];
+            if (!empty($currentWage->provinsi)) {
+                $provinceSearchNames[] = $currentWage->provinsi;
+            }
+            if (!empty($employeeProvince)) {
+                $provinceSearchNames[] = $employeeProvince;
+                // Also try uppercase variant
+                $provinceSearchNames[] = strtoupper($employeeProvince);
+            }
+            // Also try to extract province from kode_daerah (e.g. "ID 31.73" -> province code 31)
+            if (!empty($currentWage->kode_daerah)) {
+                $parts = explode(' ', $currentWage->kode_daerah);
+                if (count($parts) >= 2) {
+                    $codeParts = explode('.', $parts[1]);
+                    $provCode = $codeParts[0]; // e.g. "31"
+                    // Look for UMP with matching province code prefix
+                    $umpByCode = $this->db->table('minimum_wages')
+                                         ->where('tipe', 'UMP')
+                                         ->where('tahun', $currentYear)
+                                         ->like('kode_daerah', "ID $provCode", 'after')
+                                         ->get()
+                                         ->getRow();
+                    if (!$umpByCode) {
+                        // Fallback to wage record's year
+                        $umpByCode = $this->db->table('minimum_wages')
+                                             ->where('tipe', 'UMP')
+                                             ->where('tahun', $wageYear)
+                                             ->like('kode_daerah', "ID $provCode", 'after')
+                                             ->get()
+                                             ->getRow();
+                    }
+                    if ($umpByCode) {
+                        $res['ump'] = floatval($umpByCode->nominal);
+                        return $res;
+                    }
+                }
+            }
+            
+            // Search UMP by province name
+            $umpWage = null;
+            $yearsToTry = array_unique([$currentYear, $wageYear]);
+            foreach ($yearsToTry as $tryYear) {
+                foreach ($provinceSearchNames as $provName) {
+                    if (empty($provName)) continue;
+                    $umpWage = $this->db->table('minimum_wages')
+                                        ->where('tipe', 'UMP')
+                                        ->where('tahun', $tryYear)
+                                        ->groupStart()
+                                            ->where('nama_daerah', $provName)
+                                            ->orWhere('provinsi', $provName)
+                                            ->orWhere('nama_daerah', strtoupper($provName))
+                                            ->orWhere('provinsi', strtoupper($provName))
+                                        ->groupEnd()
+                                        ->get()
+                                        ->getRow();
+                    if ($umpWage) break 2;
+                }
+            }
+            
             if ($umpWage) {
                 $res['ump'] = floatval($umpWage->nominal);
             } else {
-                $res['ump'] = floatval($currentWage->nominal); // fallback
+                $res['ump'] = $res['umk']; // fallback UMP to UMK value
             }
         }
         return $res;
@@ -2459,7 +2472,141 @@ class Api extends ResourceController
                   ->getRow();
     }
 
-    private function syncEmployeesToPKWT($clientId = null)
+    public function syncPKWTComponents($pkwtId, $defaultBasicSalary = null)
+    {
+        $pkwt = $this->db->table('pkwt')->where('id', $pkwtId)->get()->getRow();
+        if (!$pkwt) {
+            return;
+        }
+
+        $basicSalary = 0;
+        if ($defaultBasicSalary !== null && floatval($defaultBasicSalary) > 0) {
+            $basicSalary = floatval($defaultBasicSalary);
+        } else {
+            // Fallback to employee's current gaji_pokok in database
+            $emp = $this->db->table('employees')
+                            ->where('client_id', $pkwt->client_id)
+                            ->where('nama', $pkwt->employee_name)
+                            ->get()
+                            ->getRow();
+            if ($emp) {
+                $basicSalary = floatval($emp->gaji_pokok);
+            } else {
+                // Last fallback: existing basic component
+                $existingBasic = $this->db->table('pkwt_components')
+                                          ->where('pkwt_id', $pkwtId)
+                                          ->groupStart()
+                                              ->like('nama', 'Gaji Pokok')
+                                              ->orWhere('jenis_komponen', 'basic_salary')
+                                          ->groupEnd()
+                                          ->get()
+                                          ->getRow();
+                if ($existingBasic) {
+                    $basicSalary = floatval($existingBasic->nilai);
+                }
+            }
+        }
+
+        // Clear existing pkwt components
+        $this->db->table('pkwt_components')->where('pkwt_id', $pkwtId)->delete();
+
+        // Get current active Client Scheme Config
+        $config = $this->resolveClientConfig($pkwt->client_id, $pkwt->position_name);
+
+        $hasComponents = false;
+        if ($config && $config->payroll_scheme_id) {
+            // Fetch components from scheme
+            $components = $this->db->table('payroll_components')
+                                   ->where('scheme_id', $config->payroll_scheme_id)
+                                   ->get()
+                                   ->getResult();
+
+            if (!empty($components)) {
+                $hasComponents = true;
+                foreach ($components as $comp) {
+                    $nilai = $comp->nilai;
+                    if (stripos($comp->nama, 'Gaji Pokok') !== false || ($comp->jenis_komponen ?? '') === 'basic_salary') {
+                        if (isset($comp->sumber_nilai) && ($comp->sumber_nilai === 'ump' || $comp->sumber_nilai === 'umk' || $comp->sumber_nilai === 'kompensasi')) {
+                            $nilai = $comp->nilai;
+                        } else {
+                            $nilai = $basicSalary;
+                        }
+                    }
+
+                    $this->db->table('pkwt_components')->insert([
+                        'pkwt_id' => $pkwtId,
+                        'nama' => $comp->nama,
+                        'tipe' => $comp->tipe,
+                        'nilai' => $nilai,
+                        'is_persentase' => $comp->is_persentase,
+                        'jenis_komponen' => $comp->jenis_komponen ?? 'basic_salary',
+                        'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
+                        'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
+                        'periode' => $comp->periode ?? 'bulan',
+                        'is_bpjs' => $comp->is_bpjs ?? 0,
+                        'is_pph21' => $comp->is_pph21 ?? 1
+                    ]);
+                }
+            }
+        }
+
+        if (!$hasComponents) {
+            // Default Gaji Pokok component
+            $this->db->table('pkwt_components')->insert([
+                'pkwt_id' => $pkwtId,
+                'nama' => 'Gaji Pokok',
+                'tipe' => 'pendapatan',
+                'nilai' => $basicSalary,
+                'is_persentase' => false,
+                'is_bpjs' => 1,
+                'is_pph21' => 1
+            ]);
+        }
+
+        // Add global compensation scheme components if configured
+        $compensationSchemeId = null;
+        if ($config && $config->payroll_scheme_id) {
+            $payrollScheme = $this->db->table('payroll_schemes')->where('id', $config->payroll_scheme_id)->get()->getRow();
+            if ($payrollScheme && !empty($payrollScheme->compensation_scheme_id)) {
+                $compensationSchemeId = $payrollScheme->compensation_scheme_id;
+            }
+        }
+        if (!$compensationSchemeId && $config && $config->compensation_scheme_id) {
+            $compensationSchemeId = $config->compensation_scheme_id;
+        }
+
+        if ($compensationSchemeId) {
+            $compComponents = $this->db->table('compensation_components')
+                                       ->where('scheme_id', $compensationSchemeId)
+                                       ->get()
+                                       ->getResult();
+            foreach ($compComponents as $comp) {
+                // Check if this component name is already added as part of payroll scheme (to avoid duplicate)
+                $dup = $this->db->table('pkwt_components')
+                                ->where('pkwt_id', $pkwtId)
+                                ->where('nama', $comp->nama)
+                                ->get()
+                                ->getRow();
+                if (!$dup) {
+                    $this->db->table('pkwt_components')->insert([
+                        'pkwt_id' => $pkwtId,
+                        'nama' => $comp->nama,
+                        'tipe' => $comp->tipe,
+                        'nilai' => $comp->nilai,
+                        'is_persentase' => $comp->is_persentase,
+                        'jenis_komponen' => $comp->jenis_komponen ?? 'kompensasi',
+                        'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
+                        'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
+                        'periode' => $comp->periode ?? 'bulan',
+                        'is_bpjs' => $comp->is_bpjs ?? 0,
+                        'is_pph21' => $comp->is_pph21 ?? 1
+                    ]);
+                }
+            }
+        }
+    }
+
+    public function syncEmployeesToPKWT($clientId = null)
     {
         if (empty($clientId)) {
             return;
@@ -2500,96 +2647,15 @@ class Api extends ResourceController
                 $this->db->table('pkwt')->insert($pkwtData);
                 $pkwtId = $this->db->insertID();
 
-                // Get Client Scheme Config
-                $config = $this->resolveClientConfig($clientId, $emp->position_name);
-
-                $hasComponents = false;
-                if ($config && $config->payroll_scheme_id) {
-                    // Fetch components from scheme
-                    $components = $this->db->table('payroll_components')
-                                           ->where('scheme_id', $config->payroll_scheme_id)
-                                           ->get()
-                                           ->getResult();
-
-                    if (!empty($components)) {
-                        $hasComponents = true;
-                        foreach ($components as $comp) {
-                            $nilai = $comp->nilai;
-                            if (stripos($comp->nama, 'Gaji Pokok') !== false || ($comp->jenis_komponen ?? '') === 'basic_salary') {
-                                if (isset($comp->sumber_nilai) && ($comp->sumber_nilai === 'ump' || $comp->sumber_nilai === 'umk' || $comp->sumber_nilai === 'kompensasi')) {
-                                    $nilai = $comp->nilai;
-                                } else {
-                                    $nilai = floatval($emp->gaji_pokok);
-                                }
-                            }
-
-                            $this->db->table('pkwt_components')->insert([
-                                'pkwt_id' => $pkwtId,
-                                'nama' => $comp->nama,
-                                'tipe' => $comp->tipe,
-                                'nilai' => $nilai,
-                                'is_persentase' => $comp->is_persentase,
-                                'jenis_komponen' => $comp->jenis_komponen ?? 'basic_salary',
-                                'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
-                                'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
-                                'periode' => $comp->periode ?? 'bulan',
-                                'is_bpjs' => $comp->is_bpjs ?? 0,
-                                'is_pph21' => $comp->is_pph21 ?? 1
-                            ]);
-                        }
-                    }
+                $this->syncPKWTComponents($pkwtId, $emp->gaji_pokok);
+            } else {
+                if (empty($exists->tipe_perjanjian) && !empty($emp->tipe_perjanjian)) {
+                    $this->db->table('pkwt')
+                             ->where('id', $exists->id)
+                             ->update(['tipe_perjanjian' => $emp->tipe_perjanjian]);
                 }
-
-                if (!$hasComponents) {
-                    // Default Gaji Pokok component
-                    $this->db->table('pkwt_components')->insert([
-                        'pkwt_id' => $pkwtId,
-                        'nama' => 'Gaji Pokok',
-                        'tipe' => 'pendapatan',
-                        'nilai' => floatval($emp->gaji_pokok),
-                        'is_persentase' => false,
-                        'is_bpjs' => 1,
-                        'is_pph21' => 1
-                    ]);
-                }
-
-                // Add global compensation scheme components if configured
-                $compensationSchemeId = null;
-                if ($config && $config->payroll_scheme_id) {
-                    $payrollScheme = $this->db->table('payroll_schemes')->where('id', $config->payroll_scheme_id)->get()->getRow();
-                    if ($payrollScheme && !empty($payrollScheme->compensation_scheme_id)) {
-                        $compensationSchemeId = $payrollScheme->compensation_scheme_id;
-                    }
-                }
-                if (!$compensationSchemeId && $config && $config->compensation_scheme_id) {
-                    $compensationSchemeId = $config->compensation_scheme_id;
-                }
-
-                if ($compensationSchemeId) {
-                    $compComponents = $this->db->table('compensation_components')
-                                               ->where('scheme_id', $compensationSchemeId)
-                                               ->get()
-                                               ->getResult();
-                    foreach ($compComponents as $comp) {
-                        $this->db->table('pkwt_components')->insert([
-                            'pkwt_id' => $pkwtId,
-                            'nama' => $comp->nama,
-                            'tipe' => $comp->tipe,
-                            'nilai' => $comp->nilai,
-                            'is_persentase' => $comp->is_persentase,
-                            'jenis_komponen' => $comp->jenis_komponen ?? 'kompensasi',
-                            'sifat_kompensasi' => $comp->sifat_kompensasi ?? 'tetap',
-                            'sumber_nilai' => $comp->sumber_nilai ?? 'nominal',
-                            'periode' => $comp->periode ?? 'bulan',
-                            'is_bpjs' => $comp->is_bpjs ?? 0,
-                            'is_pph21' => $comp->is_pph21 ?? 1
-                        ]);
-                    }
-                }
-            } else if (empty($exists->tipe_perjanjian) && !empty($emp->tipe_perjanjian)) {
-                $this->db->table('pkwt')
-                         ->where('id', $exists->id)
-                         ->update(['tipe_perjanjian' => $emp->tipe_perjanjian]);
+                // ALWAYS synchronize the PKWT components to keep it up to date!
+                $this->syncPKWTComponents($exists->id, $emp->gaji_pokok);
             }
         }
     }

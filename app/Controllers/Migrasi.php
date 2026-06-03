@@ -381,7 +381,7 @@ class Migrasi extends BaseController
                 ALTER TABLE payroll_scheme_templates ADD $col $def");
         }
 
-        // 20. Tambahkan kolom is_bpjs dan is_pph21 ke tabel compensation_components dan pkwt_components
+        // 20. Tambahkan kolom is_bpjs dan is_pph21 ke tabel compensation_components, pkwt_components, dan payroll_components
         $compFlags = [
             'is_bpjs' => 'TINYINT DEFAULT 0',
             'is_pph21' => 'TINYINT DEFAULT 1',
@@ -391,6 +391,8 @@ class Migrasi extends BaseController
                 ALTER TABLE compensation_components ADD $col $def");
             $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt_components') AND name = '$col')
                 ALTER TABLE pkwt_components ADD $col $def");
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_components') AND name = '$col')
+                ALTER TABLE payroll_components ADD $col $def");
         }
 
         return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, kolom departemen/posisi client_payroll_configs, tabel global STO, dan flag BPJS/PPh21 tunjangan)";
