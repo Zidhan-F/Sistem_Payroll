@@ -42,17 +42,17 @@ function renderClientTableData(data) {
     }).join('');
 }
 
-window.cariKlienAktif = function() {
+window.cariKlienAktif = function () {
     const q = document.getElementById('cariKlienGlobal').value.toLowerCase();
     if (!clients) return;
     if (!q) {
         renderClientTableData(clients);
         return;
     }
-    const filtered = clients.filter(c => 
-        (c.nama && c.nama.toLowerCase().includes(q)) || 
-        (c.sektor && c.sektor.toLowerCase().includes(q)) || 
-        (c.npwp && String(c.npwp).toLowerCase().includes(q)) || 
+    const filtered = clients.filter(c =>
+        (c.nama && c.nama.toLowerCase().includes(q)) ||
+        (c.sektor && c.sektor.toLowerCase().includes(q)) ||
+        (c.npwp && String(c.npwp).toLowerCase().includes(q)) ||
         (c.nib && String(c.nib).toLowerCase().includes(q))
     );
     renderClientTableData(filtered);
@@ -68,10 +68,10 @@ function selectClient(id, name, sektor) {
     window.selectedClientName = name;
     window.selectedClientSektor = sektor;
     window.currentPeriodId = null; // Reset period selection when switching clients
-    
+
     document.getElementById('clientWorkspaceTitle').innerText = name;
     document.getElementById('clientWorkspaceSektor').innerText = sektor;
-    
+
     switchView('clientWorkspace');
     switchWorkspaceTab('karyawan');
 }
@@ -222,7 +222,7 @@ document.getElementById('formKlien')?.addEventListener('submit', async (e) => {
         alamat: document.getElementById('alamat').value,
         status: 'Aktif'
     };
-    
+
     try {
         let url = `${API_URL}/clients`;
         let method = 'POST';
@@ -235,7 +235,7 @@ document.getElementById('formKlien')?.addEventListener('submit', async (e) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
+
         if (res.ok) {
             if (typeof tutupModal === 'function') tutupModal();
             else if (document.getElementById('modalClient')) document.getElementById('modalClient').style.display = 'none';
