@@ -306,17 +306,11 @@ function tutupModalManualUmr() {
     document.getElementById('overlay').style.display = 'none';
 }
 
-// CSV Download Template
+// Excel Download Template
 function downloadTemplateUmr() {
     const tipe = currentUmrType;
-    let csvContent = '';
+    const templateData = [];
     
-    if (tipe === 'UMP') {
-        csvContent = 'StateId,StateCode,StateName,UMP\n';
-    } else {
-        csvContent = 'RegencyId,RegencyCode,RegencyName,StateId,UMK\n';
-    }
-
     const stateIdMap = {
         'ID 11': 5, 'ID 12': 6, 'ID 17': 7, 'ID 15': 8, 'ID 14': 9, 'ID 13': 10, 'ID 16': 11,
         'ID 18': 12, 'ID 19': 13, 'ID 21': 14, 'ID 36': 15, 'ID 32': 16, 'ID 31': 17, 'ID 33': 18,
@@ -325,18 +319,29 @@ function downloadTemplateUmr() {
         'ID 76': 33, 'ID 81': 34, 'ID 82': 35, 'ID 91': 36, 'ID 92': 37, 'ID 65': 45
     };
 
-    // Jika ada data di tabel, masukkan data tersebut ke CSV
+    // Jika ada data di tabel, masukkan data tersebut ke Excel
     if (umrAllData && umrAllData.length > 0) {
         let idCounter = 1;
         umrAllData.forEach(row => {
             if (tipe === 'UMP') {
                 const stateId = stateIdMap[row.kode_daerah] || (row.provinsi || idCounter++);
-                csvContent += `${stateId},${row.kode_daerah},${row.nama_daerah},${row.nominal || 0}\n`;
+                templateData.push({
+                    'StateId': stateId,
+                    'StateCode': row.kode_daerah,
+                    'StateName': row.nama_daerah,
+                    'UMP Nominal': row.nominal || 0
+                });
             } else {
                 const regencyId = idCounter++;
                 const prefix = row.kode_daerah.split('.')[0] || '';
                 const stateId = stateIdMap[prefix] || (row.provinsi || 17);
-                csvContent += `${regencyId},${row.kode_daerah},${row.nama_daerah},${stateId},${row.nominal || 0}\n`;
+                templateData.push({
+                    'RegencyId': regencyId,
+                    'RegencyCode': row.kode_daerah,
+                    'RegencyName': row.nama_daerah,
+                    'StateId': stateId,
+                    'UMK Nominal': row.nominal || 0
+                });
             }
         });
     } else {
@@ -381,7 +386,12 @@ function downloadTemplateUmr() {
             
             defaultUmpData.forEach(row => {
                 const stateId = stateIdMap[row.code] || 17;
-                csvContent += `${stateId},${row.code},${row.name},0\n`;
+                templateData.push({
+                    'StateId': stateId,
+                    'StateCode': row.code,
+                    'StateName': row.name,
+                    'UMP Nominal': 0
+                });
             });
         } else {
             const defaultUmkData = [
@@ -397,20 +407,27 @@ function downloadTemplateUmr() {
             defaultUmkData.forEach(row => {
                 const prefix = row.code.split('.')[0] || '';
                 const stateId = stateIdMap[prefix] || 17;
-                csvContent += `${regId++},${row.code},${row.name},${stateId},0\n`;
+                templateData.push({
+                    'RegencyId': regId++,
+                    'RegencyCode': row.code,
+                    'RegencyName': row.name,
+                    'StateId': stateId,
+                    'UMK Nominal': 0
+                });
             });
         }
     }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `template_${tipe.toLowerCase()}_${new Date().getFullYear()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `${tipe} Template`);
+    
+    // Auto-adjust column widths
+    const max_widths = tipe === 'UMP' ? [12, 15, 25, 18] : [12, 15, 25, 12, 18];
+    worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+    const filename = `template_${tipe.toLowerCase()}_${new Date().getFullYear()}.xlsx`;
+    XLSX.writeFile(workbook, filename);
     showToast(`${tipe} template downloaded successfully!`, 'success');
 }
 
@@ -451,7 +468,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         dropZone.addEventListener('drop', (e) => {
             const file = e.dataTransfer.files[0];
-            if (file && file.name.endsWith('.csv')) {
+            const isExcel = file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'));
+            if (file && isExcel) {
                 fileInput.files = e.dataTransfer.files;
                 const fileNameEl = document.getElementById('umrFileName');
                 if (fileNameEl) {
@@ -459,13 +477,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     fileNameEl.style.display = 'block';
                 }
             } else {
-                showToast('Only CSV files are allowed!', 'error');
+                showToast('Only Excel files (.xlsx, .xls) are allowed!', 'error');
             }
         });
     }
-});
-
-// CSV Upload Handler
+});// Excel Upload Handler
 const formUploadUmr = document.getElementById('formUploadUmr');
 if (formUploadUmr) {
     formUploadUmr.addEventListener('submit', async (e) => {
@@ -475,7 +491,7 @@ if (formUploadUmr) {
         const file = fileInput.files[0];
         
         if (!file) {
-            showToast('Please select a CSV file first!', 'error');
+            showToast('Please select an Excel file first!', 'error');
             return;
         }
 
@@ -484,121 +500,81 @@ if (formUploadUmr) {
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
-                const csvText = event.target.result;
-                const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
-                
-                // Skip header row
-                const dataLines = lines.slice(1);
-                
-                if (dataLines.length === 0) {
-                    showToast('CSV file is empty!', 'error');
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet);
+
+                if (!json || json.length === 0) {
+                    showToast('Excel file is empty!', 'error');
                     return;
                 }
 
                 const tipe = document.getElementById('uploadUmrTipe').value;
                 const tahun = document.getElementById('uploadUmrTahun').value;
-                
-                // Helper to split CSV line respecting double quotes
-                const parseCsvLine = (text) => {
-                    const cols = [];
-                    let inQuote = false;
-                    let cell = '';
-                    for (let i = 0; i < text.length; i++) {
-                        const char = text[i];
-                        if (char === '"') {
-                            inQuote = !inQuote;
-                        } else if (char === ',' && !inQuote) {
-                            cols.push(cell.trim().replace(/^"|"$/g, ''));
-                            cell = '';
-                        } else {
-                            cell += char;
-                        }
-                    }
-                    cols.push(cell.trim().replace(/^"|"$/g, ''));
-                    return cols;
-                };
 
-                // Dynamically detect column indices based on header names for extreme robustness
-                const headerLine = lines[0];
-                const headers = parseCsvLine(headerLine);
-                
-                let codeIdx = -1;
-                let nameIdx = -1;
-                let nominalIdx = -1;
-                let stateIdIdx = -1;
+                // Let's dynamically map columns in the Excel JSON array
+                const firstRow = json[0];
+                const keys = Object.keys(firstRow);
 
-                headers.forEach((h, idx) => {
-                    const cleanH = h.toLowerCase();
-                    if (cleanH.includes('code') || cleanH.includes('kode')) {
-                        codeIdx = idx;
-                    } else if (cleanH.includes('name') || cleanH.includes('daerah') || cleanH.includes('kabupaten') || cleanH.includes('provinsi')) {
-                        if (!cleanH.includes('kode')) {
-                            nameIdx = idx;
+                let codeKey = '';
+                let nameKey = '';
+                let nominalKey = '';
+                let stateIdKey = '';
+
+                keys.forEach(k => {
+                    const cleanK = k.toLowerCase().replace(/\s+/g, '');
+                    if (cleanK.includes('code') || cleanK.includes('kode')) {
+                        codeKey = k;
+                    } else if (cleanK.includes('name') || cleanK.includes('daerah') || cleanK.includes('kabupaten') || cleanK.includes('provinsi')) {
+                        if (!cleanK.includes('kode')) {
+                            nameKey = k;
                         }
-                    } else if (cleanH.includes('amount') || cleanH.includes('nominal') || cleanH.includes('gaji') || cleanH === 'ump' || cleanH === 'umk') {
-                        nominalIdx = idx;
-                    } else if (cleanH === 'stateid' || cleanH === 'provinsi_id') {
-                        stateIdIdx = idx;
+                    } else if (cleanK.includes('amount') || cleanK.includes('nominal') || cleanK.includes('gaji') || cleanK === 'ump' || cleanK === 'umk') {
+                        nominalKey = k;
+                    } else if (cleanK === 'stateid' || cleanK === 'provinsiid') {
+                        stateIdKey = k;
                     }
                 });
 
-                // Fallbacks if not auto-detected by headers
-                if (codeIdx === -1) {
+                // Fallbacks if not auto-detected
+                if (!codeKey) {
                     if (tipe === 'UMP') {
-                        codeIdx = headers.length >= 4 ? 1 : 0;
-                        nameIdx = headers.length >= 4 ? 2 : 1;
-                        nominalIdx = headers.length >= 4 ? 3 : 2;
-                        stateIdIdx = headers.length >= 4 ? 0 : -1;
+                        stateIdKey = keys[0] || '';
+                        codeKey = keys[1] || '';
+                        nameKey = keys[2] || '';
+                        nominalKey = keys[3] || '';
                     } else {
-                        codeIdx = headers.length >= 5 ? 1 : 0;
-                        nameIdx = headers.length >= 5 ? 2 : 1;
-                        stateIdIdx = headers.length >= 5 ? 3 : -1;
-                        nominalIdx = headers.length >= 5 ? 4 : 2;
+                        codeKey = keys[1] || '';
+                        nameKey = keys[2] || '';
+                        stateIdKey = keys[3] || '';
+                        nominalKey = keys[4] || '';
                     }
                 }
-                
-                const items = dataLines.map(line => {
-                    // Handle CSV with commas inside quotes
-                    const cols = parseCsvLine(line);
-                    let rawNominal = cols[nominalIdx] || '0';
-                    rawNominal = rawNominal.trim();
-                    
-                    let nominalVal = 0;
-                    if (rawNominal.includes('.') && rawNominal.includes(',')) {
-                        if (rawNominal.lastIndexOf('.') > rawNominal.lastIndexOf(',')) {
-                            nominalVal = parseFloat(rawNominal.replace(/,/g, '')) || 0;
-                        } else {
-                            nominalVal = parseFloat(rawNominal.replace(/\./g, '').replace(/,/g, '.')) || 0;
-                        }
-                    } else if (rawNominal.includes(',')) {
-                        const parts = rawNominal.split(',');
-                        if (parts.length === 2 && parts[1].length === 2) {
-                            nominalVal = parseFloat(rawNominal.replace(/,/g, '.')) || 0;
-                        } else {
-                            nominalVal = parseFloat(rawNominal.replace(/,/g, '')) || 0;
-                        }
-                    } else if (rawNominal.includes('.')) {
-                        const parts = rawNominal.split('.');
-                        if (parts.length > 2 || (parts.length === 2 && parts[1].length === 3)) {
-                            nominalVal = parseFloat(rawNominal.replace(/\./g, '')) || 0;
-                        } else {
-                            nominalVal = parseFloat(rawNominal) || 0;
-                        }
-                    } else {
-                        nominalVal = parseFloat(rawNominal) || 0;
-                    }
 
-                    const provinceVal = stateIdIdx !== -1 ? (cols[stateIdIdx] || '') : '';
-                    
+                const items = json.map(row => {
+                    let rawNominal = String(row[nominalKey] || '0').trim();
+                    let nominalVal = parseFloat(rawNominal.replace(/[^0-9.-]+/g, '')) || 0;
+
+                    let codeVal = String(row[codeKey] || '').trim();
+                    let nameVal = String(row[nameKey] || '').trim();
+                    let provinceVal = stateIdKey ? String(row[stateIdKey] || '').trim() : '';
+
                     return {
                         tipe: tipe,
-                        kode_daerah: cols[codeIdx] || '',
-                        nama_daerah: cols[nameIdx] || '',
+                        kode_daerah: codeVal,
+                        nama_daerah: nameVal,
                         provinsi: provinceVal,
                         nominal: nominalVal,
                         tahun: parseInt(tahun)
                     };
                 }).filter(item => item.kode_daerah && item.nama_daerah);
+
+                if (items.length === 0) {
+                    showToast('No valid rows found in Excel sheet!', 'error');
+                    return;
+                }
 
                 const res = await fetch(`${API_URL}/minimum-wages`, {
                     method: 'POST',
@@ -616,10 +592,10 @@ if (formUploadUmr) {
                 }
             } catch (err) {
                 console.error(err);
-                showToast('Error processing CSV file!', 'error');
+                showToast('Error processing Excel file!', 'error');
             }
         };
-        reader.readAsText(file);
+        reader.readAsArrayBuffer(file);
     });
 }
 

@@ -1116,6 +1116,10 @@ function processParsedAttendance(rows) {
     logsDiv.innerHTML += "\n" + logText;
     logsDiv.innerHTML += `\nSuccess: Ready to apply ${finalAttendance.length} records.`;
     
+    if (typeof window.renderInlineAttendanceTable === 'function') {
+        window.renderInlineAttendanceTable(rows, false);
+    }
+
     const btn = document.getElementById('btnSaveUploadedAbsensi');
     if (btn) {
         btn.disabled = false;
@@ -1163,4 +1167,6 @@ window.onAbsensiPeriodChanged = onAbsensiPeriodChanged;
 window.downloadAbsensiTemplate = downloadAbsensiTemplate;
 window.handleAbsensiFileSelect = handleAbsensiFileSelect;
 window.saveUploadedAbsensi = saveUploadedAbsensi;
+window.parseExcelDate = parseExcelDate;
+window.renderCutOffTable = renderCutOffTable;
 

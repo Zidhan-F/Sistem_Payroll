@@ -180,20 +180,15 @@ async function hapusPajak(id) {
     } catch (err) { console.error(err); }
 }
 
-// Tab switcher for BPJS & PPh 21
 function switchTaxTab(tab) {
     // Update tab button styles
     document.querySelectorAll('#viewPajak .ws-tab').forEach(btn => {
         btn.classList.remove('active');
-        btn.style.borderBottomColor = 'transparent';
-        btn.style.color = '#64748b';
     });
 
     const activeBtn = document.querySelector(`#viewPajak .ws-tab[data-taxtab="${tab}"]`);
     if (activeBtn) {
         activeBtn.classList.add('active');
-        activeBtn.style.borderBottomColor = 'var(--primary-color)';
-        activeBtn.style.color = 'var(--primary-color)';
     }
 
     // Show/hide tab panels

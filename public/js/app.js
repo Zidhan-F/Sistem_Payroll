@@ -593,6 +593,13 @@ function quickAction(type) {
         } else {
             switchView('masterKompensasi');
         }
+    } else if (type === 'add-sto-global') {
+        switchView('sto');
+        setTimeout(() => {
+            if (typeof window.bukaModalGlobalSto === 'function') {
+                window.bukaModalGlobalSto('divisi', 'tambah');
+            }
+        }, 150);
     }
 }
 window.quickAction = quickAction;

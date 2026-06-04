@@ -9,9 +9,9 @@
                     </div>
 
                     <!-- Custom Tabs for BPJS & PPh 21 -->
-                    <div class="workspace-tabs" style="display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                        <button class="ws-tab active" data-taxtab="bpjs" onclick="switchTaxTab('bpjs')" style="padding: 10px 20px; font-weight: 600; border: none; background: none; border-bottom: 2px solid var(--primary-color); cursor: pointer; color: var(--primary-color);">BPJS Schemes</button>
-                        <button class="ws-tab" data-taxtab="pph21" onclick="switchTaxTab('pph21')" style="padding: 10px 20px; font-weight: 600; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; color: #64748b;">PPh 21 Schemes</button>
+                    <div class="workspace-tabs">
+                        <button class="ws-tab active" data-taxtab="bpjs" onclick="switchTaxTab('bpjs')">BPJS Schemes</button>
+                        <button class="ws-tab" data-taxtab="pph21" onclick="switchTaxTab('pph21')">PPh 21 Schemes</button>
                     </div>
 
                     <!-- Tab Panel: BPJS Schemes -->

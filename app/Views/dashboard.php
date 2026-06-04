@@ -93,6 +93,17 @@
                             </div>
                         </div>
 
+                        <!-- Action 8: Add STO Global -->
+                        <div class="quick-action-card" onclick="quickAction('add-sto-global')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(243, 156, 18, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/4205/4205934.png" alt="Add STO Global" style="width: 32px; height: 32px; object-fit: contain;">
+                            </div>
+                            <div>
+                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Add STO Global</h4>
+                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Manage divisions, departments, & positions.</p>
+                            </div>
+                        </div>
+
                         <!-- Action 3: Struktur Gaji -->
                         <div class="quick-action-card" onclick="quickAction('struktur-gaji')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(46, 204, 113, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -149,6 +160,8 @@
                                 <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Configure payroll parameters & templates.</p>
                             </div>
                         </div>
+
+
 
 
                     </div>
@@ -273,10 +286,10 @@
                     </div>
 
                     <!-- Custom Tabs for Global STO -->
-                    <div class="workspace-tabs" style="display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                        <button class="ws-tab active" data-stotab="divisi" onclick="switchStoTab('divisi')" style="padding: 10px 20px; font-weight: 600; border: none; background: none; border-bottom: 2px solid var(--primary-color); cursor: pointer; color: var(--primary-color);">Division Master</button>
-                        <button class="ws-tab" data-stotab="departemen" onclick="switchStoTab('departemen')" style="padding: 10px 20px; font-weight: 600; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; color: #64748b;">Department Master</button>
-                        <button class="ws-tab" data-stotab="posisi" onclick="switchStoTab('posisi')" style="padding: 10px 20px; font-weight: 600; border: none; background: none; border-bottom: 2px solid transparent; cursor: pointer; color: #64748b;">Position Master</button>
+                    <div class="workspace-tabs">
+                        <button class="ws-tab active" data-stotab="divisi" onclick="switchStoTab('divisi')">Division Master</button>
+                        <button class="ws-tab" data-stotab="departemen" onclick="switchStoTab('departemen')">Department Master</button>
+                        <button class="ws-tab" data-stotab="posisi" onclick="switchStoTab('posisi')">Position Master</button>
                     </div>
 
                     <!-- Tab Panel: Division -->
@@ -735,7 +748,7 @@
                             <!-- Action Buttons and Select filters -->
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                                 
-                                <!-- Left Side: Search and Download -->
+                                <!-- Left Side: Search -->
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <!-- State Tracker for UMR type -->
                                     <input type="hidden" id="selectUmrType" value="UMP">
@@ -745,16 +758,16 @@
                                         <i class="fas fa-search"></i>
                                         <input type="text" id="searchUmr" placeholder="Search Province..." onkeyup="filterUmrTable()">
                                     </div>
-
-                                    <!-- Blue Download Template Button -->
-                                    <button class="btn-add" onclick="downloadTemplateUmr()" style="background: #0d6efd; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                                        <i class="fas fa-download"></i> Download
-                                    </button>
                                 </div>
 
-                                <!-- Right Side: Upload Button -->
-                                <div>
-                                    <button class="btn-add" onclick="bukaModalUploadUmr()" style="background: #ffc107; color: #000; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                <!-- Right Side: Buttons -->
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <!-- Download Button (Orange) -->
+                                    <button class="btn-add" onclick="downloadTemplateUmr()" style="background: #f39c12; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-download"></i> Download
+                                    </button>
+                                    <!-- Upload Button (Blue) -->
+                                    <button class="btn-add" onclick="bukaModalUploadUmr()" style="background: #0d6efd; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                                         <i class="fas fa-upload"></i> Upload
                                     </button>
                                 </div>

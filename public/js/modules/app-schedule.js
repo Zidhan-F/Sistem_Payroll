@@ -325,3 +325,697 @@ window.tutupModalSchedule = tutupModalSchedule;
 window.hapusScheduleTemplate = hapusScheduleTemplate;
 window.pilihTahunSchedule = pilihTahunSchedule;
 window.tambahPeriodeTahunan = tambahPeriodeTahunan;
+
+// ===== INLINE ATTENDANCE UPLOAD & TABS =====
+async function switchScheduleTab(tab) {
+    const tabTemplatesBtn = document.getElementById('tabScheduleTemplatesBtn');
+    const tabUploadBtn = document.getElementById('tabScheduleUploadBtn');
+    const templatesPanel = document.getElementById('scheduleTabTemplates');
+    const uploadPanel = document.getElementById('scheduleTabUpload');
+
+    if (!tabTemplatesBtn || !tabUploadBtn || !templatesPanel || !uploadPanel) return;
+
+    if (tab === 'templates') {
+        tabTemplatesBtn.classList.add('active');
+        tabUploadBtn.classList.remove('active');
+
+        templatesPanel.style.display = 'block';
+        uploadPanel.style.display = 'none';
+        
+        renderMasterSchedule();
+    } else if (tab === 'upload') {
+        tabUploadBtn.classList.add('active');
+        tabTemplatesBtn.classList.remove('active');
+
+        templatesPanel.style.display = 'none';
+        uploadPanel.style.display = 'block';
+        
+        // Load clients for the inline form
+        clearInlineAttendanceTable();
+    }
+}
+
+async function initInlineUploadClients() {
+    const clientSelect = document.getElementById('inlineUploadAbsensiClient');
+    if (!clientSelect) return;
+    
+    clientSelect.innerHTML = '<option value="">Loading clients...</option>';
+    
+    try {
+        const res = await fetch(`${API_URL}/clients`);
+        const configs = res.ok ? await res.json() : [];
+        
+        clientSelect.innerHTML = '<option value="">-- Select Client --</option>' + configs.map(c => `
+            <option value="${c.id}">${c.nama}</option>
+        `).join('');
+
+        // If client is already active in workspace, auto-select it!
+        if (window.selectedClientId && configs.some(c => c.id == window.selectedClientId)) {
+            clientSelect.value = window.selectedClientId;
+            onInlineAbsensiClientChanged();
+        } else {
+            const periodSelect = document.getElementById('inlineUploadAbsensiPeriod');
+            if (periodSelect) {
+                periodSelect.innerHTML = '<option value="">-- Select Client First --</option>';
+                periodSelect.disabled = true;
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        clientSelect.innerHTML = '<option value="">Failed to load clients</option>';
+        showToast('Failed to load clients list', 'error');
+    }
+}
+
+async function onInlineAbsensiClientChanged() {
+    const clientId = document.getElementById('inlineUploadAbsensiClient').value;
+    const periodSelect = document.getElementById('inlineUploadAbsensiPeriod');
+    
+    if (!clientId) {
+        periodSelect.innerHTML = '<option value="">-- Select Client First --</option>';
+        periodSelect.disabled = true;
+        clearInlineAttendanceTable();
+        return;
+    }
+
+    periodSelect.innerHTML = '<option value="">Loading periods...</option>';
+    periodSelect.disabled = true;
+    clearInlineAttendanceTable();
+
+    try {
+        const res = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+        const periods = res.ok ? await res.json() : [];
+        window.inlineUploadPeriods = periods;
+
+        if (periods.length === 0) {
+            periodSelect.innerHTML = '<option value="">No periods available</option>';
+            return;
+        }
+
+        periodSelect.innerHTML = '<option value="">-- Select Period --</option>' + periods.map(p => `
+            <option value="${p.id}">${p.nama} (${p.status})</option>
+        `).join('');
+        periodSelect.disabled = false;
+
+        // Auto-select active period if it matches
+        if (typeof currentPeriodId !== 'undefined' && currentPeriodId && periods.some(p => p.id == currentPeriodId)) {
+            periodSelect.value = currentPeriodId;
+            onInlineAbsensiPeriodChanged();
+        }
+    } catch (e) {
+        console.error(e);
+        periodSelect.innerHTML = '<option value="">Error loading periods</option>';
+    }
+}
+
+let inlinePeriodAttendance = [];
+
+async function onInlineAbsensiPeriodChanged() {
+    const clientId = document.getElementById('inlineUploadAbsensiClient').value;
+    const periodId = document.getElementById('inlineUploadAbsensiPeriod').value;
+    const logsDiv = document.getElementById('inlineUploadAbsensiLogs');
+    
+    // Hide left column and restore 1-column layout when period changes
+    const leftCol = document.getElementById('inlineUploadFormCol');
+    const container = document.getElementById('inlineUploadContainer');
+    if (leftCol && container) {
+        leftCol.style.display = 'none';
+        container.style.gridTemplateColumns = '1fr';
+    }
+
+    clearInlineAttendanceTable();
+    
+    if (!clientId || !periodId) {
+        inlinePeriodAttendance = [];
+        return;
+    }
+
+    const tbody = document.getElementById('inlineAttendanceTableBody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: #94a3b8; border: none !important; height: 290px; vertical-align: middle;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 36px; margin-bottom: 12px; display: block; color: var(--primary-color);"></i>
+                    Loading data...
+                </td>
+            </tr>
+        `;
+    }
+
+    logsDiv.innerHTML = "Fetching active employees for this period...\n";
+    try {
+        const res = await fetch(`${API_URL}/attendance/${periodId}?client_id=${clientId}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        inlinePeriodAttendance = data;
+        logsDiv.innerHTML += `Loaded ${data.length} active employees from database.\n`;
+        
+        // Render database summaries in the table
+        renderInlineAttendanceTable(data, true);
+    } catch (e) {
+        console.error(e);
+        logsDiv.innerHTML += `Error loading employee roster: ${e.message || e}\n`;
+    }
+}
+
+function renderInlineAttendanceTable(rows, isDbSummary = false) {
+    const thead = document.getElementById('inlineAttendanceTableHeader');
+    const tbody = document.getElementById('inlineAttendanceTableBody');
+    if (!thead || !tbody) return;
+
+    // Render Headers
+    if (isDbSummary) {
+        thead.innerHTML = `
+            <tr style="background: #f8fafc;">
+                <th style="width: 50px; text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">No</th>
+                <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Employee ID</th>
+                <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Employee Name</th>
+                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Contract</th>
+                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Hari Kerja</th>
+                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Lembur (Hr)</th>
+                <th style="text-align: right; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Pot. Absen</th>
+                <th style="text-align: right; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Bonus Tambahan</th>
+            </tr>
+        `;
+    } else {
+        thead.innerHTML = `
+            <tr style="background: #f8fafc;">
+                <th style="width: 50px; text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">No</th>
+                <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Employee ID</th>
+                <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Nama</th>
+                <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Tgl dan Hari</th>
+                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Masuk</th>
+                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Keluar</th>
+                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
+            </tr>
+        `;
+    }
+
+    if (!rows || rows.length === 0) {
+        const colSpan = isDbSummary ? 8 : 7;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="${colSpan}" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <i class="fas fa-file-excel" style="font-size: 36px; margin-bottom: 12px; display: block; color: #cbd5e1;"></i>
+                    No attendance data found.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    if (isDbSummary) {
+        tbody.innerHTML = rows.map((emp, idx) => {
+            const empId = emp.employ_id || emp.nik || '-';
+            const empName = emp.employee_name || '-';
+            const contract = emp.tipe_perjanjian || '-';
+            const workingDays = emp.hari_kerja !== null ? emp.hari_kerja : '0';
+            const overtime = emp.jam_lembur !== null ? parseFloat(emp.jam_lembur) : '0';
+            const deduction = emp.potongan_absensi !== null ? formatRupiah(parseFloat(emp.potongan_absensi)) : 'Rp 0';
+            const bonus = emp.bonus_tambahan !== null ? formatRupiah(parseFloat(emp.bonus_tambahan)) : 'Rp 0';
+
+            return `
+                <tr class="attendance-row">
+                    <td style="text-align: center; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">${idx + 1}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #475569; font-weight: 500;">${empId}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #1e293b; font-weight: 600;">${empName}</td>
+                    <td style="text-align: center; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 12px;"><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #475569; font-weight: 600;">${contract}</span></td>
+                    <td style="text-align: center; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #1e293b; font-weight: 600;">${workingDays}</td>
+                    <td style="text-align: center; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #1e293b; font-weight: 600;">${overtime}</td>
+                    <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #e74c3c; font-weight: 600;">${deduction}</td>
+                    <td style="text-align: right; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #2ecc71; font-weight: 600;">${bonus}</td>
+                </tr>
+            `;
+        }).join('');
+    } else {
+        tbody.innerHTML = rows.map((row, idx) => {
+            const keys = Object.keys(row);
+            const empIdKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'employeeid');
+            const nameKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'nama' || k.toLowerCase().replace(/\s+/g, '') === 'name');
+            const tglKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'tgldanhari' || k.toLowerCase().replace(/\s+/g, '') === 'tanggal' || k.toLowerCase().replace(/\s+/g, '') === 'date');
+            const checkinKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jammasuk' || k.toLowerCase().replace(/\s+/g, '') === 'checkin');
+            const checkoutKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jamkeluar' || k.toLowerCase().replace(/\s+/g, '') === 'checkout');
+            const statusKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'status');
+
+            const empId = String(row[empIdKey] || '').trim();
+            const empName = String(row[nameKey] || '').trim();
+            
+            let tglVal = row[tglKey];
+            if (tglVal instanceof Date) {
+                const y = tglVal.getFullYear();
+                const m = String(tglVal.getMonth() + 1).padStart(2, '0');
+                const d = String(tglVal.getDate()).padStart(2, '0');
+                tglVal = `${y}-${m}-${d}`;
+            }
+            
+            const checkin = String(row[checkinKey] !== undefined ? row[checkinKey] : '').trim();
+            const checkout = String(row[checkoutKey] !== undefined ? row[checkoutKey] : '').trim();
+            const status = String(row[statusKey] !== undefined ? row[statusKey] : '').trim();
+
+            // Color badge for status
+            let statusBadge = '';
+            const statusNorm = status.toLowerCase();
+            if (statusNorm === 'hadir' || statusNorm === 'present') {
+                statusBadge = `<span style="background: #e8fdf0; padding: 2px 8px; border-radius: 4px; color: #2ecc71; font-weight: 600; font-size: 11px;">${status}</span>`;
+            } else if (statusNorm === 'alfa' || statusNorm === 'absent') {
+                statusBadge = `<span style="background: #fdeded; padding: 2px 8px; border-radius: 4px; color: #e74c3c; font-weight: 600; font-size: 11px;">${status}</span>`;
+            } else if (statusNorm === 'off') {
+                statusBadge = `<span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #64748b; font-weight: 600; font-size: 11px;">${status}</span>`;
+            } else {
+                statusBadge = `<span style="background: #eff6ff; padding: 2px 8px; border-radius: 4px; color: #3b82f6; font-weight: 600; font-size: 11px;">${status || '-'}</span>`;
+            }
+
+            return `
+                <tr class="attendance-row">
+                    <td style="text-align: center; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b;">${idx + 1}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #475569; font-weight: 500;">${empId || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #1e293b; font-weight: 600;">${empName || '-'}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #475569;">${tglVal || '-'}</td>
+                    <td style="text-align: center; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #1e293b;">${checkin || '-'}</td>
+                    <td style="text-align: center; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #1e293b;">${checkout || '-'}</td>
+                    <td style="text-align: center; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">${statusBadge}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+}
+
+function clearInlineAttendanceTable() {
+    const tbody = document.getElementById('inlineAttendanceTableBody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: #cbd5e1; border: none !important; height: 290px; vertical-align: middle;">
+                    <i class="fas fa-file-excel" style="font-size: 36px; margin-bottom: 12px; display: block; color: #cbd5e1;"></i>
+                    No data. Click "Upload Excel" to preview attendance details.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function triggerInlineBrowseExcel() {
+    const clientVal = document.getElementById('inlineUploadAbsensiClient').value;
+    const periodVal = document.getElementById('inlineUploadAbsensiPeriod').value;
+    if (!clientVal || !periodVal) {
+        showToast('Please select Client and Period first before uploading.', 'warning');
+        return;
+    }
+    document.getElementById('inlineFileAbsensiExcel').click();
+}
+
+function cancelInlineUpload() {
+    // Hide left column and restore 1-column layout
+    const leftCol = document.getElementById('inlineUploadFormCol');
+    const container = document.getElementById('inlineUploadContainer');
+    if (leftCol && container) {
+        leftCol.style.display = 'none';
+        container.style.gridTemplateColumns = '1fr';
+    }
+
+    // Reset file input & filename label
+    document.getElementById('inlineFileAbsensiExcel').value = '';
+    document.getElementById('inlineLabelAbsensiFilename').innerText = 'No file chosen';
+
+    // Reload the database summary table
+    onInlineAbsensiPeriodChanged();
+}
+
+function filterInlineAttendanceTable() {
+    const searchVal = document.getElementById('searchInlineAttendance').value.toLowerCase();
+    const rows = document.querySelectorAll('#inlineAttendanceTableBody .attendance-row');
+    
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        if (text.includes(searchVal)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function downloadInlineAbsensiTemplate() {
+    const clientId = document.getElementById('inlineUploadAbsensiClient').value;
+    const periodId = document.getElementById('inlineUploadAbsensiPeriod').value;
+
+    if (!clientId || !periodId) {
+        showToast('Please select Client and Period first.', 'warning');
+        return;
+    }
+
+    const activePeriod = window.inlineUploadPeriods?.find(p => p.id == periodId);
+    if (!activePeriod) {
+        showToast('Period details not found.', 'error');
+        return;
+    }
+
+    const employees = inlinePeriodAttendance || [];
+    if (employees.length === 0) {
+        showToast('No active employees found to generate template.', 'warning');
+        return;
+    }
+
+    const month = parseInt(activePeriod.bulan);
+    const year = parseInt(activePeriod.tahun);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const templateData = [];
+
+    employees.forEach(emp => {
+        const empId = emp.employ_id || emp.nik || '';
+        const empName = emp.employee_name || '';
+        const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateObj = new Date(year, month - 1, d);
+            const dayOfWeek = dateObj.getDay();
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayName = dayNames[dayOfWeek];
+            const tglHariStr = `${dateStr} ${dayName}`;
+
+            let jamMasuk = '08:00';
+            let jamKeluar = '17:00';
+            let status = 'Hadir';
+
+            let isRestDay = false;
+            if (workDaysConfig === 5) {
+                isRestDay = (dayOfWeek === 0 || dayOfWeek === 6);
+            } else if (workDaysConfig === 6) {
+                isRestDay = (dayOfWeek === 0);
+            }
+
+            if (isRestDay) {
+                jamMasuk = '';
+                jamKeluar = '';
+                status = 'Off';
+            }
+
+            templateData.push({
+                'Employee ID': empId,
+                'Nama': empName,
+                'Tgl dan Hari': tglHariStr,
+                'Jam Masuk': jamMasuk,
+                'Jam Keluar': jamKeluar,
+                'Status': status
+            });
+        }
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Template");
+    
+    const max_widths = [15, 25, 20, 12, 12, 12];
+    worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+    const filename = `Attendance_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+    showToast('Template downloaded successfully!', 'success');
+}
+
+let inlineParsedAttendanceData = [];
+
+function handleInlineAbsensiFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const clientId = document.getElementById('inlineUploadAbsensiClient').value;
+    const periodId = document.getElementById('inlineUploadAbsensiPeriod').value;
+    if (!clientId || !periodId) {
+        showToast('Please select Client and Period first before selecting file.', 'warning');
+        return;
+    }
+
+    document.getElementById('inlineLabelAbsensiFilename').innerText = file.name;
+    const logsDiv = document.getElementById('inlineUploadAbsensiLogs');
+    logsDiv.innerHTML = "Reading file...\n";
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+
+            if (json.length === 0) {
+                logsDiv.innerHTML += "Error: Excel file is empty.\n";
+                return;
+            }
+
+            logsDiv.innerHTML += `Parsed ${json.length} rows from sheet "${sheetName}".\n`;
+            processInlineParsedAttendance(json);
+        } catch (err) {
+            console.error(err);
+            logsDiv.innerHTML += `Error parsing file: ${err.message || err}\n`;
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function processInlineParsedAttendance(rows) {
+    const periodId = document.getElementById('inlineUploadAbsensiPeriod').value;
+    const logsDiv = document.getElementById('inlineUploadAbsensiLogs');
+    const employees = inlinePeriodAttendance || [];
+    if (employees.length === 0) {
+        logsDiv.innerHTML += "Error: No active employees loaded in context.\n";
+        return;
+    }
+
+    // Toggle open the Left panel (Import Control) and make right column flex 1
+    const leftCol = document.getElementById('inlineUploadFormCol');
+    const container = document.getElementById('inlineUploadContainer');
+    if (leftCol && container) {
+        leftCol.style.display = 'block';
+        container.style.gridTemplateColumns = '350px 1fr';
+    }
+
+    const excelByEmp = {};
+    rows.forEach(row => {
+        const keys = Object.keys(row);
+        const empIdKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'employeeid');
+        const nameKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'nama' || k.toLowerCase().replace(/\s+/g, '') === 'name');
+        const tglKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'tgldanhari' || k.toLowerCase().replace(/\s+/g, '') === 'tanggal' || k.toLowerCase().replace(/\s+/g, '') === 'date');
+        const checkinKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jammasuk' || k.toLowerCase().replace(/\s+/g, '') === 'checkin');
+        const checkoutKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jamkeluar' || k.toLowerCase().replace(/\s+/g, '') === 'checkout');
+        const statusKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'status');
+
+        const empId = String(row[empIdKey] || '').trim();
+        const empName = String(row[nameKey] || '').trim();
+        const tglVal = row[tglKey];
+        const checkin = String(row[checkinKey] || '').trim();
+        const checkout = String(row[checkoutKey] || '').trim();
+        const status = String(row[statusKey] || '').trim();
+
+        const key = empId || empName.toLowerCase();
+        if (!key) return;
+
+        if (!excelByEmp[key]) {
+            excelByEmp[key] = [];
+        }
+        excelByEmp[key].push({
+            dateVal: tglVal,
+            checkin: checkin,
+            checkout: checkout,
+            status: status
+        });
+    });
+
+    const finalAttendance = [];
+    let logText = "";
+    const previewData = JSON.parse(JSON.stringify(employees));
+
+    previewData.forEach(emp => {
+        const empId = String(emp.employ_id || emp.nik || '').trim();
+        const empName = String(emp.employee_name || '').trim();
+        
+        let matchedRows = excelByEmp[empId] || excelByEmp[empName.toLowerCase()];
+        if (!matchedRows) {
+            const matchingKey = Object.keys(excelByEmp).find(k => 
+                k.toLowerCase() === empName.toLowerCase() || 
+                empName.toLowerCase().includes(k.toLowerCase()) ||
+                k.toLowerCase().includes(empName.toLowerCase())
+            );
+            if (matchingKey) {
+                matchedRows = excelByEmp[matchingKey];
+            }
+        }
+
+        if (!matchedRows) {
+            logText += `⚠️ Employee not found in Excel: "${empName}" (ID: ${empId || 'N/A'}). Will use default/current values.\n`;
+            return;
+        }
+
+        const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+        let totalHadir = 0;
+        let totalLembur = 0;
+        let totalAlfa = 0;
+        
+        matchedRows.forEach(row => {
+            const dateObj = parseExcelDate(row.dateVal);
+            if (!dateObj) return;
+
+            const dayOfWeek = dateObj.getDay();
+            const statusNorm = row.status.toLowerCase().trim();
+
+            let isRestDay = false;
+            if (workDaysConfig === 5) {
+                isRestDay = (dayOfWeek === 0 || dayOfWeek === 6);
+            } else if (workDaysConfig === 6) {
+                isRestDay = (dayOfWeek === 0);
+            }
+
+            let hasTimes = false;
+            let checkinTime = null;
+            let checkoutTime = null;
+
+            if (row.checkin && row.checkout && row.checkin !== 'null' && row.checkout !== 'null') {
+                const ciParts = row.checkin.split(':');
+                const coParts = row.checkout.split(':');
+                if (ciParts.length >= 2 && coParts.length >= 2) {
+                    hasTimes = true;
+                    checkinTime = new Date(2000, 0, 1, parseInt(ciParts[0]), parseInt(ciParts[1]), 0);
+                    checkoutTime = new Date(2000, 0, 1, parseInt(coParts[0]), parseInt(coParts[1]), 0);
+                    if (checkoutTime < checkinTime) {
+                        checkoutTime.setDate(checkoutTime.getDate() + 1);
+                    }
+                }
+            }
+
+            const isPresent = (statusNorm === 'hadir' || statusNorm === 'present' || (statusNorm === '' && hasTimes));
+            if (isPresent) {
+                totalHadir++;
+            }
+
+            if (isPresent && hasTimes) {
+                const diffHrs = (checkoutTime - checkinTime) / (1000 * 60 * 60);
+                if (isRestDay) {
+                    const ot = Math.max(0, diffHrs - (diffHrs > 4 ? 1 : 0));
+                    totalLembur += ot;
+                } else {
+                    const ot = Math.max(0, diffHrs - 9);
+                    totalLembur += ot;
+                }
+            }
+
+            const isAbsent = (statusNorm === 'alfa' || statusNorm === 'absent' || statusNorm === 'missing');
+            if (isAbsent && !isRestDay) {
+                totalAlfa++;
+            }
+        });
+
+        const gajiPokok = parseFloat(emp.gaji_pokok || 0);
+        const divider = (workDaysConfig === 5) ? 22 : ((workDaysConfig === 6) ? 26 : 30);
+        const dendaAbsenPerDay = gajiPokok / divider;
+        const totalPotongan = totalAlfa * dendaAbsenPerDay;
+
+        logText += `✅ Parsed "${empName}":\n`;
+        logText += `   - Work week config: ${workDaysConfig} days (${workDaysConfig === 5 ? 'Sat/Sun off' : workDaysConfig === 6 ? 'Sun off' : 'No off'})\n`;
+        logText += `   - Attended: ${totalHadir} Days, Overtime: ${totalLembur.toFixed(1)} Hours\n`;
+        logText += `   - Absent (Alfa): ${totalAlfa} Days => Deduction: ${formatRupiah(totalPotongan)}\n`;
+
+        emp.hari_kerja = totalHadir;
+        emp.jam_lembur = parseFloat(totalLembur.toFixed(1));
+        emp.potongan_absensi = parseFloat(totalPotongan.toFixed(2));
+
+        finalAttendance.push({
+            period_id: periodId,
+            pkwt_id: emp.pkwt_id,
+            hari_kerja: totalHadir,
+            jam_lembur: parseFloat(totalLembur.toFixed(1)),
+            potongan_absensi: parseFloat(totalPotongan.toFixed(2)),
+            bonus_tambahan: parseFloat(emp.bonus_tambahan || 0)
+        });
+    });
+
+    inlineParsedAttendanceData = finalAttendance;
+    logsDiv.innerHTML += "\n" + logText;
+    logsDiv.innerHTML += `\nSuccess: Ready to apply ${finalAttendance.length} records.`;
+    
+    renderInlineAttendanceTable(rows, false);
+
+    const btn = document.getElementById('btnSaveInlineUploadedAbsensi');
+    if (btn) {
+        btn.disabled = false;
+        btn.style.cursor = 'pointer';
+        btn.style.opacity = '1';
+    }
+}
+
+async function saveInlineUploadedAbsensi() {
+    if (inlineParsedAttendanceData.length === 0) {
+        showToast('No parsed data to apply.', 'warning');
+        return;
+    }
+
+    showToast('Applying attendance records...', 'info');
+    
+    const saveBtn = document.getElementById('btnSaveInlineUploadedAbsensi');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.5';
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/attendance-bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(inlineParsedAttendanceData)
+        });
+
+        if (res.ok) {
+            showToast('Attendance logs successfully imported!', 'success');
+            
+            // Hide left column and restore 1-column layout
+            const leftCol = document.getElementById('inlineUploadFormCol');
+            const container = document.getElementById('inlineUploadContainer');
+            if (leftCol && container) {
+                leftCol.style.display = 'none';
+                container.style.gridTemplateColumns = '1fr';
+            }
+
+            document.getElementById('inlineFileAbsensiExcel').value = '';
+            document.getElementById('inlineLabelAbsensiFilename').innerText = 'No file chosen';
+            
+            const logsDiv = document.getElementById('inlineUploadAbsensiLogs');
+            logsDiv.innerHTML += `\n\n🎉 All data successfully saved to database!`;
+            
+            onInlineAbsensiPeriodChanged();
+            if (typeof window.renderCutOffTable === 'function') {
+                window.renderCutOffTable();
+            }
+        } else {
+            const err = await res.json();
+            showToast(`Failed: ${err.message || 'Error occurred'}`, 'error');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.style.opacity = '1';
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(`Error saving: ${err.message || err}`, 'error');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.style.opacity = '1';
+        }
+    }
+}
+
+Object.assign(window, {
+    switchScheduleTab,
+    onInlineAbsensiClientChanged,
+    onInlineAbsensiPeriodChanged,
+    downloadInlineAbsensiTemplate,
+    handleInlineAbsensiFileSelect,
+    saveInlineUploadedAbsensi,
+    filterInlineAttendanceTable,
+    triggerInlineBrowseExcel,
+    cancelInlineUpload,
+    renderInlineAttendanceTable
+});
+
+// End of app-schedule.js

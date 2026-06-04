@@ -5,19 +5,14 @@ let globalDivisionsList = [];
 let globalDepartmentsList = [];
 let globalPositionsList = [];
 
-// Tab switcher for STO Global
 function switchStoTab(tab) {
     document.querySelectorAll('#viewSto .ws-tab').forEach(btn => {
         btn.classList.remove('active');
-        btn.style.borderBottomColor = 'transparent';
-        btn.style.color = '#64748b';
     });
     
     const activeBtn = document.querySelector(`#viewSto .ws-tab[data-stotab="${tab}"]`);
     if (activeBtn) {
         activeBtn.classList.add('active');
-        activeBtn.style.borderBottomColor = 'var(--primary-color)';
-        activeBtn.style.color = 'var(--primary-color)';
     }
 
     document.querySelectorAll('#viewSto .sto-tab-panel').forEach(panel => {

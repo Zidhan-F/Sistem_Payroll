@@ -875,14 +875,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">CSV File</label>
+                    <label style="font-weight: 600; margin-bottom: 8px; display: block;">Excel File</label>
                     <!-- Drag & Drop Uploader Area -->
                     <div id="umrDropZone" style="border: 2px dashed #ddd; border-radius: 12px; padding: 35px 20px; text-align: center; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
-                        <i class="fas fa-file-csv" style="font-size: 48px; color: var(--primary-color); margin-bottom: 15px;"></i>
+                        <i class="fas fa-file-excel" style="font-size: 48px; color: var(--primary-color); margin-bottom: 15px;"></i>
                         <h4 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 6px;">Drag & Drop file here</h4>
                         <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 15px;">or click to browse files from your computer</p>
                         <span id="umrFileName" style="font-size: 13px; font-weight: 600; color: var(--info); display: block; word-break: break-all;">No file selected yet</span>
-                        <input type="file" id="fileUmr" accept=".csv" style="display: none;">
+                        <input type="file" id="fileUmr" accept=".xlsx, .xls" style="display: none;">
                     </div>
                 </div>
             </div>
@@ -1748,7 +1748,7 @@
 
     <!-- Upload Attendance Excel Modal -->
     <div id="modalUploadAbsensi" class="modal-skema" style="display: none; width: 650px; max-width: 95%;">
-        <div class="modal-header" style="background: #27ae60;">
+        <div class="modal-header" style="background: #f39c12;">
             <h3>Upload Attendance Log</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadAbsensi()"></i>
         </div>
@@ -1768,24 +1768,24 @@
                 </div>
             </div>
 
-            <div style="background: rgba(39, 174, 96, 0.08); border: 1px dashed #27ae60; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-                <i class="fas fa-file-excel" style="font-size: 36px; color: #27ae60; margin-bottom: 10px; display: block;"></i>
+            <div style="background: rgba(243, 156, 18, 0.08); border: 1px dashed #f39c12; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+                <i class="fas fa-file-excel" style="font-size: 36px; color: #f39c12; margin-bottom: 10px; display: block;"></i>
                 <span style="font-size: 14px; font-weight: 600; color: #2c3e50; display: block; margin-bottom: 5px;">Select Excel Attendance File</span>
                 <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 12px;">Required columns: Employee ID, Nama, Tgl dan Hari, Jam Masuk, Jam Keluar, Status</span>
                 
                 <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 10px;">
                     <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event)">
-                    <button type="button" class="btn-add" onclick="document.getElementById('fileAbsensiExcel').click()" style="background: #27ae60; padding: 8px 20px; font-weight: 600;">
+                    <button type="button" class="btn-add" onclick="document.getElementById('fileAbsensiExcel').click()" style="background: #f39c12; padding: 8px 20px; font-weight: 600;">
                         Choose File
                     </button>
                     <button type="button" class="btn-cancel" onclick="downloadAbsensiTemplate()" style="padding: 8px 16px; border: 1px solid #cbd5e0; background: white; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px;">
                         <i class="fas fa-download"></i> Download Template
                     </button>
                 </div>
-                <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #27ae60; display: block; margin-top: 5px;">No file chosen</span>
+                <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: block; margin-top: 5px;">No file chosen</span>
             </div>
 
-            <div style="margin-bottom: 15px;">
+            <div style="margin-bottom: 15px; display: none;">
                 <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Parsing & Calculation Summary</label>
                 <div id="uploadAbsensiLogs" style="background: #1e293b; color: #38bdf8; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; height: 180px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
                     Waiting for file...
@@ -1794,6 +1794,6 @@
         </div>
         <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
             <button type="button" class="btn-cancel" onclick="tutupModalUploadAbsensi()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
-            <button type="button" id="btnSaveUploadedAbsensi" disabled onclick="saveUploadedAbsensi()" style="background: #27ae60; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Attendance</button>
+            <button type="button" id="btnSaveUploadedAbsensi" disabled onclick="saveUploadedAbsensi()" style="background: #f39c12; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Attendance</button>
         </div>
     </div>

@@ -38,7 +38,7 @@
                             <!-- Action Buttons and Select filters -->
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                                 
-                                <!-- Left Side: Search and Download -->
+                                <!-- Left Side: Search -->
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <!-- State Tracker for UMR type -->
                                     <input type="hidden" id="selectUmrType" value="UMP">
@@ -48,16 +48,16 @@
                                         <i class="fas fa-search"></i>
                                         <input type="text" id="searchUmr" placeholder="Search Province..." onkeyup="filterUmrTable()">
                                     </div>
-
-                                    <!-- Blue Download Template Button -->
-                                    <button class="btn-add" onclick="downloadTemplateUmr()" style="background: #0d6efd; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                                        <i class="fas fa-download"></i> Download
-                                    </button>
                                 </div>
 
-                                <!-- Right Side: Upload Button -->
-                                <div>
-                                    <button class="btn-add" onclick="bukaModalUploadUmr()" style="background: #ffc107; color: #000; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                <!-- Right Side: Buttons -->
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <!-- Download Button (Orange) -->
+                                    <button class="btn-add" onclick="downloadTemplateUmr()" style="background: #f39c12; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                        <i class="fas fa-download"></i> Download
+                                    </button>
+                                    <!-- Upload Button (Blue) -->
+                                    <button class="btn-add" onclick="bukaModalUploadUmr()" style="background: #0d6efd; color: white; border: none; padding: 10px 20px; border-radius: 4px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
                                         <i class="fas fa-upload"></i> Upload
                                     </button>
                                 </div>
