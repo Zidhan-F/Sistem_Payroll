@@ -61,16 +61,6 @@ $routes->group('api', function($routes) {
     $routes->put('schedule-templates/(:num)', 'Api::updateScheduleTemplate/$1');
     $routes->delete('schedule-templates/(:num)', 'Api::deleteScheduleTemplate/$1');
 
-    // System Settings
-    $routes->get('system-settings', 'Api::getSystemSettings');
-    $routes->put('system-settings', 'Api::updateSystemSettings');
-
-    // Attendance Logs (Log Kehadiran Harian)
-    $routes->get('attendance-logs', 'Api::getAttendanceLogs');
-    $routes->post('attendance-logs', 'Api::saveAttendanceLogs');
-    $routes->delete('attendance-logs/(:num)', 'Api::deleteAttendanceLog/$1');
-    $routes->get('attendance-summary', 'Api::getAttendanceSummary');
-
     // Client Configs
     $routes->get('client-configs', 'Api::getClientConfigs');
     $routes->get('client-configs-mapping/(:num)', 'Api::getClientConfigMappings/$1');
@@ -87,7 +77,6 @@ $routes->group('api', function($routes) {
     $routes->post('periods', 'Api::createPeriod');
     $routes->get('attendance/(:num)', 'Api::getAttendance/$1');
     $routes->post('attendance', 'Api::saveAttendance');
-    $routes->post('attendance-bulk', 'Api::saveAttendanceBulk');
     $routes->post('generate-payroll/(:num)', 'Api::generatePayroll/$1');
     $routes->get('payroll-results/(:num)', 'Api::getPayrollResults/$1');
     $routes->post('approve-payroll/(:num)', 'Api::approvePayroll/$1');
@@ -112,6 +101,29 @@ $routes->group('api', function($routes) {
     $routes->post('client-absence-config', 'Api::saveAbsenceConfig');
     $routes->get('check-schema', 'Api::checkSchema');
     $routes->get('preview-payroll', 'Api::previewPayroll');
+
+    // Attendance Logs
+    $routes->get('attendance-logs', 'Api::getAttendanceLogs');
+    $routes->post('attendance-logs', 'Api::createAttendanceLog');
+    $routes->post('attendance-logs/bulk', 'Api::createAttendanceBulk');
+    $routes->put('attendance-logs/(:num)', 'Api::updateAttendanceLog/$1');
+    $routes->delete('attendance-logs/(:num)', 'Api::deleteAttendanceLog/$1');
+
+    // Overtime Logs
+    $routes->get('overtime-logs', 'Api::getOvertimeLogs');
+    $routes->post('overtime-logs', 'Api::createOvertimeLog');
+    $routes->put('overtime-logs/(:num)', 'Api::updateOvertimeLog/$1');
+    $routes->delete('overtime-logs/(:num)', 'Api::deleteOvertimeLog/$1');
+
+    // Holiday Calendar
+    $routes->get('holidays', 'Api::getHolidays');
+    $routes->post('holidays', 'Api::createHoliday');
+    $routes->put('holidays/(:num)', 'Api::updateHoliday/$1');
+    $routes->delete('holidays/(:num)', 'Api::deleteHoliday/$1');
+
+    // System Settings
+    $routes->get('settings', 'Api::getSettings');
+    $routes->post('settings', 'Api::saveSettings');
 
     // Employees
 });

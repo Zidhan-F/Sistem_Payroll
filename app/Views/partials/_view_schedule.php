@@ -1,40 +1,39 @@
-<!-- Section: Master Payroll Schedule -->
+<!-- Section: Schedule Hub (Unified Master Schedule, Holiday Calendar, Attendance, Overtime) -->
 <div id="viewSchedule" class="view-section">
-    <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
-        <div class="section-header" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px;">
-            <div>
-                <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Payroll Schedule & Attendance</h3>
-                <p style="color: #64748b; font-size: 13px; margin: 0;">Configure global schedule templates and upload employee attendance excel logs.</p>
-            </div>
-        </div>
+    <!-- Sub Tabs for Schedule Hub -->
+    <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
+        <button class="sub-tab-btn active" id="subTabScheduleMaster" onclick="switchScheduleSubTab('master')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Master Schedule</button>
+        <button class="sub-tab-btn" id="subTabScheduleHoliday" onclick="switchScheduleSubTab('holiday')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Holiday Calendar</button>
+        <button class="sub-tab-btn" id="subTabScheduleAttendance" onclick="switchScheduleSubTab('attendance')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Attendance</button>
+        <button class="sub-tab-btn" id="subTabScheduleOvertime" onclick="switchScheduleSubTab('overtime')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Overtime</button>
+        <button class="sub-tab-btn" id="subTabScheduleSystemSettings" onclick="switchScheduleSubTab('systemSettings')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">System Settings</button>
+    </div>
 
-        <!-- Custom Tabs for Schedule & Upload -->
-        <div class="workspace-tabs">
-            <button class="ws-tab active" id="tabScheduleTemplatesBtn" onclick="switchScheduleTab('templates')">
-                <i class="fas fa-calendar-alt" style="margin-right: 6px;"></i> Schedule Templates
-            </button>
-            <button class="ws-tab" id="tabScheduleUploadBtn" onclick="switchScheduleTab('upload')">
-                <i class="fas fa-file-excel" style="margin-right: 6px;"></i> Upload Attendance Excel
-            </button>
-        </div>
-
-        <!-- Tab Panel 1: Schedule Templates -->
-        <div id="scheduleTabTemplates" class="schedule-tab-panel" style="display: block;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
+    <!-- Panel 1: Master Schedule -->
+    <div id="panelScheduleMaster" class="schedule-subpanel">
+        <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
+            <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                <div>
+                    <h3 id="scheduleTableTitle" style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Payroll Schedule</h3>
+                    <p style="color: #64748b; font-size: 13px; margin: 0;">Configure global templates for pay dates and cut-off ranges.</p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 13px; font-weight: 600; color: #64748b;">Tahun:</span>
-                        <select id="scheduleYearSelect" onchange="pilihTahunSchedule(this.value)" style="padding: 8px 14px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); min-width: 130px;">
+                        <select id="scheduleYearSelect" onchange="pilihTahunSchedule(this.value)" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); min-width: 130px;">
                             <!-- Dynamically rendered or static years -->
                         </select>
                     </div>
-                    <button onclick="tambahPeriodeTahunan()" style="background: #eff6ff; border: 1px dashed #3b82f6; color: #1d4ed8; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    <button onclick="tambahPeriodeTahunan()" style="background: #eff6ff; border: 1px dashed #3b82f6; color: #1d4ed8; border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
                         <i class="fas fa-plus"></i> Tambah Tahun
                     </button>
+                    <button class="btn-add" onclick="bukaModalUploadAbsensi()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/337/337947.png" style="width: 16px; height: 16px; object-fit: contain; filter: brightness(0) invert(1);" alt="Upload Icon"> Upload Attendance Excel
+                    </button>
+                    <button class="btn-add" onclick="bukaModalSchedule('tambah')" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" style="width: 16px; height: 16px; object-fit: contain; filter: brightness(0) invert(1);" alt="Add Icon"> Add Schedule
+                    </button>
                 </div>
-                <button class="btn-add" onclick="bukaModalSchedule('tambah')" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 9px 18px; cursor: pointer; transition: all 0.3s; font-size: 13px;">
-                    <i class="fas fa-plus"></i> Add Schedule
-                </button>
             </div>
 
             <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
@@ -54,52 +53,260 @@
                 </table>
             </div>
         </div>
+    </div>
 
-        <!-- Tab Panel 2: Upload Attendance Excel -->
-        <div id="scheduleTabUpload" class="schedule-tab-panel" style="display: none;">
-            <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white;">
-                <!-- Top Toolbar -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <h4 style="margin: 0; font-size: 15px; font-weight: 700; color: #1e293b;">
-                            <i class="fas fa-table" style="color: var(--primary-color); margin-right: 6px;"></i> Uploaded Attendance Table
-                        </h4>
-                    </div>
-                    
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="text" id="searchInlineAttendance" placeholder="Search employee..." oninput="filterInlineAttendanceTable()" style="padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 13px; width: 220px; transition: border-color 0.2s;">
-                        
-                        <button type="button" onclick="bukaModalUploadAbsensi()" style="background: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s;">
-                            <i class="fas fa-file-excel"></i> Upload Excel
+    <!-- Panel 2: Holiday Calendar -->
+    <div id="panelScheduleHoliday" class="schedule-subpanel" style="display: none;">
+        <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
+            <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                <div>
+                    <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Holiday Calendar</h3>
+                    <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola hari libur nasional dan tanggal libur khusus.</p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <!-- Toggle View Buttons -->
+                    <div style="display: inline-flex; background: #f1f5f9; border-radius: 8px; padding: 4px; border: 1px solid #e2e8f0; margin-right: 8px;">
+                        <button type="button" id="btnHolidayViewCalendar" onclick="switchHolidayView('calendar')" style="padding: 6px 14px; border-radius: 6px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: var(--primary-color); color: white; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-calendar-alt"></i> Kalender
+                        </button>
+                        <button type="button" id="btnHolidayViewList" onclick="switchHolidayView('list')" style="padding: 6px 14px; border-radius: 6px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-list"></i> Daftar Tabel
                         </button>
                     </div>
+                    
+                    <button class="btn-add" onclick="bukaModalHoliday()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-plus"></i> Tambah Hari Libur
+                    </button>
                 </div>
-                
-                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white; min-height: 350px;">
-                    <table style="width: 100%; border-collapse: collapse; min-width: 700px;" id="inlineAttendanceTable">
-                        <thead id="inlineAttendanceTableHeader">
+            </div>
+
+            <!-- Calendar View Container -->
+            <div id="holidayCalendarContainer" style="display: block;">
+                <!-- Monthly Navigator -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button type="button" onclick="navigateHolidayMonth(-1)" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 14px; cursor: pointer; color: #475569; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h4 id="holidayCurrentMonthYear" style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; min-width: 160px; text-align: center;">Juni 2026</h4>
+                        <button type="button" onclick="navigateHolidayMonth(1)" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 14px; cursor: pointer; color: #475569; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <select id="holidayMonthSelect" onchange="onHolidayMonthYearChange()" style="padding: 8px 14px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 14px; font-weight: 600; color: #334155; cursor: pointer; background: white;">
+                            <option value="0">Januari</option>
+                            <option value="1">Februari</option>
+                            <option value="2">Maret</option>
+                            <option value="3">April</option>
+                            <option value="4">Mei</option>
+                            <option value="5">Juni</option>
+                            <option value="6">Juli</option>
+                            <option value="7">Agustus</option>
+                            <option value="8">September</option>
+                            <option value="9">Oktober</option>
+                            <option value="10">November</option>
+                            <option value="11">Desember</option>
+                        </select>
+                        
+                        <select id="holidayYearSelect" onchange="onHolidayMonthYearChange()" style="padding: 8px 14px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 14px; font-weight: 600; color: #334155; cursor: pointer; background: white; min-width: 90px;">
+                            <option value="2025">2025</option>
+                            <option value="2026" selected>2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Main Layout: Grid Calendar & Side Summary -->
+                <div style="display: grid; grid-template-columns: 2.2fr 1fr; gap: 20px; align-items: start;">
+                    <!-- Calendar Grid Wrapper -->
+                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
+                        <!-- Days of Week Headers (Sunday is first column) -->
+                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; text-align: center;">
+                            <div style="padding: 14px 8px; font-weight: 700; color: #ef4444; font-size: 13px; text-transform: uppercase;">Min</div>
+                            <div style="padding: 14px 8px; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase;">Sen</div>
+                            <div style="padding: 14px 8px; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase;">Sel</div>
+                            <div style="padding: 14px 8px; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase;">Rab</div>
+                            <div style="padding: 14px 8px; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase;">Kam</div>
+                            <div style="padding: 14px 8px; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase;">Jum</div>
+                            <div style="padding: 14px 8px; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase;">Sab</div>
+                        </div>
+                        
+                        <!-- Days Grid -->
+                        <div id="holidayCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px;">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Right Side: Monthly Holiday Summary -->
+                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #fafafa; min-height: 250px; border-left: 4px solid var(--primary-color);">
+                        <h4 style="margin: 0 0 15px 0; font-size: 14px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-info-circle" style="color: var(--primary-color);"></i> Daftar Hari Libur Bulan Ini
+                        </h4>
+                        <div id="holidaySideSummary" style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List View Container (Hidden by default) -->
+            <div id="holidayListContainer" style="display: none;">
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
                             <tr style="background: #f8fafc;">
-                                <th style="width: 50px; text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">No</th>
-                                <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Employee ID</th>
-                                <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Nama</th>
-                                <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Tgl dan Hari</th>
-                                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Masuk</th>
-                                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Keluar</th>
-                                <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
+                                <th style="width: 60px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">No</th>
+                                <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Tanggal</th>
+                                <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Hari</th>
+                                <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Deskripsi</th>
+                                <th style="width: 120px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="inlineAttendanceTableBody">
-                            <tr>
-                                <td colspan="7" style="text-align: center; padding: 40px; color: #cbd5e1; border: none !important;">
-                                    <i class="fas fa-file-excel" style="font-size: 36px; margin-bottom: 12px; display: block; color: #cbd5e1;"></i>
-                                    No data. Click "Upload Excel" to preview attendance details.
-                                </td>
-                            </tr>
+                        <tbody id="holidayTableBody">
+                            <!-- Dynamic rows -->
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
+    </div>
 
+    <!-- Panel 3: Attendance -->
+    <div id="panelScheduleAttendance" class="schedule-subpanel" style="display: none;">
+        <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
+            <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                <div>
+                    <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Attendance Log</h3>
+                    <p style="color: #64748b; font-size: 13px; margin: 0;">Input dan kelola kehadiran harian karyawan.</p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <select id="attendanceClientSelect" onchange="loadAttendanceLogs()" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; min-width: 200px;">
+                        <option value="">-- Pilih Client --</option>
+                    </select>
+                    <select id="attendanceMonthSelect" onchange="loadAttendanceLogs()" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
+                        <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                        <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                        <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                        <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                    </select>
+                    <select id="attendanceYearSelect" onchange="loadAttendanceLogs()" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                    <button class="btn-add" onclick="bukaModalAttendance()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-plus"></i> Input Kehadiran
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc;">
+                            <th style="width: 60px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">No</th>
+                            <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Karyawan</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Tanggal</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Status</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jam Masuk</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jam Keluar</th>
+                            <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Keterangan</th>
+                            <th style="width: 120px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 4: Overtime -->
+    <div id="panelScheduleOvertime" class="schedule-subpanel" style="display: none;">
+        <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
+            <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                <div>
+                    <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Overtime Log</h3>
+                    <p style="color: #64748b; font-size: 13px; margin: 0;">Input dan kelola jam lembur harian karyawan.</p>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <select id="overtimeClientSelect" onchange="loadOvertimeLogs()" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; min-width: 200px;">
+                        <option value="">-- Pilih Client --</option>
+                    </select>
+                    <select id="overtimeMonthSelect" onchange="loadOvertimeLogs()" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
+                        <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                        <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                        <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                        <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                    </select>
+                    <select id="overtimeYearSelect" onchange="loadOvertimeLogs()" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
+                        <option value="2025">2025</option>
+                        <option value="2026" selected>2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                    <button class="btn-add" onclick="bukaModalOvertime()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-plus"></i> Input Lembur
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f8fafc;">
+                            <th style="width: 60px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">No</th>
+                            <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Karyawan</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Tanggal</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jam Lembur</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Tipe</th>
+                            <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Keterangan</th>
+                            <th style="width: 120px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overtimeTableBody">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 5: System Settings -->
+    <div id="panelScheduleSystemSettings" class="schedule-subpanel" style="display: none;">
+        <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white; max-width: 600px; margin: 0 auto;">
+            <div class="section-header" style="margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">
+                        <i class="fas fa-sliders-h" style="color: var(--primary-color); margin-right: 8px;"></i>System Configuration Settings
+                    </h3>
+                    <p style="color: #64748b; font-size: 13px; margin: 0;">Adjust global variables and default values for the payroll calculation engine.</p>
+                </div>
+            </div>
+
+            <form id="formSystemSettings" onsubmit="saveSystemSettings(event)">
+                <div style="margin-bottom: 25px;">
+                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 8px; font-size: 14px;">
+                        Overtime Hours Divisor (Default)
+                    </label>
+                    <div style="position: relative;">
+                        <input type="number" id="settingOvertimeDivisor" required min="1" max="1000" placeholder="160" 
+                               style="width: 100%; padding: 12px 14px; border: 1px solid #cbd5e0; border-radius: 8px; outline: none; font-size: 14px; box-sizing: border-box;">
+                    </div>
+                    <small style="color: #94a3b8; font-size: 12px; display: block; margin-top: 6px; line-height: 1.5;">
+                        Standard hourly wage rate is calculated as: <code>Base Salary / Overtime Divisor</code>. 
+                        Standard Depnaker regulation specifies 173 hours, but this application is configured to default to 160 hours based on internal company specifications. You can modify this divisor value dynamically here.
+                    </small>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                    <button type="submit" class="btn-add" style="padding: 12px 24px; background: var(--primary-color); border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-save"></i> Save Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>

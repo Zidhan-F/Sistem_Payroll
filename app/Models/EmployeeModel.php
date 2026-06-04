@@ -14,7 +14,7 @@ class EmployeeModel extends Model
         'nik', 'nama', 'email', 'no_rekening', 'bank_name', 'ptkp', 
         'gaji_pokok', 'position_id', 'client_id', 'tgl_masuk', 'status', 'minimum_wage_id', 'alamat',
         'tempat_lahir', 'tanggal_lahir', 'npwp', 'start_contract', 'end_contract', 'tipe_perjanjian', 'status_pernikahan', 'work_location_id', 'jumlah_anak',
-        'employ_id', 'hari_kerja', 'denda_absen', 'division_id', 'department_id'
+        'employ_id', 'hari_kerja', 'denda_absen', 'division_id', 'department_id', 'custom_standard_days'
     ];
     protected $useTimestamps    = true;
 

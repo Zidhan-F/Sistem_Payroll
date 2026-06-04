@@ -373,6 +373,8 @@
                     <h4 id="globalStoModalTitle" style="margin: 0; color: var(--secondary-color); font-weight: 700; font-size: 16px;">Add Global Division</h4>
                     <button onclick="tutupModalGlobalSto()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;"><i class="fas fa-times"></i></button>
                 </div>
+
+                
                 <form id="formGlobalSto" onsubmit="handleGlobalStoSubmit(event)">
                     <input type="hidden" id="globalStoType" value="divisi">
                     <input type="hidden" id="globalStoId" value="">
@@ -384,7 +386,7 @@
                         <button type="button" class="btn-back" onclick="tutupModalGlobalSto()" style="padding: 10px 16px;">Cancel</button>
                         <button type="submit" class="btn-add" style="padding: 10px 20px; background: var(--primary-color);">Save</button>
                     </div>
-                </form>
+                </form>                
             </div>
 
             <!-- Section: Client Workspace -->
@@ -959,7 +961,5 @@
 
     <?= view('partials/_modals') ?>
     <?= view('partials/_scripts') ?>
-
 </body>
-
 </html>

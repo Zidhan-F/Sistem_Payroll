@@ -565,6 +565,7 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('employeeId').value='';
     document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
     document.getElementById('empEmployId').value = '';
+    document.getElementById('empCustomStandardDays').value = '';
     
     const hariKerjaInput = document.getElementById('empHariKerja');
     if (hariKerjaInput) {
@@ -682,6 +683,7 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empEndContract').value = emp.end_contract || '';
         document.getElementById('empTipePerjanjian').value = emp.tipe_perjanjian || '';
         document.getElementById('empHariKerja').value = emp.hari_kerja || '5';
+        document.getElementById('empCustomStandardDays').value = emp.custom_standard_days || '';
         
         await loadWorkLocationsForSelect(emp.client_id, emp.work_location_id);
         await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
@@ -770,6 +772,7 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         end_contract:document.getElementById('empEndContract').value,
         tipe_perjanjian:document.getElementById('empTipePerjanjian').value,
         hari_kerja: document.getElementById('empHariKerja').value,
+        custom_standard_days: document.getElementById('empCustomStandardDays').value ? parseInt(document.getElementById('empCustomStandardDays').value, 10) : null,
         work_location_id:document.getElementById('empWorkLocationId').value ? parseInt(document.getElementById('empWorkLocationId').value, 10) : null,
         position_id:document.getElementById('empPositionId')?.value ? parseInt(document.getElementById('empPositionId').value, 10) : null,
         division_id:document.getElementById('empDivisionId')?.value ? parseInt(document.getElementById('empDivisionId').value, 10) : null,

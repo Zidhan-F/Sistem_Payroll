@@ -1,5 +1,7 @@
     <script>
         const BASE_URL = "<?= base_url() ?>";
+        const API_URL = BASE_URL + 'index.php/api';
+        window.API = API_URL;
     </script>
     <!-- TomSelect for searchable dropdowns -->
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
@@ -25,6 +27,10 @@
     <script src="<?= base_url('js/modules/app-umr.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-employee.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-schedule.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-holiday.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-attendance.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-overtime.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-settings.js?v=' . time()) ?>"></script>
     <!-- Existing separate modules -->
     <script src="<?= base_url('js/app-org.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/app-global-sto.js?v=' . time()) ?>"></script>

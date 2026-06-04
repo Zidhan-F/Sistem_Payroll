@@ -19,21 +19,21 @@ class RunMigration extends BaseCommand
      *
      * @var string
      */
-    protected $name = 'run:migrasi';
+    protected $name = 'command:name';
 
     /**
      * The Command's Description
      *
      * @var string
      */
-    protected $description = 'Runs custom raw SQL migration controller';
+    protected $description = '';
 
     /**
      * The Command's Usage
      *
      * @var string
      */
-    protected $usage = 'run:migrasi';
+    protected $usage = 'command:name [arguments] [options]';
 
     /**
      * The Command's Arguments
@@ -56,8 +56,6 @@ class RunMigration extends BaseCommand
      */
     public function run(array $params)
     {
-        $migrasi = new \App\Controllers\Migrasi();
-        $result = $migrasi->index();
-        CLI::write($result, 'green');
+        //
     }
 }

@@ -37,9 +37,7 @@ if (!currentUser) {
     window.location.href = BASE_URL + 'index.php/login';
 }
 
-// API URL
-const API_URL = BASE_URL + 'index.php/api';
-window.API = API_URL;
+// API URL is now declared globally in _scripts.php
 
 let umrAllData = [];
 let simulasiAllData = [];
@@ -346,12 +344,79 @@ function switchPayrollSub(sub) {
         switchPayrollSubTab('skema');
     } else if (sub === 'pajak') {
         switchView('pajak');
+    } else if (sub === 'system_settings') {
+        switchView('schedule');
+        switchScheduleSubTab('systemSettings');
     } else if (sub === 'schedule') {
         switchView('schedule');
     }
 }
 
+function switchScheduleSubTab(tab) {
+    // Hide all sub-panels under schedule
+    document.querySelectorAll('.schedule-subpanel').forEach(p => p.style.display = 'none');
+    
+    // Deactivate all sub-tab buttons
+    document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+        if (btn.id.startsWith('subTabSchedule')) {
+            btn.classList.remove('active');
+            btn.style.color = '#64748b';
+            btn.style.borderBottomColor = 'transparent';
+        }
+    });
+    
+    // Show active panel
+    const tabPascal = tab.charAt(0).toUpperCase() + tab.slice(1);
+    const activePanelId = 'panelSchedule' + tabPascal;
+    const activePanel = document.getElementById(activePanelId);
+    if (activePanel) activePanel.style.display = 'block';
+    
+    // Activate clicked button
+    const activeBtnId = 'subTabSchedule' + tabPascal;
+    const activeBtn = document.getElementById(activeBtnId);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.style.color = 'var(--primary-color)';
+        activeBtn.style.borderBottomColor = 'var(--primary-color)';
+    }
+    
+    // Auto load data for active tab
+    if (tab === 'master') {
+        if (typeof renderMasterSchedule === 'function') renderMasterSchedule();
+    } else if (tab === 'holiday') {
+        if (typeof loadHolidays === 'function') loadHolidays();
+    } else if (tab === 'attendance') {
+        if (typeof loadAttendanceClients === 'function') loadAttendanceClients();
+    } else if (tab === 'overtime') {
+        if (typeof loadOvertimeClients === 'function') loadOvertimeClients();
+    } else if (tab === 'systemSettings') {
+        if (typeof fetchSystemSettings === 'function') fetchSystemSettings();
+    }
+}
+
 function switchView(view) {
+    // Redirect consolidated schedule sub-views to the main schedule view with active tab
+    if (view === 'systemSettings') {
+        switchView('schedule');
+        switchScheduleSubTab('systemSettings');
+        return;
+    }
+    if (view === 'holiday') {
+        switchView('schedule');
+        switchScheduleSubTab('holiday');
+        return;
+    }
+    if (view === 'attendance') {
+        switchView('schedule');
+        switchScheduleSubTab('attendance');
+        return;
+    }
+    if (view === 'overtime') {
+        switchView('schedule');
+        switchScheduleSubTab('overtime');
+        return;
+    }
+
     // Auto-close any open modals when switching views, but keep sidebar open
     tutupSemuaModal(true);
 
@@ -409,12 +474,13 @@ function switchView(view) {
         payroll: 'Master Payroll Scheme',
         pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme',
+        systemSettings: 'System Settings',
         schedule: 'Schedule'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Employee Management';
 
     // Highlight and expand parent menu if we are in one of the payroll submenus
-    if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
+    if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak' || view === 'systemSettings') {
         const parentMenu = document.getElementById('menuPayroll');
         if (parentMenu) parentMenu.classList.add('active');
         togglePayrollSubmenu(true);
@@ -429,8 +495,6 @@ function switchView(view) {
             if (arrow) arrow.style.transform = 'rotate(0deg)';
         }
     }
-
-
 
     // Auto load data based on view
     if (view === 'dashboard') updateDashboardStats();
@@ -447,7 +511,22 @@ function switchView(view) {
     }
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
-    if (view === 'schedule') { if (typeof renderMasterSchedule === 'function') renderMasterSchedule(); }
+    
+    if (view === 'schedule') {
+        // default to master schedule sub tab if none is active
+        const activeSubTab = document.querySelector('.sub-tab-btn.active[id^="subTabSchedule"]');
+        if (!activeSubTab) {
+            switchScheduleSubTab('master');
+        } else {
+            // refresh active tab
+            const tabId = activeSubTab.id;
+            if (tabId === 'subTabScheduleMaster') switchScheduleSubTab('master');
+            else if (tabId === 'subTabScheduleHoliday') switchScheduleSubTab('holiday');
+            else if (tabId === 'subTabScheduleAttendance') switchScheduleSubTab('attendance');
+            else if (tabId === 'subTabScheduleOvertime') switchScheduleSubTab('overtime');
+            else if (tabId === 'subTabScheduleSystemSettings') switchScheduleSubTab('systemSettings');
+        }
+    }
 }
 
 
@@ -507,9 +586,31 @@ function toggleSidebar() {
     }
 }
 
+function openModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'block';
+    }
+    const overlay = document.getElementById('overlay');
+    if (overlay) {
+        overlay.style.display = 'block';
+    }
+}
+
+function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    const overlay = document.getElementById('overlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
 // Expose defined local core functions to window if needed
 Object.assign(window, {
-    switchView, logout, tutupSemuaModal, toggleSidebar, formatRupiah, formatRupiahInput, parseFormattedNumber, handleKomponenKompensasiNilaiInput, handleKomponenNilaiInput
+    switchView, logout, tutupSemuaModal, toggleSidebar, formatRupiah, formatRupiahInput, parseFormattedNumber, handleKomponenKompensasiNilaiInput, handleKomponenNilaiInput, switchScheduleSubTab, openModal, closeModal
 });
 
 

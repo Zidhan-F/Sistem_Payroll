@@ -115,6 +115,14 @@ class Payroll extends ResourceController
         $employeeModel = new EmployeeModel();
         $detailModel = new PayrollDetailModel();
 
+        // Fetch overtime divisor setting
+        $db = \Config\Database::connect();
+        $otDivisorRow = $db->table('system_settings')->where('setting_key', 'overtime_divisor')->get()->getRow();
+        $overtimeDivisor = $otDivisorRow ? floatval($otDivisorRow->setting_value) : 160.0;
+        if ($overtimeDivisor <= 0) {
+            $overtimeDivisor = 160.0;
+        }
+
         // Tandai Periode Cut Off
         $periodModel = new PayrollPeriodModel();
         $periodExist = $periodModel->where(['client_id' => $clientId, 'bulan' => $bulan, 'tahun' => $tahun])->first();
@@ -290,6 +298,17 @@ class Payroll extends ResourceController
                                    ->getResultArray();
                 
                 foreach ($dbComponents as $comp) {
+                    // Check if Ad-hoc and verify period matching current month/year
+                    $isAdhoc = isset($comp['allowance_type']) && $comp['allowance_type'] === 'Ad-hoc';
+                    if ($isAdhoc) {
+                        $payoutPeriod = trim($comp['payout_period'] ?? '');
+                        $currentPeriod1 = intval($bulan) . '-' . intval($tahun);
+                        $currentPeriod2 = sprintf('%02d-%d', intval($bulan), intval($tahun));
+                        if ($payoutPeriod !== $currentPeriod1 && $payoutPeriod !== $currentPeriod2) {
+                            continue; // Skip this component
+                        }
+                    }
+
                     $isBasic = (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') || (stripos($comp['nama'], 'Gaji Pokok') !== false);
                     if ($isBasic) {
                         $sumber_nilai = $comp['sumber_nilai'] ?? 'nominal';
@@ -342,12 +361,147 @@ class Payroll extends ResourceController
                 }
             }
 
-            // Hitung Lembur (jika rate skema 0, pakai standar depnaker 1/173)
-            $otRate = $otRateSchema > 0 ? $otRateSchema : ($baseSalary / 173);
-            $overtimePay = $otRate * 1.5 * $dk['lembur'];
-            
-            // Potongan Absen (Gaji Pokok / daysInMonth * jumlah alpa)
-            $potonganAlpa = ($baseSalary / $daysInMonth) * $dk['alpa'];
+            // === ENGINE PERHITUNGAN BARU ===
+            // Standar hari kerja per bulan (default 20, or override per employee)
+            $standardDays = isset($emp['custom_standard_days']) && intval($emp['custom_standard_days']) > 0 
+                ? intval($emp['custom_standard_days']) 
+                : 20;
+            // Overtime divisor (default 160, or system configuration)
+            $standardHours = isset($overtimeDivisor) ? $overtimeDivisor : 160.0;
+            $upahPerJam = $baseSalary / $standardHours;
+
+            // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs
+            $attendanceLogs = $db->table('attendance_logs')
+                ->where('employee_id', $emp['id'])
+                ->where('MONTH(tanggal)', intval($bulan))
+                ->where('YEAR(tanggal)', intval($tahun))
+                ->where('status', 'Hadir')
+                ->get()->getResultArray();
+            $actualDaysWorked = count($attendanceLogs);
+
+            // Jika tidak ada attendance_logs, gunakan data dari form input (backward compatible)
+            if ($actualDaysWorked === 0 && isset($dk['hadir']) && intval($dk['hadir']) > 0) {
+                $actualDaysWorked = intval($dk['hadir']);
+            }
+
+            // Gaji Prorata
+            if ($actualDaysWorked >= $standardDays) {
+                $gajiProrata = $baseSalary;
+            } else {
+                $gajiProrata = ($actualDaysWorked / $standardDays) * $baseSalary;
+            }
+
+            // Langkah 2: Hitung Lembur dari overtime_logs
+            $overtimeLogs = $db->table('overtime_logs')
+                ->where('employee_id', $emp['id'])
+                ->where('MONTH(tanggal)', intval($bulan))
+                ->where('YEAR(tanggal)', intval($tahun))
+                ->get()->getResultArray();
+
+            // Langkah 3A: Lembur Reguler (Hari Kerja) — Dual Bucket
+            $totalEmber1 = 0; // Jam pertama tiap hari → 1.5x
+            $totalEmber2 = 0; // Jam 2-3 tiap hari → 2.0x
+            // Langkah 3B: Lembur Hari Libur/Weekend
+            $lemburLibur = 0;
+
+            if (count($overtimeLogs) > 0) {
+                foreach ($overtimeLogs as $otLog) {
+                    $jam = floatval($otLog['jam_lembur']);
+                    $isHoliday = intval($otLog['is_holiday'] ?? 0);
+
+                    if ($isHoliday) {
+                        // Lembur Hari Libur: tiered calculation
+                        if ($jam <= 6) {
+                            $lemburLibur += $jam * 2 * $upahPerJam;
+                        } elseif ($jam == 7) {
+                            $lemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam);
+                        } else {
+                            $lemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam) + (($jam - 7) * 4 * $upahPerJam);
+                        }
+                    } else {
+                        // Lembur Reguler: dual bucket (max 3 jam/hari)
+                        $jam = min($jam, 3);
+                        $ember1 = min($jam, 1);         // Jam pertama → 1.5x
+                        $ember2 = max($jam - 1, 0);     // Jam 2-3 → 2.0x
+                        $totalEmber1 += $ember1;
+                        $totalEmber2 += $ember2;
+                    }
+                }
+            } else {
+                // Backward compatible: jika tidak ada overtime_logs, gunakan data form lama
+                if (isset($dk['lembur']) && floatval($dk['lembur']) > 0) {
+                    $totalJamLembur = floatval($dk['lembur']);
+                    // Treat semua sebagai lembur reguler dengan dual bucket simplified
+                    $totalEmber1 = min($totalJamLembur, 1);
+                    $totalEmber2 = max($totalJamLembur - 1, 0);
+                }
+            }
+
+            $lemburReguler = ($totalEmber1 * 1.5 * $upahPerJam) + ($totalEmber2 * 2.0 * $upahPerJam);
+            $overtimePay = $lemburReguler + $lemburLibur;
+
+            // Potongan Absen — berdasarkan attendance_logs
+            $absenCount = 0;
+            $absenLogs = $db->table('attendance_logs')
+                ->where('employee_id', $emp['id'])
+                ->where('MONTH(tanggal)', intval($bulan))
+                ->where('YEAR(tanggal)', intval($tahun))
+                ->where('status', 'Absen')
+                ->get()->getResultArray();
+            $absenCount = count($absenLogs);
+
+            // Backward compatible: gunakan data alpa dari form jika attendance_logs kosong
+            if ($absenCount === 0 && isset($dk['alpa']) && intval($dk['alpa']) > 0) {
+                $absenCount = intval($dk['alpa']);
+            }
+
+            $potonganAlpa = ($baseSalary / $standardDays) * $absenCount;
+
+            // Langkah 5: Rapel Otomatis untuk Karyawan Baru
+            if (!empty($emp['tgl_masuk'])) {
+                $joinDate = strtotime($emp['tgl_masuk']);
+                $periodeStart = strtotime("$tahun-$bulan-01");
+                $periodeEnd = strtotime(date('Y-m-t', $periodeStart));
+                
+                // Jika join_date berada di pertengahan periode payroll saat ini
+                if ($joinDate > $periodeStart && $joinDate <= $periodeEnd) {
+                    $rapelAmount = $baseSalary - $gajiProrata;
+                    if ($rapelAmount > 0) {
+                        // Hitung bulan depan
+                        $nextMonth = intval($bulan) + 1;
+                        $nextYear = intval($tahun);
+                        if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
+                        $payoutPeriod = $nextMonth . '-' . $nextYear;
+                        
+                        // Cek apakah rapel sudah pernah dibuat
+                        $existingRapel = $db->table('pkwt_components')
+                            ->where('pkwt_id', $pkwt ? $pkwt->id : 0)
+                            ->where('allowance_type', 'Ad-hoc')
+                            ->where('payout_period', $payoutPeriod)
+                            ->like('nama', 'Rapel')
+                            ->get()->getRow();
+                        
+                        if (!$existingRapel && $pkwt) {
+                            $db->table('pkwt_components')->insert([
+                                'pkwt_id' => $pkwt->id,
+                                'nama' => 'Rapel Gaji (Prorata Bulan Pertama)',
+                                'tipe' => 'pendapatan',
+                                'nilai' => $rapelAmount,
+                                'is_persentase' => 0,
+                                'jenis_komponen' => 'kompensasi',
+                                'sifat_kompensasi' => 'tidak_tetap',
+                                'sumber_nilai' => 'nominal',
+                                'periode' => 'bulan',
+                                'allowance_type' => 'Ad-hoc',
+                                'payout_period' => $payoutPeriod,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // Gunakan gajiProrata sebagai basis (bukan baseSalary penuh)
+            $baseSalaryForCalc = $gajiProrata;
 
             // Match payroll scheme template for organizational matching
             $schemeModel = new \App\Models\PayrollSchemeTemplateModel();

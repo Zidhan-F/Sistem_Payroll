@@ -1073,6 +1073,12 @@
                         <option value="7">7 Days</option>
                     </select>
                 </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Custom Standard Days for Prorata (Optional)</label>
+                    <input type="number" id="empCustomStandardDays" placeholder="Default global: 20 days" min="1" max="31" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <small style="color: #94a3b8; font-size: 12px;">Leave empty to use global default of 20 standard days.</small>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="tutupModalKaryawan()">Cancel</button>
@@ -1797,3 +1803,121 @@
             <button type="button" id="btnSaveUploadedAbsensi" disabled onclick="saveUploadedAbsensi()" style="background: #f39c12; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Attendance</button>
         </div>
     </div>
+
+    <!-- Holiday Modal -->
+    <div id="holidayModal" class="modal-skema" style="width: 480px; max-width: 95%; display: none; z-index: 2000;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+            <h3 id="holidayModalTitle">Tambah Hari Libur</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeModal('holidayModal')"></i>
+        </div>
+        <div class="modal-body" style="padding: 25px;">
+            <form id="holidayForm" onsubmit="simpanHoliday(event)">
+                <input type="hidden" id="holidayId">
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Tanggal <span style="color: #ef4444;">*</span></label>
+                    <input type="date" id="holidayTanggal" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Deskripsi <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="holidayDeskripsi" placeholder="Contoh: Hari Raya Idul Fitri" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" class="btn-cancel" onclick="closeModal('holidayModal')" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Modal -->
+    <div id="attendanceModal" class="modal-skema" style="width: 520px; max-width: 95%; display: none; z-index: 2000;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+            <h3 id="attendanceModalTitle">Input Kehadiran</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeModal('attendanceModal')"></i>
+        </div>
+        <div class="modal-body" style="padding: 25px;">
+            <form id="attendanceForm" onsubmit="simpanAttendance(event)">
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Karyawan <span style="color: #ef4444;">*</span></label>
+                    <select id="attendanceEmployeeSelect" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                        <option value="">-- Pilih Karyawan --</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Tanggal <span style="color: #ef4444;">*</span></label>
+                    <input type="date" id="attendanceTanggal" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Status</label>
+                    <select id="attendanceStatus" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                        <option value="Hadir">Hadir</option>
+                        <option value="Absen">Absen</option>
+                        <option value="Sakit">Sakit</option>
+                        <option value="Izin">Izin</option>
+                        <option value="Cuti">Cuti</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 18px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Masuk</label>
+                        <input type="time" id="attendanceJamMasuk" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Keluar</label>
+                        <input type="time" id="attendanceJamKeluar" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Keterangan</label>
+                    <input type="text" id="attendanceKeterangan" placeholder="Opsional" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" class="btn-cancel" onclick="closeModal('attendanceModal')" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Overtime Modal -->
+    <div id="overtimeModal" class="modal-skema" style="width: 520px; max-width: 95%; display: none; z-index: 2000;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+            <h3 id="overtimeModalTitle">Input Lembur</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeModal('overtimeModal')"></i>
+        </div>
+        <div class="modal-body" style="padding: 25px;">
+            <form id="overtimeForm" onsubmit="simpanOvertime(event)">
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Karyawan <span style="color: #ef4444;">*</span></label>
+                    <select id="overtimeEmployeeSelect" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                        <option value="">-- Pilih Karyawan --</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Tanggal <span style="color: #ef4444;">*</span></label>
+                    <input type="date" id="overtimeTanggal" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Lembur <span style="color: #ef4444;">*</span></label>
+                    <input type="number" id="overtimeJamLembur" step="0.5" min="0.5" max="12" placeholder="Contoh: 2" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    <small style="color: #94a3b8; font-size: 12px;">Hari kerja: maks 3 jam. Hari libur: unlimited.</small>
+                </div>
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="overtimeIsHoliday" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hari Libur / Weekend</span>
+                    </label>
+                    <small style="color: #94a3b8; font-size: 12px; margin-left: 28px;">Otomatis terdeteksi dari Holiday Calendar & weekend.</small>
+                </div>
+                <div class="form-group" style="margin-bottom: 18px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Keterangan</label>
+                    <input type="text" id="overtimeKeterangan" placeholder="Opsional" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" class="btn-cancel" onclick="closeModal('overtimeModal')" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+

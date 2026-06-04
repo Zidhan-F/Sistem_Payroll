@@ -552,174 +552,304 @@ class Api extends ResourceController
         return $this->respondDeleted(['message' => 'Schedule template berhasil dihapus']);
     }
 
-    // --- SYSTEM SETTINGS ---
-    public function getSystemSettings()
-    {
-        $settings = $this->db->table('system_settings')->get()->getResultArray();
-        // Return as key-value map for easier frontend consumption
-        $map = [];
-        foreach ($settings as $s) {
-            $map[$s['setting_key']] = [
-                'id' => $s['id'],
-                'value' => $s['setting_value'],
-                'description' => $s['description']
-            ];
-        }
-        return $this->respond($map);
-    }
-
-    public function updateSystemSettings()
-    {
-        $data = $this->request->getJSON(true);
-        if (!$data || !is_array($data)) {
-            return $this->failValidationErrors('Data pengaturan tidak valid');
-        }
-
-        foreach ($data as $key => $value) {
-            $existing = $this->db->table('system_settings')->where('setting_key', $key)->get()->getRow();
-            if ($existing) {
-                $this->db->table('system_settings')->where('setting_key', $key)->update(['setting_value' => strval($value)]);
-            } else {
-                $this->db->table('system_settings')->insert([
-                    'setting_key' => $key,
-                    'setting_value' => strval($value),
-                    'description' => ''
-                ]);
-            }
-        }
-        $this->logActivity("Mengupdate system settings: " . implode(', ', array_keys($data)));
-        return $this->respond(['message' => 'Pengaturan berhasil disimpan']);
-    }
-
-    // --- ATTENDANCE LOGS (Log Kehadiran Harian) ---
+    // --- ATTENDANCE LOGS ---
     public function getAttendanceLogs()
     {
         $employeeId = $this->request->getGet('employee_id');
-        $clientId = $this->request->getGet('client_id');
         $bulan = $this->request->getGet('bulan');
         $tahun = $this->request->getGet('tahun');
+        $clientId = $this->request->getGet('client_id');
 
-        $builder = $this->db->table('attendance_logs')
-            ->select('attendance_logs.*, employees.nama as employee_name')
-            ->join('employees', 'employees.id = attendance_logs.employee_id', 'left');
+        $builder = $this->db->table('attendance_logs');
+        $builder->select('attendance_logs.*, employees.nama as employee_name');
+        $builder->join('employees', 'employees.id = attendance_logs.employee_id', 'left');
 
-        if ($employeeId) $builder->where('attendance_logs.employee_id', intval($employeeId));
-        if ($clientId) $builder->where('attendance_logs.client_id', intval($clientId));
+        if ($employeeId) {
+            $builder->where('attendance_logs.employee_id', intval($employeeId));
+        }
+        if ($clientId) {
+            $builder->where('employees.client_id', intval($clientId));
+        }
         if ($bulan && $tahun) {
-            $startDate = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
-            $endDate = date('Y-m-t', strtotime($startDate));
-            $builder->where('attendance_logs.log_date >=', $startDate);
-            $builder->where('attendance_logs.log_date <=', $endDate);
+            $builder->where('MONTH(attendance_logs.tanggal)', intval($bulan));
+            $builder->where('YEAR(attendance_logs.tanggal)', intval($tahun));
         }
 
-        $builder->orderBy('attendance_logs.log_date', 'ASC');
+        $builder->orderBy('attendance_logs.tanggal', 'ASC');
         $logs = $builder->get()->getResultArray();
         return $this->respond($logs);
     }
 
-    public function saveAttendanceLogs()
+    public function createAttendanceLog()
     {
         $data = $this->request->getJSON(true);
-        
-        if (!$data || !isset($data['logs']) || !is_array($data['logs'])) {
-            return $this->failValidationErrors('Data kehadiran tidak valid');
+
+        // Validate required fields
+        if (empty($data['employee_id']) || empty($data['tanggal'])) {
+            return $this->failValidationErrors('employee_id dan tanggal wajib diisi');
         }
 
-        $clientId = $data['client_id'] ?? null;
-        $saved = 0;
+        // Check for duplicate entry (same employee + same date)
+        $existing = $this->db->table('attendance_logs')
+            ->where('employee_id', intval($data['employee_id']))
+            ->where('tanggal', $data['tanggal'])
+            ->get()->getRow();
+        if ($existing) {
+            // Update existing instead of duplicate
+            $this->db->table('attendance_logs')->where('id', $existing->id)->update([
+                'status' => $data['status'] ?? 'Hadir',
+                'jam_masuk' => $data['jam_masuk'] ?? null,
+                'jam_keluar' => $data['jam_keluar'] ?? null,
+                'keterangan' => $data['keterangan'] ?? null,
+            ]);
+            return $this->respond(['message' => 'Attendance log berhasil diupdate']);
+        }
 
-        foreach ($data['logs'] as $log) {
-            if (empty($log['employee_id']) || empty($log['log_date'])) continue;
+        $insertData = [
+            'employee_id' => intval($data['employee_id']),
+            'tanggal' => $data['tanggal'],
+            'status' => $data['status'] ?? 'Hadir',
+            'jam_masuk' => $data['jam_masuk'] ?? null,
+            'jam_keluar' => $data['jam_keluar'] ?? null,
+            'keterangan' => $data['keterangan'] ?? null,
+        ];
 
-            $employeeId = intval($log['employee_id']);
-            $logDate = $log['log_date'];
-            $status = $log['status'] ?? 'Hadir';
+        $this->db->table('attendance_logs')->insert($insertData);
+        return $this->respondCreated(['message' => 'Attendance log berhasil ditambahkan']);
+    }
 
-            // Upsert: update existing or insert new
+    public function createAttendanceBulk()
+    {
+        $data = $this->request->getJSON(true);
+        $logs = $data['logs'] ?? [];
+        $count = 0;
+
+        foreach ($logs as $log) {
+            if (empty($log['employee_id']) || empty($log['tanggal'])) continue;
+
             $existing = $this->db->table('attendance_logs')
-                ->where('employee_id', $employeeId)
-                ->where('log_date', $logDate)
+                ->where('employee_id', intval($log['employee_id']))
+                ->where('tanggal', $log['tanggal'])
                 ->get()->getRow();
 
             $logData = [
-                'employee_id' => $employeeId,
-                'log_date' => $logDate,
-                'status' => $status,
-                'check_in' => $log['check_in'] ?? null,
-                'check_out' => $log['check_out'] ?? null,
-                'notes' => $log['notes'] ?? null,
-                'client_id' => $clientId
+                'status' => $log['status'] ?? 'Hadir',
+                'jam_masuk' => $log['jam_masuk'] ?? null,
+                'jam_keluar' => $log['jam_keluar'] ?? null,
+                'keterangan' => $log['keterangan'] ?? null,
             ];
 
             if ($existing) {
                 $this->db->table('attendance_logs')->where('id', $existing->id)->update($logData);
             } else {
+                $logData['employee_id'] = intval($log['employee_id']);
+                $logData['tanggal'] = $log['tanggal'];
                 $this->db->table('attendance_logs')->insert($logData);
             }
-            $saved++;
+            $count++;
         }
 
-        $this->logActivity("Menyimpan {$saved} log kehadiran harian" . ($clientId ? " untuk client ID {$clientId}" : ''));
-        return $this->respondCreated(['message' => "{$saved} log kehadiran berhasil disimpan", 'count' => $saved]);
+        return $this->respondCreated(['message' => "Berhasil menyimpan {$count} attendance logs"]);
+    }
+
+    public function updateAttendanceLog($id)
+    {
+        $data = $this->request->getJSON(true);
+        $updateData = [
+            'status' => $data['status'] ?? 'Hadir',
+            'jam_masuk' => $data['jam_masuk'] ?? null,
+            'jam_keluar' => $data['jam_keluar'] ?? null,
+            'keterangan' => $data['keterangan'] ?? null,
+        ];
+
+        $this->db->table('attendance_logs')->where('id', $id)->update($updateData);
+        return $this->respond(['message' => 'Attendance log berhasil diupdate']);
     }
 
     public function deleteAttendanceLog($id)
     {
-        $log = $this->db->table('attendance_logs')->where('id', $id)->get()->getRow();
-        if (!$log) {
-            return $this->failNotFound('Log kehadiran tidak ditemukan');
-        }
         $this->db->table('attendance_logs')->where('id', $id)->delete();
-        $this->logActivity("Menghapus log kehadiran ID: " . $id);
-        return $this->respondDeleted(['message' => 'Log kehadiran berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Attendance log berhasil dihapus']);
     }
 
-    // Helper: Get attendance summary for an employee in a period
-    public function getAttendanceSummary()
+    // --- OVERTIME LOGS ---
+    public function getOvertimeLogs()
     {
         $employeeId = $this->request->getGet('employee_id');
         $bulan = $this->request->getGet('bulan');
         $tahun = $this->request->getGet('tahun');
+        $clientId = $this->request->getGet('client_id');
 
-        if (!$employeeId || !$bulan || !$tahun) {
-            return $this->failValidationErrors('employee_id, bulan, dan tahun wajib diisi');
+        $builder = $this->db->table('overtime_logs');
+        $builder->select('overtime_logs.*, employees.nama as employee_name');
+        $builder->join('employees', 'employees.id = overtime_logs.employee_id', 'left');
+
+        if ($employeeId) {
+            $builder->where('overtime_logs.employee_id', intval($employeeId));
+        }
+        if ($clientId) {
+            $builder->where('employees.client_id', intval($clientId));
+        }
+        if ($bulan && $tahun) {
+            $builder->where('MONTH(overtime_logs.tanggal)', intval($bulan));
+            $builder->where('YEAR(overtime_logs.tanggal)', intval($tahun));
         }
 
-        $startDate = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
-        $endDate = date('Y-m-t', strtotime($startDate));
+        $builder->orderBy('overtime_logs.tanggal', 'ASC');
+        $logs = $builder->get()->getResultArray();
+        return $this->respond($logs);
+    }
 
-        $logs = $this->db->table('attendance_logs')
-            ->where('employee_id', intval($employeeId))
-            ->where('log_date >=', $startDate)
-            ->where('log_date <=', $endDate)
-            ->get()->getResultArray();
+    public function createOvertimeLog()
+    {
+        $data = $this->request->getJSON(true);
 
-        $summary = [
-            'hadir' => 0,
-            'absen' => 0,
-            'sakit' => 0,
-            'izin' => 0,
-            'cuti' => 0,
-            'total_logs' => count($logs)
+        if (empty($data['employee_id']) || empty($data['tanggal']) || !isset($data['jam_lembur'])) {
+            return $this->failValidationErrors('employee_id, tanggal, dan jam_lembur wajib diisi');
+        }
+
+        $jamLembur = floatval($data['jam_lembur']);
+        $isHoliday = intval($data['is_holiday'] ?? 0);
+
+        // Validasi: Lembur hari kerja maksimal 3 jam
+        if (!$isHoliday && $jamLembur > 3) {
+            return $this->failValidationErrors('Lembur hari kerja maksimal 3 jam per hari!');
+        }
+        if ($jamLembur <= 0) {
+            return $this->failValidationErrors('Jam lembur harus lebih dari 0!');
+        }
+
+        // Auto-detect holiday from holiday_calendar
+        if (!$isHoliday) {
+            $holiday = $this->db->table('holiday_calendar')
+                ->where('tanggal', $data['tanggal'])
+                ->get()->getRow();
+            if ($holiday) {
+                $isHoliday = 1;
+            } else {
+                // Check if weekend (Saturday=6, Sunday=0)
+                $dayOfWeek = date('w', strtotime($data['tanggal']));
+                if ($dayOfWeek == 0 || $dayOfWeek == 6) {
+                    $isHoliday = 1;
+                }
+            }
+        }
+
+        // Check duplicate
+        $existing = $this->db->table('overtime_logs')
+            ->where('employee_id', intval($data['employee_id']))
+            ->where('tanggal', $data['tanggal'])
+            ->get()->getRow();
+        if ($existing) {
+            $this->db->table('overtime_logs')->where('id', $existing->id)->update([
+                'jam_lembur' => $jamLembur,
+                'is_holiday' => $isHoliday,
+                'keterangan' => $data['keterangan'] ?? null,
+            ]);
+            return $this->respond(['message' => 'Overtime log berhasil diupdate']);
+        }
+
+        $insertData = [
+            'employee_id' => intval($data['employee_id']),
+            'tanggal' => $data['tanggal'],
+            'jam_lembur' => $jamLembur,
+            'is_holiday' => $isHoliday,
+            'keterangan' => $data['keterangan'] ?? null,
         ];
 
-        foreach ($logs as $log) {
-            $status = strtolower($log['status']);
-            if ($status === 'hadir') $summary['hadir']++;
-            elseif ($status === 'absen') $summary['absen']++;
-            elseif ($status === 'sakit') $summary['sakit']++;
-            elseif ($status === 'izin') $summary['izin']++;
-            elseif ($status === 'cuti') $summary['cuti']++;
+        $this->db->table('overtime_logs')->insert($insertData);
+        return $this->respondCreated(['message' => 'Overtime log berhasil ditambahkan']);
+    }
+
+    public function updateOvertimeLog($id)
+    {
+        $data = $this->request->getJSON(true);
+        $jamLembur = floatval($data['jam_lembur'] ?? 0);
+        $isHoliday = intval($data['is_holiday'] ?? 0);
+
+        if (!$isHoliday && $jamLembur > 3) {
+            return $this->failValidationErrors('Lembur hari kerja maksimal 3 jam per hari!');
         }
 
-        // Get standard work days from system settings
-        $stdDays = $this->db->table('system_settings')->where('setting_key', 'standard_work_days')->get()->getRow();
-        $standardWorkDays = $stdDays ? intval($stdDays->setting_value) : 20;
+        $updateData = [
+            'jam_lembur' => $jamLembur,
+            'is_holiday' => $isHoliday,
+            'keterangan' => $data['keterangan'] ?? null,
+        ];
 
-        $summary['standard_work_days'] = $standardWorkDays;
-        $summary['is_full_month'] = ($summary['hadir'] >= $standardWorkDays);
+        $this->db->table('overtime_logs')->where('id', $id)->update($updateData);
+        return $this->respond(['message' => 'Overtime log berhasil diupdate']);
+    }
 
-        return $this->respond($summary);
+    public function deleteOvertimeLog($id)
+    {
+        $this->db->table('overtime_logs')->where('id', $id)->delete();
+        return $this->respondDeleted(['message' => 'Overtime log berhasil dihapus']);
+    }
+
+    // --- HOLIDAY CALENDAR ---
+    public function getHolidays()
+    {
+        $tahun = $this->request->getGet('tahun');
+        $builder = $this->db->table('holiday_calendar');
+        if ($tahun) {
+            $builder->where('tahun', intval($tahun));
+        }
+        $builder->orderBy('tanggal', 'ASC');
+        $holidays = $builder->get()->getResultArray();
+        return $this->respond($holidays);
+    }
+
+    public function createHoliday()
+    {
+        $data = $this->request->getJSON(true);
+
+        if (empty($data['tanggal']) || empty($data['deskripsi'])) {
+            return $this->failValidationErrors('tanggal dan deskripsi wajib diisi');
+        }
+
+        // Check duplicate
+        $existing = $this->db->table('holiday_calendar')
+            ->where('tanggal', $data['tanggal'])
+            ->get()->getRow();
+        if ($existing) {
+            return $this->failValidationErrors('Tanggal libur sudah terdaftar!');
+        }
+
+        $tahun = intval(date('Y', strtotime($data['tanggal'])));
+        $insertData = [
+            'tanggal' => $data['tanggal'],
+            'deskripsi' => $data['deskripsi'],
+            'tahun' => $tahun,
+        ];
+
+        $this->db->table('holiday_calendar')->insert($insertData);
+        $this->logActivity("Menambahkan hari libur: " . $data['deskripsi'] . " (" . $data['tanggal'] . ")");
+        return $this->respondCreated(['message' => 'Hari libur berhasil ditambahkan']);
+    }
+
+    public function updateHoliday($id)
+    {
+        $data = $this->request->getJSON(true);
+        $updateData = [
+            'tanggal' => $data['tanggal'] ?? null,
+            'deskripsi' => $data['deskripsi'] ?? null,
+        ];
+        if (!empty($updateData['tanggal'])) {
+            $updateData['tahun'] = intval(date('Y', strtotime($updateData['tanggal'])));
+        }
+
+        $this->db->table('holiday_calendar')->where('id', $id)->update($updateData);
+        return $this->respond(['message' => 'Hari libur berhasil diupdate']);
+    }
+
+    public function deleteHoliday($id)
+    {
+        $holiday = $this->db->table('holiday_calendar')->where('id', $id)->get()->getRow();
+        $desc = $holiday ? $holiday->deskripsi : 'Unknown';
+        $this->db->table('holiday_calendar')->where('id', $id)->delete();
+        $this->logActivity("Menghapus hari libur: " . $desc);
+        return $this->respondDeleted(['message' => 'Hari libur berhasil dihapus']);
     }
 
     public function createCompensationComponent()
@@ -962,9 +1092,7 @@ class Api extends ResourceController
         $this->syncEmployeesToPKWT($clientId);
         // Get all PKWT and their attendance for this period
         $query = $this->db->table('pkwt')
-                          ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan, employees.employ_id, employees.nik, employees.hari_kerja as employee_hari_kerja, positions.hari_kerja as position_hari_kerja')
-                          ->join('employees', 'employees.nama = pkwt.employee_name AND employees.client_id = pkwt.client_id', 'left')
-                          ->join('positions', 'positions.id = employees.position_id', 'left')
+                          ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan')
                           ->join('payroll_attendance', "payroll_attendance.pkwt_id = pkwt.id AND payroll_attendance.period_id = $periodId", 'left');
         if ($clientId) {
             $query->where('pkwt.client_id', $clientId);
@@ -990,52 +1118,6 @@ class Api extends ResourceController
             $this->db->table('payroll_attendance')->insert($data);
         }
         return $this->respond(['message' => 'Data cut-off berhasil disimpan']);
-    }
-
-    public function saveAttendanceBulk()
-    {
-        $data = $this->request->getJSON(true);
-        if (empty($data) || !is_array($data)) {
-            return $this->failValidationError('Data payload tidak valid');
-        }
-
-        $db = \Config\Database::connect();
-        $db->transStart();
-        
-        $count = 0;
-        foreach ($data as $item) {
-            if (empty($item['period_id']) || empty($item['pkwt_id'])) {
-                continue;
-            }
-            
-            $saveData = [
-                'period_id' => intval($item['period_id']),
-                'pkwt_id' => intval($item['pkwt_id']),
-                'hari_kerja' => floatval($item['hari_kerja'] ?? 0),
-                'jam_lembur' => floatval($item['jam_lembur'] ?? 0),
-                'potongan_absensi' => floatval($item['potongan_absensi'] ?? 0),
-                'bonus_tambahan' => floatval($item['bonus_tambahan'] ?? 0)
-            ];
-            
-            $existing = $db->table('payroll_attendance')
-                           ->where('period_id', $saveData['period_id'])
-                           ->where('pkwt_id', $saveData['pkwt_id'])
-                           ->get()->getRow();
-                           
-            if ($existing) {
-                $db->table('payroll_attendance')->where('id', $existing->id)->update($saveData);
-            } else {
-                $db->table('payroll_attendance')->insert($saveData);
-            }
-            $count++;
-        }
-        
-        $db->transComplete();
-        if ($db->transStatus() === false) {
-            return $this->fail('Gagal menyimpan data absensi massal');
-        }
-        
-        return $this->respond(['message' => "Berhasil mengimpor $count data absensi"]);
     }
 
     // --- GENERATE PAYROLL ---
@@ -3118,6 +3200,38 @@ class Api extends ResourceController
             return $row;
         }
         return $row;
+    }
+
+    public function getSettings()
+    {
+        $settings = $this->db->table('system_settings')->get()->getResultArray();
+        return $this->respond($settings);
+    }
+
+    public function saveSettings()
+    {
+        $data = $this->request->getJSON(true);
+        if (!is_array($data)) {
+            return $this->fail('Invalid JSON data format');
+        }
+
+        foreach ($data as $key => $val) {
+            $exists = $this->db->table('system_settings')->where('setting_key', $key)->get()->getRow();
+            if ($exists) {
+                $this->db->table('system_settings')->where('setting_key', $key)->update([
+                    'setting_value' => strval($val),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            } else {
+                $this->db->table('system_settings')->insert([
+                    'setting_key' => $key,
+                    'setting_value' => strval($val)
+                ]);
+            }
+        }
+
+        $this->logActivity("Memperbarui konfigurasi sistem");
+        return $this->respond(['message' => 'Settings saved successfully']);
     }
 }
 

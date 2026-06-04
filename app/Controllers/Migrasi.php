@@ -421,50 +421,72 @@ class Migrasi extends BaseController
                 VALUES ('End of Month Schedule', 30, 26, 25, 'Payroll cycle with payday on the 30th/End of month, cutoff period from the 26th of the previous month to the 25th of the current month.', 2026)");
         }
 
-        // 22. Tabel System Settings (Konfigurasi Global Payroll)
-        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'system_settings')
-            CREATE TABLE system_settings (
-                id INT IDENTITY(1,1) PRIMARY KEY,
-                setting_key NVARCHAR(100) NOT NULL,
-                setting_value NVARCHAR(MAX),
-                description NVARCHAR(255),
-                created_at DATETIME DEFAULT GETDATE()
-            )");
-
-        // Seed default system settings if empty
-        $settingsCount = $db->query("SELECT COUNT(*) as [count] FROM system_settings")->getRow();
-        if ($settingsCount && intval($settingsCount->count) == 0) {
-            $defaults = [
-                ['overtime_divisor', '160', 'Pembagi jam kerja bulanan untuk kalkulasi upah per jam lembur (default: 20 hari x 8 jam = 160)'],
-                ['standard_work_days', '20', 'Jumlah hari kerja standar per bulan'],
-                ['standard_work_hours', '8', 'Jumlah jam kerja standar per hari'],
-                ['max_overtime_regular', '3', 'Batas maksimal jam lembur reguler per hari kerja'],
-            ];
-            foreach ($defaults as $d) {
-                $db->query("INSERT INTO system_settings (setting_key, setting_value, description) VALUES ('{$d[0]}', '{$d[1]}', '{$d[2]}')");
-            }
-        }
-
-        // 23. Tabel Attendance Logs (Log Kehadiran Harian)
+        // 22. Tabel Attendance Logs (Log Kehadiran Harian)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'attendance_logs')
             CREATE TABLE attendance_logs (
                 id INT IDENTITY(1,1) PRIMARY KEY,
                 employee_id INT NOT NULL,
-                log_date DATE NOT NULL,
+                tanggal DATE NOT NULL,
                 status NVARCHAR(20) DEFAULT 'Hadir',
-                check_in NVARCHAR(10) NULL,
-                check_out NVARCHAR(10) NULL,
-                notes NVARCHAR(255) NULL,
-                period_id INT NULL,
-                client_id INT NULL,
+                jam_masuk NVARCHAR(10) NULL,
+                jam_keluar NVARCHAR(10) NULL,
+                keterangan NVARCHAR(MAX) NULL,
                 created_at DATETIME DEFAULT GETDATE()
             )");
 
-        // Ensure client_id column exists in attendance_logs for older dbs
-        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'client_id')
-            ALTER TABLE attendance_logs ADD client_id INT NULL");
+        // 23. Tabel Overtime Logs (Log Lembur Harian)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'overtime_logs')
+            CREATE TABLE overtime_logs (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                employee_id INT NOT NULL,
+                tanggal DATE NOT NULL,
+                jam_lembur DECIMAL(4,1) NOT NULL,
+                is_holiday BIT DEFAULT 0,
+                keterangan NVARCHAR(MAX) NULL,
+                created_at DATETIME DEFAULT GETDATE()
+            )");
 
-        return "Migrasi Berhasil! (semua tabel termasuk kompensasi, absensi, kolom level posisi, kolom alamat karyawan, tabel status log, kolom payroll_components, kolom baru payroll_schemes, kolom departemen/posisi client_payroll_configs, tabel global STO, flag BPJS/PPh21 tunjangan, tabel payroll_schedules, system_settings, dan attendance_logs)";
+        // 24. Tabel Holiday Calendar (Master Hari Libur Nasional)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'holiday_calendar')
+            CREATE TABLE holiday_calendar (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                tanggal DATE NOT NULL,
+                deskripsi NVARCHAR(255) NOT NULL,
+                tahun INT,
+                created_at DATETIME DEFAULT GETDATE()
+            )");
+
+        // 25. Tambah kolom type dan payout_period pada pkwt_components (untuk Routine/Ad-hoc)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt_components') AND name = 'allowance_type')
+            ALTER TABLE pkwt_components ADD allowance_type NVARCHAR(20) DEFAULT 'Routine'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('pkwt_components') AND name = 'payout_period')
+            ALTER TABLE pkwt_components ADD payout_period NVARCHAR(20) NULL");
+
+        // 26. Tambah kolom custom_standard_days di employees
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'custom_standard_days')
+            ALTER TABLE employees ADD custom_standard_days INT NULL");
+
+        // 27. Tabel System Settings
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'system_settings')
+            CREATE TABLE system_settings (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                setting_key NVARCHAR(100) UNIQUE NOT NULL,
+                setting_value NVARCHAR(255) NOT NULL,
+                created_at DATETIME DEFAULT GETDATE(),
+                updated_at DATETIME DEFAULT GETDATE()
+            )");
+
+        // Ensure updated_at column exists in system_settings table
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('system_settings') AND name = 'updated_at')
+            ALTER TABLE system_settings ADD updated_at DATETIME DEFAULT GETDATE() NULL");
+
+        // Seed default settings if not exists
+        $divisorExists = $db->query("SELECT COUNT(*) as [count] FROM system_settings WHERE setting_key = 'overtime_divisor'")->getRow();
+        if ($divisorExists && intval($divisorExists->count) === 0) {
+            $db->query("INSERT INTO system_settings (setting_key, setting_value) VALUES ('overtime_divisor', '160')");
+        }
+
+        return "Migrasi Berhasil! (termasuk tabel attendance_logs, overtime_logs, holiday_calendar, system_settings, kolom allowance_type/payout_period di pkwt_components, dan custom_standard_days di employees)";
     }
 
     /**
