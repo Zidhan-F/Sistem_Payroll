@@ -37,6 +37,106 @@ class Payroll extends ResourceController
     }
 
     /**
+     * Get attendance and overtime logs summary for all client employees in cutoff period
+     */
+    public function getAttendanceSummary()
+    {
+        $clientId = $this->request->getGet('client_id');
+        $bulan = $this->request->getGet('bulan');
+        $tahun = $this->request->getGet('tahun');
+
+        if (is_cli()) {
+            if (!$clientId) $clientId = $_GET['client_id'] ?? null;
+            if (!$bulan) $bulan = $_GET['bulan'] ?? null;
+            if (!$tahun) $tahun = $_GET['tahun'] ?? null;
+        }
+
+        if (!$clientId || !$bulan || !$tahun) {
+            return $this->respond([]);
+        }
+
+        $db = \Config\Database::connect();
+        
+        $payrollConfig = $db->table('client_payroll_configs')
+                            ->where('client_id', $clientId)
+                            ->get()
+                            ->getRow();
+        
+        $cutoffStartDay = $payrollConfig ? intval($payrollConfig->cutoff_start) : 21;
+        $cutoffEndDay = $payrollConfig ? intval($payrollConfig->cutoff_end) : 20;
+
+        if ($cutoffStartDay <= 1) {
+            $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
+            $endDateStr = date('Y-m-t', strtotime($startDateStr));
+        } else {
+            $prevMonth = intval($bulan) - 1;
+            $prevYear = intval($tahun);
+            if ($prevMonth == 0) {
+                $prevMonth = 12;
+                $prevYear--;
+            }
+            $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $cutoffStartDay);
+            $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $cutoffEndDay);
+        }
+
+        $employees = $db->table('employees')
+                        ->where('client_id', $clientId)
+                        ->get()
+                        ->getResultArray();
+
+        $summary = [];
+        foreach ($employees as $emp) {
+            // Hadir
+            $hadirCount = $db->table('attendance_logs')
+                             ->where('employee_id', $emp['id'])
+                             ->where('tanggal >=', $startDateStr)
+                             ->where('tanggal <=', $endDateStr)
+                             ->where('status', 'Hadir')
+                             ->countAllResults();
+
+            // Sakit/Izin/Cuti
+            $sakitCount = $db->table('attendance_logs')
+                             ->where('employee_id', $emp['id'])
+                             ->where('tanggal >=', $startDateStr)
+                             ->where('tanggal <=', $endDateStr)
+                             ->groupStart()
+                                 ->where('status', 'Sakit')
+                                 ->orWhere('status', 'Izin')
+                                 ->orWhere('status', 'Cuti')
+                             ->groupEnd()
+                             ->countAllResults();
+
+            // Absen/Alpa
+            $alpaCount = $db->table('attendance_logs')
+                            ->where('employee_id', $emp['id'])
+                            ->where('tanggal >=', $startDateStr)
+                            ->where('tanggal <=', $endDateStr)
+                            ->where('status', 'Absen')
+                            ->countAllResults();
+
+            // Lembur (hours sum)
+            $lemburSum = $db->table('overtime_logs')
+                            ->where('employee_id', $emp['id'])
+                            ->where('tanggal >=', $startDateStr)
+                            ->where('tanggal <=', $endDateStr)
+                            ->selectSum('jam_lembur')
+                            ->get()
+                            ->getRow();
+            $lemburHours = $lemburSum ? floatval($lemburSum->jam_lembur) : 0.0;
+
+            $summary[] = [
+                'employee_id' => $emp['id'],
+                'hadir' => $hadirCount,
+                'sakit' => $sakitCount,
+                'alpa' => $alpaCount,
+                'lembur' => $lemburHours
+            ];
+        }
+
+        return $this->respond($summary);
+    }
+
+    /**
      * Process bulk payroll — Generate Gaji Bulanan
      * Step: Input Cut Off → Generate Gaji
      */
@@ -123,6 +223,24 @@ class Payroll extends ResourceController
             $overtimeDivisor = 160.0;
         }
 
+        // Get cutoff dates
+        $cutoffStartDay = $payrollConfig ? intval($payrollConfig->cutoff_start) : 21;
+        $cutoffEndDay = $payrollConfig ? intval($payrollConfig->cutoff_end) : 20;
+
+        if ($cutoffStartDay <= 1) {
+            $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
+            $endDateStr = date('Y-m-t', strtotime($startDateStr));
+        } else {
+            $prevMonth = intval($bulan) - 1;
+            $prevYear = intval($tahun);
+            if ($prevMonth == 0) {
+                $prevMonth = 12;
+                $prevYear--;
+            }
+            $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $cutoffStartDay);
+            $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $cutoffEndDay);
+        }
+
         // Tandai Periode Cut Off
         $periodModel = new PayrollPeriodModel();
         $periodExist = $periodModel->where(['client_id' => $clientId, 'bulan' => $bulan, 'tahun' => $tahun])->first();
@@ -135,7 +253,7 @@ class Payroll extends ResourceController
             $periodModel->update($periodExist['id'], ['status_cutoff' => 'Generated']);
         }
 
-        foreach ($dataKaryawan as $dk) {
+        foreach ($dataKaryawan as &$dk) {
             $emp = $employeeModel->find($dk['employee_id']);
             if (!$emp) continue;
 
@@ -362,19 +480,25 @@ class Payroll extends ResourceController
             }
 
             // === ENGINE PERHITUNGAN BARU ===
-            // Standar hari kerja per bulan (default 20, or override per employee)
+            // Standar hari kerja per bulan (default dari system_settings, fallback 22, or override per employee)
+            $standardDaysRow = $db->table('system_settings')->where('setting_key', 'standard_work_days')->get()->getRow();
+            $systemStandardDays = $standardDaysRow ? intval($standardDaysRow->setting_value) : 22;
             $standardDays = isset($emp['custom_standard_days']) && intval($emp['custom_standard_days']) > 0 
                 ? intval($emp['custom_standard_days']) 
-                : 20;
+                : $systemStandardDays;
+            if ($standardDays <= 0) {
+                $standardDays = 22;
+            }
+
             // Overtime divisor (default 160, or system configuration)
             $standardHours = isset($overtimeDivisor) ? $overtimeDivisor : 160.0;
             $upahPerJam = $baseSalary / $standardHours;
 
-            // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs
+            // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs berdasarkan cutoff period
             $attendanceLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('MONTH(tanggal)', intval($bulan))
-                ->where('YEAR(tanggal)', intval($tahun))
+                ->where('tanggal >=', $startDateStr)
+                ->where('tanggal <=', $endDateStr)
                 ->where('status', 'Hadir')
                 ->get()->getResultArray();
             $actualDaysWorked = count($attendanceLogs);
@@ -383,6 +507,7 @@ class Payroll extends ResourceController
             if ($actualDaysWorked === 0 && isset($dk['hadir']) && intval($dk['hadir']) > 0) {
                 $actualDaysWorked = intval($dk['hadir']);
             }
+            $dk['hadir'] = $actualDaysWorked;
 
             // Gaji Prorata
             if ($actualDaysWorked >= $standardDays) {
@@ -391,11 +516,11 @@ class Payroll extends ResourceController
                 $gajiProrata = ($actualDaysWorked / $standardDays) * $baseSalary;
             }
 
-            // Langkah 2: Hitung Lembur dari overtime_logs
+            // Langkah 2: Hitung Lembur dari overtime_logs berdasarkan cutoff period
             $overtimeLogs = $db->table('overtime_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('MONTH(tanggal)', intval($bulan))
-                ->where('YEAR(tanggal)', intval($tahun))
+                ->where('tanggal >=', $startDateStr)
+                ->where('tanggal <=', $endDateStr)
                 ->get()->getResultArray();
 
             // Langkah 3A: Lembur Reguler (Hari Kerja) — Dual Bucket
@@ -405,9 +530,24 @@ class Payroll extends ResourceController
             $lemburLibur = 0;
 
             if (count($overtimeLogs) > 0) {
+                $totalJamLemburLog = 0;
                 foreach ($overtimeLogs as $otLog) {
                     $jam = floatval($otLog['jam_lembur']);
+                    $totalJamLemburLog += $jam;
+                    
+                    // Check if date is holiday or sunday
                     $isHoliday = intval($otLog['is_holiday'] ?? 0);
+                    if (!$isHoliday) {
+                        $dayOfWeek = date('w', strtotime($otLog['tanggal']));
+                        if ($dayOfWeek == 0) {
+                            $isHoliday = 1;
+                        } else {
+                            $holiday = $db->table('holiday_calendar')->where('tanggal', $otLog['tanggal'])->get()->getRow();
+                            if ($holiday) {
+                                $isHoliday = 1;
+                            }
+                        }
+                    }
 
                     if ($isHoliday) {
                         // Lembur Hari Libur: tiered calculation
@@ -427,6 +567,7 @@ class Payroll extends ResourceController
                         $totalEmber2 += $ember2;
                     }
                 }
+                $dk['lembur'] = $totalJamLemburLog;
             } else {
                 // Backward compatible: jika tidak ada overtime_logs, gunakan data form lama
                 if (isset($dk['lembur']) && floatval($dk['lembur']) > 0) {
@@ -440,12 +581,12 @@ class Payroll extends ResourceController
             $lemburReguler = ($totalEmber1 * 1.5 * $upahPerJam) + ($totalEmber2 * 2.0 * $upahPerJam);
             $overtimePay = $lemburReguler + $lemburLibur;
 
-            // Potongan Absen — berdasarkan attendance_logs
+            // Potongan Absen — berdasarkan attendance_logs berdasarkan cutoff period
             $absenCount = 0;
             $absenLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('MONTH(tanggal)', intval($bulan))
-                ->where('YEAR(tanggal)', intval($tahun))
+                ->where('tanggal >=', $startDateStr)
+                ->where('tanggal <=', $endDateStr)
                 ->where('status', 'Absen')
                 ->get()->getResultArray();
             $absenCount = count($absenLogs);
@@ -454,6 +595,7 @@ class Payroll extends ResourceController
             if ($absenCount === 0 && isset($dk['alpa']) && intval($dk['alpa']) > 0) {
                 $absenCount = intval($dk['alpa']);
             }
+            $dk['alpa'] = $absenCount;
 
             $potonganAlpa = ($baseSalary / $standardDays) * $absenCount;
 
@@ -656,7 +798,21 @@ class Payroll extends ResourceController
                 'total_tunjangan' => $totalTunjangan,
                 'total_potongan' => $totalPotongan,
                 'take_home_pay' => $thp,
-                'status_pembayaran' => 'Waiting Approval'
+                'status_pembayaran' => 'Waiting Approval',
+                'potongan_absen' => $potonganAlpa,
+                'jam_lembur' => isset($dk['lembur']) ? $dk['lembur'] : 0,
+                'lembur_pay' => $overtimePay,
+                'pph21' => $pph21,
+                'bpjs_kes_karyawan' => $bpjsKesKaryawan,
+                'bpjs_jht_karyawan' => $bpjsJhtKaryawan,
+                'bpjs_jp_karyawan' => $bpjsJpKaryawan,
+                'bpjs_kes_perusahaan' => $calc['bpjs_kes_perusahaan'],
+                'bpjs_jht_perusahaan' => $calc['bpjs_jht_perusahaan'],
+                'bpjs_jp_perusahaan' => $calc['bpjs_jp_perusahaan'],
+                'bpjs_jkk_perusahaan' => $calc['bpjs_jkk_perusahaan'],
+                'bpjs_jkm_perusahaan' => $calc['bpjs_jkm_perusahaan'],
+                'tax_allowance' => $taxAllowance,
+                'tax_method' => $curTaxMethod
             ];
             $payrollId = $this->model->insert($payrollData);
 

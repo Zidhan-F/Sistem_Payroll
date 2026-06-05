@@ -164,6 +164,7 @@ $routes->group('api', function($routes) {
     // Payroll
     $routes->get('payroll/status', 'Payroll::getStatus');
     $routes->post('payroll/process-bulk', 'Payroll::processBulk');
+    $routes->get('payroll/attendance-summary', 'Payroll::getAttendanceSummary');
     $routes->get('payroll/check', 'Payroll::checkCutOff');
     $routes->post('payroll/approve/(:num)', 'Payroll::approve/$1');
     $routes->post('payroll/approve-all', 'Payroll::approveAll');

@@ -122,6 +122,14 @@ async function filterPayrollByClient(){
         if(!hasPayrolls){
             // Step 1: Input Cut Off
             updateStepper(1);
+            let summaryData = [];
+            try {
+                const sr = await fetch(`${API}/payroll/attendance-summary?bulan=${bulan}&tahun=${tahun}&client_id=${selectedClientId}`);
+                if (sr.ok) summaryData = await sr.json();
+            } catch (err) {
+                console.error("Failed to fetch attendance summary", err);
+            }
+
             html=`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
                 <div style="padding:15px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
                     <h4 style="margin:0;color:#1e293b;"><i class="fas fa-edit"></i> Attendance Cut-off Data Input</h4>
@@ -134,12 +142,18 @@ async function filterPayrollByClient(){
                     <th style="padding:12px 15px;border-bottom:1px solid #e2e8f0;">Overtime (Hours)</th>
                 </tr></thead><tbody>`;
             ce.forEach(emp=>{
+                const sum = (Array.isArray(summaryData) ? summaryData.find(s => s.employee_id == emp.id) : null) || {};
+                const hadirVal = sum.hadir !== undefined ? sum.hadir : 22;
+                const sakitVal = sum.sakit !== undefined ? sum.sakit : 0;
+                const alpaVal = sum.alpa !== undefined ? sum.alpa : 0;
+                const lemburVal = sum.lembur !== undefined ? sum.lembur : 0;
+
                 html+=`<tr style="border-bottom:1px solid #e2e8f0;" class="cutoff-row" data-empid="${emp.id}">
                     <td style="padding:12px 15px;"><strong>${emp.nama}</strong><br><span style="font-size:11px;color:#64748b;">${emp.nama_posisi||'-'}</span></td>
-                    <td style="padding:12px 15px;"><input type="number" class="input-hadir" value="22" style="width:60px;padding:5px;text-align:center;"></td>
-                    <td style="padding:12px 15px;"><input type="number" class="input-sakit" value="0" style="width:60px;padding:5px;text-align:center;"></td>
-                    <td style="padding:12px 15px;"><input type="number" class="input-alpa" value="0" style="width:60px;padding:5px;text-align:center;"></td>
-                    <td style="padding:12px 15px;"><input type="number" class="input-lembur" value="0" style="width:60px;padding:5px;text-align:center;"></td></tr>`;
+                    <td style="padding:12px 15px;"><input type="number" class="input-hadir" value="${hadirVal}" style="width:60px;padding:5px;text-align:center;"></td>
+                    <td style="padding:12px 15px;"><input type="number" class="input-sakit" value="${sakitVal}" style="width:60px;padding:5px;text-align:center;"></td>
+                    <td style="padding:12px 15px;"><input type="number" class="input-alpa" value="${alpaVal}" style="width:60px;padding:5px;text-align:center;"></td>
+                    <td style="padding:12px 15px;"><input type="number" class="input-lembur" value="${lemburVal}" style="width:60px;padding:5px;text-align:center;"></td></tr>`;
             });
             html+='</tbody></table></div>';
         } else if(allApproved){
