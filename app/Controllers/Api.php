@@ -13,6 +13,84 @@ class Api extends ResourceController
         $this->db = \Config\Database::connect();
     }
 
+    public function getNotifications()
+    {
+        $notifications = [];
+
+        // 1. Check if there are active clients
+        $clients = $this->db->table('clients')->get()->getResultArray();
+        
+        // Get current month and year
+        $currentMonth = intval(date('n'));
+        $currentYear = intval(date('Y'));
+        
+        $monthsWord = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $monthName = $monthsWord[$currentMonth] ?? date('F');
+
+        foreach ($clients as $client) {
+            // Check if there is an active payroll period for this client, month, year
+            $period = $this->db->table('payroll_periods')
+                               ->where('client_id', $client['id'])
+                               ->where('bulan', $currentMonth)
+                               ->where('tahun', $currentYear)
+                               ->get()
+                               ->getRow();
+            if (!$period) {
+                $notifications[] = [
+                    'id' => 'cutoff_' . $client['id'],
+                    'type' => 'warning',
+                    'title' => 'Cut-off Periode Belum Dibuat',
+                    'message' => "Klien <strong>" . esc($client['nama']) . "</strong> belum memiliki tanggal cut-off / periode aktif untuk bulan " . esc($monthName) . " " . esc($currentYear) . "!",
+                    'link' => 'klien'
+                ];
+            }
+        }
+
+        // 2. Check if there are active employees without a matching payroll scheme template
+        $employees = $this->db->table('employees')
+                              ->where('status', 'Aktif')
+                              ->get()
+                              ->getResultArray();
+
+        $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
+
+        foreach ($employees as $emp) {
+            $scheme = $schemeModel->getSchemeForEmployee(
+                $emp['client_id'],
+                $emp['division_id'] ?? null,
+                $emp['department_id'] ?? null,
+                $emp['position_id'] ?? null
+            );
+
+            if (!$scheme) {
+                // Get client name
+                $clientName = '-';
+                foreach ($clients as $c) {
+                    if ($c['id'] == $emp['client_id']) {
+                        $clientName = $c['nama'];
+                        break;
+                    }
+                }
+                $notifications[] = [
+                    'id' => 'scheme_' . $emp['id'],
+                    'type' => 'error',
+                    'title' => 'Skema Gaji Belum Sinkron',
+                    'message' => "Karyawan <strong>" . esc($emp['nama']) . "</strong> (" . esc($emp['nik']) . ") di klien <strong>" . esc($clientName) . "</strong> belum memiliki skema payroll yang terasosiasi!",
+                    'link' => 'kompensasi'
+                ];
+            }
+        }
+
+        return $this->respond([
+            'status' => 200,
+            'data' => $notifications,
+            'count' => count($notifications)
+        ]);
+    }
+
     // --- AUTH ---
     public function login()
     {

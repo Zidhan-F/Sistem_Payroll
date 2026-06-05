@@ -603,10 +603,26 @@
                         </select>
                     </div>
 
+                    <!-- Cut-off & Pay Date Configuration -->
+                    <div style="display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
+                        <span style="font-weight: 600; color: #475569;"><i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>Cut-off & Pay Date Configuration</span>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <label style="font-size: 12px; font-weight: 600; color: #64748b;">Cut-off Start Day</label>
+                                <input type="number" id="modalPilihanSkemaCutoffStart" min="1" max="31" required style="padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;" oninput="const startVal = parseInt(this.value, 10); if (!isNaN(startVal) && startVal >= 1 && startVal <= 31) { document.getElementById('modalPilihanSkemaCutoffEnd').value = startVal === 1 ? 31 : (startVal - 1); }">
+                            </div>
+                            <input type="hidden" id="modalPilihanSkemaCutoffEnd" value="">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <label style="font-size: 12px; font-weight: 600; color: #64748b;">Pay Day of Month</label>
+                                <input type="number" id="modalPilihanSkemaPayDate" min="1" max="31" required style="padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- BPJS Scheme (Hidden from user, defaults to tambah_skema) -->
                     <div style="display: none;">
                         <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required>
-                            <option value="tambah_skema">Tambah Skema</option>
+                            <option value="tambah_skema">Add Scheme</option>
                         </select>
                     </div>
 
@@ -639,7 +655,7 @@
                                         <i class="fas fa-coins" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Hari Tua (JHT)</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Old Age Security (JHT)</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJhtDesc">Default: Karyawan 2%, Perusahaan 3.7%</div>
                                     </div>
                                 </div>
@@ -653,7 +669,7 @@
                                         <i class="fas fa-piggy-bank" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Pensiun (JP)</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Pension Security (JP)</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJpDesc">Default: Karyawan 1%, Perusahaan 2%</div>
                                     </div>
                                 </div>
@@ -667,7 +683,7 @@
                                         <i class="fas fa-user-shield" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kecelakaan Kerja (JKK)</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Work Accident Security (JKK)</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkkDesc">Default: Perusahaan 0.24%</div>
                                     </div>
                                 </div>
@@ -681,7 +697,7 @@
                                         <i class="fas fa-heartbeat" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kematian (JKM)</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Death Security (JKM)</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkmDesc">Default: Perusahaan 0.3%</div>
                                     </div>
                                 </div>

@@ -310,8 +310,8 @@ function initCascadingSkemaDropdowns() {
     
     if(divSelect) divSelect.onchange = () => {
         const divId = divSelect.value;
-        if(deptSelect) deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
-        if(posSelect) posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+        if(deptSelect) deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
+        if(posSelect) posSelect.innerHTML = '<option value="">-- Select Position --</option>';
         if (divId && Array.isArray(wsClientOrgHierarchy)) {
             const division = wsClientOrgHierarchy.find(d => d.id == divId);
             if (division && Array.isArray(division.departments)) {
@@ -325,7 +325,7 @@ function initCascadingSkemaDropdowns() {
     if(deptSelect) deptSelect.onchange = () => {
         const divId = divSelect.value;
         const deptId = deptSelect.value;
-        if(posSelect) posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+        if(posSelect) posSelect.innerHTML = '<option value="">-- Select Position --</option>';
         if (divId && deptId && Array.isArray(wsClientOrgHierarchy)) {
             const division = wsClientOrgHierarchy.find(d => d.id == divId);
             if (division && Array.isArray(division.departments)) {
@@ -417,18 +417,21 @@ async function editSchemaMapping(id) {
         if (conf.tax_scheme_id && tsEl && tsEl.tomselect) {
             tsEl.tomselect.setValue(conf.tax_scheme_id);
         }
+        document.getElementById('modalPilihanSkemaCutoffStart').value = conf.cutoff_start !== undefined && conf.cutoff_start !== null ? conf.cutoff_start : 21;
+        document.getElementById('modalPilihanSkemaCutoffEnd').value = conf.cutoff_end !== undefined && conf.cutoff_end !== null ? conf.cutoff_end : 20;
+        document.getElementById('modalPilihanSkemaPayDate').value = conf.pay_date !== undefined && conf.pay_date !== null ? conf.pay_date : 25;
     } catch(e) { console.error('Error in editSchemaMapping:', e); }
 }
 
 async function hapusSchemaMapping(id) {
-    if (!await showConfirm('Apakah Anda yakin ingin menghapus mapping skema ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this scheme mapping?')) return;
     try {
         const res = await fetch(`${API_URL}/client-configs/${id}`, { method: 'DELETE' });
         if (res.ok) {
-            showToast('Mapping skema dihapus', 'success');
+            showToast('Scheme mapping deleted successfully', 'success');
             loadSchemaMappingTable();
         } else {
-            showToast('Gagal menghapus mapping', 'error');
+            showToast('Failed to delete scheme mapping', 'error');
         }
     } catch (err) {
         console.error(err);
@@ -538,7 +541,7 @@ async function loadPilihanSkema() {
 
 window.simpanPilihanSkema = async function() {
     if (!window.selectedClientId) {
-        showToast('Pilih klien terlebih dahulu!', 'error');
+        showToast('Please select a client first!', 'error');
         return;
     }
     
@@ -578,7 +581,7 @@ window.simpanPilihanSkema = async function() {
     }
 
     if (!payrollType && !bpjsSchemeId && !taxSchemeId && !compSchemeId) {
-        showToast('Pilih minimal satu skema!', 'error');
+        showToast('Select at least one scheme!', 'error');
         return;
     }
 
@@ -691,9 +694,9 @@ window.simpanPilihanSkema = async function() {
             bpjs_scheme_id: bpjsSchemeId || (generalExisting ? generalExisting.bpjs_scheme_id : null),
             tax_scheme_id: taxSchemeId || (generalExisting ? generalExisting.tax_scheme_id : null),
             compensation_scheme_id: compSchemeId || (generalExisting ? generalExisting.compensation_scheme_id : null),
-            pay_date: generalExisting ? generalExisting.pay_date : 25,
-            cutoff_start: generalExisting ? generalExisting.cutoff_start : 21,
-            cutoff_end: generalExisting ? generalExisting.cutoff_end : 20,
+            pay_date: isModal ? (parseInt(document.getElementById('modalPilihanSkemaPayDate').value, 10) || null) : (generalExisting ? generalExisting.pay_date : null),
+            cutoff_start: isModal ? (parseInt(document.getElementById('modalPilihanSkemaCutoffStart').value, 10) || null) : (generalExisting ? generalExisting.cutoff_start : null),
+            cutoff_end: isModal ? (parseInt(document.getElementById('modalPilihanSkemaCutoffEnd').value, 10) || null) : (generalExisting ? generalExisting.cutoff_end : null),
             
             // Add org hierarchy based on selected level
             division_id: (level !== 'general' && divId) ? divId : null,
@@ -715,7 +718,7 @@ window.simpanPilihanSkema = async function() {
             if (!isModal) {
                 await simpanKonfigAbsen(false);
             }
-            showToast('Pilihan skema berhasil disimpan!', 'success');
+            showToast('Scheme selection saved successfully!', 'success');
             window.editSchemaMappingId = null;
             if (isModal) {
                 tutupModalPilihanSkema();
@@ -731,14 +734,14 @@ window.simpanPilihanSkema = async function() {
             loadWorkspaceSetup();
         } else {
             const d = await res.json();
-            let msg = 'Gagal menyimpan pilihan skema!';
+            let msg = 'Failed to save scheme selection!';
             if (d.messages && d.messages.error) msg = d.messages.error;
             else if (d.message) msg = d.message;
             showToast(msg, 'error');
         }
     } catch (err) {
         console.error(err);
-        showToast('Gagal menyimpan pilihan skema!', 'error');
+        showToast('Failed to save scheme selection!', 'error');
     }
 }
 
@@ -750,7 +753,7 @@ window.updateModalDeptDropdown = function(divId, selectedDeptId = '') {
         deptSelect.tomselect.destroy();
     }
     
-    deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+    deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
     
     if (divId && Array.isArray(wsClientOrgHierarchy)) {
         const division = wsClientOrgHierarchy.find(d => d.id == divId);
@@ -785,7 +788,7 @@ window.updateModalPosDropdown = function(divId, deptId, selectedPosId = '') {
         posSelect.tomselect.destroy();
     }
     
-    posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+    posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     
     if (divId && deptId && Array.isArray(wsClientOrgHierarchy)) {
         const division = wsClientOrgHierarchy.find(d => d.id == divId);
@@ -820,6 +823,11 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     
     document.getElementById('modalPilihanSkemaTitle').innerText = isEdit ? 'Edit Client Scheme' : 'Tambah Skema Client';
     document.getElementById('formPilihanSkema').reset();
+    
+    // Set default values for cutoff and payday to empty
+    document.getElementById('modalPilihanSkemaCutoffStart').value = '';
+    document.getElementById('modalPilihanSkemaCutoffEnd').value = '';
+    document.getElementById('modalPilihanSkemaPayDate').value = '';
     
     // Set client name
     const titleEl = document.getElementById('clientWorkspaceTitle');
@@ -865,7 +873,7 @@ window.openModalPilihanSkema = async function(isEdit = false) {
 
         // Populate payroll schemes
         if (psSelect) {
-            psSelect.innerHTML = '<option value="">-- Pilih Skema Payroll --</option>' +
+            psSelect.innerHTML = '<option value="">-- Select Payroll Scheme --</option>' +
                 payrollSchemes.map(s => `<option value="${s.id}">${s.nama} (${s.tipe || 'Umum'})</option>`).join('');
         }
         
@@ -878,27 +886,27 @@ window.openModalPilihanSkema = async function(isEdit = false) {
         // Populate bpjs schemes
         if (bpjsSelect) {
             const currentVal = bpjsSelect.value;
-            bpjsSelect.innerHTML = '<option value="tambah_skema">Tambah Skema</option>' +
+            bpjsSelect.innerHTML = '<option value="tambah_skema">Add Scheme</option>' +
                 bpjsOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
             bpjsSelect.value = currentVal;
         }
         // Populate tax schemes
         if (tsSelect) {
-            tsSelect.innerHTML = '<option value="">-- Pilih Skema Pajak --</option>' +
+            tsSelect.innerHTML = '<option value="">-- Select Tax Scheme --</option>' +
                 taxOpts.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
         }
 
         // Populate divisions from client-specific org hierarchy
         if (divSelect) {
-            divSelect.innerHTML = '<option value="">-- Pilih Divisi --</option>' +
+            divSelect.innerHTML = '<option value="">-- Select Division --</option>' +
                 wsClientOrgHierarchy.map(d => `<option value="${d.id}">${d.nama}</option>`).join('');
         }
         // Populate empty placeholders for departments and positions
         if (deptSelect) {
-            deptSelect.innerHTML = '<option value="">-- Pilih Departemen --</option>';
+            deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
         }
         if (posSelect) {
-            posSelect.innerHTML = '<option value="">-- Pilih Posisi --</option>';
+            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
         }
 
         // Initialize all TomSelects
