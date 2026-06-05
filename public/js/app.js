@@ -513,6 +513,33 @@ function switchView(view) {
     if (view === 'masterKompensasi') renderMasterKompensasi();
     
     if (view === 'schedule') {
+        // Initialize default filters to current month/year if not initialized
+        const d = new Date();
+        const currentMonth = d.getMonth() + 1;
+        const currentYear = d.getFullYear();
+
+        const otMonth = document.getElementById('overtimeMonthSelect');
+        const otYear = document.getElementById('overtimeYearSelect');
+        if (otMonth && !otMonth.dataset.initialized) {
+            otMonth.value = currentMonth;
+            otMonth.dataset.initialized = 'true';
+        }
+        if (otYear && !otYear.dataset.initialized) {
+            otYear.value = currentYear;
+            otYear.dataset.initialized = 'true';
+        }
+
+        const attMonth = document.getElementById('attendanceMonthSelect');
+        const attYear = document.getElementById('attendanceYearSelect');
+        if (attMonth && !attMonth.dataset.initialized) {
+            attMonth.value = currentMonth;
+            attMonth.dataset.initialized = 'true';
+        }
+        if (attYear && !attYear.dataset.initialized) {
+            attYear.value = currentYear;
+            attYear.dataset.initialized = 'true';
+        }
+
         // default to master schedule sub tab if none is active
         const activeSubTab = document.querySelector('.sub-tab-btn.active[id^="subTabSchedule"]');
         if (!activeSubTab) {

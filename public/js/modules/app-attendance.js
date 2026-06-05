@@ -123,6 +123,18 @@ async function simpanAttendance(e) {
         const data = await res.json();
         showToast(data.message || 'Kehadiran berhasil disimpan!', 'success');
         closeModal('attendanceModal');
+
+        // Auto-update filter dropdowns to the month and year of the saved log
+        const dateParts = tanggal.split('-');
+        if (dateParts.length === 3) {
+            const yearVal = parseInt(dateParts[0]);
+            const monthVal = parseInt(dateParts[1]);
+            const monthSelect = document.getElementById('attendanceMonthSelect');
+            const yearSelect = document.getElementById('attendanceYearSelect');
+            if (monthSelect) monthSelect.value = monthVal;
+            if (yearSelect) yearSelect.value = yearVal;
+        }
+
         loadAttendanceLogs();
     } catch (e) {
         showToast('Error: ' + e.message, 'error');
