@@ -37,7 +37,8 @@ class Employee extends ResourceController
 
         $clientId = $this->request->getGet('client_id');
         if ($clientId) {
-            $data = $this->model->select('employees.*, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, COALESCE(employees.division_id, departments.division_id) as division_id, COALESCE(employees.department_id, positions.department_id) as department_id, clients.nama as nama_klien, COALESCE(NULLIF(CAST(employees.alamat AS VARCHAR(MAX)), \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal, work_locations.lokasi_kerja as nama_lokasi')
+            $today = date('Y-m-d');
+            $data = $this->model->select('employees.*, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, COALESCE(employees.division_id, departments.division_id) as division_id, COALESCE(employees.department_id, positions.department_id) as department_id, clients.nama as nama_klien, COALESCE(NULLIF(CAST(employees.alamat AS VARCHAR(MAX)), \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal, work_locations.lokasi_kerja as nama_lokasi, (SELECT shift_scheme_id FROM employee_shifts WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC LIMIT 1) as shift_scheme_id')
                         ->join('positions', 'positions.id = employees.position_id', 'left')
                         ->join('departments', 'departments.id = COALESCE(employees.department_id, positions.department_id)', 'left')
                         ->join('divisions', 'divisions.id = COALESCE(employees.division_id, departments.division_id)', 'left')
@@ -128,6 +129,19 @@ class Employee extends ResourceController
 
         if ($id = $this->model->insert($data)) {
             $data['id'] = $id;
+
+            // Assign shift scheme if provided
+            if (!empty($data['shift_scheme_id'])) {
+                $dbShift = \Config\Database::connect();
+                $dbShift->table('employee_shifts')->insert([
+                    'employee_id' => $id,
+                    'shift_scheme_id' => intval($data['shift_scheme_id']),
+                    'start_date' => $data['start_contract'] ?? date('Y-m-d'),
+                    'end_date' => null,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
 
             // Generate PKWT
             $contractModel = new \App\Models\ContractModel();
@@ -220,6 +234,73 @@ class Employee extends ResourceController
                 $contract = $contractModel->where('employee_id', $id)->where('status_pkwt', 'Aktif')->first();
                 if ($contract) {
                     $contractModel->update($contract['id'], ['gaji_pokok' => $data['gaji_pokok']]);
+                }
+            }
+
+            // Sync employee shifts if updated
+            if (isset($data['shift_scheme_id'])) {
+                $dbShift = \Config\Database::connect();
+                $newShiftId = !empty($data['shift_scheme_id']) ? intval($data['shift_scheme_id']) : null;
+                $today = date('Y-m-d');
+
+                // Get current active shift
+                $currentActive = $dbShift->table('employee_shifts')
+                    ->where('employee_id', $id)
+                    ->where("(end_date IS NULL OR end_date >= '{$today}')")
+                    ->get()->getRow();
+
+                if ($newShiftId) {
+                    if ($currentActive) {
+                        if ($currentActive->shift_scheme_id != $newShiftId) {
+                            $yesterday = date('Y-m-d', strtotime(' -1 day'));
+                            if ($currentActive->start_date < $today) {
+                                $dbShift->table('employee_shifts')
+                                    ->where('id', $currentActive->id)
+                                    ->update([
+                                        'end_date' => $yesterday,
+                                        'updated_at' => date('Y-m-d H:i:s')
+                                    ]);
+                            } else {
+                                $dbShift->table('employee_shifts')
+                                    ->where('id', $currentActive->id)
+                                    ->delete();
+                            }
+
+                            $dbShift->table('employee_shifts')->insert([
+                                'employee_id' => $id,
+                                'shift_scheme_id' => $newShiftId,
+                                'start_date' => $today,
+                                'end_date' => null,
+                                'created_at' => date('Y-m-d H:i:s'),
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]);
+                        }
+                    } else {
+                        $dbShift->table('employee_shifts')->insert([
+                            'employee_id' => $id,
+                            'shift_scheme_id' => $newShiftId,
+                            'start_date' => $today,
+                            'end_date' => null,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
+                } else {
+                    if ($currentActive) {
+                        $yesterday = date('Y-m-d', strtotime(' -1 day'));
+                        if ($currentActive->start_date < $today) {
+                            $dbShift->table('employee_shifts')
+                                ->where('id', $currentActive->id)
+                                ->update([
+                                    'end_date' => $yesterday,
+                                    'updated_at' => date('Y-m-d H:i:s')
+                                ]);
+                        } else {
+                            $dbShift->table('employee_shifts')
+                                ->where('id', $currentActive->id)
+                                ->delete();
+                        }
+                    }
                 }
             }
             

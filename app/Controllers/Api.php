@@ -553,6 +553,164 @@ class Api extends ResourceController
     }
 
     // --- ATTENDANCE LOGS ---
+    private function calculateShiftAttendance($employeeId, $tanggal, $jamMasuk, $jamKeluar, $status, $providedShiftSchemeId = null, $payoutPeriod = null)
+    {
+        $db = \Config\Database::connect();
+        
+        // 1. Determine Shift Scheme
+        $shiftSchemeId = null;
+        if (!empty($providedShiftSchemeId)) {
+            $shiftSchemeId = intval($providedShiftSchemeId);
+        } else {
+            // Find active shift assignment
+            $empShift = $db->table('employee_shifts')
+                ->where('employee_id', intval($employeeId))
+                ->where('start_date <=', $tanggal)
+                ->where("(end_date IS NULL OR end_date >= '{$tanggal}')")
+                ->get()->getRow();
+            if ($empShift) {
+                $shiftSchemeId = intval($empShift->shift_scheme_id);
+            }
+        }
+
+        $result = [
+            'shift_scheme_id' => $shiftSchemeId,
+            'calculated_work_hours' => 0.0,
+            'calculated_overtime_hours' => 0.0,
+            'is_incomplete' => 0,
+            'is_rapel' => 0,
+            'payout_period' => null
+        ];
+
+        // 2. Determine rapel status based on client's cut-off
+        $emp = $db->table('employees')->where('id', intval($employeeId))->get()->getRow();
+        $clientId = $emp ? $emp->client_id : null;
+
+        $cutoffStart = 21;
+        $cutoffEnd = 20;
+        if ($clientId) {
+            $clientConfig = $db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
+            if ($clientConfig && !empty($clientConfig->scheme_template_id)) {
+                $scheme = $db->table('payroll_scheme_templates')->where('id', $clientConfig->scheme_template_id)->get()->getRow();
+                if ($scheme && !empty($scheme->schedule_template_id)) {
+                    $sched = $db->table('payroll_schedules')->where('id', $scheme->schedule_template_id)->get()->getRow();
+                    if ($sched) {
+                        $cutoffStart = intval($sched->cutoff_start);
+                        $cutoffEnd = intval($sched->cutoff_end);
+                    }
+                }
+            }
+        }
+
+        // Determine which payroll period this date naturally belongs to
+        $ts = strtotime($tanggal);
+        $tYear = intval(date('Y', $ts));
+        $tMonth = intval(date('n', $ts));
+        $tDay = intval(date('j', $ts));
+
+        if ($tDay > $cutoffEnd) {
+            $natMonth = $tMonth + 1;
+            $natYear = $tYear;
+            if ($natMonth > 12) {
+                $natMonth = 1;
+                $natYear++;
+            }
+        } else {
+            $natMonth = $tMonth;
+            $natYear = $tYear;
+        }
+        $naturalPeriod = $natMonth . '-' . $natYear;
+
+        if (!empty($payoutPeriod) && $payoutPeriod !== $naturalPeriod) {
+            $result['is_rapel'] = 1;
+            $result['payout_period'] = $payoutPeriod;
+        }
+
+        if (!$shiftSchemeId) {
+            return $result;
+        }
+
+        $shift = $db->table('shift_schemes')->where('id', $shiftSchemeId)->get()->getRow();
+        if (!$shift) {
+            return $result;
+        }
+
+        if ($status !== 'Hadir') {
+            return $result;
+        }
+
+        if (empty($jamMasuk) || empty($jamKeluar)) {
+            $result['is_incomplete'] = 1;
+            return $result;
+        }
+
+        // 3. Perform calculations
+        $inTime = strtotime($tanggal . ' ' . $jamMasuk);
+        $outTime = strtotime($tanggal . ' ' . $jamKeluar);
+        
+        if ($outTime < $inTime) {
+            $result['is_incomplete'] = 1;
+            return $result;
+        }
+
+        $shiftIn = strtotime($tanggal . ' ' . $shift->start_time);
+        $shiftOut = strtotime($tanggal . ' ' . $shift->end_time);
+
+        $graceLate = intval($shift->grace_period_late);
+        $graceEarly = intval($shift->grace_period_early);
+
+        $isLate = ($inTime > ($shiftIn + ($graceLate * 60)));
+        $isEarly = ($outTime < ($shiftOut - ($graceEarly * 60)));
+
+        if ($isEarly) {
+            $result['is_incomplete'] = 1;
+        }
+
+        $actualDurationHours = ($outTime - $inTime) / 3600;
+        $standardDuration = floatval($shift->duration);
+
+        $result['calculated_work_hours'] = round(min($standardDuration, $actualDurationHours), 1);
+
+        $otHours = 0.0;
+        if (intval($shift->is_overtime_shift) === 1) {
+            $otHours = $actualDurationHours;
+        } else {
+            if ($outTime > $shiftOut) {
+                $otHours = ($outTime - $shiftOut) / 3600;
+            }
+        }
+        $result['calculated_overtime_hours'] = round(max(0, $otHours), 1);
+
+        // 4. Sync automatically to overtime_logs
+        if ($result['calculated_overtime_hours'] > 0) {
+            $existingOt = $db->table('overtime_logs')
+                ->where('employee_id', intval($employeeId))
+                ->where('tanggal', $tanggal)
+                ->get()->getRow();
+
+            $otData = [
+                'jam_lembur' => $result['calculated_overtime_hours'],
+                'is_holiday' => intval($shift->is_holiday_shift),
+                'keterangan' => 'Generated from shift overtime: ' . $shift->name
+            ];
+
+            if ($existingOt) {
+                $db->table('overtime_logs')->where('id', $existingOt->id)->update($otData);
+            } else {
+                $otData['employee_id'] = intval($employeeId);
+                $otData['tanggal'] = $tanggal;
+                $db->table('overtime_logs')->insert($otData);
+            }
+        } else {
+            $db->table('overtime_logs')
+                ->where('employee_id', intval($employeeId))
+                ->where('tanggal', $tanggal)
+                ->delete();
+        }
+
+        return $result;
+    }
+
     public function getAttendanceLogs()
     {
         $employeeId = $this->request->getGet('employee_id');
@@ -561,8 +719,9 @@ class Api extends ResourceController
         $clientId = $this->request->getGet('client_id');
 
         $builder = $this->db->table('attendance_logs');
-        $builder->select('attendance_logs.*, employees.nama as employee_name');
+        $builder->select('attendance_logs.*, employees.nama as employee_name, shift_schemes.name as shift_name');
         $builder->join('employees', 'employees.id = attendance_logs.employee_id', 'left');
+        $builder->join('shift_schemes', 'shift_schemes.id = attendance_logs.shift_scheme_id', 'left');
 
         if ($employeeId) {
             $builder->where('attendance_logs.employee_id', intval($employeeId));
@@ -584,23 +743,42 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
 
-        // Validate required fields
         if (empty($data['employee_id']) || empty($data['tanggal'])) {
             return $this->failValidationErrors('employee_id dan tanggal wajib diisi');
         }
 
-        // Check for duplicate entry (same employee + same date)
-        $existing = $this->db->table('attendance_logs')
+        $calc = $this->calculateShiftAttendance(
+            $data['employee_id'],
+            $data['tanggal'],
+            $data['jam_masuk'] ?? null,
+            $data['jam_keluar'] ?? null,
+            $data['status'] ?? 'Hadir',
+            $data['shift_scheme_id'] ?? null,
+            $data['payout_period'] ?? null
+        );
+
+        $builder = $this->db->table('attendance_logs')
             ->where('employee_id', intval($data['employee_id']))
-            ->where('tanggal', $data['tanggal'])
-            ->get()->getRow();
+            ->where('tanggal', $data['tanggal']);
+        if (!empty($calc['shift_scheme_id'])) {
+            $builder->where('shift_scheme_id', $calc['shift_scheme_id']);
+        } else {
+            $builder->where('shift_scheme_id IS NULL');
+        }
+        $existing = $builder->get()->getRow();
+
         if ($existing) {
-            // Update existing instead of duplicate
             $this->db->table('attendance_logs')->where('id', $existing->id)->update([
                 'status' => $data['status'] ?? 'Hadir',
                 'jam_masuk' => $data['jam_masuk'] ?? null,
                 'jam_keluar' => $data['jam_keluar'] ?? null,
                 'keterangan' => $data['keterangan'] ?? null,
+                'shift_scheme_id' => $calc['shift_scheme_id'],
+                'is_rapel' => $calc['is_rapel'],
+                'payout_period' => $calc['payout_period'],
+                'calculated_work_hours' => $calc['calculated_work_hours'],
+                'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
+                'is_incomplete' => $calc['is_incomplete']
             ]);
             return $this->respond(['message' => 'Attendance log berhasil diupdate']);
         }
@@ -612,6 +790,12 @@ class Api extends ResourceController
             'jam_masuk' => $data['jam_masuk'] ?? null,
             'jam_keluar' => $data['jam_keluar'] ?? null,
             'keterangan' => $data['keterangan'] ?? null,
+            'shift_scheme_id' => $calc['shift_scheme_id'],
+            'is_rapel' => $calc['is_rapel'],
+            'payout_period' => $calc['payout_period'],
+            'calculated_work_hours' => $calc['calculated_work_hours'],
+            'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
+            'is_incomplete' => $calc['is_incomplete']
         ];
 
         $this->db->table('attendance_logs')->insert($insertData);
@@ -627,16 +811,37 @@ class Api extends ResourceController
         foreach ($logs as $log) {
             if (empty($log['employee_id']) || empty($log['tanggal'])) continue;
 
-            $existing = $this->db->table('attendance_logs')
+            $calc = $this->calculateShiftAttendance(
+                $log['employee_id'],
+                $log['tanggal'],
+                $log['jam_masuk'] ?? null,
+                $log['jam_keluar'] ?? null,
+                $log['status'] ?? 'Hadir',
+                $log['shift_scheme_id'] ?? null,
+                $log['payout_period'] ?? null
+            );
+
+            $builder = $this->db->table('attendance_logs')
                 ->where('employee_id', intval($log['employee_id']))
-                ->where('tanggal', $log['tanggal'])
-                ->get()->getRow();
+                ->where('tanggal', $log['tanggal']);
+            if (!empty($calc['shift_scheme_id'])) {
+                $builder->where('shift_scheme_id', $calc['shift_scheme_id']);
+            } else {
+                $builder->where('shift_scheme_id IS NULL');
+            }
+            $existing = $builder->get()->getRow();
 
             $logData = [
                 'status' => $log['status'] ?? 'Hadir',
                 'jam_masuk' => $log['jam_masuk'] ?? null,
                 'jam_keluar' => $log['jam_keluar'] ?? null,
                 'keterangan' => $log['keterangan'] ?? null,
+                'shift_scheme_id' => $calc['shift_scheme_id'],
+                'is_rapel' => $calc['is_rapel'],
+                'payout_period' => $calc['payout_period'],
+                'calculated_work_hours' => $calc['calculated_work_hours'],
+                'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
+                'is_incomplete' => $calc['is_incomplete']
             ];
 
             if ($existing) {
@@ -655,11 +860,32 @@ class Api extends ResourceController
     public function updateAttendanceLog($id)
     {
         $data = $this->request->getJSON(true);
+        $old = $this->db->table('attendance_logs')->where('id', $id)->get()->getRow();
+        if (!$old) {
+            return $this->fail('Attendance log tidak ditemukan');
+        }
+
+        $calc = $this->calculateShiftAttendance(
+            $old->employee_id,
+            $old->tanggal,
+            $data['jam_masuk'] ?? null,
+            $data['jam_keluar'] ?? null,
+            $data['status'] ?? 'Hadir',
+            $data['shift_scheme_id'] ?? null,
+            $data['payout_period'] ?? null
+        );
+
         $updateData = [
             'status' => $data['status'] ?? 'Hadir',
             'jam_masuk' => $data['jam_masuk'] ?? null,
             'jam_keluar' => $data['jam_keluar'] ?? null,
             'keterangan' => $data['keterangan'] ?? null,
+            'shift_scheme_id' => $calc['shift_scheme_id'],
+            'is_rapel' => $calc['is_rapel'],
+            'payout_period' => $calc['payout_period'],
+            'calculated_work_hours' => $calc['calculated_work_hours'],
+            'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
+            'is_incomplete' => $calc['is_incomplete']
         ];
 
         $this->db->table('attendance_logs')->where('id', $id)->update($updateData);
@@ -668,6 +894,14 @@ class Api extends ResourceController
 
     public function deleteAttendanceLog($id)
     {
+        $old = $this->db->table('attendance_logs')->where('id', $id)->get()->getRow();
+        if ($old) {
+            // Also clean up automatic overtime log
+            $this->db->table('overtime_logs')
+                ->where('employee_id', $old->employee_id)
+                ->where('tanggal', $old->tanggal)
+                ->delete();
+        }
         $this->db->table('attendance_logs')->where('id', $id)->delete();
         return $this->respondDeleted(['message' => 'Attendance log berhasil dihapus']);
     }
@@ -3232,6 +3466,146 @@ class Api extends ResourceController
 
         $this->logActivity("Memperbarui konfigurasi sistem");
         return $this->respond(['message' => 'Settings saved successfully']);
+    }
+
+    // --- SHIFT SCHEMES ---
+    public function getShiftSchemes()
+    {
+        $schemes = $this->db->table('shift_schemes')->get()->getResultArray();
+        return $this->respond($schemes);
+    }
+
+    public function createShiftScheme()
+    {
+        $data = $this->request->getJSON(true);
+        if (empty($data['name']) || empty($data['start_time']) || empty($data['end_time'])) {
+            return $this->failValidationErrors('Name, start time, dan end time wajib diisi');
+        }
+
+        $insertData = [
+            'name' => $data['name'],
+            'start_time' => $data['start_time'],
+            'end_time' => $data['end_time'],
+            'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
+            'grace_period_late' => isset($data['grace_period_late']) ? intval($data['grace_period_late']) : 0,
+            'grace_period_early' => isset($data['grace_period_early']) ? intval($data['grace_period_early']) : 0,
+            'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
+            'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        $this->db->table('shift_schemes')->insert($insertData);
+        $this->logActivity("Membuat skema shift baru: " . $data['name']);
+        return $this->respondCreated(['message' => 'Skema shift berhasil dibuat']);
+    }
+
+    public function updateShiftScheme($id)
+    {
+        $data = $this->request->getJSON(true);
+        if (empty($data['name']) || empty($data['start_time']) || empty($data['end_time'])) {
+            return $this->failValidationErrors('Name, start time, dan end time wajib diisi');
+        }
+
+        $updateData = [
+            'name' => $data['name'],
+            'start_time' => $data['start_time'],
+            'end_time' => $data['end_time'],
+            'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
+            'grace_period_late' => isset($data['grace_period_late']) ? intval($data['grace_period_late']) : 0,
+            'grace_period_early' => isset($data['grace_period_early']) ? intval($data['grace_period_early']) : 0,
+            'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
+            'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        $this->db->table('shift_schemes')->where('id', $id)->update($updateData);
+        $this->logActivity("Mengubah skema shift ID: " . $id);
+        return $this->respond(['message' => 'Skema shift berhasil diupdate']);
+    }
+
+    public function deleteShiftScheme($id)
+    {
+        $referenced = $this->db->table('employee_shifts')->where('shift_scheme_id', $id)->get()->getRow();
+        if ($referenced) {
+            return $this->fail('Skema shift ini sedang digunakan oleh karyawan dan tidak dapat dihapus');
+        }
+
+        $this->db->table('shift_schemes')->where('id', $id)->delete();
+        $this->logActivity("Menghapus skema shift ID: " . $id);
+        return $this->respondDeleted(['message' => 'Skema shift berhasil dihapus']);
+    }
+
+    // --- EMPLOYEE SHIFTS ---
+    public function getEmployeeShifts()
+    {
+        $employeeId = $this->request->getGet('employee_id');
+        $builder = $this->db->table('employee_shifts')
+            ->select('employee_shifts.*, shift_schemes.name as shift_name, shift_schemes.start_time, shift_schemes.end_time, employees.nama as employee_name')
+            ->join('shift_schemes', 'shift_schemes.id = employee_shifts.shift_scheme_id', 'inner')
+            ->join('employees', 'employees.id = employee_shifts.employee_id', 'inner');
+
+        if (!empty($employeeId)) {
+            $builder->where('employee_shifts.employee_id', intval($employeeId));
+        }
+
+        $shifts = $builder->orderBy('employee_shifts.start_date', 'DESC')->get()->getResultArray();
+        return $this->respond($shifts);
+    }
+
+    public function assignEmployeeShift()
+    {
+        $data = $this->request->getJSON(true);
+        if (empty($data['employee_id']) || empty($data['shift_scheme_id']) || empty($data['start_date'])) {
+            return $this->failValidationErrors('Employee ID, Shift Scheme ID, dan Start Date wajib diisi');
+        }
+
+        $empId = intval($data['employee_id']);
+        $shiftId = intval($data['shift_scheme_id']);
+        $startDate = $data['start_date'];
+        $endDate = !empty($data['end_date']) ? $data['end_date'] : null;
+
+        $yesterday = date('Y-m-d', strtotime($startDate . ' -1 day'));
+
+        $activeShifts = $this->db->table('employee_shifts')
+            ->where('employee_id', $empId)
+            ->where("(end_date IS NULL OR end_date >= '{$startDate}')")
+            ->get()->getResultArray();
+
+        foreach ($activeShifts as $active) {
+            if ($active['start_date'] < $startDate) {
+                $this->db->table('employee_shifts')
+                    ->where('id', $active['id'])
+                    ->update([
+                        'end_date' => $yesterday,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+            } else {
+                $this->db->table('employee_shifts')
+                    ->where('id', $active['id'])
+                    ->delete();
+            }
+        }
+
+        $insertData = [
+            'employee_id' => $empId,
+            'shift_scheme_id' => $shiftId,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+
+        $this->db->table('employee_shifts')->insert($insertData);
+        $this->logActivity("Menugaskan skema shift ke karyawan ID: " . $empId);
+        return $this->respondCreated(['message' => 'Shift berhasil ditugaskan ke karyawan']);
+    }
+
+    public function deleteEmployeeShift($id)
+    {
+        $this->db->table('employee_shifts')->where('id', $id)->delete();
+        $this->logActivity("Menghapus alokasi shift karyawan ID: " . $id);
+        return $this->respondDeleted(['message' => 'Alokasi shift berhasil dihapus']);
     }
 }
 

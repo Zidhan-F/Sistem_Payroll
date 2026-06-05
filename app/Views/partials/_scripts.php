@@ -31,6 +31,7 @@
     <script src="<?= base_url('js/modules/app-attendance.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-overtime.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-settings.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-shift.js?v=' . time()) ?>"></script>
     <!-- Existing separate modules -->
     <script src="<?= base_url('js/app-org.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/app-global-sto.js?v=' . time()) ?>"></script>

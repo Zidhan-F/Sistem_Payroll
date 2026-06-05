@@ -1079,6 +1079,13 @@
                     <input type="number" id="empCustomStandardDays" placeholder="Default global: 20 days" min="1" max="31" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     <small style="color: #94a3b8; font-size: 12px;">Leave empty to use global default of 20 standard days.</small>
                 </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Skema Shift (Opsional)</label>
+                    <select id="empShiftSchemeId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background-color: white;">
+                        <option value="">-- Tanpa Shift / Default --</option>
+                    </select>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="tutupModalKaryawan()">Cancel</button>
@@ -1916,6 +1923,99 @@
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
                     <button type="button" class="btn-cancel" onclick="closeModal('overtimeModal')" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
                     <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Tambah/Edit Master Skema Shift -->
+    <div id="modalShiftScheme" class="modal-skema" style="width: 550px; max-width: 95%; display: none; z-index: 2000;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+            <h3 id="modalShiftSchemeTitle">Tambah Skema Shift</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalShiftScheme()"></i>
+        </div>
+        <div class="modal-body" style="padding: 25px;">
+            <form id="formShiftScheme" onsubmit="simpanShiftScheme(event)">
+                <input type="hidden" id="shiftSchemeId">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Nama Shift <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="shiftSchemeName" placeholder="Contoh: Shift Pagi, Shift Malam, Lembur Khusus" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Mulai <span style="color: #ef4444;">*</span></label>
+                        <input type="time" id="shiftSchemeStartTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Selesai <span style="color: #ef4444;">*</span></label>
+                        <input type="time" id="shiftSchemeEndTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Kerja Standar (Jam) <span style="color: #ef4444;">*</span></label>
+                    <input type="number" id="shiftSchemeDuration" step="0.5" min="1" max="24" value="8" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Toleransi Terlambat (Menit)</label>
+                        <input type="number" id="shiftSchemeGraceLate" min="0" value="0" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Toleransi Early Leave (Menit)</label>
+                        <input type="number" id="shiftSchemeGraceEarly" min="0" value="0" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="shiftSchemeIsHoliday" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hitung sebagai Lembur Hari Libur</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="shiftSchemeIsOvertime" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hitung Seluruh Durasi Sebagai Lembur (Overtime-only shift)</span>
+                    </label>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Alokasi Shift Karyawan -->
+    <div id="modalAssignShift" class="modal-skema" style="width: 500px; max-width: 95%; display: none; z-index: 2000;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+            <h3 id="modalAssignShiftTitle">Tugaskan Shift Karyawan</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalAssignShift()"></i>
+        </div>
+        <div class="modal-body" style="padding: 25px;">
+            <form id="formAssignShift" onsubmit="simpanAssignShift(event)">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Pilih Karyawan <span style="color: #ef4444;">*</span></label>
+                    <select id="assignShiftEmployeeId" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background: white;">
+                        <option value="">-- Pilih Karyawan --</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Pilih Skema Shift <span style="color: #ef4444;">*</span></label>
+                    <select id="assignShiftSchemeId" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background: white;">
+                        <option value="">-- Pilih Skema Shift --</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Tanggal Mulai <span style="color: #ef4444;">*</span></label>
+                        <input type="date" id="assignShiftStartDate" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Tanggal Selesai (Opsional)</label>
+                        <input type="date" id="assignShiftEndDate" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" class="btn-cancel" onclick="tutupModalAssignShift()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Tugaskan</button>
                 </div>
             </form>
         </div>

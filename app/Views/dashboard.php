@@ -959,6 +959,7 @@
         <!-- Section: Log Aktivitas Removed -->
     </div>
 
+    <?= view('partials/_view_skema_shift') ?>
     <?= view('partials/_modals') ?>
     <?= view('partials/_scripts') ?>
 </body>

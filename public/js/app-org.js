@@ -566,6 +566,23 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
     document.getElementById('empEmployId').value = '';
     document.getElementById('empCustomStandardDays').value = '';
+
+    // Load Shift Schemes dropdown
+    const shiftSchemeSelect = document.getElementById('empShiftSchemeId');
+    if (shiftSchemeSelect) {
+        shiftSchemeSelect.innerHTML = '<option value="">-- Loading Shifts... --</option>';
+        try {
+            const rShifts = await fetch(API + '/shift-schemes');
+            const shiftsData = await rShifts.json();
+            shiftSchemeSelect.innerHTML = '<option value="">-- Tanpa Shift / Default --</option>';
+            shiftsData.forEach(s => {
+                shiftSchemeSelect.innerHTML += `<option value="${s.id}">${s.name} (${s.start_time.substring(0,5)} - ${s.end_time.substring(0,5)})</option>`;
+            });
+        } catch (err) {
+            console.error('Error loading shift schemes:', err);
+            shiftSchemeSelect.innerHTML = '<option value="">-- Tanpa Shift / Default --</option>';
+        }
+    }
     
     const hariKerjaInput = document.getElementById('empHariKerja');
     if (hariKerjaInput) {
@@ -687,6 +704,10 @@ async function bukaModalKaryawan(mode,id=null){
         
         await loadWorkLocationsForSelect(emp.client_id, emp.work_location_id);
         await loadOrgSelects(emp.client_id, emp.division_id, emp.department_id, emp.position_id);
+        
+        if (emp && emp.shift_scheme_id && shiftSchemeSelect) {
+            shiftSchemeSelect.value = emp.shift_scheme_id;
+        }
     }
     
     if (window.empClientSelectInstance) {
@@ -776,7 +797,8 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         work_location_id:document.getElementById('empWorkLocationId').value ? parseInt(document.getElementById('empWorkLocationId').value, 10) : null,
         position_id:document.getElementById('empPositionId')?.value ? parseInt(document.getElementById('empPositionId').value, 10) : null,
         division_id:document.getElementById('empDivisionId')?.value ? parseInt(document.getElementById('empDivisionId').value, 10) : null,
-        department_id:document.getElementById('empDepartmentId')?.value ? parseInt(document.getElementById('empDepartmentId').value, 10) : null
+        department_id:document.getElementById('empDepartmentId')?.value ? parseInt(document.getElementById('empDepartmentId').value, 10) : null,
+        shift_scheme_id: document.getElementById('empShiftSchemeId')?.value ? parseInt(document.getElementById('empShiftSchemeId').value, 10) : null
     };
     // For new employees, generate a dummy nik from employ_id (nik is required by DB)
     if (!id) {

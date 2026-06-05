@@ -31,6 +31,10 @@
                     <i class="fas fa-user-plus"></i>
                     <span>Add Employee</span>
                 </li>
+                <li id="submenuSkemaShift" onclick="switchKaryawanSubMenu('skema_shift', event)">
+                    <i class="fas fa-clock"></i>
+                    <span>Skema Shift</span>
+                </li>
             </ul>
         </li>
         <li id="menuPayroll" onclick="togglePayrollSubmenu()">

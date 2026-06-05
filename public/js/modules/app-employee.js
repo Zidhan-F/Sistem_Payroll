@@ -199,6 +199,13 @@ function switchKaryawanSubMenu(action, event) {
         switchView('manajemenKaryawan');
         const subItem = document.getElementById('submenuTambahKaryawan');
         if (subItem) subItem.classList.add('active');
+    } else if (action === 'skema_shift') {
+        switchView('skemaShift');
+        if (typeof loadShiftSchemes === 'function') {
+            loadShiftSchemes();
+        }
+        const subItem = document.getElementById('submenuSkemaShift');
+        if (subItem) subItem.classList.add('active');
     }
 }
 

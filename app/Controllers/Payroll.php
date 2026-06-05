@@ -79,6 +79,8 @@ class Payroll extends ResourceController
             $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $cutoffEndDay);
         }
 
+        $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
+
         $employees = $db->table('employees')
                         ->where('client_id', $clientId)
                         ->get()
@@ -87,15 +89,25 @@ class Payroll extends ResourceController
         $summary = [];
         foreach ($employees as $emp) {
             // Hadir
-            $hadirCount = $db->table('attendance_logs')
+            $hadirStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
                              ->where('tanggal >=', $startDateStr)
                              ->where('tanggal <=', $endDateStr)
                              ->where('status', 'Hadir')
+                             ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                              ->countAllResults();
 
+            $hadirRapel = $db->table('attendance_logs')
+                             ->where('employee_id', $emp['id'])
+                             ->where('status', 'Hadir')
+                             ->where('is_rapel', 1)
+                             ->where('payout_period', $payoutPeriodStr)
+                             ->countAllResults();
+
+            $hadirCount = $hadirStd + $hadirRapel;
+
             // Sakit/Izin/Cuti
-            $sakitCount = $db->table('attendance_logs')
+            $sakitStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
                              ->where('tanggal >=', $startDateStr)
                              ->where('tanggal <=', $endDateStr)
@@ -104,25 +116,63 @@ class Payroll extends ResourceController
                                  ->orWhere('status', 'Izin')
                                  ->orWhere('status', 'Cuti')
                              ->groupEnd()
+                             ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                              ->countAllResults();
 
+            $sakitRapel = $db->table('attendance_logs')
+                             ->where('employee_id', $emp['id'])
+                             ->groupStart()
+                                 ->where('status', 'Sakit')
+                                 ->orWhere('status', 'Izin')
+                                 ->orWhere('status', 'Cuti')
+                             ->groupEnd()
+                             ->where('is_rapel', 1)
+                             ->where('payout_period', $payoutPeriodStr)
+                             ->countAllResults();
+
+            $sakitCount = $sakitStd + $sakitRapel;
+
             // Absen/Alpa
-            $alpaCount = $db->table('attendance_logs')
-                            ->where('employee_id', $emp['id'])
-                            ->where('tanggal >=', $startDateStr)
-                            ->where('tanggal <=', $endDateStr)
-                            ->where('status', 'Absen')
-                            ->countAllResults();
+            $alpaStd = $db->table('attendance_logs')
+                             ->where('employee_id', $emp['id'])
+                             ->where('tanggal >=', $startDateStr)
+                             ->where('tanggal <=', $endDateStr)
+                             ->where('status', 'Absen')
+                             ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                             ->countAllResults();
+
+            $alpaRapel = $db->table('attendance_logs')
+                             ->where('employee_id', $emp['id'])
+                             ->where('status', 'Absen')
+                             ->where('is_rapel', 1)
+                             ->where('payout_period', $payoutPeriodStr)
+                             ->countAllResults();
+
+            $alpaCount = $alpaStd + $alpaRapel;
 
             // Lembur (hours sum)
-            $lemburSum = $db->table('overtime_logs')
-                            ->where('employee_id', $emp['id'])
-                            ->where('tanggal >=', $startDateStr)
-                            ->where('tanggal <=', $endDateStr)
-                            ->selectSum('jam_lembur')
-                            ->get()
-                            ->getRow();
-            $lemburHours = $lemburSum ? floatval($lemburSum->jam_lembur) : 0.0;
+            $lemburStdSum = $db->table('overtime_logs')
+                             ->where('overtime_logs.employee_id', $emp['id'])
+                             ->where('overtime_logs.tanggal >=', $startDateStr)
+                             ->where('overtime_logs.tanggal <=', $endDateStr)
+                             ->selectSum('overtime_logs.jam_lembur')
+                             ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.tanggal = overtime_logs.tanggal', 'left')
+                             ->where('(attendance_logs.is_rapel = 0 OR attendance_logs.is_rapel IS NULL)')
+                             ->get()
+                             ->getRow();
+            $lemburStd = $lemburStdSum ? floatval($lemburStdSum->jam_lembur) : 0.0;
+
+            $lemburRapelSum = $db->table('overtime_logs')
+                             ->where('overtime_logs.employee_id', $emp['id'])
+                             ->selectSum('overtime_logs.jam_lembur')
+                             ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.tanggal = overtime_logs.tanggal', 'inner')
+                             ->where('attendance_logs.is_rapel', 1)
+                             ->where('attendance_logs.payout_period', $payoutPeriodStr)
+                             ->get()
+                             ->getRow();
+            $lemburRapel = $lemburRapelSum ? floatval($lemburRapelSum->jam_lembur) : 0.0;
+
+            $lemburHours = $lemburStd + $lemburRapel;
 
             $summary[] = [
                 'employee_id' => $emp['id'],

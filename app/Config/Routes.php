@@ -205,4 +205,14 @@ $routes->group('api', function($routes) {
     $routes->put('payroll-schemes/(:num)', 'PayrollScheme::update/$1');
     $routes->delete('payroll-schemes/(:num)', 'PayrollScheme::delete/$1');
     $routes->post('payroll-schemes/toggle-active/(:num)', 'PayrollScheme::toggleActive/$1');
+    // Shift Schemes
+    $routes->get('shift-schemes', 'Api::getShiftSchemes');
+    $routes->post('shift-schemes', 'Api::createShiftScheme');
+    $routes->put('shift-schemes/(:num)', 'Api::updateShiftScheme/$1');
+    $routes->delete('shift-schemes/(:num)', 'Api::deleteShiftScheme/$1');
+
+    // Employee Shifts
+    $routes->get('employee-shifts', 'Api::getEmployeeShifts');
+    $routes->post('employee-shifts', 'Api::assignEmployeeShift');
+    $routes->delete('employee-shifts/(:num)', 'Api::deleteEmployeeShift/$1');
 });

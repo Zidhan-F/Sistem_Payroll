@@ -486,7 +486,60 @@ class Migrasi extends BaseController
             $db->query("INSERT INTO system_settings (setting_key, setting_value) VALUES ('overtime_divisor', '160')");
         }
 
-        return "Migrasi Berhasil! (termasuk tabel attendance_logs, overtime_logs, holiday_calendar, system_settings, kolom allowance_type/payout_period di pkwt_components, dan custom_standard_days di employees)";
+        // 28. Tabel Shift Master & Employee Shifts
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'shift_schemes')
+            CREATE TABLE shift_schemes (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                name NVARCHAR(100) NOT NULL,
+                start_time NVARCHAR(10) NOT NULL,
+                end_time NVARCHAR(10) NOT NULL,
+                duration DECIMAL(4,1) NOT NULL,
+                grace_period_late INT DEFAULT 0,
+                grace_period_early INT DEFAULT 0,
+                is_holiday_shift BIT DEFAULT 0,
+                is_overtime_shift BIT DEFAULT 0,
+                created_at DATETIME DEFAULT GETDATE(),
+                updated_at DATETIME DEFAULT GETDATE()
+            )");
+
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'employee_shifts')
+            CREATE TABLE employee_shifts (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                employee_id INT NOT NULL,
+                shift_scheme_id INT NOT NULL,
+                start_date DATE NOT NULL,
+                end_date DATE NULL,
+                created_at DATETIME DEFAULT GETDATE(),
+                updated_at DATETIME DEFAULT GETDATE()
+            )");
+
+        // Add shift/rapel columns to attendance_logs
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'shift_scheme_id')
+            ALTER TABLE attendance_logs ADD shift_scheme_id INT NULL");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'is_rapel')
+            ALTER TABLE attendance_logs ADD is_rapel BIT DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'payout_period')
+            ALTER TABLE attendance_logs ADD payout_period NVARCHAR(20) NULL");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'calculated_work_hours')
+            ALTER TABLE attendance_logs ADD calculated_work_hours DECIMAL(4,1) DEFAULT 0.0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'calculated_overtime_hours')
+            ALTER TABLE attendance_logs ADD calculated_overtime_hours DECIMAL(4,1) DEFAULT 0.0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'is_incomplete')
+            ALTER TABLE attendance_logs ADD is_incomplete BIT DEFAULT 0");
+
+        // Seed default shifts if empty
+        $shiftCountObj = $db->query("SELECT COUNT(*) as [count] FROM shift_schemes")->getRow();
+        $shiftCount = $shiftCountObj ? intval($shiftCountObj->count) : 0;
+        if ($shiftCount == 0) {
+            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
+                VALUES ('Pagi', '08:00', '13:00', 5.0, 15, 15, 0, 0)");
+            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
+                VALUES ('Siang', '13:00', '18:00', 5.0, 15, 15, 0, 0)");
+            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
+                VALUES ('Shift Overtime', '18:00', '22:00', 4.0, 0, 0, 0, 1)");
+        }
+
+        return "Migrasi Berhasil! (termasuk tabel attendance_logs, overtime_logs, holiday_calendar, system_settings, kolom allowance_type/payout_period di pkwt_components, custom_standard_days di employees, tabel shift_schemes, dan employee_shifts)";
     }
 
     /**

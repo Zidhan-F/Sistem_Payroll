@@ -53,16 +53,33 @@ async function loadAttendanceLogs() {
             const d = new Date(a.tanggal);
             const tanggalFormatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
             const statusStyle = statusColors[a.status] || 'background:#f1f5f9;color:#475569;';
+            
+            // Build shift status badges
+            let shiftBadges = '';
+            if (parseInt(a.is_incomplete) === 1) {
+                shiftBadges += `<span style="background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Incomplete</span>`;
+            }
+            if (parseInt(a.is_rapel) === 1) {
+                shiftBadges += `<span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Rapel (${a.payout_period})</span>`;
+            }
+
             return `<tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="text-align:center;padding:12px;color:#64748b;">${i+1}</td>
                 <td style="padding:12px;font-weight:600;color:#1e293b;">${a.employee_name || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+                <td style="padding:12px;font-weight:600;color:#475569;">${a.shift_name || '<span style="color:#94a3b8;font-style:italic;">Default</span>'}</td>
                 <td style="text-align:center;padding:12px;">
                     <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${statusStyle}">${a.status}</span>
                 </td>
                 <td style="text-align:center;padding:12px;color:#475569;">${a.jam_masuk || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;">${a.jam_keluar || '-'}</td>
-                <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${a.keterangan || '-'}</td>
+                <td style="text-align:center;padding:12px;color:#475569;font-weight:700;">
+                    ${parseFloat(a.calculated_work_hours || 0).toFixed(1)}j (${parseFloat(a.calculated_overtime_hours || 0).toFixed(1)}j)
+                </td>
+                <td style="padding:12px;color:#475569;max-width:220px;overflow:hidden;text-overflow:ellipsis;">
+                    <span>${a.keterangan || '-'}</span>
+                    ${shiftBadges}
+                </td>
                 <td style="text-align:center;padding:12px;">
                     <button onclick="deleteAttendanceLog(${a.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
                         <i class="fas fa-trash"></i>
