@@ -12,6 +12,38 @@ async function fetchSystemSettings() {
         if (divisorInput) {
             divisorInput.value = divisorObj ? divisorObj.setting_value : '160';
         }
+
+        // Render settings list table
+        const tbody = document.getElementById('systemSettingsTableBody');
+        if (tbody) {
+            if (!settings || settings.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8;">No configuration settings found.</td></tr>`;
+            } else {
+                tbody.innerHTML = settings.map((s, idx) => {
+                    let keyLabel = s.setting_key;
+                    let desc = 'System configuration parameter.';
+                    if (s.setting_key === 'overtime_divisor') {
+                        keyLabel = 'Overtime Divisor';
+                        desc = 'Default hours divisor used to calculate employee hourly rate for overtime payments.';
+                    }
+                    
+                    const updatedAt = s.updated_at 
+                        ? new Date(s.updated_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                        : '-';
+                    
+                    return `<tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="text-align:center;padding:12px;color:#64748b;">${idx + 1}</td>
+                        <td style="padding:12px;font-weight:600;color:#1e293b;">
+                            <div>${keyLabel}</div>
+                            <small style="font-weight:normal;color:#64748b;font-size:12px;">${desc}</small>
+                        </td>
+                        <td style="padding:12px;color:#475569;"><code>${s.setting_key}</code></td>
+                        <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${s.setting_value}</td>
+                        <td style="text-align:center;padding:12px;color:#64748b;font-size:13px;">${updatedAt}</td>
+                    </tr>`;
+                }).join('');
+            }
+        }
     } catch (err) {
         console.error('Error fetching system settings:', err);
     }
