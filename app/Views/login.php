@@ -45,6 +45,6 @@
     <script>
         const BASE_URL = "<?= base_url() ?>";
     </script>
-    <script src="<?= base_url('js/login.js') ?>"></script>
+    <script src="<?= base_url('js/login.js?v=' . time()) ?>"></script>
 </body>
 </html>

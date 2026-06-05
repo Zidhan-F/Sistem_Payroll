@@ -15,9 +15,6 @@ $routes->get('seed-dummy', 'DummySeeder::run');
 
 // API Routes
 $routes->group('api', function($routes) {
-    // Auth
-    $routes->post('login', 'Api::login');
-    
     // Clients
     $routes->get('clients', 'Api::getClients');
     $routes->post('clients', 'Api::createClient');
@@ -100,6 +97,7 @@ $routes->group('api', function($routes) {
     $routes->get('client-absence-config/(:num)', 'Api::getAbsenceConfig/$1');
     $routes->post('client-absence-config', 'Api::saveAbsenceConfig');
     $routes->get('check-schema', 'Api::checkSchema');
+    $routes->get('notifications', 'Api::getNotifications');
     $routes->get('preview-payroll', 'Api::previewPayroll');
 
     // Attendance Logs

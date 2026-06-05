@@ -842,3 +842,111 @@ function tutupDetailBpjsModal() {
 window.bukaDetailBpjsModal = bukaDetailBpjsModal;
 window.tutupDetailBpjsModal = tutupDetailBpjsModal;
 
+// ===== NOTIFICATION SYSTEM JS =====
+async function fetchNotifications() {
+    const badge = document.getElementById('notificationsBadge');
+    const countText = document.getElementById('notificationsCount');
+    const list = document.getElementById('notificationsList');
+    if (!list) return;
+
+    try {
+        const res = await fetch(`${API_URL}/notifications`);
+        if (!res.ok) throw new Error('Failed to fetch');
+        
+        const json = await res.json();
+        const data = json.data || [];
+        const count = data.length;
+
+        // Update Badge
+        if (count > 0) {
+            badge.innerText = count;
+            badge.style.display = 'block';
+            countText.innerText = `${count} Peringatan`;
+        } else {
+            badge.style.display = 'none';
+            countText.innerText = '0 Peringatan';
+        }
+
+        // Render List
+        if (count === 0) {
+            list.innerHTML = `
+                <div class="notifications-empty">
+                    <i class="fas fa-bell-slash"></i>
+                    Tidak ada peringatan baru
+                </div>`;
+            return;
+        }
+
+        list.innerHTML = data.map(item => {
+            const iconClass = item.type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-exclamation-triangle';
+            const iconColorClass = item.type === 'error' ? 'error' : 'warning';
+            return `
+                <div class="notification-item" onclick="handleNotificationClick('${item.link}')">
+                    <div class="notification-icon ${iconColorClass}">
+                        <i class="${iconClass}"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-item-title">${item.title}</div>
+                        <div class="notification-item-message">${item.message}</div>
+                    </div>
+                </div>`;
+        }).join('');
+
+    } catch (err) {
+        console.error('Error fetching notifications:', err);
+        list.innerHTML = `
+            <div class="notifications-empty">
+                <i class="fas fa-exclamation-circle"></i>
+                Gagal memuat notifikasi
+            </div>`;
+    }
+}
+
+function handleNotificationClick(link) {
+    // Close dropdown
+    const dropdown = document.getElementById('notificationsDropdown');
+    if (dropdown) dropdown.classList.remove('show');
+
+    // Switch view
+    if (link === 'klien') {
+        switchView('klien');
+    } else if (link === 'kompensasi') {
+        if (typeof switchPayrollSub === 'function') {
+            switchPayrollSub('kompensasi');
+        } else {
+            switchView('masterKompensasi');
+        }
+    }
+}
+
+// Setup Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const bell = document.getElementById('notificationsBell');
+    const dropdown = document.getElementById('notificationsDropdown');
+
+    if (bell && dropdown) {
+        bell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('show');
+            if (dropdown.classList.contains('show')) {
+                fetchNotifications();
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!bell.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+    }
+
+    // Initial load
+    fetchNotifications();
+    // Refresh notifications every 60 seconds
+    setInterval(fetchNotifications, 60000);
+});
+
+window.fetchNotifications = fetchNotifications;
+window.handleNotificationClick = handleNotificationClick;
+
