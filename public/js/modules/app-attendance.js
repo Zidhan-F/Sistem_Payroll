@@ -69,7 +69,14 @@ async function loadAttendanceLogs() {
                 <td style="text-align:center;padding:12px;color:#475569;">${a.jam_masuk || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;">${a.jam_keluar || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;font-weight:700;">
-                    ${parseFloat(a.calculated_work_hours || 0).toFixed(1)}j (${parseFloat(a.calculated_overtime_hours || 0).toFixed(1)}j)
+                    ${parseFloat(a.calculated_work_hours || 0).toFixed(1)}j<br>
+                    <small style="color:var(--success);">OT: ${parseFloat(a.calculated_overtime_hours || 0).toFixed(1)}j</small>
+                </td>
+                <td style="text-align:center;padding:12px;color:#ef4444;font-weight:600;">
+                    ${parseFloat(a.late_hours || 0) > 0 ? parseFloat(a.late_hours).toFixed(1) + 'j' : '-'}
+                </td>
+                <td style="text-align:center;padding:12px;color:#f59e0b;font-weight:600;">
+                    ${parseFloat(a.early_leave_hours || 0) > 0 ? parseFloat(a.early_leave_hours).toFixed(1) + 'j' : '-'}
                 </td>
                 <td style="padding:12px;color:#475569;max-width:220px;overflow:hidden;text-overflow:ellipsis;">
                     <span>${a.keterangan || '-'}</span>

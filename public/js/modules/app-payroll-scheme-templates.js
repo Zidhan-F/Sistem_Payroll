@@ -261,6 +261,9 @@ async function saveSchemeTemplate() {
         potongan_per_alpa: parseFloat(document.getElementById('schemePotonganPerAlpa').value.replace(/[^0-9]/g, '')) || 0,
         bonus_per_hadir: parseFloat(document.getElementById('schemeBonusPerHadir').value.replace(/[^0-9]/g, '')) || 0,
         rate_lembur_per_jam: parseFloat(document.getElementById('schemeRateLembur').value.replace(/[^0-9]/g, '')) || 0,
+        grace_period_late: parseInt(document.getElementById('schemeGraceLate').value) || 0,
+        grace_period_early: parseInt(document.getElementById('schemeGraceEarly').value) || 0,
+        min_overtime: parseInt(document.getElementById('schemeMinOvertime').value) || 30,
         
         // BPJS
         bpjs_kes_karyawan: parseFloat(document.getElementById('schemeBpjsKesKaryawan').value) || 1.0,
@@ -370,6 +373,9 @@ async function editSchemeTemplate(id) {
         document.getElementById('schemePotonganPerAlpa').value = formatRupiah(scheme.potongan_per_alpa);
         document.getElementById('schemeBonusPerHadir').value = formatRupiah(scheme.bonus_per_hadir);
         document.getElementById('schemeRateLembur').value = formatRupiah(scheme.rate_lembur_per_jam);
+        document.getElementById('schemeGraceLate').value = scheme.grace_period_late || 0;
+        document.getElementById('schemeGraceEarly').value = scheme.grace_period_early || 0;
+        document.getElementById('schemeMinOvertime').value = scheme.min_overtime || 30;
         
         document.getElementById('schemeBpjsKesKaryawan').value = scheme.bpjs_kes_karyawan;
         document.getElementById('schemeBpjsKesPerusahaan').value = scheme.bpjs_kes_perusahaan;

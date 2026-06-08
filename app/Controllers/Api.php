@@ -310,7 +310,8 @@ class Api extends ResourceController
             'absen_tidak_potong' => isset($requestData['absen_tidak_potong']) ? intval($requestData['absen_tidak_potong']) : 0,
             'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0,
             'grace_period_late' => isset($requestData['grace_period_late']) ? intval($requestData['grace_period_late']) : 0,
-            'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0
+            'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0,
+            'min_overtime' => isset($requestData['min_overtime']) ? intval($requestData['min_overtime']) : 30
         ];
         
         $this->db->table('payroll_schemes')->insert($schemeData);
@@ -369,7 +370,8 @@ class Api extends ResourceController
             'absen_tidak_potong' => isset($requestData['absen_tidak_potong']) ? intval($requestData['absen_tidak_potong']) : 0,
             'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0,
             'grace_period_late' => isset($requestData['grace_period_late']) ? intval($requestData['grace_period_late']) : 0,
-            'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0
+            'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0,
+            'min_overtime' => isset($requestData['min_overtime']) ? intval($requestData['min_overtime']) : 30
         ];
         
         $this->db->table('payroll_schemes')->where('id', $id)->update($schemeData);
@@ -663,6 +665,8 @@ class Api extends ResourceController
             'shift_scheme_id' => $shiftSchemeId,
             'calculated_work_hours' => 0.0,
             'calculated_overtime_hours' => 0.0,
+            'late_hours' => 0.0,
+            'early_leave_hours' => 0.0,
             'is_incomplete' => 0,
             'is_rapel' => 0,
             'payout_period' => null
@@ -744,26 +748,59 @@ class Api extends ResourceController
 
         $graceLate = 0;
         $graceEarly = 0;
+        $minOvertime = 30; // default 30 min
 
         if ($clientId) {
-            $clientConfig = $db->table('client_payroll_configs')
-                               ->where('client_id', $clientId)
-                               ->get()
-                               ->getRow();
-            if ($clientConfig && !empty($clientConfig->payroll_scheme_id)) {
-                $payrollScheme = $db->table('payroll_schemes')
-                                    ->where('id', $clientConfig->payroll_scheme_id)
-                                    ->get()
-                                    ->getRow();
-                if ($payrollScheme) {
-                    $graceLate = intval($payrollScheme->grace_period_late);
-                    $graceEarly = intval($payrollScheme->grace_period_early);
+            // First check STO specific scheme
+            $schemeTemplateModel = new \App\Models\PayrollSchemeTemplateModel();
+            $stoScheme = $schemeTemplateModel->getSchemeForEmployee($clientId, $emp->division_id, $emp->department_id, $emp->position_id);
+            
+            if ($stoScheme) {
+                $graceLate = intval($stoScheme['grace_period_late'] ?? 0);
+                $graceEarly = intval($stoScheme['grace_period_early'] ?? 0);
+                $minOvertime = intval($stoScheme['min_overtime'] ?? 30);
+            } else {
+                $clientConfig = $db->table('client_payroll_configs')
+                                   ->where('client_id', $clientId)
+                                   ->get()
+                                   ->getRow();
+                if ($clientConfig && !empty($clientConfig->payroll_scheme_id)) {
+                    $payrollScheme = $db->table('payroll_schemes')
+                                        ->where('id', $clientConfig->payroll_scheme_id)
+                                        ->get()
+                                        ->getRow();
+                    if ($payrollScheme) {
+                        $graceLate = intval($payrollScheme->grace_period_late);
+                        $graceEarly = intval($payrollScheme->grace_period_early);
+                        $minOvertime = intval($payrollScheme->min_overtime ?? 30);
+                    }
                 }
             }
         }
 
         $isLate = ($inTime > ($shiftIn + ($graceLate * 60)));
         $isEarly = ($outTime < ($shiftOut - ($graceEarly * 60)));
+
+        $lateHours = 0;
+        if ($isLate) {
+            $lateMinutes = ceil(($inTime - $shiftIn) / 60);
+            $lateMinutesAfterGrace = max(0, $lateMinutes - $graceLate);
+            if ($lateMinutesAfterGrace > 0) {
+                $lateHours = ceil($lateMinutesAfterGrace / 60.0);
+            }
+        }
+
+        $earlyHours = 0;
+        if ($isEarly) {
+            $earlyMinutes = ceil(($shiftOut - $outTime) / 60);
+            $earlyMinutesAfterGrace = max(0, $earlyMinutes - $graceEarly);
+            if ($earlyMinutesAfterGrace > 0) {
+                $earlyHours = ceil($earlyMinutesAfterGrace / 60.0);
+            }
+        }
+
+        $result['late_hours'] = $lateHours;
+        $result['early_leave_hours'] = $earlyHours;
 
         if ($isEarly) {
             $result['is_incomplete'] = 1;
@@ -775,14 +812,23 @@ class Api extends ResourceController
         $result['calculated_work_hours'] = round(min($standardDuration, $actualDurationHours), 1);
 
         $otHours = 0.0;
+        $otMinutes = 0;
         if (intval($shift->is_overtime_shift) === 1) {
             $otHours = $actualDurationHours;
+            $otMinutes = $actualDurationHours * 60;
         } else {
             if ($outTime > $shiftOut) {
-                $otHours = ($outTime - $shiftOut) / 3600;
+                $otMinutes = ($outTime - $shiftOut) / 60;
+                $otHours = $otMinutes / 60.0;
             }
         }
-        $result['calculated_overtime_hours'] = round(max(0, $otHours), 1);
+        
+        // Enforce Min Overtime
+        if ($otMinutes >= $minOvertime) {
+            $result['calculated_overtime_hours'] = round(max(0, $otHours), 1);
+        } else {
+            $result['calculated_overtime_hours'] = 0.0;
+        }
 
         // 4. Sync automatically to overtime_logs
         if ($result['calculated_overtime_hours'] > 0) {
@@ -890,6 +936,8 @@ class Api extends ResourceController
                 'payout_period' => $calc['payout_period'],
                 'calculated_work_hours' => $calc['calculated_work_hours'],
                 'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
+                'late_hours' => $calc['late_hours'],
+                'early_leave_hours' => $calc['early_leave_hours'],
                 'is_incomplete' => $calc['is_incomplete']
             ]);
             return $this->respond(['message' => 'Attendance log berhasil diupdate']);
@@ -907,6 +955,8 @@ class Api extends ResourceController
             'payout_period' => $calc['payout_period'],
             'calculated_work_hours' => $calc['calculated_work_hours'],
             'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
+            'late_hours' => $calc['late_hours'],
+            'early_leave_hours' => $calc['early_leave_hours'],
             'is_incomplete' => $calc['is_incomplete']
         ];
 
@@ -963,6 +1013,8 @@ class Api extends ResourceController
                 'payout_period' => $calc['payout_period'],
                 'calculated_work_hours' => $calc['calculated_work_hours'],
                 'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
+                'late_hours' => $calc['late_hours'],
+                'early_leave_hours' => $calc['early_leave_hours'],
                 'is_incomplete' => $calc['is_incomplete']
             ];
 
@@ -1007,6 +1059,8 @@ class Api extends ResourceController
             'payout_period' => $calc['payout_period'],
             'calculated_work_hours' => $calc['calculated_work_hours'],
             'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
+            'late_hours' => $calc['late_hours'],
+            'early_leave_hours' => $calc['early_leave_hours'],
             'is_incomplete' => $calc['is_incomplete']
         ];
 
@@ -1909,6 +1963,49 @@ class Api extends ResourceController
                     $potonganAbsenVal = $potongan_absen;
                     $totalPotongan += $potongan_absen;
                 }
+                
+                // Potongan Late dan Early Leave based on attendance_logs
+                $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 1;
+                $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : $daysInMonth;
+                if ($cutoffStart === 0) $cutoffStart = 1;
+                if ($cutoffEnd === 0) $cutoffEnd = $daysInMonth;
+
+                $bulan_start = intval($period->bulan);
+                $tahun_start = intval($period->tahun);
+                $bulan_end = $bulan_start;
+                $tahun_end = $tahun_start;
+                if ($cutoffStart > 1) {
+                    $bulan_start -= 1;
+                    if ($bulan_start < 1) {
+                        $bulan_start = 12;
+                        $tahun_start -= 1;
+                    }
+                }
+                $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+                $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+
+                $lateEarlySum = null;
+                if ($emp && isset($emp->id)) {
+                    $lateEarlySum = $this->db->table('attendance_logs')
+                        ->selectSum('late_hours')
+                        ->selectSum('early_leave_hours')
+                        ->where('employee_id', $emp->id)
+                        ->where('tanggal >=', $startDateStr)
+                        ->where('tanggal <=', $endDateStr)
+                        ->get()->getRow();
+                }
+                
+                $lateHours = $lateEarlySum ? floatval($lateEarlySum->late_hours) : 0;
+                $earlyHours = $lateEarlySum ? floatval($lateEarlySum->early_leave_hours) : 0;
+                
+                $standardHours = 160.0;
+                $upahPerJam = $gajiPokok / $standardHours;
+                
+                $potonganLate = $lateHours * $upahPerJam;
+                $potonganEarly = $earlyHours * $upahPerJam;
+                
+                $totalPotongan += $potonganLate + $potonganEarly;
+                
                 $totalPendapatan += $att->bonus_tambahan;
                 
                 // Overtime Calculation based on Client's overtime_rate_per_hour

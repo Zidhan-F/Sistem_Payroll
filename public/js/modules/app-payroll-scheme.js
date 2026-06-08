@@ -105,7 +105,8 @@ async function renderPayrollSchemes() {
                 nilai: parseFormattedNumber(document.getElementById('skemaNilai').value) || 0,
                 is_persentase: parseInt(document.getElementById('skemaIsPersentase').value) || 0,
                 grace_period_late: parseInt(document.getElementById('skemaGraceLate').value) || 0,
-                grace_period_early: parseInt(document.getElementById('skemaGraceEarly').value) || 0
+                grace_period_early: parseInt(document.getElementById('skemaGraceEarly').value) || 0,
+                min_overtime: parseInt(document.getElementById('skemaMinOvertime').value) || 30
             };
             const url = id ? `${API_URL}/payroll-schemes/${id}` : `${API_URL}/payroll-schemes`;
             const res = await fetch(url, {
@@ -172,6 +173,7 @@ async function bukaModalSkema(mode, id = null) {
             
             document.getElementById('skemaGraceLate').value = s.grace_period_late || 0;
             document.getElementById('skemaGraceEarly').value = s.grace_period_early || 0;
+            document.getElementById('skemaMinOvertime').value = s.min_overtime || 30;
 
             // Find basic salary component
             const basic = s.components ? s.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok') || c.nama.includes('Basic Salary')) : null;
@@ -266,6 +268,7 @@ async function bukaModalSkema(mode, id = null) {
         
         document.getElementById('skemaGraceLate').value = 0;
         document.getElementById('skemaGraceEarly').value = 0;
+        document.getElementById('skemaMinOvertime').value = 30;
         document.getElementById('skemaSumber').value = 'nominal';
         document.getElementById('skemaPeriode').value = 'bulan';
         document.getElementById('skemaNilai').value = '';
