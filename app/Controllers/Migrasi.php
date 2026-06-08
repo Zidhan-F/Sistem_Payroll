@@ -322,6 +322,10 @@ class Migrasi extends BaseController
             ALTER TABLE payroll_schemes ADD absen_tidak_potong INT DEFAULT 0");
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'nominal_potongan')
             ALTER TABLE payroll_schemes ADD nominal_potongan DECIMAL(15,2) DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'grace_period_late')
+            ALTER TABLE payroll_schemes ADD grace_period_late INT DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'grace_period_early')
+            ALTER TABLE payroll_schemes ADD grace_period_early INT DEFAULT 0");
 
         // 16. Relaksasi kolom legacy payroll_components agar scheme-based insert berfungsi
         $db->query("ALTER TABLE payroll_components ALTER COLUMN client_id INT NULL");
