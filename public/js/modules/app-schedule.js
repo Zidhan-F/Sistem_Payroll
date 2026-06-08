@@ -186,7 +186,7 @@ async function renderMasterSchedule() {
                     <td style="padding: 16px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 13px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${s.deskripsi || '-'}">${s.deskripsi || '-'}</td>
                     <td style="padding: 16px; border-bottom: 1px solid #e2e8f0;">
                         <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
-                            <button onclick="bukaModalSchedule('edit', ${s.id})" class="btn-icon" title="Edit" style="color:#3498db; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
+                            <button onclick="bukaModalSchedule('edit', ${s.id})" class="btn-icon" title="Edit" style="color:#94a3b8; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
                             <button onclick="hapusScheduleTemplate(${s.id})" class="btn-icon" title="Delete" style="color:#e74c3c; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
                         </div>
                     </td>

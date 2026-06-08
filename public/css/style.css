@@ -98,7 +98,8 @@ body {
     top: 0;
     padding-top: 20px;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     z-index: 1000;
     transform: translateX(0);
 }
@@ -284,7 +285,7 @@ header {
         0 4px 16px rgba(243, 156, 18, 0.25),
         0 1px 4px rgba(0, 0, 0, 0.08);
     position: relative;
-    z-index: 10;
+    z-index: 100;
 }
 
 /* ========================================================= */
@@ -2876,8 +2877,8 @@ html.modal-open {
     position: absolute;
     top: 45px;
     right: 0;
-    width: 360px;
-    max-height: 480px;
+    width: 320px;
+    max-height: 200px;
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
@@ -2907,13 +2908,13 @@ html.modal-open {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: 10px 15px;
     border-bottom: 1px solid #e2e8f0;
     background-color: #fafbfd;
 }
 
 .notifications-header h3 {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--secondary-color);
     margin: 0;
@@ -2929,14 +2930,14 @@ html.modal-open {
 }
 
 .notifications-list {
-    max-height: 380px;
+    max-height: 140px;
     overflow-y: auto;
 }
 
 .notification-item {
     display: flex;
-    gap: 12px;
-    padding: 15px 20px;
+    gap: 10px;
+    padding: 10px 15px;
     border-bottom: 1px solid #f1f5f9;
     cursor: pointer;
     transition: background-color 0.2s ease;
@@ -2951,8 +2952,9 @@ html.modal-open {
 }
 
 .notification-icon {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2975,14 +2977,14 @@ html.modal-open {
 }
 
 .notification-item-title {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: #1e293b;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 
 .notification-item-message {
-    font-size: 11.5px;
+    font-size: 10.5px;
     color: #64748b;
     line-height: 1.4;
 }

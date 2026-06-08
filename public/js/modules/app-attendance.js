@@ -1,5 +1,8 @@
 // === Attendance Module ===
 
+let currentAttendanceLogs = [];
+let editingAttendanceLogId = null;
+
 async function loadAttendanceClients() {
     const select = document.getElementById('attendanceClientSelect');
     if (!select) return;
@@ -20,39 +23,34 @@ async function loadAttendanceLogs() {
     const bulan = document.getElementById('attendanceMonthSelect')?.value;
     const tahun = document.getElementById('attendanceYearSelect')?.value;
 
+    const searchInput = document.getElementById('attendanceSearchInput');
+    if (searchInput) searchInput.value = '';
+
     if (!clientId) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
             Pilih client terlebih dahulu.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
 
     try {
         const res = await fetch(`${API_URL}/attendance-logs?client_id=${clientId}&bulan=${bulan}&tahun=${tahun}`);
         const data = await res.json();
+        currentAttendanceLogs = Array.isArray(data) ? data : (data.data || []);
 
-        if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
+        if (!currentAttendanceLogs || currentAttendanceLogs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
                 <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
                 Belum ada data kehadiran untuk periode ini.</td></tr>`;
             return;
         }
 
-        const statusColors = {
-            'Hadir': 'background:#dcfce7;color:#166534;',
-            'Absen': 'background:#fee2e2;color:#991b1b;',
-            'Sakit': 'background:#fef3c7;color:#92400e;',
-            'Izin': 'background:#dbeafe;color:#1e40af;',
-            'Cuti': 'background:#f3e8ff;color:#6b21a8;',
-        };
-
-        tbody.innerHTML = data.map((a, i) => {
+        tbody.innerHTML = currentAttendanceLogs.map((a, i) => {
             const d = new Date(a.tanggal);
             const tanggalFormatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-            const statusStyle = statusColors[a.status] || 'background:#f1f5f9;color:#475569;';
             
             // Build shift status badges
             let shiftBadges = '';
@@ -63,14 +61,11 @@ async function loadAttendanceLogs() {
                 shiftBadges += `<span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Rapel (${a.payout_period})</span>`;
             }
 
-            return `<tr style="border-bottom: 1px solid #f1f5f9;">
+            return `<tr data-employee-id="${a.employee_id || ''}" data-employee-name="${(a.employee_name || '').toLowerCase()}" data-shift-name="${(a.shift_name || 'default').toLowerCase()}" style="border-bottom: 1px solid #f1f5f9;">
                 <td style="text-align:center;padding:12px;color:#64748b;">${i+1}</td>
                 <td style="padding:12px;font-weight:600;color:#1e293b;">${a.employee_name || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
                 <td style="padding:12px;font-weight:600;color:#475569;">${a.shift_name || '<span style="color:#94a3b8;font-style:italic;">Default</span>'}</td>
-                <td style="text-align:center;padding:12px;">
-                    <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${statusStyle}">${a.status}</span>
-                </td>
                 <td style="text-align:center;padding:12px;color:#475569;">${a.jam_masuk || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;">${a.jam_keluar || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;font-weight:700;">
@@ -80,7 +75,10 @@ async function loadAttendanceLogs() {
                     <span>${a.keterangan || '-'}</span>
                     ${shiftBadges}
                 </td>
-                <td style="text-align:center;padding:12px;">
+                <td style="text-align:center;padding:12px;white-space:nowrap;">
+                    <button onclick="editAttendanceLog(${a.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button onclick="deleteAttendanceLog(${a.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -88,7 +86,7 @@ async function loadAttendanceLogs() {
             </tr>`;
         }).join('');
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
     }
 }
 
@@ -113,6 +111,15 @@ function bukaModalAttendance() {
     if (!clientId) { showToast('Pilih client terlebih dahulu!', 'error'); return; }
     document.getElementById('attendanceForm')?.reset();
     document.getElementById('attendanceModalTitle').innerText = 'Input Kehadiran';
+    editingAttendanceLogId = null;
+    const employeeSelect = document.getElementById('attendanceEmployeeSelect');
+    if (employeeSelect) {
+        employeeSelect.disabled = false;
+    }
+    const tanggalInput = document.getElementById('attendanceTanggal');
+    if (tanggalInput) {
+        tanggalInput.disabled = false;
+    }
     loadAttendanceEmployees();
     openModal('attendanceModal');
 }
@@ -132,8 +139,15 @@ async function simpanAttendance(e) {
     }
 
     try {
-        const res = await fetch(`${API_URL}/attendance-logs`, {
-            method: 'POST',
+        let url = `${API_URL}/attendance-logs`;
+        let method = 'POST';
+        if (editingAttendanceLogId) {
+            url += `/${editingAttendanceLogId}`;
+            method = 'PUT';
+        }
+        
+        const res = await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ employee_id: employeeId, tanggal, status, jam_masuk: jamMasuk, jam_keluar: jamKeluar, keterangan })
         });
@@ -168,3 +182,206 @@ async function deleteAttendanceLog(id) {
         showToast('Error: ' + e.message, 'error');
     }
 }
+
+function downloadMainAbsensiTemplate() {
+    try {
+        const headers = [
+            {
+                'Employee ID': '',
+                'Nama': '',
+                'Tgl dan Hari': '',
+                'Shift': '',
+                'Jam Masuk': '',
+                'Jam Keluar': ''
+            }
+        ];
+
+        const worksheet = XLSX.utils.json_to_sheet(headers);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Template");
+        
+        // Auto-fit column widths
+        const max_widths = [15, 25, 20, 15, 12, 12];
+        worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+        const filename = `Attendance_Template_Blank.xlsx`;
+        XLSX.writeFile(workbook, filename);
+        showToast('Template berhasil didownload!', 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('Gagal memuat template: ' + err.message, 'error');
+    }
+}
+
+window.downloadMainAbsensiTemplate = downloadMainAbsensiTemplate;
+
+function filterAttendanceTable() {
+    const input = document.getElementById('attendanceSearchInput');
+    if (!input) return;
+    const filter = input.value.toLowerCase().trim();
+    const tbody = document.getElementById('attendanceTableBody');
+    if (!tbody) return;
+    const rows = tbody.getElementsByTagName('tr');
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.querySelector('td[colspan]')) {
+            continue;
+        }
+        
+        const empId = (row.getAttribute('data-employee-id') || '').toLowerCase();
+        const empName = (row.getAttribute('data-employee-name') || '').toLowerCase();
+        const shiftName = (row.getAttribute('data-shift-name') || '').toLowerCase();
+        
+        if (empName.includes(filter) || empId.includes(filter) || shiftName.includes(filter)) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    }
+}
+
+window.filterAttendanceTable = filterAttendanceTable;
+
+function syncCustomClientDropdown() {
+    const nativeSelect = document.getElementById('attendanceClientSelect');
+    const container = document.getElementById('attendanceClientOptionsContainer');
+    const selectedTextSpan = document.getElementById('attendanceClientSelectedText');
+    if (!nativeSelect || !container) return;
+
+    container.innerHTML = '';
+
+    Array.from(nativeSelect.options).forEach(option => {
+        const optionDiv = document.createElement('div');
+        optionDiv.innerText = option.text;
+        optionDiv.setAttribute('data-value', option.value);
+        optionDiv.style.padding = '10px 14px';
+        optionDiv.style.borderRadius = '6px';
+        optionDiv.style.cursor = 'pointer';
+        optionDiv.style.fontSize = '13.5px';
+        optionDiv.style.color = '#334155';
+        optionDiv.style.fontWeight = '600';
+        optionDiv.style.transition = 'all 0.15s';
+        
+        optionDiv.onmouseover = () => {
+            optionDiv.style.background = '#f1f5f9';
+            optionDiv.style.color = 'var(--primary-color)';
+        };
+        optionDiv.onmouseout = () => {
+            optionDiv.style.background = 'transparent';
+            optionDiv.style.color = '#334155';
+        };
+        optionDiv.onclick = () => {
+            nativeSelect.value = option.value;
+            if (selectedTextSpan) {
+                selectedTextSpan.innerText = option.text;
+            }
+            
+            const event = new Event('change', { bubbles: true });
+            nativeSelect.dispatchEvent(event);
+            
+            closeAttendanceClientDropdown();
+        };
+        
+        container.appendChild(optionDiv);
+    });
+
+    const selectedOption = nativeSelect.options[nativeSelect.selectedIndex];
+    if (selectedOption && selectedTextSpan) {
+        selectedTextSpan.innerText = selectedOption.text;
+    }
+}
+
+function toggleAttendanceClientDropdown(event) {
+    event.stopPropagation();
+    const panel = document.getElementById('attendanceClientDropdownPanel');
+    const arrow = document.querySelector('#attendanceClientDropdownTrigger i');
+    if (!panel) return;
+
+    const isVisible = panel.style.display === 'block';
+    
+    closeAttendanceClientDropdown();
+    
+    if (!isVisible) {
+        panel.style.display = 'block';
+        if (arrow) arrow.style.transform = 'translateY(-50%) rotate(180deg)';
+        const searchInput = document.getElementById('attendanceClientSearchInput');
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+            filterClientDropdownOptions();
+        }
+    }
+}
+
+function closeAttendanceClientDropdown() {
+    const panel = document.getElementById('attendanceClientDropdownPanel');
+    const arrow = document.querySelector('#attendanceClientDropdownTrigger i');
+    if (panel) panel.style.display = 'none';
+    if (arrow) arrow.style.transform = 'translateY(-50%)';
+}
+
+function filterClientDropdownOptions() {
+    const searchVal = (document.getElementById('attendanceClientSearchInput')?.value || '').toLowerCase().trim();
+    const container = document.getElementById('attendanceClientOptionsContainer');
+    if (!container) return;
+    const divs = container.getElementsByTagName('div');
+    
+    for (let i = 0; i < divs.length; i++) {
+        const div = divs[i];
+        const text = div.innerText.toLowerCase();
+        if (text.includes(searchVal)) {
+            div.style.display = 'block';
+        } else {
+            div.style.display = 'none';
+        }
+    }
+}
+
+function editAttendanceLog(id) {
+    const log = currentAttendanceLogs.find(x => x.id === id);
+    if (!log) return;
+    
+    editingAttendanceLogId = id;
+    document.getElementById('attendanceModalTitle').innerText = 'Edit Kehadiran';
+    
+    const employeeSelect = document.getElementById('attendanceEmployeeSelect');
+    if (employeeSelect) {
+        employeeSelect.innerHTML = `<option value="${log.employee_id}">${log.employee_name || 'Karyawan'}</option>`;
+        employeeSelect.value = log.employee_id;
+        employeeSelect.disabled = true;
+    }
+    
+    const tanggalInput = document.getElementById('attendanceTanggal');
+    if (tanggalInput) {
+        tanggalInput.value = log.tanggal;
+        tanggalInput.disabled = true;
+    }
+    
+    const statusInput = document.getElementById('attendanceStatus');
+    if (statusInput) statusInput.value = log.status;
+    
+    const jamMasukInput = document.getElementById('attendanceJamMasuk');
+    if (jamMasukInput) jamMasukInput.value = log.jam_masuk || '';
+    
+    const jamKeluarInput = document.getElementById('attendanceJamKeluar');
+    if (jamKeluarInput) jamKeluarInput.value = log.jam_keluar || '';
+    
+    const keteranganInput = document.getElementById('attendanceKeterangan');
+    if (keteranganInput) keteranganInput.value = log.keterangan || '';
+    
+    openModal('attendanceModal');
+}
+
+document.addEventListener('click', function(e) {
+    const wrapper = document.querySelector('.custom-select-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        closeAttendanceClientDropdown();
+    }
+});
+
+window.syncCustomClientDropdown = syncCustomClientDropdown;
+window.toggleAttendanceClientDropdown = toggleAttendanceClientDropdown;
+window.closeAttendanceClientDropdown = closeAttendanceClientDropdown;
+window.filterClientDropdownOptions = filterClientDropdownOptions;
+window.editAttendanceLog = editAttendanceLog;

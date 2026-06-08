@@ -41,7 +41,7 @@ async function renderClientOrg(clientId){
                         dept.positions.forEach(pos=>{
                             h+=`<div style="display:flex;align-items:center;gap:12px;background:white;padding:12px;border-radius:10px;border:1px solid #eef2f7;box-shadow:0 2px 4px rgba(0,0,0,0.01);border-left:4px solid var(--primary-color);">
                                 <div style="width:36px;height:36px;background:#fff9f0;color:var(--primary-color);border-radius:8px;display:grid;place-items:center;font-size:14px;"><i class="fas fa-briefcase"></i></div>
-                                <div style="display:flex;flex-direction:column;flex-grow:1;"><span style="font-size:9px;font-weight:800;text-transform:uppercase;color:#64748b;">${pos.level || 'Position'}</span><span style="font-weight:700;color:#1e293b;font-size:13px;">${pos.nama}</span></div>
+                                <div style="display:flex;flex-direction:column;flex-grow:1;"><span style="font-weight:700;color:#1e293b;font-size:13px;">${pos.nama}</span></div>
                                 <div class="action-btns" style="gap:4px;"><button class="btn-icon btn-edit" style="padding:4px;font-size:10px;" onclick="bukaModalOrg('posisi','edit',${pos.id},${dept.id})"><i class="fas fa-edit"></i></button><button class="btn-icon btn-delete" style="padding:4px;font-size:10px;" onclick="hapusOrg('posisi',${pos.id})"><i class="fas fa-trash"></i></button></div></div>`;
                         });
                     } else h+='<div class="empty-state" style="font-size:11px;color:#94a3b8;grid-column:1/-1;">No positions yet.</div>';
@@ -98,7 +98,6 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
     if(document.getElementById('posNik'))document.getElementById('posNik').value='';
     if(document.getElementById('posEmail'))document.getElementById('posEmail').value='';
     if(document.getElementById('posPhone'))document.getElementById('posPhone').value='';
-    if(document.getElementById('posLevel'))document.getElementById('posLevel').value='';
     
     document.getElementById('orgType').value=type;document.getElementById('orgId').value=id;document.getElementById('orgParentId').value=parentId;
     const lbl=type==='divisi'?'Division':type==='department'?'Department':'Position/Title';
@@ -107,9 +106,6 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
     document.getElementById('orgName').placeholder='Enter '+lbl.toLowerCase()+' name';
     if(document.getElementById('posEmployeeField')) {
         document.getElementById('posEmployeeField').style.display=type==='posisi'?'block':'none';
-    }
-    if(document.getElementById('posExtraFields')) {
-        document.getElementById('posExtraFields').style.display=type==='posisi'?'block':'none';
     }
     
     // Render quick-select badges
@@ -134,20 +130,18 @@ function bukaModalOrg(type,mode,id=null,parentId=null){
     }
 
     if(mode==='edit'){
-        let d={nama:'',level:''};
+        let d={nama:''};
         if(type==='divisi'){const x=orgData.find(v=>v.id==id);if(x)d.nama=x.nama;}
         else if(type==='department'){orgData.forEach(v=>{const x=(v.departments||[]).find(dd=>dd.id==id);if(x)d.nama=x.nama;});}
-        else{orgData.forEach(v=>{(v.departments||[]).forEach(dd=>{const x=(dd.positions||[]).find(p=>p.id==id);if(x)d={nama:x.nama,employeeName:x.employee_name||'',level:x.level||''};});});}
+        else{orgData.forEach(v=>{(v.departments||[]).forEach(dd=>{const x=(dd.positions||[]).find(p=>p.id==id);if(x)d={nama:x.nama,employeeName:x.employee_name||''};});});}
         document.getElementById('orgName').value=d.nama||'';
         if(document.getElementById('posEmployeeName'))document.getElementById('posEmployeeName').value=d.employeeName||'';
-        if(document.getElementById('posLevel'))document.getElementById('posLevel').value=d.level||'';
         if(typeof populateOrgNameSelect === 'function') {
             populateOrgNameSelect(type, d.nama);
         }
     } else {
         document.getElementById('orgName').value='';
         if(document.getElementById('posEmployeeName'))document.getElementById('posEmployeeName').value='';
-        if(document.getElementById('posLevel'))document.getElementById('posLevel').value='';
         if(typeof populateOrgNameSelect === 'function') {
             populateOrgNameSelect(type, '');
         }
@@ -188,12 +182,12 @@ document.getElementById('formOrg')?.addEventListener('submit',async(e)=>{
     try{
         let r;
         if(id&&id!==''&&id!=='null'){
-            r=await fetch(`${API}/org/${type}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nama:name,employee_name:empName,email,phone,level:document.getElementById('posLevel')?.value||''})});
+            r=await fetch(`${API}/org/${type}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({nama:name,employee_name:empName,email,phone})});
         }else{
             let ep='',body={nama:name};
             if(type==='divisi'){ep='/divisions';body.client_id=targetClientId;}
             else if(type==='department'){ep='/departments';body.division_id=parentId;}
-            else{ep='/positions';body.department_id=parentId;body.client_id=targetClientId;body.employee_name=empName;body.nik=nik;body.email=email;body.phone=phone;body.level=document.getElementById('posLevel')?.value||''};
+            else{ep='/positions';body.department_id=parentId;body.client_id=targetClientId;body.employee_name=empName;body.nik=nik;body.email=email;body.phone=phone};
             r=await fetch(`${API}${ep}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         }
         if(r.ok){

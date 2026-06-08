@@ -70,18 +70,20 @@ function renderShiftSchemesTable() {
         if (jenisList.length === 0) jenisList.push('<span style="background:#f1f5f9;color:#475569;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Standar</span>');
 
         tbody.innerHTML += `
-            <tr style="border-bottom: 1px solid #e2e8f0; hover:background:#f8fafc;">
-                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${idx + 1}</td>
-                <td style="padding: 12px; font-weight: 700; color: #1e293b;">${s.name}</td>
-                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${s.start_time.substring(0, 5)} - ${s.end_time.substring(0, 5)}</td>
-                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${s.duration} Jam</td>
-                <td style="text-align: center; padding: 12px; font-size: 13px; color: #475569;">
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569; font-size: 14px;">${idx + 1}</td>
+                <td style="padding: 12px; font-weight: 700; color: #1e293b; font-size: 14px;">${s.name}</td>
+                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569; font-size: 14px;">${s.start_time.substring(0,5)} - ${s.end_time.substring(0,5)}</td>
+                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569; font-size: 14px;">${s.duration} Jam</td>
+                <td style="text-align: center; padding: 12px; font-size: 14px; color: #475569;">
                     Late: ${s.grace_period_late}m<br>Early: ${s.grace_period_early}m
                 </td>
                 <td style="text-align: center; padding: 12px;">${jenisList.join(' ')}</td>
-                <td style="text-align: center; padding: 12px; display: flex; gap: 8px; justify-content: center;">
-                    <button class="btn-icon btn-edit" onclick="bukaModalShiftScheme('edit', ${s.id})" title="Edit"><i class="fas fa-edit"></i></button>
-                    <button class="btn-icon btn-delete" onclick="hapusShiftScheme(${s.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                <td style="padding: 12px;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
+                        <button onclick="bukaModalShiftScheme('edit', ${s.id})" class="btn-icon" title="Edit" style="color:#94a3b8;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
+                        <button onclick="hapusShiftScheme(${s.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -275,14 +277,16 @@ function renderEmployeeShiftsTable() {
 
                 tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${idx + 1}</td>
-                <td style="padding: 12px; font-weight: 700; color: #1e293b;">${es.employee_name}</td>
-                <td style="padding: 12px; font-weight: 600; color: #475569;">${es.shift_name} (${es.start_time.substring(0, 5)} - ${es.end_time.substring(0, 5)})</td>
-                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${es.start_date}</td>
-                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${endDateText}</td>
+                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569; font-size: 14px;">${idx + 1}</td>
+                <td style="padding: 12px; font-weight: 700; color: #1e293b; font-size: 14px;">${es.employee_name}</td>
+                <td style="padding: 12px; font-weight: 600; color: #475569; font-size: 14px;">${es.shift_name} (${es.start_time.substring(0,5)} - ${es.end_time.substring(0,5)})</td>
+                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569; font-size: 14px;">${es.start_date}</td>
+                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569; font-size: 14px;">${endDateText}</td>
                 <td style="text-align: center; padding: 12px;">${statusBadge}</td>
-                <td style="text-align: center; padding: 12px;">
-                    <button class="btn-icon btn-delete" onclick="hapusEmployeeShift(${es.id})" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                <td style="padding: 12px;">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
+                        <button onclick="hapusEmployeeShift(${es.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
+                    </div>
                 </td>
             </tr>
         `;

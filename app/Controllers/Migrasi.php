@@ -446,6 +446,13 @@ class Migrasi extends BaseController
                 created_at DATETIME DEFAULT GETDATE()
             )");
 
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('overtime_logs') AND name = 'status')
+            ALTER TABLE overtime_logs ADD status NVARCHAR(20) DEFAULT 'Pending'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('overtime_logs') AND name = 'approved_by')
+            ALTER TABLE overtime_logs ADD approved_by NVARCHAR(100) NULL");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('overtime_logs') AND name = 'approved_at')
+            ALTER TABLE overtime_logs ADD approved_at DATETIME NULL");
+
         // 24. Tabel Holiday Calendar (Master Hari Libur Nasional)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'holiday_calendar')
             CREATE TABLE holiday_calendar (

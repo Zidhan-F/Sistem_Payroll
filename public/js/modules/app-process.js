@@ -718,6 +718,7 @@ function tutupModalCutOff() { tutupSemuaModal(); }
 
 // ===== EXCEL ATTENDANCE UPLOAD =====
 let parsedAttendanceData = [];
+let parsedDailyLogs = [];
 
 async function bukaModalUploadAbsensi() {
     document.getElementById('modalUploadAbsensi').style.display = 'block';
@@ -725,9 +726,23 @@ async function bukaModalUploadAbsensi() {
     
     // Reset file input & UI
     document.getElementById('fileAbsensiExcel').value = '';
-    document.getElementById('labelAbsensiFilename').innerText = 'No file chosen';
+    const labelAbs = document.getElementById('labelAbsensiFilename');
+    if (labelAbs) labelAbs.innerText = 'No file chosen';
+    
+    const text1 = document.getElementById('dropzoneAbsensiText1');
+    const text2 = document.getElementById('dropzoneAbsensiText2');
+    if (text1) text1.innerText = 'Drag & Drop file here';
+    if (text2) text2.innerText = 'or click to browse files from your computer';
+    
+    const zone = document.getElementById('dropzoneAbsensiExcel');
+    if (zone) {
+        zone.style.borderColor = '#cbd5e1';
+        zone.style.backgroundColor = '#ffffff';
+    }
+
     document.getElementById('uploadAbsensiLogs').innerHTML = 'Waiting for file...';
     parsedAttendanceData = [];
+    parsedDailyLogs = [];
     
     const saveBtn = document.getElementById('btnSaveUploadedAbsensi');
     if (saveBtn) {
@@ -889,10 +904,8 @@ function downloadAbsensiTemplate() {
                 'Employee ID': empId,
                 'Nama': empName,
                 'Tgl dan Hari': tglHariStr,
-                'Shift': '', // Added Shift column
                 'Jam Masuk': jamMasuk,
-                'Jam Keluar': jamKeluar,
-                'Status': status
+                'Jam Keluar': jamKeluar
             });
         }
     });
@@ -902,7 +915,7 @@ function downloadAbsensiTemplate() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Template");
     
     // Auto-fit column widths
-    const max_widths = [15, 25, 20, 12, 12, 12];
+    const max_widths = [15, 25, 20, 12, 12];
     worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
 
     const filename = `Attendance_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
@@ -942,7 +955,14 @@ function handleAbsensiFileSelect(event) {
         return;
     }
 
-    document.getElementById('labelAbsensiFilename').innerText = file.name;
+    const text1 = document.getElementById('dropzoneAbsensiText1');
+    const text2 = document.getElementById('dropzoneAbsensiText2');
+    if (text1) text1.innerText = file.name;
+    if (text2) text2.innerText = 'File selected. Click or drag another file to replace.';
+
+    const labelAbs = document.getElementById('labelAbsensiFilename');
+    if (labelAbs) labelAbs.innerText = file.name;
+
     const logsDiv = document.getElementById('uploadAbsensiLogs');
     logsDiv.innerHTML = "Reading file...\n";
 
@@ -971,6 +991,7 @@ function handleAbsensiFileSelect(event) {
 }
 
 function processParsedAttendance(rows) {
+    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
     const logsDiv = document.getElementById('uploadAbsensiLogs');
     const employees = window.currentPeriodAttendance || [];
     if (employees.length === 0) {
@@ -978,10 +999,8 @@ function processParsedAttendance(rows) {
         return;
     }
 
-    const finalAttendance = [];
-    let logText = "";
-    let validCount = 0;
-
+    // Group the Excel rows by Employee ID or Name
+    const excelByEmp = {};
     rows.forEach(row => {
         const keys = Object.keys(row);
         const empIdKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'employeeid');
@@ -990,48 +1009,153 @@ function processParsedAttendance(rows) {
         const checkinKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jammasuk' || k.toLowerCase().replace(/\s+/g, '') === 'checkin');
         const checkoutKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jamkeluar' || k.toLowerCase().replace(/\s+/g, '') === 'checkout');
         const statusKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'status');
+        const shiftKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'shift');
 
-        const empIdStr = String(row[empIdKey] || '').trim();
-        const empNameStr = String(row[nameKey] || '').trim();
+        const empId = String(row[empIdKey] || '').trim();
+        const empName = String(row[nameKey] || '').trim();
         const tglVal = row[tglKey];
         const checkin = String(row[checkinKey] || '').trim();
         const checkout = String(row[checkoutKey] || '').trim();
         const status = String(row[statusKey] || '').trim();
+        const shift = String(row[shiftKey] || '').trim();
 
-        if (!tglVal) return;
-        const dateObj = parseExcelDate(tglVal);
-        if (!dateObj) return;
+        const key = empId || empName.toLowerCase();
+        if (!key) return;
 
-        const y = dateObj.getFullYear();
-        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const d = String(dateObj.getDate()).padStart(2, '0');
-        const formattedDate = `${y}-${m}-${d}`;
+        if (!excelByEmp[key]) {
+            excelByEmp[key] = [];
+        }
+        excelByEmp[key].push({
+            dateVal: tglVal,
+            checkin: checkin,
+            checkout: checkout,
+            status: status,
+            shift: shift
+        });
+    });
 
-        // Find the internal employee ID
-        let matchedEmp = employees.find(e => 
-            (e.employ_id && e.employ_id === empIdStr) || 
-            (e.nik && e.nik === empIdStr) || 
-            (e.employee_name && e.employee_name.toLowerCase() === empNameStr.toLowerCase())
-        );
+    const finalAttendance = [];
+    const dailyLogs = [];
+    let logText = "";
 
-        if (!matchedEmp) {
-            matchedEmp = employees.find(e => e.employee_name && e.employee_name.toLowerCase().includes(empNameStr.toLowerCase()));
+    employees.forEach(emp => {
+        const empId = String(emp.employ_id || emp.nik || '').trim();
+        const empName = String(emp.employee_name || '').trim();
+        
+        let matchedRows = excelByEmp[empId] || excelByEmp[empName.toLowerCase()];
+        if (!matchedRows) {
+            const matchingKey = Object.keys(excelByEmp).find(k => 
+                k.toLowerCase() === empName.toLowerCase() || 
+                empName.toLowerCase().includes(k.toLowerCase()) ||
+                k.toLowerCase().includes(empName.toLowerCase())
+            );
+            if (matchingKey) {
+                matchedRows = excelByEmp[matchingKey];
+            }
         }
 
-        if (matchedEmp) {
-            finalAttendance.push({
-                employee_id: matchedEmp.employee_id,
+        if (!matchedRows) {
+            logText += `⚠️ Employee not found in Excel: "${empName}" (ID: ${empId || 'N/A'}). Will use default/current values.\n`;
+            return;
+        }
+
+        const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+        let totalHadir = 0;
+        let totalLembur = 0;
+        let totalAlfa = 0;
+        
+        matchedRows.forEach(row => {
+            const dateObj = parseExcelDate(row.dateVal);
+            if (!dateObj) return;
+
+            const yyyy = dateObj.getFullYear();
+            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const dd = String(dateObj.getDate()).padStart(2, '0');
+            const formattedDate = `${yyyy}-${mm}-${dd}`;
+
+            dailyLogs.push({
+                employee_id: emp.employee_id,
                 tanggal: formattedDate,
-                jam_masuk: (checkin && checkin !== 'null') ? checkin : null,
-                jam_keluar: (checkout && checkout !== 'null') ? checkout : null,
-                status: status || 'Hadir'
+                jam_masuk: row.checkin && row.checkin !== 'null' ? row.checkin : '',
+                jam_keluar: row.checkout && row.checkout !== 'null' ? row.checkout : '',
+                status: row.status || 'Hadir',
+                keterangan: '',
+                shift_name: row.shift
             });
-            validCount++;
-        }
+
+            const dayOfWeek = dateObj.getDay();
+            const statusNorm = row.status.toLowerCase().trim();
+
+            let isRestDay = false;
+            if (workDaysConfig === 5) {
+                isRestDay = (dayOfWeek === 0 || dayOfWeek === 6);
+            } else if (workDaysConfig === 6) {
+                isRestDay = (dayOfWeek === 0);
+            }
+
+            let hasTimes = false;
+            let checkinTime = null;
+            let checkoutTime = null;
+
+            if (row.checkin && row.checkout && row.checkin !== 'null' && row.checkout !== 'null') {
+                const ciParts = row.checkin.split(':');
+                const coParts = row.checkout.split(':');
+                if (ciParts.length >= 2 && coParts.length >= 2) {
+                    hasTimes = true;
+                    checkinTime = new Date(2000, 0, 1, parseInt(ciParts[0]), parseInt(ciParts[1]), 0);
+                    checkoutTime = new Date(2000, 0, 1, parseInt(coParts[0]), parseInt(coParts[1]), 0);
+                    if (checkoutTime < checkinTime) {
+                        checkoutTime.setDate(checkoutTime.getDate() + 1);
+                    }
+                }
+            }
+
+            const isPresent = (statusNorm === 'hadir' || statusNorm === 'present' || (statusNorm === '' && hasTimes));
+            if (isPresent) {
+                totalHadir++;
+            }
+
+            if (isPresent && hasTimes) {
+                const diffHrs = (checkoutTime - checkinTime) / (1000 * 60 * 60);
+                if (isRestDay) {
+                    const ot = Math.max(0, diffHrs - (diffHrs > 4 ? 1 : 0));
+                    totalLembur += ot;
+                } else {
+                    const ot = Math.max(0, diffHrs - 9);
+                    totalLembur += ot;
+                }
+            }
+
+            const isAbsent = (statusNorm === 'alfa' || statusNorm === 'absent' || statusNorm === 'missing');
+            if (isAbsent && !isRestDay) {
+                totalAlfa++;
+            }
+        });
+
+        const gajiPokok = parseFloat(emp.gaji_pokok || 0);
+        const divider = (workDaysConfig === 5) ? 22 : ((workDaysConfig === 6) ? 26 : 30);
+        const dendaAbsenPerDay = gajiPokok / divider;
+        const totalPotongan = totalAlfa * dendaAbsenPerDay;
+
+        logText += `✅ Parsed "${empName}":\n`;
+        logText += `   - Work week config: ${workDaysConfig} days (${workDaysConfig === 5 ? 'Sat/Sun off' : workDaysConfig === 6 ? 'Sun off' : 'No off'})\n`;
+        logText += `   - Attended: ${totalHadir} Days, Overtime: ${totalLembur.toFixed(1)} Hours\n`;
+        logText += `   - Absent (Alfa): ${totalAlfa} Days => Deduction: ${formatRupiah(totalPotongan)}\n`;
+
+        finalAttendance.push({
+            period_id: periodId,
+            pkwt_id: emp.pkwt_id,
+            hari_kerja: totalHadir,
+            jam_lembur: parseFloat(totalLembur.toFixed(1)),
+            potongan_absensi: parseFloat(totalPotongan.toFixed(2)),
+            bonus_tambahan: parseFloat(emp.bonus_tambahan || 0)
+        });
     });
 
     parsedAttendanceData = finalAttendance;
-    logsDiv.innerHTML += `\nSuccess: Ready to apply ${validCount} daily records.`;
+    parsedDailyLogs = dailyLogs;
+    logsDiv.innerHTML += "\n" + logText;
+    logsDiv.innerHTML += `\nSuccess: Ready to apply ${finalAttendance.length} records.`;
     
     if (typeof window.renderInlineAttendanceTable === 'function') {
         window.renderInlineAttendanceTable(rows, false);
@@ -1051,24 +1175,44 @@ async function saveUploadedAbsensi() {
         return;
     }
 
-    showToast('Applying attendance records...', 'info');
+    showToast('Applying daily attendance logs...', 'info');
     try {
-        const res = await fetch(`${API_URL}/attendance-logs/bulk`, {
+        // 1. Save daily logs
+        const resLogs = await fetch(`${API_URL}/attendance-logs/bulk`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ logs: parsedAttendanceData })
+            body: JSON.stringify({ logs: parsedDailyLogs })
         });
 
-        if (res.ok) {
+        if (!resLogs.ok) {
+            const err = await resLogs.json();
+            throw new Error(err.message || 'Gagal menyimpan log absensi harian');
+        }
+
+        // 2. Save cut-off summary
+        showToast('Applying summary attendance records...', 'info');
+        const resSummary = await fetch(`${API_URL}/attendance-bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(parsedAttendanceData)
+        });
+
+        if (resSummary.ok) {
             showToast('Attendance logs successfully imported!', 'success');
             tutupModalUploadAbsensi();
+            
             // Refresh table if we are currently looking at the same period inside workspace
             const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
             if (typeof currentPeriodId !== 'undefined' && window.currentPeriodId == periodId) {
                 renderCutOffTable();
             }
+            
+            // Refresh daily attendance logs table if the function exists
+            if (typeof loadAttendanceLogs === 'function') {
+                loadAttendanceLogs();
+            }
         } else {
-            const err = await res.json();
+            const err = await resSummary.json();
             showToast(`Failed: ${err.message || 'Error occurred'}`, 'error');
         }
     } catch (err) {
@@ -1086,4 +1230,45 @@ window.handleAbsensiFileSelect = handleAbsensiFileSelect;
 window.saveUploadedAbsensi = saveUploadedAbsensi;
 window.parseExcelDate = parseExcelDate;
 window.renderCutOffTable = renderCutOffTable;
+
+function handleAbsensiDragOver(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneAbsensiExcel');
+    if (zone) {
+        zone.style.borderColor = '#f39c12';
+        zone.style.backgroundColor = '#fdf6e2';
+    }
+}
+
+function handleAbsensiDragLeave(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneAbsensiExcel');
+    if (zone) {
+        zone.style.borderColor = '#cbd5e1';
+        zone.style.backgroundColor = '#ffffff';
+    }
+}
+
+function handleAbsensiDrop(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneAbsensiExcel');
+    if (zone) {
+        zone.style.borderColor = '#cbd5e1';
+        zone.style.backgroundColor = '#ffffff';
+    }
+    
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        const fileInput = document.getElementById('fileAbsensiExcel');
+        if (fileInput) {
+            fileInput.files = event.dataTransfer.files;
+            // Trigger the change handler
+            const changeEvent = new Event('change', { bubbles: true });
+            fileInput.dispatchEvent(changeEvent);
+        }
+    }
+}
+
+window.handleAbsensiDragOver = handleAbsensiDragOver;
+window.handleAbsensiDragLeave = handleAbsensiDragLeave;
+window.handleAbsensiDrop = handleAbsensiDrop;
 

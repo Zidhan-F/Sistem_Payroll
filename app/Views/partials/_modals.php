@@ -393,22 +393,7 @@
                     </select>
                     <div id="quickBadgeContainer" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; display: none;"></div>
                 </div>
-                <!-- Extra Fields (Hanya untuk Posisi) -->
-                <div id="posExtraFields" style="display: none;">
-                    <div class="form-group">
-                        <label>Position Level</label>
-                        <select id="posLevel" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px;">
-                            <option value="">-- Select Level --</option>
-                            <option value="Intern">Intern</option>
-                            <option value="Junior">Junior</option>
-                            <option value="Staff">Staff</option>
-                            <option value="Staff Senior">Senior Staff</option>
-                            <option value="Assistant Manager">Assistant Manager</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Lead">Lead</option>
-                        </select>
-                    </div>
-                </div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="tutupModalOrg()">Cancel</button>
@@ -1809,21 +1794,22 @@
                 </div>
             </div>
 
-            <div style="background: rgba(243, 156, 18, 0.08); border: 1px dashed #f39c12; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-                <i class="fas fa-file-excel" style="font-size: 36px; color: #f39c12; margin-bottom: 10px; display: block;"></i>
-                <span style="font-size: 14px; font-weight: 600; color: #2c3e50; display: block; margin-bottom: 5px;">Select Excel Attendance File</span>
-                <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 12px;">Required columns: Employee ID, Nama, Tgl dan Hari, Shift, Jam Masuk, Jam Keluar, Status</span>
-                
-                <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 10px;">
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Excel File</label>
+                <div id="dropzoneAbsensiExcel" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px 20px; text-align: center; background: #ffffff; cursor: pointer; transition: all 0.2s;" 
+                     onclick="document.getElementById('fileAbsensiExcel').click()"
+                     ondragover="handleAbsensiDragOver(event)"
+                     ondragleave="handleAbsensiDragLeave(event)"
+                     ondrop="handleAbsensiDrop(event)">
+                    
                     <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event)">
-                    <button type="button" class="btn-add" onclick="document.getElementById('fileAbsensiExcel').click()" style="background: #f39c12; padding: 8px 20px; font-weight: 600;">
-                        Choose File
-                    </button>
-                    <button type="button" class="btn-cancel" onclick="downloadAbsensiTemplate()" style="padding: 8px 16px; border: 1px solid #cbd5e0; background: white; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px;">
-                        <i class="fas fa-download"></i> Download Template
-                    </button>
+                    
+                    <img src="https://cdn-icons-png.flaticon.com/512/337/337947.png" style="width: 54px; height: 54px; object-fit: contain; margin-bottom: 12px;" alt="Excel Icon">
+                    
+                    <span id="dropzoneAbsensiText1" style="font-size: 16px; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Drag & Drop file here</span>
+                    <span id="dropzoneAbsensiText2" style="font-size: 13px; color: #64748b; display: block;">or click to browse files from your computer</span>
+                    <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: none; margin-top: 10px;">No file chosen</span>
                 </div>
-                <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: block; margin-top: 5px;">No file chosen</span>
             </div>
 
             <div style="margin-bottom: 15px; display: none;">

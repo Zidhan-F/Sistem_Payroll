@@ -150,11 +150,12 @@ class Payroll extends ResourceController
 
             $alpaCount = $alpaStd + $alpaRapel;
 
-            // Lembur (hours sum)
+            // Lembur (hours sum) - ONLY APPROVED
             $lemburStdSum = $db->table('overtime_logs')
                              ->where('overtime_logs.employee_id', $emp['id'])
                              ->where('overtime_logs.tanggal >=', $startDateStr)
                              ->where('overtime_logs.tanggal <=', $endDateStr)
+                             ->where('overtime_logs.status', 'Approved')
                              ->selectSum('overtime_logs.jam_lembur')
                              ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.tanggal = overtime_logs.tanggal', 'left')
                              ->where('(attendance_logs.is_rapel = 0 OR attendance_logs.is_rapel IS NULL)')
@@ -164,6 +165,7 @@ class Payroll extends ResourceController
 
             $lemburRapelSum = $db->table('overtime_logs')
                              ->where('overtime_logs.employee_id', $emp['id'])
+                             ->where('overtime_logs.status', 'Approved')
                              ->selectSum('overtime_logs.jam_lembur')
                              ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.tanggal = overtime_logs.tanggal', 'inner')
                              ->where('attendance_logs.is_rapel', 1)
@@ -289,6 +291,19 @@ class Payroll extends ResourceController
             }
             $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $cutoffStartDay);
             $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $cutoffEndDay);
+        }
+
+        // Check for any Pending overtime logs for this client's employees in the cutoff period
+        $pendingOvertimeCount = $db->table('overtime_logs')
+            ->join('employees', 'employees.id = overtime_logs.employee_id')
+            ->where('employees.client_id', $clientId)
+            ->where('overtime_logs.tanggal >=', $startDateStr)
+            ->where('overtime_logs.tanggal <=', $endDateStr)
+            ->where('overtime_logs.status', 'Pending')
+            ->countAllResults();
+
+        if ($pendingOvertimeCount > 0) {
+            return $this->failValidationErrors("Terdapat $pendingOvertimeCount data lembur yang masih berstatus 'Pending' pada periode cut-off ini. Harap setujui (Approve) atau tolak (Reject) terlebih dahulu di tab Overtime.");
         }
 
         // Tandai Periode Cut Off
@@ -566,11 +581,12 @@ class Payroll extends ResourceController
                 $gajiProrata = ($actualDaysWorked / $standardDays) * $baseSalary;
             }
 
-            // Langkah 2: Hitung Lembur dari overtime_logs berdasarkan cutoff period
+            // Langkah 2: Hitung Lembur dari overtime_logs berdasarkan cutoff period (hanya yang APPROVED)
             $overtimeLogs = $db->table('overtime_logs')
                 ->where('employee_id', $emp['id'])
                 ->where('tanggal >=', $startDateStr)
                 ->where('tanggal <=', $endDateStr)
+                ->where('status', 'Approved')
                 ->get()->getResultArray();
 
             // Langkah 3A: Lembur Reguler (Hari Kerja) — Dual Bucket

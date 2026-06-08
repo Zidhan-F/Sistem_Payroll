@@ -10,6 +10,7 @@ $routes->get('login', 'Home::login');
 $routes->get('dashboard', 'Home::dashboard');
 $routes->get('calculator', 'Home::calculator');
 $routes->get('migrasi', 'Migrasi::index');
+$routes->cli('migrasi', 'Migrasi::index');
 $routes->get('migrasi/seed-ump', 'Migrasi::seedUmp');
 $routes->get('seed-dummy', 'DummySeeder::run');
 
@@ -74,6 +75,7 @@ $routes->group('api', function($routes) {
     $routes->post('periods', 'Api::createPeriod');
     $routes->get('attendance/(:num)', 'Api::getAttendance/$1');
     $routes->post('attendance', 'Api::saveAttendance');
+    $routes->post('attendance-bulk', 'Api::saveAttendanceBulk');
     $routes->post('generate-payroll/(:num)', 'Api::generatePayroll/$1');
     $routes->get('payroll-results/(:num)', 'Api::getPayrollResults/$1');
     $routes->post('approve-payroll/(:num)', 'Api::approvePayroll/$1');
@@ -112,6 +114,10 @@ $routes->group('api', function($routes) {
     $routes->post('overtime-logs', 'Api::createOvertimeLog');
     $routes->put('overtime-logs/(:num)', 'Api::updateOvertimeLog/$1');
     $routes->delete('overtime-logs/(:num)', 'Api::deleteOvertimeLog/$1');
+    $routes->post('overtime-logs/approve/(:num)', 'Api::approveOvertimeLog/$1');
+    $routes->post('overtime-logs/reject/(:num)', 'Api::rejectOvertimeLog/$1');
+    $routes->post('overtime-logs/bulk-approve', 'Api::bulkApproveOvertimeLogs');
+    $routes->post('overtime-logs/bulk-reject', 'Api::bulkRejectOvertimeLogs');
 
     // Holiday Calendar
     $routes->get('holidays', 'Api::getHolidays');

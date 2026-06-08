@@ -794,7 +794,10 @@ class Api extends ResourceController
             $otData = [
                 'jam_lembur' => $result['calculated_overtime_hours'],
                 'is_holiday' => intval($shift->is_holiday_shift),
-                'keterangan' => 'Generated from shift overtime: ' . $shift->name
+                'keterangan' => 'Generated from shift overtime: ' . $shift->name,
+                'status' => 'Pending',
+                'approved_by' => null,
+                'approved_at' => null
             ];
 
             if ($existingOt) {
@@ -822,7 +825,13 @@ class Api extends ResourceController
         $clientId = $this->request->getGet('client_id');
 
         $builder = $this->db->table('attendance_logs');
-        $builder->select('attendance_logs.*, employees.nama as employee_name, shift_schemes.name as shift_name');
+        $builder->select('attendance_logs.id, attendance_logs.employee_id, attendance_logs.log_date as tanggal, 
+                          attendance_logs.status, attendance_logs.check_in as jam_masuk, 
+                          attendance_logs.check_out as jam_keluar, attendance_logs.notes as keterangan, 
+                          attendance_logs.created_at, attendance_logs.shift_scheme_id, attendance_logs.is_rapel, 
+                          attendance_logs.payout_period, attendance_logs.calculated_work_hours, 
+                          attendance_logs.calculated_overtime_hours, attendance_logs.is_incomplete,
+                          employees.nama as employee_name, shift_schemes.name as shift_name');
         $builder->join('employees', 'employees.id = attendance_logs.employee_id', 'left');
         $builder->join('shift_schemes', 'shift_schemes.id = attendance_logs.shift_scheme_id', 'left');
 
@@ -833,11 +842,11 @@ class Api extends ResourceController
             $builder->where('employees.client_id', intval($clientId));
         }
         if ($bulan && $tahun) {
-            $builder->where('MONTH(attendance_logs.tanggal)', intval($bulan));
-            $builder->where('YEAR(attendance_logs.tanggal)', intval($tahun));
+            $builder->where('MONTH(attendance_logs.log_date)', intval($bulan));
+            $builder->where('YEAR(attendance_logs.log_date)', intval($tahun));
         }
 
-        $builder->orderBy('attendance_logs.tanggal', 'ASC');
+        $builder->orderBy('attendance_logs.log_date', 'ASC');
         $logs = $builder->get()->getResultArray();
         return $this->respond($logs);
     }
@@ -862,7 +871,7 @@ class Api extends ResourceController
 
         $builder = $this->db->table('attendance_logs')
             ->where('employee_id', intval($data['employee_id']))
-            ->where('tanggal', $data['tanggal']);
+            ->where('log_date', $data['tanggal']);
         if (!empty($calc['shift_scheme_id'])) {
             $builder->where('shift_scheme_id', $calc['shift_scheme_id']);
         } else {
@@ -873,9 +882,9 @@ class Api extends ResourceController
         if ($existing) {
             $this->db->table('attendance_logs')->where('id', $existing->id)->update([
                 'status' => $data['status'] ?? 'Hadir',
-                'jam_masuk' => $data['jam_masuk'] ?? null,
-                'jam_keluar' => $data['jam_keluar'] ?? null,
-                'keterangan' => $data['keterangan'] ?? null,
+                'check_in' => $data['jam_masuk'] ?? null,
+                'check_out' => $data['jam_keluar'] ?? null,
+                'notes' => $data['keterangan'] ?? null,
                 'shift_scheme_id' => $calc['shift_scheme_id'],
                 'is_rapel' => $calc['is_rapel'],
                 'payout_period' => $calc['payout_period'],
@@ -888,11 +897,11 @@ class Api extends ResourceController
 
         $insertData = [
             'employee_id' => intval($data['employee_id']),
-            'tanggal' => $data['tanggal'],
+            'log_date' => $data['tanggal'],
             'status' => $data['status'] ?? 'Hadir',
-            'jam_masuk' => $data['jam_masuk'] ?? null,
-            'jam_keluar' => $data['jam_keluar'] ?? null,
-            'keterangan' => $data['keterangan'] ?? null,
+            'check_in' => $data['jam_masuk'] ?? null,
+            'check_out' => $data['jam_keluar'] ?? null,
+            'notes' => $data['keterangan'] ?? null,
             'shift_scheme_id' => $calc['shift_scheme_id'],
             'is_rapel' => $calc['is_rapel'],
             'payout_period' => $calc['payout_period'],
@@ -914,26 +923,41 @@ class Api extends ResourceController
         foreach ($logs as $log) {
             if (empty($log['employee_id']) || empty($log['tanggal'])) continue;
 
+            $shiftSchemeId = $log['shift_scheme_id'] ?? null;
+            if (empty($shiftSchemeId) && !empty($log['shift_name'])) {
+                $matchedShift = $this->db->table('shift_schemes')
+                    ->where('name', trim($log['shift_name']))
+                    ->get()->getRow();
+                if ($matchedShift) {
+                    $shiftSchemeId = $matchedShift->id;
+                }
+            }
+
             $calc = $this->calculateShiftAttendance(
                 $log['employee_id'],
                 $log['tanggal'],
                 $log['jam_masuk'] ?? null,
                 $log['jam_keluar'] ?? null,
                 $log['status'] ?? 'Hadir',
-                $log['shift_scheme_id'] ?? null,
+                $shiftSchemeId,
                 $log['payout_period'] ?? null
             );
 
             $builder = $this->db->table('attendance_logs')
                 ->where('employee_id', intval($log['employee_id']))
-                ->where('tanggal', $log['tanggal']);
+                ->where('log_date', $log['tanggal']);
+            if (!empty($calc['shift_scheme_id'])) {
+                $builder->where('shift_scheme_id', $calc['shift_scheme_id']);
+            } else {
+                $builder->where('shift_scheme_id IS NULL');
+            }
             $existing = $builder->get()->getRow();
 
             $logData = [
                 'status' => $log['status'] ?? 'Hadir',
-                'jam_masuk' => $log['jam_masuk'] ?? null,
-                'jam_keluar' => $log['jam_keluar'] ?? null,
-                'keterangan' => $log['keterangan'] ?? null,
+                'check_in' => $log['jam_masuk'] ?? null,
+                'check_out' => $log['jam_keluar'] ?? null,
+                'notes' => $log['keterangan'] ?? null,
                 'shift_scheme_id' => $calc['shift_scheme_id'],
                 'is_rapel' => $calc['is_rapel'],
                 'payout_period' => $calc['payout_period'],
@@ -946,7 +970,7 @@ class Api extends ResourceController
                 $this->db->table('attendance_logs')->where('id', $existing->id)->update($logData);
             } else {
                 $logData['employee_id'] = intval($log['employee_id']);
-                $logData['tanggal'] = $log['tanggal'];
+                $logData['log_date'] = $log['tanggal'];
                 $this->db->table('attendance_logs')->insert($logData);
             }
             $count++;
@@ -965,19 +989,19 @@ class Api extends ResourceController
 
         $calc = $this->calculateShiftAttendance(
             $old->employee_id,
-            $old->tanggal,
-            $data['jam_masuk'] ?? null,
-            $data['jam_keluar'] ?? null,
-            $data['status'] ?? 'Hadir',
-            $data['shift_scheme_id'] ?? null,
-            $data['payout_period'] ?? null
+            $old->log_date,
+            $data['jam_masuk'] ?? $old->check_in,
+            $data['jam_keluar'] ?? $old->check_out,
+            $data['status'] ?? $old->status,
+            $data['shift_scheme_id'] ?? $old->shift_scheme_id,
+            $data['payout_period'] ?? $old->payout_period
         );
 
         $updateData = [
-            'status' => $data['status'] ?? 'Hadir',
-            'jam_masuk' => $data['jam_masuk'] ?? null,
-            'jam_keluar' => $data['jam_keluar'] ?? null,
-            'keterangan' => $data['keterangan'] ?? null,
+            'status' => $data['status'] ?? $old->status,
+            'check_in' => $data['jam_masuk'] ?? $old->check_in,
+            'check_out' => $data['jam_keluar'] ?? $old->check_out,
+            'notes' => $data['keterangan'] ?? $old->notes,
             'shift_scheme_id' => $calc['shift_scheme_id'],
             'is_rapel' => $calc['is_rapel'],
             'payout_period' => $calc['payout_period'],
@@ -997,7 +1021,7 @@ class Api extends ResourceController
             // Also clean up automatic overtime log
             $this->db->table('overtime_logs')
                 ->where('employee_id', $old->employee_id)
-                ->where('tanggal', $old->tanggal)
+                ->where('tanggal', $old->log_date)
                 ->delete();
         }
         $this->db->table('attendance_logs')->where('id', $id)->delete();
@@ -1077,6 +1101,9 @@ class Api extends ResourceController
                 'jam_lembur' => $jamLembur,
                 'is_holiday' => $isHoliday,
                 'keterangan' => $data['keterangan'] ?? null,
+                'status' => 'Pending',
+                'approved_by' => null,
+                'approved_at' => null
             ]);
             return $this->respond(['message' => 'Overtime log berhasil diupdate']);
         }
@@ -1087,6 +1114,9 @@ class Api extends ResourceController
             'jam_lembur' => $jamLembur,
             'is_holiday' => $isHoliday,
             'keterangan' => $data['keterangan'] ?? null,
+            'status' => 'Pending',
+            'approved_by' => null,
+            'approved_at' => null
         ];
 
         $this->db->table('overtime_logs')->insert($insertData);
@@ -1107,6 +1137,9 @@ class Api extends ResourceController
             'jam_lembur' => $jamLembur,
             'is_holiday' => $isHoliday,
             'keterangan' => $data['keterangan'] ?? null,
+            'status' => 'Pending',
+            'approved_by' => null,
+            'approved_at' => null
         ];
 
         $this->db->table('overtime_logs')->where('id', $id)->update($updateData);
@@ -1117,6 +1150,60 @@ class Api extends ResourceController
     {
         $this->db->table('overtime_logs')->where('id', $id)->delete();
         return $this->respondDeleted(['message' => 'Overtime log berhasil dihapus']);
+    }
+
+    public function approveOvertimeLog($id)
+    {
+        $approvedBy = session()->get('username') ?: 'Admin';
+        $this->db->table('overtime_logs')->where('id', $id)->update([
+            'status' => 'Approved',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => 'Overtime log berhasil disetujui.']);
+    }
+
+    public function rejectOvertimeLog($id)
+    {
+        $approvedBy = session()->get('username') ?: 'Admin';
+        $this->db->table('overtime_logs')->where('id', $id)->update([
+            'status' => 'Rejected',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => 'Overtime log berhasil ditolak.']);
+    }
+
+    public function bulkApproveOvertimeLogs()
+    {
+        $json = $this->request->getJSON(true);
+        $ids = $json['ids'] ?? [];
+        if (empty($ids)) {
+            return $this->failValidationErrors('Tidak ada ID lembur yang dipilih.');
+        }
+        $approvedBy = session()->get('username') ?: 'Admin';
+        $this->db->table('overtime_logs')->whereIn('id', $ids)->update([
+            'status' => 'Approved',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => count($ids) . ' data lembur berhasil disetujui.']);
+    }
+
+    public function bulkRejectOvertimeLogs()
+    {
+        $json = $this->request->getJSON(true);
+        $ids = $json['ids'] ?? [];
+        if (empty($ids)) {
+            return $this->failValidationErrors('Tidak ada ID lembur yang dipilih.');
+        }
+        $approvedBy = session()->get('username') ?: 'Admin';
+        $this->db->table('overtime_logs')->whereIn('id', $ids)->update([
+            'status' => 'Rejected',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => count($ids) . ' data lembur berhasil ditolak.']);
     }
 
     // --- HOLIDAY CALENDAR ---
@@ -1424,8 +1511,14 @@ class Api extends ResourceController
         $this->syncEmployeesToPKWT($clientId);
         // Get all PKWT and their attendance for this period
         $query = $this->db->table('pkwt')
-                          ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan')
-                          ->join('payroll_attendance', "payroll_attendance.pkwt_id = pkwt.id AND payroll_attendance.period_id = $periodId", 'left');
+                          ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, 
+                                    payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, 
+                                    payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan,
+                                    employees.id as employee_id, employees.employ_id, employees.nik, employees.gaji_pokok,
+                                    employees.hari_kerja as employee_hari_kerja, positions.hari_kerja as position_hari_kerja')
+                          ->join('payroll_attendance', "payroll_attendance.pkwt_id = pkwt.id AND payroll_attendance.period_id = $periodId", 'left')
+                          ->join('employees', "employees.client_id = pkwt.client_id AND employees.nama = pkwt.employee_name", 'left')
+                          ->join('positions', 'positions.id = employees.position_id', 'left');
         if ($clientId) {
             $query->where('pkwt.client_id', $clientId);
         }
@@ -1450,6 +1543,46 @@ class Api extends ResourceController
             $this->db->table('payroll_attendance')->insert($data);
         }
         return $this->respond(['message' => 'Data cut-off berhasil disimpan']);
+    }
+
+    public function saveAttendanceBulk()
+    {
+        $records = $this->request->getJSON(true);
+        if (empty($records) || !is_array($records)) {
+            return $this->failValidationErrors('Data absensi kosong.');
+        }
+
+        $count = 0;
+        foreach ($records as $record) {
+            $periodId = $record['period_id'] ?? null;
+            $pkwtId = $record['pkwt_id'] ?? null;
+            if (!$periodId || !$pkwtId) {
+                continue;
+            }
+
+            $existing = $this->db->table('payroll_attendance')
+                                 ->where('period_id', $periodId)
+                                 ->where('pkwt_id', $pkwtId)
+                                 ->get()->getRow();
+
+            $saveData = [
+                'period_id' => $periodId,
+                'pkwt_id' => $pkwtId,
+                'hari_kerja' => $record['hari_kerja'] ?? 0,
+                'jam_lembur' => $record['jam_lembur'] ?? 0,
+                'potongan_absensi' => $record['potongan_absensi'] ?? 0,
+                'bonus_tambahan' => $record['bonus_tambahan'] ?? 0,
+            ];
+
+            if ($existing) {
+                $this->db->table('payroll_attendance')->where('id', $existing->id)->update($saveData);
+            } else {
+                $this->db->table('payroll_attendance')->insert($saveData);
+            }
+            $count++;
+        }
+
+        return $this->respond(['message' => "Berhasil menyimpan {$count} data cut-off"]);
     }
 
     // --- GENERATE PAYROLL ---
