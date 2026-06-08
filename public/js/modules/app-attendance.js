@@ -13,6 +13,9 @@ async function loadAttendanceClients() {
         clients.forEach(c => {
             select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
         });
+        if (typeof syncCustomClientDropdown === 'function') {
+            syncCustomClientDropdown();
+        }
     } catch(e) { console.error(e); }
 }
 
@@ -27,13 +30,13 @@ async function loadAttendanceLogs() {
     if (searchInput) searchInput.value = '';
 
     if (!clientId) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
             Pilih client terlebih dahulu.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
 
     try {
@@ -42,15 +45,16 @@ async function loadAttendanceLogs() {
         currentAttendanceLogs = Array.isArray(data) ? data : (data.data || []);
 
         if (!currentAttendanceLogs || currentAttendanceLogs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
                 <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
                 Belum ada data kehadiran untuk periode ini.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = currentAttendanceLogs.map((a, i) => {
-            const d = new Date(a.tanggal);
-            const tanggalFormatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            const dateParts = a.tanggal.split('-');
+            const d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+            const tanggalFormatted = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
             
             // Build shift status badges
             let shiftBadges = '';
@@ -65,7 +69,10 @@ async function loadAttendanceLogs() {
                 <td style="text-align:center;padding:12px;color:#64748b;">${i+1}</td>
                 <td style="padding:12px;font-weight:600;color:#1e293b;">${a.employee_name || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
-                <td style="padding:12px;font-weight:600;color:#475569;">${a.shift_name || '<span style="color:#94a3b8;font-style:italic;">Default</span>'}</td>
+                <td style="padding:12px;font-weight:600;color:#475569;">
+                    ${a.shift_name || '<span style="color:#94a3b8;font-style:italic;">Default</span>'}
+                    ${shiftBadges}
+                </td>
                 <td style="text-align:center;padding:12px;color:#475569;">${a.jam_masuk || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;">${a.jam_keluar || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;font-weight:700;">
@@ -78,10 +85,6 @@ async function loadAttendanceLogs() {
                 <td style="text-align:center;padding:12px;color:#f59e0b;font-weight:600;">
                     ${parseFloat(a.early_leave_hours || 0) > 0 ? parseFloat(a.early_leave_hours).toFixed(1) + 'j' : '-'}
                 </td>
-                <td style="padding:12px;color:#475569;max-width:220px;overflow:hidden;text-overflow:ellipsis;">
-                    <span>${a.keterangan || '-'}</span>
-                    ${shiftBadges}
-                </td>
                 <td style="text-align:center;padding:12px;white-space:nowrap;">
                     <button onclick="editAttendanceLog(${a.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Edit">
                         <i class="fas fa-edit"></i>
@@ -93,7 +96,7 @@ async function loadAttendanceLogs() {
             </tr>`;
         }).join('');
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
     }
 }
 
@@ -259,6 +262,7 @@ function syncCustomClientDropdown() {
     container.innerHTML = '';
 
     Array.from(nativeSelect.options).forEach(option => {
+        if (!option.value) return; // Skip placeholder option
         const optionDiv = document.createElement('div');
         optionDiv.innerText = option.text;
         optionDiv.setAttribute('data-value', option.value);

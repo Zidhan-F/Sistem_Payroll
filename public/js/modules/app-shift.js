@@ -210,7 +210,7 @@ function loadShiftEmployeesDropdown() {
                     }
 
                     if (assignSelect) {
-                        assignSelect.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+                        assignSelect.innerHTML = '<option value=""></option>';
                         const employees = data.data || data;
                         employees.forEach(e => {
                             assignSelect.innerHTML += `<option value="${e.id}">${e.nama}</option>`;
@@ -221,6 +221,7 @@ function loadShiftEmployeesDropdown() {
                             $(assignSelect).select2({
                                 width: '100%',
                                 placeholder: "-- Pilih Karyawan --",
+                                allowClear: true,
                                 dropdownParent: $('#modalAssignShift')
                             });
                         }

@@ -1801,7 +1801,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                 <div class="form-group">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Client</label>
-                    <select id="modalUploadAbsensiClient" onchange="onAbsensiClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <select id="modalUploadAbsensiClient" onchange="onAbsensiClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
                         <option value="">-- Select Client --</option>
                     </select>
                 </div>
@@ -1815,19 +1815,29 @@
 
             <div class="form-group" style="margin-bottom: 15px;">
                 <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Excel File</label>
-                <div id="dropzoneAbsensiExcel" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px 20px; text-align: center; background: #ffffff; cursor: pointer; transition: all 0.2s;" 
-                     onclick="document.getElementById('fileAbsensiExcel').click()"
+                
+                <!-- Simple file input button -->
+                <div style="margin-bottom: 15px;">
+                    <label for="fileAbsensiExcel" style="background: #27ae60; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; display: inline-block; font-weight: 600; font-size: 14px;">
+                        <i class="fas fa-upload"></i> Choose Excel File
+                    </label>
+                    <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event);">
+                    <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: block; margin-top: 8px;">No file selected</span>
+                </div>
+                
+                <!-- Optional dropzone for drag and drop -->
+                <div id="dropzoneAbsensiExcel" 
+                     style="border: 2px dashed #cbd5e1; 
+                            border-radius: 12px; 
+                            padding: 30px 20px; 
+                            text-align: center; 
+                            background: #f8fafc; 
+                            display: none;"
                      ondragover="handleAbsensiDragOver(event)"
                      ondragleave="handleAbsensiDragLeave(event)"
                      ondrop="handleAbsensiDrop(event)">
-                    
-                    <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event)">
-                    
-                    <img src="https://cdn-icons-png.flaticon.com/512/337/337947.png" style="width: 54px; height: 54px; object-fit: contain; margin-bottom: 12px;" alt="Excel Icon">
-                    
-                    <span id="dropzoneAbsensiText1" style="font-size: 16px; font-weight: 700; color: #1e293b; display: block; margin-bottom: 4px;">Drag & Drop file here</span>
-                    <span id="dropzoneAbsensiText2" style="font-size: 13px; color: #64748b; display: block;">or click to browse files from your computer</span>
-                    <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: none; margin-top: 10px;">No file chosen</span>
+                    <i class="fas fa-file-excel" style="font-size: 48px; color: #27ae60; margin-bottom: 12px; display: inline-block;"></i>
+                    <span id="dropzoneAbsensiText1" style="font-size: 14px; color: #64748b; display: block;">or drag and drop file here</span>
                 </div>
             </div>
 

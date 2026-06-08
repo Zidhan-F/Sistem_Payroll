@@ -12,7 +12,7 @@ async function loadActivePeriod() {
         // 1. Render dropdown selector on the main page
         const select = document.getElementById('selectPeriodInput');
         if (select) {
-            select.innerHTML = '<option value="">-- Select Period --</option>' + periods.map(p => `
+            select.innerHTML = '<option value="" disabled selected hidden>-- Select Period --</option>' + periods.map(p => `
                 <option value="${p.id}" ${p.id == currentPeriodId ? 'selected' : ''}>${p.nama} (${p.status})</option>
             `).join('');
         }
@@ -757,17 +757,48 @@ async function bukaModalUploadAbsensi() {
         const configs = res.ok ? await res.json() : [];
         const clientSelect = document.getElementById('modalUploadAbsensiClient');
         
-        clientSelect.innerHTML = '<option value="">-- Select Client --</option>' + configs.map(c => `
+        clientSelect.innerHTML = '<option value=""></option>' + configs.map(c => `
             <option value="${c.id}">${c.nama}</option>
         `).join('');
 
-        // If client is already active in workspace, auto-select it!
-        if (window.selectedClientId && configs.some(c => c.id == window.selectedClientId)) {
-            clientSelect.value = window.selectedClientId;
-            onAbsensiClientChanged();
+        if ($.fn.select2) {
+            $(clientSelect).select2({
+                width: '100%',
+                placeholder: "-- Select Client --",
+                dropdownParent: $('#modalUploadAbsensi')
+            }).off('change').on('change', function() {
+                onAbsensiClientChanged();
+            });
+        }
+
+        // If client is already active in workspace or main filter, auto-select it!
+        let activeClientId = null;
+        if (window.selectedClientId) {
+            activeClientId = window.selectedClientId;
         } else {
-            document.getElementById('modalUploadAbsensiPeriod').innerHTML = '<option value="">-- Select Client First --</option>';
-            document.getElementById('modalUploadAbsensiPeriod').disabled = true;
+            const mainClientSelect = document.getElementById('attendanceClientSelect');
+            if (mainClientSelect && mainClientSelect.value) {
+                activeClientId = mainClientSelect.value;
+            }
+        }
+
+        if (activeClientId && configs.some(c => c.id == activeClientId)) {
+            if ($.fn.select2) {
+                $(clientSelect).prop('disabled', true).val(activeClientId).trigger('change');
+            } else {
+                clientSelect.disabled = true;
+                clientSelect.value = activeClientId;
+                onAbsensiClientChanged();
+            }
+        } else {
+            if ($.fn.select2) {
+                $(clientSelect).prop('disabled', false).val('').trigger('change');
+            } else {
+                clientSelect.disabled = false;
+                clientSelect.value = '';
+                document.getElementById('modalUploadAbsensiPeriod').innerHTML = '<option value="" disabled selected hidden>-- Select Client First --</option>';
+                document.getElementById('modalUploadAbsensiPeriod').disabled = true;
+            }
         }
     } catch (e) {
         console.error(e);
@@ -785,12 +816,12 @@ async function onAbsensiClientChanged() {
     const periodSelect = document.getElementById('modalUploadAbsensiPeriod');
     
     if (!clientId) {
-        periodSelect.innerHTML = '<option value="">-- Select Client First --</option>';
+        periodSelect.innerHTML = '<option value="" disabled selected hidden>-- Select Client First --</option>';
         periodSelect.disabled = true;
         return;
     }
 
-    periodSelect.innerHTML = '<option value="">Loading periods...</option>';
+    periodSelect.innerHTML = '<option value="" disabled selected hidden>Loading periods...</option>';
     periodSelect.disabled = true;
 
     try {
@@ -803,7 +834,7 @@ async function onAbsensiClientChanged() {
             return;
         }
 
-        periodSelect.innerHTML = '<option value="">-- Select Period --</option>' + periods.map(p => `
+        periodSelect.innerHTML = '<option value="" disabled selected hidden>-- Select Period --</option>' + periods.map(p => `
             <option value="${p.id}">${p.nama} (${p.status})</option>
         `).join('');
         periodSelect.disabled = false;
@@ -812,10 +843,20 @@ async function onAbsensiClientChanged() {
         if (typeof currentPeriodId !== 'undefined' && currentPeriodId && periods.some(p => p.id == currentPeriodId)) {
             periodSelect.value = currentPeriodId;
             onAbsensiPeriodChanged();
+        } else {
+            const mainMonth = document.getElementById('attendanceMonthSelect')?.value;
+            const mainYear = document.getElementById('attendanceYearSelect')?.value;
+            if (mainMonth && mainYear) {
+                const matchedPeriod = periods.find(p => parseInt(p.bulan) == parseInt(mainMonth) && parseInt(p.tahun) == parseInt(mainYear));
+                if (matchedPeriod) {
+                    periodSelect.value = matchedPeriod.id;
+                    onAbsensiPeriodChanged();
+                }
+            }
         }
     } catch (e) {
         console.error(e);
-        periodSelect.innerHTML = '<option value="">Error loading periods</option>';
+        periodSelect.innerHTML = '<option value="" disabled selected hidden>Error loading periods</option>';
     }
 }
 
