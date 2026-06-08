@@ -716,6 +716,7 @@ function downloadInlineAbsensiTemplate() {
                 'Employee ID': empId,
                 'Nama': empName,
                 'Tgl dan Hari': tglHariStr,
+                'Shift': '', // Added Shift column
                 'Jam Masuk': jamMasuk,
                 'Jam Keluar': jamKeluar,
                 'Status': status
@@ -777,7 +778,6 @@ function handleInlineAbsensiFileSelect(event) {
 }
 
 function processInlineParsedAttendance(rows) {
-    const periodId = document.getElementById('inlineUploadAbsensiPeriod').value;
     const logsDiv = document.getElementById('inlineUploadAbsensiLogs');
     const employees = inlinePeriodAttendance || [];
     if (employees.length === 0) {
@@ -793,7 +793,10 @@ function processInlineParsedAttendance(rows) {
         container.style.gridTemplateColumns = '350px 1fr';
     }
 
-    const excelByEmp = {};
+    const finalAttendance = [];
+    let logText = "";
+    let validCount = 0;
+
     rows.forEach(row => {
         const keys = Object.keys(row);
         const empIdKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'employeeid');
@@ -803,137 +806,47 @@ function processInlineParsedAttendance(rows) {
         const checkoutKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jamkeluar' || k.toLowerCase().replace(/\s+/g, '') === 'checkout');
         const statusKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'status');
 
-        const empId = String(row[empIdKey] || '').trim();
-        const empName = String(row[nameKey] || '').trim();
+        const empIdStr = String(row[empIdKey] || '').trim();
+        const empNameStr = String(row[nameKey] || '').trim();
         const tglVal = row[tglKey];
         const checkin = String(row[checkinKey] || '').trim();
         const checkout = String(row[checkoutKey] || '').trim();
         const status = String(row[statusKey] || '').trim();
 
-        const key = empId || empName.toLowerCase();
-        if (!key) return;
+        if (!tglVal) return;
+        const dateObj = parseExcelDate(tglVal);
+        if (!dateObj) return;
 
-        if (!excelByEmp[key]) {
-            excelByEmp[key] = [];
-        }
-        excelByEmp[key].push({
-            dateVal: tglVal,
-            checkin: checkin,
-            checkout: checkout,
-            status: status
-        });
-    });
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        const formattedDate = `${y}-${m}-${d}`;
 
-    const finalAttendance = [];
-    let logText = "";
-    const previewData = JSON.parse(JSON.stringify(employees));
+        // Find the internal employee ID
+        let matchedEmp = employees.find(e => 
+            (e.employ_id && e.employ_id === empIdStr) || 
+            (e.nik && e.nik === empIdStr) || 
+            (e.employee_name && e.employee_name.toLowerCase() === empNameStr.toLowerCase())
+        );
 
-    previewData.forEach(emp => {
-        const empId = String(emp.employ_id || emp.nik || '').trim();
-        const empName = String(emp.employee_name || '').trim();
-        
-        let matchedRows = excelByEmp[empId] || excelByEmp[empName.toLowerCase()];
-        if (!matchedRows) {
-            const matchingKey = Object.keys(excelByEmp).find(k => 
-                k.toLowerCase() === empName.toLowerCase() || 
-                empName.toLowerCase().includes(k.toLowerCase()) ||
-                k.toLowerCase().includes(empName.toLowerCase())
-            );
-            if (matchingKey) {
-                matchedRows = excelByEmp[matchingKey];
-            }
+        if (!matchedEmp) {
+            matchedEmp = employees.find(e => e.employee_name && e.employee_name.toLowerCase().includes(empNameStr.toLowerCase()));
         }
 
-        if (!matchedRows) {
-            logText += `⚠️ Employee not found in Excel: "${empName}" (ID: ${empId || 'N/A'}). Will use default/current values.\n`;
-            return;
+        if (matchedEmp) {
+            finalAttendance.push({
+                employee_id: matchedEmp.employee_id,
+                tanggal: formattedDate,
+                jam_masuk: (checkin && checkin !== 'null') ? checkin : null,
+                jam_keluar: (checkout && checkout !== 'null') ? checkout : null,
+                status: status || 'Hadir'
+            });
+            validCount++;
         }
-
-        const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
-        let totalHadir = 0;
-        let totalLembur = 0;
-        let totalAlfa = 0;
-        
-        matchedRows.forEach(row => {
-            const dateObj = parseExcelDate(row.dateVal);
-            if (!dateObj) return;
-
-            const dayOfWeek = dateObj.getDay();
-            const statusNorm = row.status.toLowerCase().trim();
-
-            let isRestDay = false;
-            if (workDaysConfig === 5) {
-                isRestDay = (dayOfWeek === 0 || dayOfWeek === 6);
-            } else if (workDaysConfig === 6) {
-                isRestDay = (dayOfWeek === 0);
-            }
-
-            let hasTimes = false;
-            let checkinTime = null;
-            let checkoutTime = null;
-
-            if (row.checkin && row.checkout && row.checkin !== 'null' && row.checkout !== 'null') {
-                const ciParts = row.checkin.split(':');
-                const coParts = row.checkout.split(':');
-                if (ciParts.length >= 2 && coParts.length >= 2) {
-                    hasTimes = true;
-                    checkinTime = new Date(2000, 0, 1, parseInt(ciParts[0]), parseInt(ciParts[1]), 0);
-                    checkoutTime = new Date(2000, 0, 1, parseInt(coParts[0]), parseInt(coParts[1]), 0);
-                    if (checkoutTime < checkinTime) {
-                        checkoutTime.setDate(checkoutTime.getDate() + 1);
-                    }
-                }
-            }
-
-            const isPresent = (statusNorm === 'hadir' || statusNorm === 'present' || (statusNorm === '' && hasTimes));
-            if (isPresent) {
-                totalHadir++;
-            }
-
-            if (isPresent && hasTimes) {
-                const diffHrs = (checkoutTime - checkinTime) / (1000 * 60 * 60);
-                if (isRestDay) {
-                    const ot = Math.max(0, diffHrs - (diffHrs > 4 ? 1 : 0));
-                    totalLembur += ot;
-                } else {
-                    const ot = Math.max(0, diffHrs - 9);
-                    totalLembur += ot;
-                }
-            }
-
-            const isAbsent = (statusNorm === 'alfa' || statusNorm === 'absent' || statusNorm === 'missing');
-            if (isAbsent && !isRestDay) {
-                totalAlfa++;
-            }
-        });
-
-        const gajiPokok = parseFloat(emp.gaji_pokok || 0);
-        const divider = (workDaysConfig === 5) ? 22 : ((workDaysConfig === 6) ? 26 : 30);
-        const dendaAbsenPerDay = gajiPokok / divider;
-        const totalPotongan = totalAlfa * dendaAbsenPerDay;
-
-        logText += `✅ Parsed "${empName}":\n`;
-        logText += `   - Work week config: ${workDaysConfig} days (${workDaysConfig === 5 ? 'Sat/Sun off' : workDaysConfig === 6 ? 'Sun off' : 'No off'})\n`;
-        logText += `   - Attended: ${totalHadir} Days, Overtime: ${totalLembur.toFixed(1)} Hours\n`;
-        logText += `   - Absent (Alfa): ${totalAlfa} Days => Deduction: ${formatRupiah(totalPotongan)}\n`;
-
-        emp.hari_kerja = totalHadir;
-        emp.jam_lembur = parseFloat(totalLembur.toFixed(1));
-        emp.potongan_absensi = parseFloat(totalPotongan.toFixed(2));
-
-        finalAttendance.push({
-            period_id: periodId,
-            pkwt_id: emp.pkwt_id,
-            hari_kerja: totalHadir,
-            jam_lembur: parseFloat(totalLembur.toFixed(1)),
-            potongan_absensi: parseFloat(totalPotongan.toFixed(2)),
-            bonus_tambahan: parseFloat(emp.bonus_tambahan || 0)
-        });
     });
 
     inlineParsedAttendanceData = finalAttendance;
-    logsDiv.innerHTML += "\n" + logText;
-    logsDiv.innerHTML += `\nSuccess: Ready to apply ${finalAttendance.length} records.`;
+    logsDiv.innerHTML += `\nSuccess: Ready to apply ${validCount} daily records.`;
     
     renderInlineAttendanceTable(rows, false);
 
@@ -960,10 +873,10 @@ async function saveInlineUploadedAbsensi() {
     }
 
     try {
-        const res = await fetch(`${API_URL}/attendance-bulk`, {
+        const res = await fetch(`${API_URL}/attendance-logs/bulk`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(inlineParsedAttendanceData)
+            body: JSON.stringify({ logs: inlineParsedAttendanceData })
         });
 
         if (res.ok) {

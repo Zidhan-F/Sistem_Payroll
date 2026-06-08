@@ -23,6 +23,11 @@ function rowHtmlForEmployee(emp) {
                 </div>
             </td>
             <td>
+                <div style="font-weight: 600; color: #f39c12; background: rgba(243, 156, 18, 0.1); padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; gap: 4px;">
+                    <i class="fas fa-clock" style="opacity: 0.8;"></i> ${emp.shift_name || 'No Shift'}
+                </div>
+            </td>
+            <td>
                 <div style="font-weight: 600; color: #16a34a;">
                     Rp ${emp.umr_nominal ? parseFloat(emp.umr_nominal).toLocaleString('id-ID') : '0'}
                 </div>

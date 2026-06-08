@@ -308,7 +308,9 @@ class Api extends ResourceController
             'compensation_scheme_id' => !empty($requestData['compensation_scheme_id']) ? intval($requestData['compensation_scheme_id']) : null,
             'prorate' => isset($requestData['prorate']) ? intval($requestData['prorate']) : 0,
             'absen_tidak_potong' => isset($requestData['absen_tidak_potong']) ? intval($requestData['absen_tidak_potong']) : 0,
-            'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0
+            'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0,
+            'grace_period_late' => isset($requestData['grace_period_late']) ? intval($requestData['grace_period_late']) : 0,
+            'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0
         ];
         
         $this->db->table('payroll_schemes')->insert($schemeData);
@@ -365,7 +367,9 @@ class Api extends ResourceController
             'compensation_scheme_id' => !empty($requestData['compensation_scheme_id']) ? intval($requestData['compensation_scheme_id']) : null,
             'prorate' => isset($requestData['prorate']) ? intval($requestData['prorate']) : 0,
             'absen_tidak_potong' => isset($requestData['absen_tidak_potong']) ? intval($requestData['absen_tidak_potong']) : 0,
-            'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0
+            'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0,
+            'grace_period_late' => isset($requestData['grace_period_late']) ? intval($requestData['grace_period_late']) : 0,
+            'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0
         ];
         
         $this->db->table('payroll_schemes')->where('id', $id)->update($schemeData);
@@ -644,7 +648,11 @@ class Api extends ResourceController
             $empShift = $db->table('employee_shifts')
                 ->where('employee_id', intval($employeeId))
                 ->where('start_date <=', $tanggal)
-                ->where("(end_date IS NULL OR end_date >= '{$tanggal}')")
+                ->groupStart()
+                    ->where('end_date IS NULL')
+                    ->orWhere('end_date >=', $tanggal)
+                ->groupEnd()
+                ->orderBy('start_date', 'DESC')
                 ->get()->getRow();
             if ($empShift) {
                 $shiftSchemeId = intval($empShift->shift_scheme_id);
@@ -734,8 +742,25 @@ class Api extends ResourceController
         $shiftIn = strtotime($tanggal . ' ' . $shift->start_time);
         $shiftOut = strtotime($tanggal . ' ' . $shift->end_time);
 
-        $graceLate = intval($shift->grace_period_late);
-        $graceEarly = intval($shift->grace_period_early);
+        $graceLate = 0;
+        $graceEarly = 0;
+
+        if ($clientId) {
+            $clientConfig = $db->table('client_payroll_configs')
+                               ->where('client_id', $clientId)
+                               ->get()
+                               ->getRow();
+            if ($clientConfig && !empty($clientConfig->payroll_scheme_id)) {
+                $payrollScheme = $db->table('payroll_schemes')
+                                    ->where('id', $clientConfig->payroll_scheme_id)
+                                    ->get()
+                                    ->getRow();
+                if ($payrollScheme) {
+                    $graceLate = intval($payrollScheme->grace_period_late);
+                    $graceEarly = intval($payrollScheme->grace_period_early);
+                }
+            }
+        }
 
         $isLate = ($inTime > ($shiftIn + ($graceLate * 60)));
         $isEarly = ($outTime < ($shiftOut - ($graceEarly * 60)));
@@ -902,11 +927,6 @@ class Api extends ResourceController
             $builder = $this->db->table('attendance_logs')
                 ->where('employee_id', intval($log['employee_id']))
                 ->where('tanggal', $log['tanggal']);
-            if (!empty($calc['shift_scheme_id'])) {
-                $builder->where('shift_scheme_id', $calc['shift_scheme_id']);
-            } else {
-                $builder->where('shift_scheme_id IS NULL');
-            }
             $existing = $builder->get()->getRow();
 
             $logData = [
@@ -3565,8 +3585,7 @@ class Api extends ResourceController
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
-            'grace_period_late' => isset($data['grace_period_late']) ? intval($data['grace_period_late']) : 0,
-            'grace_period_early' => isset($data['grace_period_early']) ? intval($data['grace_period_early']) : 0,
+
             'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
             'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
             'created_at' => date('Y-m-d H:i:s'),
@@ -3590,8 +3609,7 @@ class Api extends ResourceController
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
-            'grace_period_late' => isset($data['grace_period_late']) ? intval($data['grace_period_late']) : 0,
-            'grace_period_early' => isset($data['grace_period_early']) ? intval($data['grace_period_early']) : 0,
+
             'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
             'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
             'updated_at' => date('Y-m-d H:i:s')

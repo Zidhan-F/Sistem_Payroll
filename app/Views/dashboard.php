@@ -7,7 +7,11 @@
     <title>Payroll System - Client Management</title>
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="<?= base_url('css/style.css') ?>">
+    
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
 
 <body>
@@ -229,6 +233,7 @@
                                     <th>Department</th>
                                     <th>Position / Role</th>
                                     <th>Work Location</th>
+                                    <th>Shift</th>
                                     <th>Min. Wage (UMP/UMK)</th>
                                     <th>Contract</th>
                                     <th>Action</th>
@@ -472,6 +477,7 @@
                                                     <th>Department</th>
                                                     <th>Position / Role</th>
                                                     <th>Work Location</th>
+                                                    <th>Shift</th>
                                                     <th>Min. Wage (UMP/UMK)</th>
                                                     <th>Contract</th>
                                                     <th>Action</th>

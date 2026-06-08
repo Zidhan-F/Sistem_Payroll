@@ -21,13 +21,13 @@ async function loadAttendanceLogs() {
     const tahun = document.getElementById('attendanceYearSelect')?.value;
 
     if (!clientId) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
             Pilih client terlebih dahulu.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
 
     try {
@@ -35,7 +35,7 @@ async function loadAttendanceLogs() {
         const data = await res.json();
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
+            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
                 <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
                 Belum ada data kehadiran untuk periode ini.</td></tr>`;
             return;
@@ -88,7 +88,7 @@ async function loadAttendanceLogs() {
             </tr>`;
         }).join('');
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
     }
 }
 

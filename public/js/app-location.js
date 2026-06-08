@@ -98,8 +98,8 @@ function renderGlobalWorkLocationsTable(list = null) {
                 <td>${loc.kota_kabupaten || '-'}</td>
                 <td>
                     <div style="display:flex; gap:8px;">
-                        <button onclick="editLokasiKerja(${loc.id})" class="btn-action edit" title="Edit" style="background:#3b82f6; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-edit"></i></button>
-                        <button onclick="hapusLokasiKerja(${loc.id})" class="btn-action delete" title="Delete" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        <button class="btn-icon btn-edit" onclick="editLokasiKerja(${loc.id})" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button class="btn-icon btn-delete" onclick="hapusLokasiKerja(${loc.id})" title="Delete"><i class="fas fa-trash"></i></button>
                     </div>
                 </td>
             </tr>

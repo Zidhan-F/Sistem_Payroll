@@ -232,6 +232,18 @@
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Attendance Deduction Amount per Day (IDR)</label>
                                  <input type="text" id="skemaNominalPotongan" placeholder="Example: 100000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
+                            
+                            <!-- Grace Periods -->
+                            <div style="display: flex; gap: 12px; margin-top: 5px;">
+                                <div style="flex: 1;">
+                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
+                                    <input type="number" id="skemaGraceLate" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
+                                    <input type="number" id="skemaGraceEarly" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Description -->
@@ -1800,7 +1812,7 @@
             <div style="background: rgba(243, 156, 18, 0.08); border: 1px dashed #f39c12; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
                 <i class="fas fa-file-excel" style="font-size: 36px; color: #f39c12; margin-bottom: 10px; display: block;"></i>
                 <span style="font-size: 14px; font-weight: 600; color: #2c3e50; display: block; margin-bottom: 5px;">Select Excel Attendance File</span>
-                <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 12px;">Required columns: Employee ID, Nama, Tgl dan Hari, Jam Masuk, Jam Keluar, Status</span>
+                <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 12px;">Required columns: Employee ID, Nama, Tgl dan Hari, Shift, Jam Masuk, Jam Keluar, Status</span>
                 
                 <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 10px;">
                     <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event)">
@@ -1971,16 +1983,7 @@
                     <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Kerja Standar (Jam) <span style="color: #ef4444;">*</span></label>
                     <input type="number" id="shiftSchemeDuration" step="0.5" min="1" max="24" value="8" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                 </div>
-                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
-                    <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Toleransi Terlambat (Menit)</label>
-                        <input type="number" id="shiftSchemeGraceLate" min="0" value="0" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Toleransi Early Leave (Menit)</label>
-                        <input type="number" id="shiftSchemeGraceEarly" min="0" value="0" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                    </div>
-                </div>
+
                 <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
                         <input type="checkbox" id="shiftSchemeIsHoliday" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
