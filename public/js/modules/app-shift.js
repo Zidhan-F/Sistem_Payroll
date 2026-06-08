@@ -118,8 +118,6 @@ function bukaModalShiftScheme(mode, id = null) {
                     document.getElementById('shiftSchemeStartTime').value = s.start_time.substring(0, 5);
                     document.getElementById('shiftSchemeEndTime').value = s.end_time.substring(0, 5);
                     document.getElementById('shiftSchemeDuration').value = s.duration;
-                    document.getElementById('shiftSchemeIsHoliday').checked = parseInt(s.is_holiday_shift) === 1;
-                    document.getElementById('shiftSchemeIsOvertime').checked = parseInt(s.is_overtime_shift) === 1;
 
                     modal.style.display = 'block';
                     document.getElementById('overlay').style.display = 'block';
@@ -139,9 +137,7 @@ function simpanShiftScheme(event) {
                 name: document.getElementById('shiftSchemeName').value,
                 start_time: document.getElementById('shiftSchemeStartTime').value,
                 end_time: document.getElementById('shiftSchemeEndTime').value,
-                duration: parseFloat(document.getElementById('shiftSchemeDuration').value),
-                is_holiday_shift: document.getElementById('shiftSchemeIsHoliday').checked ? 1 : 0,
-                is_overtime_shift: document.getElementById('shiftSchemeIsOvertime').checked ? 1 : 0
+                duration: parseFloat(document.getElementById('shiftSchemeDuration').value)
             };
 
             const url = id ? `${API_URL}/shift-schemes/${id}` : `${API_URL}/shift-schemes`;

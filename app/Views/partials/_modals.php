@@ -233,7 +233,7 @@
                                  <input type="text" id="skemaNominalPotongan" placeholder="Example: 100000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
                             
-                            <!-- Grace Periods -->
+                            <!-- Grace Periods & Min Overtime -->
                             <div style="display: flex; gap: 12px; margin-top: 5px;">
                                 <div style="flex: 1;">
                                     <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
@@ -242,6 +242,10 @@
                                 <div style="flex: 1;">
                                     <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
                                     <input type="number" id="skemaGraceEarly" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
+                                    <input type="number" id="skemaMinOvertime" min="0" value="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                                 </div>
                             </div>
                         </div>
@@ -1654,6 +1658,21 @@
                             <input type="text" id="schemeRateLembur" placeholder="0 = auto (salary/173)x1.5" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         </div>
                     </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
+                            <input type="number" id="schemeGraceLate" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
+                            <input type="number" id="schemeGraceEarly" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
+                            <input type="number" id="schemeMinOvertime" min="0" value="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- BPJS -->
@@ -1984,16 +2003,7 @@
                     <input type="number" id="shiftSchemeDuration" step="0.5" min="1" max="24" value="8" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" id="shiftSchemeIsHoliday" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hitung sebagai Lembur Hari Libur</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" id="shiftSchemeIsOvertime" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hitung Seluruh Durasi Sebagai Lembur (Overtime-only shift)</span>
-                    </label>
-                </div>
+
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
                     <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
                     <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>

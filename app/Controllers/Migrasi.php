@@ -539,7 +539,23 @@ class Migrasi extends BaseController
                 VALUES ('Shift Overtime', '18:00', '22:00', 4.0, 0, 0, 0, 1)");
         }
 
-        return "Migrasi Berhasil! (termasuk tabel attendance_logs, overtime_logs, holiday_calendar, system_settings, kolom allowance_type/payout_period di pkwt_components, custom_standard_days di employees, tabel shift_schemes, dan employee_shifts)";
+        // 29. Tambahkan kolom absensi & lembur ke tabel payroll_schemes, payroll_scheme_templates, dan attendance_logs
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'min_overtime')
+            ALTER TABLE payroll_schemes ADD min_overtime INT DEFAULT 30");
+
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_scheme_templates') AND name = 'grace_period_late')
+            ALTER TABLE payroll_scheme_templates ADD grace_period_late INT DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_scheme_templates') AND name = 'grace_period_early')
+            ALTER TABLE payroll_scheme_templates ADD grace_period_early INT DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_scheme_templates') AND name = 'min_overtime')
+            ALTER TABLE payroll_scheme_templates ADD min_overtime INT DEFAULT 30");
+
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'late_hours')
+            ALTER TABLE attendance_logs ADD late_hours DECIMAL(4,1) DEFAULT 0.0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'early_leave_hours')
+            ALTER TABLE attendance_logs ADD early_leave_hours DECIMAL(4,1) DEFAULT 0.0");
+
+        return "Migrasi Berhasil! (termasuk kolom absensi lembur)";
     }
 
     /**
