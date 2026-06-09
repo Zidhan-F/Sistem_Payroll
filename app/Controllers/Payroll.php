@@ -929,6 +929,99 @@ class Payroll extends ResourceController
                 ];
             }
 
+            // ── Process Scheme Template Allowances ────────────────────────────
+            // Tambahkan tunjangan dari scheme template dengan dukungan periode harian
+            if ($schemeTemplate) {
+                $schemeAllowances = [
+                    'Tunjangan Transport' => floatval($schemeTemplate['tunjangan_transport'] ?? 0),
+                    'Tunjangan Makan Harian' => floatval($schemeTemplate['tunjangan_makan'] ?? 0),
+                    'Tunjangan Komunikasi' => floatval($schemeTemplate['tunjangan_komunikasi'] ?? 0),
+                    'Tunjangan Jabatan' => floatval($schemeTemplate['tunjangan_jabatan'] ?? 0),
+                    'Tunjangan Kehadiran' => floatval($schemeTemplate['tunjangan_kehadiran'] ?? 0),
+                    'Tunjangan Kinerja' => floatval($schemeTemplate['tunjangan_kinerja'] ?? 0),
+                ];
+
+                foreach ($schemeAllowances as $allowanceName => $allowanceValue) {
+                    if ($allowanceValue > 0) {
+                        // Tunjangan Makan Harian dikalikan dengan jumlah hari kerja
+                        if ($allowanceName === 'Tunjangan Makan Harian') {
+                            $finalValue = $allowanceValue * intval($dk['hadir']);
+                        } else {
+                            // Tunjangan lainnya tetap nominal bulanan
+                            $finalValue = $allowanceValue;
+                        }
+
+                        $customTunjangan += $finalValue;
+
+                        // Check BPJS and PPh inclusion for this allowance
+                        $bpjsField = '';
+                        $pphField = '';
+                        
+                        switch ($allowanceName) {
+                            case 'Tunjangan Transport':
+                                $bpjsField = 'bpjs_inc_transport';
+                                $pphField = 'pph_inc_transport';
+                                break;
+                            case 'Tunjangan Makan Harian':
+                                $bpjsField = 'bpjs_inc_makan';
+                                $pphField = 'pph_inc_makan';
+                                break;
+                            case 'Tunjangan Komunikasi':
+                                $bpjsField = 'bpjs_inc_komunikasi';
+                                $pphField = 'pph_inc_komunikasi';
+                                break;
+                            case 'Tunjangan Jabatan':
+                                $bpjsField = 'bpjs_inc_jabatan';
+                                $pphField = 'pph_inc_jabatan';
+                                break;
+                            case 'Tunjangan Kehadiran':
+                                $bpjsField = 'bpjs_inc_kehadiran';
+                                $pphField = 'pph_inc_kehadiran';
+                                break;
+                            case 'Tunjangan Kinerja':
+                                $bpjsField = 'bpjs_inc_kinerja';
+                                $pphField = 'pph_inc_kinerja';
+                                break;
+                        }
+
+                        $isBpjsInc = !empty($bpjsField) && ($schemeTemplate[$bpjsField] ?? 0) == 1;
+                        $isPphInc = !empty($pphField) && ($schemeTemplate[$pphField] ?? 0) == 1;
+
+                        if ($isBpjsInc) {
+                            $bpjsWageBase += $finalValue;
+                        }
+                        if ($isPphInc) {
+                            $pphWageBase += $finalValue;
+                        }
+
+                        $customDetails[] = [
+                            'nama_komponen' => $allowanceName,
+                            'tipe' => 'Tunjangan',
+                            'jumlah' => $finalValue
+                        ];
+                    }
+                }
+
+                // Process scheme template deductions
+                $schemeDeductions = [
+                    'Potongan Pinjaman' => floatval($schemeTemplate['potongan_pinjaman'] ?? 0),
+                    'Potongan Kasbon' => floatval($schemeTemplate['potongan_kasbon'] ?? 0),
+                    'Potongan Lainnya' => floatval($schemeTemplate['potongan_lainnya'] ?? 0),
+                ];
+
+                foreach ($schemeDeductions as $deductionName => $deductionValue) {
+                    if ($deductionValue > 0) {
+                        $customPotongan += $deductionValue;
+                        
+                        $customDetails[] = [
+                            'nama_komponen' => $deductionName,
+                            'tipe' => 'Potongan',
+                            'jumlah' => $deductionValue
+                        ];
+                    }
+                }
+            }
+
             // Hitung BPJS & Pajak TER 2024
             $empMinimumWage = $minimumWage;
             if (!empty($emp['minimum_wage_id'])) {
