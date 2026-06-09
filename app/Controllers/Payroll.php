@@ -878,7 +878,7 @@ class Payroll extends ResourceController
                     }
                     
                     // Scale by period
-                    if (($comp['periode'] ?? '') === 'hari') {
+                    if (($comp['periode'] ?? '') === 'hari' || ($comp['periode'] ?? '') === 'hari_kerja') {
                         $nilaiKomponen = $base_nilai * intval($dk['hadir']);
                     } elseif (($comp['periode'] ?? '') === 'minggu') {
                         $nilaiKomponen = $base_nilai * 4;
@@ -895,6 +895,17 @@ class Payroll extends ResourceController
                         } else {
                             $nilaiKomponen = $base_nilai;
                         }
+                        
+                        // ── Special case: Detect daily allowances by name ──
+                        // Jika nama komponen mengandung "makan", "harian", "daily" dan bukan periode harian,
+                        // otomatis kalikan dengan hari kerja
+                        $componentName = strtolower($comp['nama_komponen'] ?? $comp['nama'] ?? '');
+                        if ((strpos($componentName, 'makan') !== false && strpos($componentName, 'harian') !== false) ||
+                            (strpos($componentName, 'makan') !== false && strpos($componentName, 'daily') !== false) ||
+                            (strpos($componentName, 'daily meal') !== false) ||
+                            (strpos($componentName, 'meal allowance') !== false && strpos($componentName, 'daily') !== false)) {
+                            $nilaiKomponen = $base_nilai * intval($dk['hadir']);
+                        }
                     }
                 } else {
                     // Legacy components
@@ -903,6 +914,15 @@ class Payroll extends ResourceController
                     } else {
                         // Persentase dari gaji pokok
                         $nilaiKomponen = $baseSalary * (floatval($comp['nilai']) / 100);
+                    }
+                    
+                    // ── Special case: Detect daily allowances by name for legacy components ──
+                    $componentName = strtolower($comp['nama_komponen'] ?? $comp['nama'] ?? '');
+                    if ((strpos($componentName, 'makan') !== false && strpos($componentName, 'harian') !== false) ||
+                        (strpos($componentName, 'makan') !== false && strpos($componentName, 'daily') !== false) ||
+                        (strpos($componentName, 'daily meal') !== false) ||
+                        (strpos($componentName, 'meal allowance') !== false && strpos($componentName, 'daily') !== false)) {
+                        $nilaiKomponen = $nilaiKomponen * intval($dk['hadir']);
                     }
                 }
 
