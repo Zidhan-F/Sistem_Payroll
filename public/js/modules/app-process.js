@@ -553,19 +553,20 @@ function downloadSlip() {
     // Show loading toast
     showToast('Generating PDF, please wait...', 'info');
     
-    // Custom print/download optimizations for html2pdf (A5 Landscape for half-page payslip)
+    // Custom print/download optimizations for html2pdf (A4 Portrait for full-page payslip)
     const opt = {
-        margin:       [8, 12, 8, 12], // top, left, bottom, right margins in mm
+        margin:       [10, 10, 10, 10], // top, left, bottom, right margins in mm
         filename:     filename,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { 
-            scale: 2.5, 
+            scale: 2, 
             useCORS: true, 
             letterRendering: true,
             scrollY: 0,
             scrollX: 0
         },
-        jsPDF:        { unit: 'mm', format: 'a5', orientation: 'landscape' }
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
     };
     
     html2pdf().set(opt).from(element).save().then(() => {

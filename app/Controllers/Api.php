@@ -729,20 +729,13 @@ class Api extends ResourceController
             return $result;
         }
 
-        if (empty($jamMasuk) || empty($jamKeluar)) {
+        if (empty($jamMasuk)) {
             $result['is_incomplete'] = 1;
             return $result;
         }
 
         // 3. Perform calculations
         $inTime = strtotime($tanggal . ' ' . $jamMasuk);
-        $outTime = strtotime($tanggal . ' ' . $jamKeluar);
-        
-        if ($outTime < $inTime) {
-            $result['is_incomplete'] = 1;
-            return $result;
-        }
-
         $shiftIn = strtotime($tanggal . ' ' . $shift->start_time);
         $shiftOut = strtotime($tanggal . ' ' . $shift->end_time);
 
@@ -779,7 +772,6 @@ class Api extends ResourceController
         }
 
         $isLate = ($inTime > ($shiftIn + ($graceLate * 60)));
-        $isEarly = ($outTime < ($shiftOut - ($graceEarly * 60)));
 
         $lateHours = 0;
         if ($isLate) {
@@ -790,6 +782,20 @@ class Api extends ResourceController
             }
         }
 
+        $result['late_hours'] = $lateHours;
+
+        if (empty($jamKeluar)) {
+            $result['is_incomplete'] = 1;
+            return $result;
+        }
+
+        $outTime = strtotime($tanggal . ' ' . $jamKeluar);
+        if ($outTime < $inTime) {
+            $result['is_incomplete'] = 1;
+            return $result;
+        }
+
+        $isEarly = ($outTime < ($shiftOut - ($graceEarly * 60)));
         $earlyHours = 0;
         if ($isEarly) {
             $earlyMinutes = ceil(($shiftOut - $outTime) / 60);
@@ -799,14 +805,14 @@ class Api extends ResourceController
             }
         }
 
-        $result['late_hours'] = $lateHours;
         $result['early_leave_hours'] = $earlyHours;
 
         if ($isEarly) {
             $result['is_incomplete'] = 1;
         }
 
-        $actualDurationHours = ($outTime - $inTime) / 3600;
+        $breakDuration = isset($shift->break_duration) ? floatval($shift->break_duration) : 0.0;
+        $actualDurationHours = max(0, (($outTime - $inTime) / 3600) - $breakDuration);
         $standardDuration = floatval($shift->duration);
 
         $result['calculated_work_hours'] = round(min($standardDuration, $actualDurationHours), 1);
@@ -3682,6 +3688,9 @@ class Api extends ResourceController
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
+            'break_start_time' => isset($data['break_start_time']) ? $data['break_start_time'] : null,
+            'break_end_time' => isset($data['break_end_time']) ? $data['break_end_time'] : null,
+            'break_duration' => isset($data['break_duration']) ? floatval($data['break_duration']) : 0.0,
 
             'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
             'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
@@ -3706,6 +3715,9 @@ class Api extends ResourceController
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
+            'break_start_time' => isset($data['break_start_time']) ? $data['break_start_time'] : null,
+            'break_end_time' => isset($data['break_end_time']) ? $data['break_end_time'] : null,
+            'break_duration' => isset($data['break_duration']) ? floatval($data['break_duration']) : 0.0,
 
             'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
             'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,

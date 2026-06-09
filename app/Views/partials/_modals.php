@@ -127,23 +127,24 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px;">
                     
                     <!-- Left Column: Allowances -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Allowances</h4>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 18px;">
+                        <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Allowances</h4>
                         
                         <!-- Basic Salary -->
-                        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
                             <div class="form-group" style="margin: 0;">
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Basic Salary Source</label>
                                 <select id="skemaSumber" onchange="handlePayrollSchemeSumberNilaiChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
                                     <option value="ump">UMP (Province)</option>
                                     <option value="umk">UMK (City/Regency)</option>
                                     <option value="nominal" selected>Custom Nominal</option>
-                    </select>
-                </div>
+                                </select>
+                            </div>
+                            
                             <div class="form-group" style="margin: 0;">
-                                <label id="labelNilaiSkemaPayroll" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Basic Salary (IDR)</label>
-                                 <input type="text" id="skemaNilai" placeholder="Enter Basic Salary" onkeyup="handleSkemaNilaiInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-            </div>
+                                <label id="labelNilaiSkemaPayroll" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Custom Nominal (Rp)</label>
+                                <input type="text" id="skemaNilai" placeholder="e.g., 5000000" onkeyup="handleSkemaNilaiInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                            </div>
                         </div>
 
                         <!-- Salary Period -->
@@ -158,13 +159,13 @@
                         </div>
 
                         <!-- Fixed Allowance Table -->
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Fixed Allowance</label>
                                 <button type="button" onclick="bukaModalPilihSkema('tetap')" style="background: none; border: none; color: #0d6efd; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Select Scheme</button>
                             </div>
                             
-                            <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+                            <div style="max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
                                 <table style="width: 100%; border-collapse: collapse;">
                                     <thead>
                                         <tr style="background: #0d6efd; color: white;">
@@ -174,7 +175,7 @@
                                     </thead>
                                     <tbody id="tabelKompensasiTetapBody">
                                         <tr>
-                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">No allowance scheme selected yet</td>
+                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 12px;">No allowance scheme selected yet</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -182,13 +183,13 @@
                         </div>
 
                         <!-- Non-Fixed Allowance Table -->
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Non-Fixed Allowance</label>
                                 <button type="button" onclick="bukaModalPilihSkema('tidak_tetap')" style="background: none; border: none; color: #0d6efd; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Select Scheme</button>
                             </div>
                             
-                            <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+                            <div style="max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
                                 <table style="width: 100%; border-collapse: collapse;">
                                     <thead>
                                         <tr style="background: #0d6efd; color: white;">
@@ -198,19 +199,17 @@
                                     </thead>
                                     <tbody id="tabelKompensasiTidakTetapBody">
                                         <tr>
-                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">No allowance scheme selected yet</td>
+                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 12px;">No allowance scheme selected yet</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
-
-
                     </div>
 
                     <!-- Right Column: Attendance Scheme & Description -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
-                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Attendance Scheme</h4>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 18px;">
+                        <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Attendance Scheme</h4>
                         
                         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; gap: 12px;">
                             <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; cursor: pointer; color: #1e293b; margin: 0;">
@@ -229,31 +228,31 @@
                             </label>
                             
                             <div id="containerNominalPotonganSkema" class="form-group" style="display: none; margin: 8px 0 0 0;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Attendance Deduction Amount per Day (IDR)</label>
-                                 <input type="text" id="skemaNominalPotongan" placeholder="Example: 100000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 6px;">Deduction Amount per Day (Rp)</label>
+                                <input type="text" id="skemaNominalPotongan" placeholder="e.g., 100000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
-                            
-                            <!-- Grace Periods & Min Overtime -->
-                            <div style="display: flex; gap: 12px; margin-top: 5px;">
-                                <div style="flex: 1;">
-                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
-                                    <input type="number" id="skemaGraceLate" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                                </div>
-                                <div style="flex: 1;">
-                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
-                                    <input type="number" id="skemaGraceEarly" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                                </div>
-                                <div style="flex: 1;">
-                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
-                                    <input type="number" id="skemaMinOvertime" min="0" value="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                                </div>
+                        </div>
+                        
+                        <!-- Grace Periods & Min Overtime (Full Width Each Row) -->
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
+                                <input type="number" id="skemaGraceLate" min="0" value="0" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
+                                <input type="number" id="skemaGraceEarly" min="0" value="0" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
+                                <input type="number" id="skemaMinOvertime" min="0" value="30" placeholder="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
                         </div>
 
                         <!-- Description -->
                         <div class="form-group" style="margin: 0; flex-grow: 1; display: flex; flex-direction: column;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Description / Notes</label>
-                            <textarea id="skemaDeskripsi" rows="8" placeholder="Enter a brief description of the payroll scheme or additional notes here..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: none; font-family: inherit; flex-grow: 1; min-height: 180px;"></textarea>
+                            <textarea id="skemaDeskripsi" rows="6" placeholder="Enter a brief description of the payroll scheme or additional notes here..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: vertical; font-family: inherit; min-height: 100px;"></textarea>
                         </div>
                     </div>
                 </div>
@@ -1982,7 +1981,7 @@
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalShiftScheme()"></i>
         </div>
         <div class="modal-body" style="padding: 25px;">
-            <form id="formShiftScheme" onsubmit="simpanShiftScheme(event)">
+                <form id="formShiftScheme" onsubmit="simpanShiftScheme(event)">
                 <input type="hidden" id="shiftSchemeId">
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Nama Shift <span style="color: #ef4444;">*</span></label>
@@ -1998,12 +1997,6 @@
                         <input type="time" id="shiftSchemeEndTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                     </div>
                 </div>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Kerja Standar (Jam) <span style="color: #ef4444;">*</span></label>
-                    <input type="number" id="shiftSchemeDuration" step="0.5" min="1" max="24" value="8" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                </div>
-
-
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
                     <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
                     <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>

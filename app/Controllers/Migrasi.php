@@ -496,6 +496,9 @@ class Migrasi extends BaseController
                 duration DECIMAL(4,1) NOT NULL,
                 grace_period_late INT DEFAULT 0,
                 grace_period_early INT DEFAULT 0,
+                break_start_time NVARCHAR(10) NULL,
+                break_end_time NVARCHAR(10) NULL,
+                break_duration DECIMAL(4,1) DEFAULT 0.0,
                 is_holiday_shift BIT DEFAULT 0,
                 is_overtime_shift BIT DEFAULT 0,
                 created_at DATETIME DEFAULT GETDATE(),
@@ -531,13 +534,21 @@ class Migrasi extends BaseController
         $shiftCountObj = $db->query("SELECT COUNT(*) as [count] FROM shift_schemes")->getRow();
         $shiftCount = $shiftCountObj ? intval($shiftCountObj->count) : 0;
         if ($shiftCount == 0) {
-            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
-                VALUES ('Pagi', '08:00', '13:00', 5.0, 15, 15, 0, 0)");
-            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
-                VALUES ('Siang', '13:00', '18:00', 5.0, 15, 15, 0, 0)");
-            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
-                VALUES ('Shift Overtime', '18:00', '22:00', 4.0, 0, 0, 0, 1)");
+            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, break_duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
+                VALUES ('Pagi', '08:00', '13:00', 5.0, 0.0, 15, 15, 0, 0)");
+            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, break_duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
+                VALUES ('Siang', '13:00', '18:00', 5.0, 0.0, 15, 15, 0, 0)");
+            $db->query("INSERT INTO shift_schemes (name, start_time, end_time, duration, break_duration, grace_period_late, grace_period_early, is_holiday_shift, is_overtime_shift) 
+                VALUES ('Shift Overtime', '18:00', '22:00', 4.0, 0.0, 0, 0, 0, 1)");
         }
+
+        // Add break_duration, start, end to existing shift_schemes
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('shift_schemes') AND name = 'break_duration')
+            ALTER TABLE shift_schemes ADD break_duration DECIMAL(4,1) DEFAULT 0.0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('shift_schemes') AND name = 'break_start_time')
+            ALTER TABLE shift_schemes ADD break_start_time NVARCHAR(10) NULL");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('shift_schemes') AND name = 'break_end_time')
+            ALTER TABLE shift_schemes ADD break_end_time NVARCHAR(10) NULL");
 
         // 29. Tambahkan kolom absensi & lembur ke tabel payroll_schemes, payroll_scheme_templates, dan attendance_logs
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'min_overtime')
