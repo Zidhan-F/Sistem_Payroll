@@ -988,7 +988,6 @@ class Api extends ResourceController
 
         if ($existing) {
             $this->db->table('attendance_logs')->where('id', $existing->id)->update([
-                'status' => $data['status'] ?? 'Hadir',
                 'check_in' => $data['jam_masuk'] ?? null,
                 'check_out' => $data['jam_keluar'] ?? null,
                 'notes' => $data['keterangan'] ?? null,
@@ -1002,6 +1001,7 @@ class Api extends ResourceController
                 'late_penalty_hours'         => $calc['late_penalty_hours'],
                 'denda_terlambat'            => $calc['denda_terlambat'],
                 'early_leave_hours'          => $calc['early_leave_hours'],
+                'early_leave_minutes'        => $calc['early_leave_minutes'] ?? 0,
                 'is_early_leave_alfa'        => $calc['is_early_leave_alfa'],
                 'denda_alfa'                 => $calc['denda_alfa'],
                 'absent_penalty'             => $calc['absent_penalty'],
@@ -1013,7 +1013,6 @@ class Api extends ResourceController
         $insertData = [
             'employee_id'                => intval($data['employee_id']),
             'log_date'                   => $data['tanggal'],
-            'status'                     => $data['status'] ?? 'Hadir',
             'check_in'                   => $data['jam_masuk'] ?? null,
             'check_out'                  => $data['jam_keluar'] ?? null,
             'notes'                      => $data['keterangan'] ?? null,
@@ -1027,6 +1026,7 @@ class Api extends ResourceController
             'late_penalty_hours'         => $calc['late_penalty_hours'],
             'denda_terlambat'            => $calc['denda_terlambat'],
             'early_leave_hours'          => $calc['early_leave_hours'],
+            'early_leave_minutes'        => $calc['early_leave_minutes'] ?? 0,
             'is_early_leave_alfa'        => $calc['is_early_leave_alfa'],
             'denda_alfa'                 => $calc['denda_alfa'],
             'absent_penalty'             => $calc['absent_penalty'],
@@ -1145,13 +1145,12 @@ class Api extends ResourceController
             $old->log_date,
             $data['jam_masuk'] ?? $old->check_in,
             $data['jam_keluar'] ?? $old->check_out,
-            $data['status'] ?? $old->status,
+            'Hadir', // Default status since column doesn't exist
             $data['shift_scheme_id'] ?? $old->shift_scheme_id,
             $data['payout_period'] ?? $old->payout_period
         );
 
         $updateData = [
-            'status' => $data['status'] ?? $old->status,
             'check_in' => $data['jam_masuk'] ?? $old->check_in,
             'check_out' => $data['jam_keluar'] ?? $old->check_out,
             'notes' => $data['keterangan'] ?? $old->notes,
@@ -1161,7 +1160,14 @@ class Api extends ResourceController
             'calculated_work_hours' => $calc['calculated_work_hours'],
             'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
             'late_hours' => $calc['late_hours'],
+            'late_minutes' => $calc['late_minutes'] ?? 0,
+            'late_penalty_hours' => $calc['late_penalty_hours'] ?? 0,
+            'denda_terlambat' => $calc['denda_terlambat'] ?? 0,
             'early_leave_hours' => $calc['early_leave_hours'],
+            'early_leave_minutes' => $calc['early_leave_minutes'] ?? 0,
+            'is_early_leave_alfa' => $calc['is_early_leave_alfa'] ?? 0,
+            'denda_alfa' => $calc['denda_alfa'] ?? 0,
+            'absent_penalty' => $calc['absent_penalty'] ?? 0,
             'is_incomplete' => $calc['is_incomplete']
         ];
 
