@@ -969,6 +969,38 @@ class Payroll extends ResourceController
                     'tipe' => $comp['tipe'],
                     'jumlah' => $nilaiKomponen
                 ];
+                
+                // ── FALLBACK: Force multiply any "makan" component by working days ──
+                // Jika nama mengandung 'makan' dan nilai masih kecil (kemungkinan per hari)
+                $currentDetailIndex = count($customDetails) - 1;
+                $componentNameFallback = strtolower($customDetails[$currentDetailIndex]['nama_komponen']);
+                if (strpos($componentNameFallback, 'makan') !== false && 
+                    $customDetails[$currentDetailIndex]['jumlah'] <= 50000 && 
+                    $customDetails[$currentDetailIndex]['jumlah'] > 0) {
+                    
+                    $originalValue = $customDetails[$currentDetailIndex]['jumlah'];
+                    $newValue = $originalValue * intval($dk['hadir']);
+                    
+                    error_log("DEBUG: FALLBACK multiplying makan component - Name: '$componentNameFallback', Original: $originalValue, Days: " . intval($dk['hadir']) . ", New: $newValue");
+                    
+                    // Update the value
+                    $customDetails[$currentDetailIndex]['jumlah'] = $newValue;
+                    
+                    // Update running totals
+                    if ($comp['tipe'] === 'Tunjangan') {
+                        $customTunjangan = $customTunjangan - $originalValue + $newValue;
+                        
+                        $isBpjsInc = ($comp['is_bpjs'] == 1);
+                        $isPphInc = ($comp['is_pph21'] == 1);
+                        
+                        if ($isBpjsInc) {
+                            $bpjsWageBase = $bpjsWageBase - $originalValue + $newValue;
+                        }
+                        if ($isPphInc) {
+                            $pphWageBase = $pphWageBase - $originalValue + $newValue;
+                        }
+                    }
+                }
             }
 
             // ── Process Scheme Template Allowances ────────────────────────────
