@@ -988,6 +988,7 @@ class Api extends ResourceController
 
         if ($existing) {
             $this->db->table('attendance_logs')->where('id', $existing->id)->update([
+                'status' => $data['status'] ?? 'Hadir',
                 'check_in' => $data['jam_masuk'] ?? null,
                 'check_out' => $data['jam_keluar'] ?? null,
                 'notes' => $data['keterangan'] ?? null,
@@ -1013,6 +1014,7 @@ class Api extends ResourceController
         $insertData = [
             'employee_id'                => intval($data['employee_id']),
             'log_date'                   => $data['tanggal'],
+            'status'                     => $data['status'] ?? 'Hadir',
             'check_in'                   => $data['jam_masuk'] ?? null,
             'check_out'                  => $data['jam_keluar'] ?? null,
             'notes'                      => $data['keterangan'] ?? null,
@@ -1099,6 +1101,7 @@ class Api extends ResourceController
             $existing = $builder->get()->getRow();
 
             $logData = [
+                'status'                     => $log['status'] ?? 'Hadir',
                 'check_in'                   => $log['jam_masuk'] ?? null,
                 'check_out'                  => $log['jam_keluar'] ?? null,
                 'notes'                      => $log['keterangan'] ?? null,
@@ -1145,12 +1148,13 @@ class Api extends ResourceController
             $old->log_date,
             $data['jam_masuk'] ?? $old->check_in,
             $data['jam_keluar'] ?? $old->check_out,
-            'Hadir', // Default status since column doesn't exist
+            $data['status'] ?? $old->status,
             $data['shift_scheme_id'] ?? $old->shift_scheme_id,
             $data['payout_period'] ?? $old->payout_period
         );
 
         $updateData = [
+            'status' => $data['status'] ?? $old->status,
             'check_in' => $data['jam_masuk'] ?? $old->check_in,
             'check_out' => $data['jam_keluar'] ?? $old->check_out,
             'notes' => $data['keterangan'] ?? $old->notes,
@@ -2555,7 +2559,7 @@ class Api extends ResourceController
 
                 // Scale by period
                 if (isset($comp['periode'])) {
-                    if ($comp['periode'] === 'hari') {
+                    if ($comp['periode'] === 'hari' || $comp['periode'] === 'hari_kerja') {
                         $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
                         $base_nilai = $base_nilai * $days;
                     } elseif ($comp['periode'] === 'minggu') {
@@ -2619,7 +2623,7 @@ class Api extends ResourceController
                     }
                     
                     // Scale by period
-                    if ($comp['periode'] === 'hari') {
+                    if ($comp['periode'] === 'hari' || $comp['periode'] === 'hari_kerja') {
                         $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
                         $nilai = $base_nilai * $days;
                     } elseif ($comp['periode'] === 'minggu') {

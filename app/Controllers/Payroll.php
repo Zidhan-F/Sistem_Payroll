@@ -91,8 +91,8 @@ class Payroll extends ResourceController
             // Hadir
             $hadirStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('tanggal >=', $startDateStr)
-                             ->where('tanggal <=', $endDateStr)
+                             ->where('log_date >=', $startDateStr)
+                             ->where('log_date <=', $endDateStr)
                              ->where('status', 'Hadir')
                              ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                              ->countAllResults();
@@ -109,8 +109,8 @@ class Payroll extends ResourceController
             // Sakit/Izin/Cuti
             $sakitStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('tanggal >=', $startDateStr)
-                             ->where('tanggal <=', $endDateStr)
+                             ->where('log_date >=', $startDateStr)
+                             ->where('log_date <=', $endDateStr)
                              ->groupStart()
                                  ->where('status', 'Sakit')
                                  ->orWhere('status', 'Izin')
@@ -135,8 +135,8 @@ class Payroll extends ResourceController
             // Absen/Alpa
             $alpaStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('tanggal >=', $startDateStr)
-                             ->where('tanggal <=', $endDateStr)
+                             ->where('log_date >=', $startDateStr)
+                             ->where('log_date <=', $endDateStr)
                              ->where('status', 'Absen')
                              ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                              ->countAllResults();
@@ -153,16 +153,16 @@ class Payroll extends ResourceController
             // Late & Early Leave (hours sum)
             $lateSumObj = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('tanggal >=', $startDateStr)
-                             ->where('tanggal <=', $endDateStr)
+                             ->where('log_date >=', $startDateStr)
+                             ->where('log_date <=', $endDateStr)
                              ->selectSum('late_hours')
                              ->get()->getRow();
             $lateHours = $lateSumObj ? floatval($lateSumObj->late_hours) : 0.0;
 
             $earlySumObj = $db->table('attendance_logs')
                               ->where('employee_id', $emp['id'])
-                              ->where('tanggal >=', $startDateStr)
-                              ->where('tanggal <=', $endDateStr)
+                              ->where('log_date >=', $startDateStr)
+                              ->where('log_date <=', $endDateStr)
                               ->selectSum('early_leave_hours')
                               ->get()->getRow();
             $earlyHours = $earlySumObj ? floatval($earlySumObj->early_leave_hours) : 0.0;
@@ -174,7 +174,7 @@ class Payroll extends ResourceController
                              ->where('overtime_logs.tanggal <=', $endDateStr)
                              ->where('overtime_logs.status', 'Approved')
                              ->selectSum('overtime_logs.jam_lembur')
-                             ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.tanggal = overtime_logs.tanggal', 'left')
+                             ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.log_date = overtime_logs.tanggal', 'left')
                              ->where('(attendance_logs.is_rapel = 0 OR attendance_logs.is_rapel IS NULL)')
                              ->get()
                              ->getRow();
@@ -184,7 +184,7 @@ class Payroll extends ResourceController
                              ->where('overtime_logs.employee_id', $emp['id'])
                              ->where('overtime_logs.status', 'Approved')
                              ->selectSum('overtime_logs.jam_lembur')
-                             ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.tanggal = overtime_logs.tanggal', 'inner')
+                             ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.log_date = overtime_logs.tanggal', 'inner')
                              ->where('attendance_logs.is_rapel', 1)
                              ->where('attendance_logs.payout_period', $payoutPeriodStr)
                              ->get()
@@ -581,8 +581,8 @@ class Payroll extends ResourceController
             // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs berdasarkan cutoff period
             $attendanceLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
                 ->where('status', 'Hadir')
                 ->get()->getResultArray();
             $actualDaysWorked = count($attendanceLogs);
@@ -670,8 +670,8 @@ class Payroll extends ResourceController
             $absenCount = 0;
             $absenLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
                 ->where('status', 'Absen')
                 ->get()->getResultArray();
             $absenCount = count($absenLogs);
@@ -688,8 +688,8 @@ class Payroll extends ResourceController
                 ->selectSum('denda_alfa')
                 ->selectSum('absent_penalty')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
                 ->get()->getRow();
 
             $potonganAlpa = $totalDendaAlfa ? floatval($totalDendaAlfa->absent_penalty) : 0.0;
@@ -705,8 +705,8 @@ class Payroll extends ResourceController
                 ->selectSum('denda_terlambat')
                 ->selectSum('late_penalty_hours')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
                 ->get()->getRow();
 
             $potonganLate = $totalDendaLate ? floatval($totalDendaLate->denda_terlambat) : 0.0;
@@ -794,8 +794,8 @@ class Payroll extends ResourceController
             // Ambil semua attendance_logs untuk periode ini dan hitung denda secara real-time
             $attendanceLogsForPenalty = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
                 ->get()->getResultArray();
 
             $totalDendaTerlambat = 0;
@@ -872,6 +872,27 @@ class Payroll extends ResourceController
 
             // Early leave yang dihitung alfa sudah masuk ke absent_penalty di atas
             $potonganEarly = 0.0;
+
+            // Hitung komponen custom
+            $customTunjangan = 0;
+            $customPotongan = 0;
+            $customDetails = [];
+
+            $bpjsWageBase = $baseSalary; // Gaji Pokok is always included
+            $pphWageBase = $baseSalary;  // Gaji Pokok is always included
+
+            foreach ($empComponents as $comp) {
+                $nilaiKomponen = 0;
+                
+                if (!empty($comp['jenis_komponen'])) {
+                    // New Master Compensation component logic
+                    $base_nilai = floatval($comp['nilai']);
+                    
+                    if (isset($comp['sumber_nilai'])) {
+                        if ($comp['sumber_nilai'] === 'ump') {
+                            $base_nilai = $umpWageValue * ($base_nilai / 100);
+                        } else if ($comp['sumber_nilai'] === 'umk') {
+                            $base_nilai = $umkWageValue * ($base_nilai / 100);
                         } else if ($comp['sumber_nilai'] === 'ump_umk') {
                             $base_nilai = $empMinimumWage * ($base_nilai / 100);
                         }
@@ -879,6 +900,7 @@ class Payroll extends ResourceController
                     
                     // Scale by period
                     if (($comp['periode'] ?? '') === 'hari' || ($comp['periode'] ?? '') === 'hari_kerja') {
+                        // Komponen harian: kalikan dengan hari kerja aktual
                         $nilaiKomponen = $base_nilai * intval($dk['hadir']);
                     } elseif (($comp['periode'] ?? '') === 'minggu') {
                         $nilaiKomponen = $base_nilai * 4;
@@ -895,28 +917,6 @@ class Payroll extends ResourceController
                         } else {
                             $nilaiKomponen = $base_nilai;
                         }
-                        
-                        // ── Special case: Detect daily allowances by name ──
-                        // Jika nama komponen mengandung "makan", "harian", "daily" dan bukan periode harian,
-                        // otomatis kalikan dengan hari kerja
-                        $componentName = strtolower($comp['nama_komponen'] ?? $comp['nama'] ?? '');
-                        
-                        // Debug log untuk tracking
-                        if (strpos($componentName, 'makan') !== false) {
-                            error_log("DEBUG: Found makan component - Name: '$componentName', Original Value: $base_nilai, Working Days: " . intval($dk['hadir']));
-                        }
-                        
-                        if ((strpos($componentName, 'makan') !== false && strpos($componentName, 'harian') !== false) ||
-                            (strpos($componentName, 'makan') !== false && strpos($componentName, 'daily') !== false) ||
-                            (strpos($componentName, 'daily meal') !== false) ||
-                            (strpos($componentName, 'meal allowance') !== false && strpos($componentName, 'daily') !== false) ||
-                            (strpos($componentName, 'tunjangan makan') !== false) ||
-                            ($componentName === 'tunjangan makan harian') ||
-                            (strpos($componentName, 'meal') !== false && strpos($componentName, 'allowance') !== false)) {
-                            
-                            error_log("DEBUG: Multiplying daily allowance - Component: '$componentName', Base: $base_nilai, Days: " . intval($dk['hadir']) . ", Result: " . ($base_nilai * intval($dk['hadir'])));
-                            $nilaiKomponen = $base_nilai * intval($dk['hadir']);
-                        }
                     }
                 } else {
                     // Legacy components
@@ -925,26 +925,6 @@ class Payroll extends ResourceController
                     } else {
                         // Persentase dari gaji pokok
                         $nilaiKomponen = $baseSalary * (floatval($comp['nilai']) / 100);
-                    }
-                    
-                    // ── Special case: Detect daily allowances by name for legacy components ──
-                    $componentName = strtolower($comp['nama_komponen'] ?? $comp['nama'] ?? '');
-                    
-                    // Debug log untuk tracking legacy components
-                    if (strpos($componentName, 'makan') !== false) {
-                        error_log("DEBUG: Found makan legacy component - Name: '$componentName', Value: $nilaiKomponen, Working Days: " . intval($dk['hadir']));
-                    }
-                    
-                    if ((strpos($componentName, 'makan') !== false && strpos($componentName, 'harian') !== false) ||
-                        (strpos($componentName, 'makan') !== false && strpos($componentName, 'daily') !== false) ||
-                        (strpos($componentName, 'daily meal') !== false) ||
-                        (strpos($componentName, 'meal allowance') !== false && strpos($componentName, 'daily') !== false) ||
-                        (strpos($componentName, 'tunjangan makan') !== false) ||
-                        ($componentName === 'tunjangan makan harian') ||
-                        (strpos($componentName, 'meal') !== false && strpos($componentName, 'allowance') !== false)) {
-                        
-                        error_log("DEBUG: Multiplying legacy daily allowance - Component: '$componentName', Original: $nilaiKomponen, Days: " . intval($dk['hadir']) . ", Result: " . ($nilaiKomponen * intval($dk['hadir'])));
-                        $nilaiKomponen = $nilaiKomponen * intval($dk['hadir']);
                     }
                 }
 
@@ -969,38 +949,6 @@ class Payroll extends ResourceController
                     'tipe' => $comp['tipe'],
                     'jumlah' => $nilaiKomponen
                 ];
-                
-                // ── FALLBACK: Force multiply any "makan" component by working days ──
-                // Jika nama mengandung 'makan' dan nilai masih kecil (kemungkinan per hari)
-                $currentDetailIndex = count($customDetails) - 1;
-                $componentNameFallback = strtolower($customDetails[$currentDetailIndex]['nama_komponen']);
-                if (strpos($componentNameFallback, 'makan') !== false && 
-                    $customDetails[$currentDetailIndex]['jumlah'] <= 50000 && 
-                    $customDetails[$currentDetailIndex]['jumlah'] > 0) {
-                    
-                    $originalValue = $customDetails[$currentDetailIndex]['jumlah'];
-                    $newValue = $originalValue * intval($dk['hadir']);
-                    
-                    error_log("DEBUG: FALLBACK multiplying makan component - Name: '$componentNameFallback', Original: $originalValue, Days: " . intval($dk['hadir']) . ", New: $newValue");
-                    
-                    // Update the value
-                    $customDetails[$currentDetailIndex]['jumlah'] = $newValue;
-                    
-                    // Update running totals
-                    if ($comp['tipe'] === 'Tunjangan') {
-                        $customTunjangan = $customTunjangan - $originalValue + $newValue;
-                        
-                        $isBpjsInc = ($comp['is_bpjs'] == 1);
-                        $isPphInc = ($comp['is_pph21'] == 1);
-                        
-                        if ($isBpjsInc) {
-                            $bpjsWageBase = $bpjsWageBase - $originalValue + $newValue;
-                        }
-                        if ($isPphInc) {
-                            $pphWageBase = $pphWageBase - $originalValue + $newValue;
-                        }
-                    }
-                }
             }
 
             // ── Process Scheme Template Allowances ────────────────────────────
