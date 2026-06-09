@@ -118,9 +118,6 @@
                             <div class="content-card">
                                 <div class="section-header">
                                     <h3 style="font-size: 16px; color: var(--secondary-color);">PKWT Contract List</h3>
-                                    <button class="btn-add" onclick="bukaModalPKWT()">
-                                        <i class="fas fa-plus"></i> Create New Contract
-                                    </button>
                                 </div>
                                 <div class="table-container">
                                     <table>
