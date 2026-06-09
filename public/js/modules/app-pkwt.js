@@ -8,6 +8,16 @@ async function renderPKWTTable() {
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
+        
+        // Sync employees to PKWT first to ensure all active employees have contracts
+        if (window.selectedClientId) {
+            try {
+                await fetch(`${API_URL}/sync-employees-pkwt?client_id=${window.selectedClientId}`);
+            } catch (syncErr) {
+                console.warn('Could not sync employees to PKWT:', syncErr);
+            }
+        }
+        
         const url = window.selectedClientId ? `${API_URL}/pkwt?client_id=${window.selectedClientId}` : `${API_URL}/pkwt`;
         const response = await fetch(url);
         pkwtData = await response.json();

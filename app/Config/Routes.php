@@ -69,6 +69,7 @@ $routes->group('api', function($routes) {
     $routes->get('pkwt', 'Api::getPKWT');
     $routes->post('pkwt', 'Api::createPKWT');
     $routes->delete('pkwt/(:num)', 'Api::deletePKWT/$1');
+    $routes->get('sync-employees-pkwt', 'Api::syncEmployeesPKWTEndpoint');
 
     // Payroll Processing
     $routes->get('periods', 'Api::getPeriods');

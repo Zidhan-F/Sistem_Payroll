@@ -1628,6 +1628,17 @@ class Api extends ResourceController
         return $this->respondDeleted(['message' => 'PKWT berhasil dihapus']);
     }
 
+    public function syncEmployeesPKWTEndpoint()
+    {
+        $clientId = $this->request->getGet('client_id');
+        if (empty($clientId)) {
+            return $this->fail('Client ID required');
+        }
+        
+        $this->syncEmployeesToPKWT($clientId);
+        return $this->respond(['message' => 'Employees synchronized to PKWT successfully']);
+    }
+
     // --- PERIODS ---
     public function getPeriods()
     {
