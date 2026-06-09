@@ -900,10 +900,21 @@ class Payroll extends ResourceController
                         // Jika nama komponen mengandung "makan", "harian", "daily" dan bukan periode harian,
                         // otomatis kalikan dengan hari kerja
                         $componentName = strtolower($comp['nama_komponen'] ?? $comp['nama'] ?? '');
+                        
+                        // Debug log untuk tracking
+                        if (strpos($componentName, 'makan') !== false) {
+                            error_log("DEBUG: Found makan component - Name: '$componentName', Original Value: $base_nilai, Working Days: " . intval($dk['hadir']));
+                        }
+                        
                         if ((strpos($componentName, 'makan') !== false && strpos($componentName, 'harian') !== false) ||
                             (strpos($componentName, 'makan') !== false && strpos($componentName, 'daily') !== false) ||
                             (strpos($componentName, 'daily meal') !== false) ||
-                            (strpos($componentName, 'meal allowance') !== false && strpos($componentName, 'daily') !== false)) {
+                            (strpos($componentName, 'meal allowance') !== false && strpos($componentName, 'daily') !== false) ||
+                            (strpos($componentName, 'tunjangan makan') !== false) ||
+                            ($componentName === 'tunjangan makan harian') ||
+                            (strpos($componentName, 'meal') !== false && strpos($componentName, 'allowance') !== false)) {
+                            
+                            error_log("DEBUG: Multiplying daily allowance - Component: '$componentName', Base: $base_nilai, Days: " . intval($dk['hadir']) . ", Result: " . ($base_nilai * intval($dk['hadir'])));
                             $nilaiKomponen = $base_nilai * intval($dk['hadir']);
                         }
                     }
@@ -918,10 +929,21 @@ class Payroll extends ResourceController
                     
                     // ── Special case: Detect daily allowances by name for legacy components ──
                     $componentName = strtolower($comp['nama_komponen'] ?? $comp['nama'] ?? '');
+                    
+                    // Debug log untuk tracking legacy components
+                    if (strpos($componentName, 'makan') !== false) {
+                        error_log("DEBUG: Found makan legacy component - Name: '$componentName', Value: $nilaiKomponen, Working Days: " . intval($dk['hadir']));
+                    }
+                    
                     if ((strpos($componentName, 'makan') !== false && strpos($componentName, 'harian') !== false) ||
                         (strpos($componentName, 'makan') !== false && strpos($componentName, 'daily') !== false) ||
                         (strpos($componentName, 'daily meal') !== false) ||
-                        (strpos($componentName, 'meal allowance') !== false && strpos($componentName, 'daily') !== false)) {
+                        (strpos($componentName, 'meal allowance') !== false && strpos($componentName, 'daily') !== false) ||
+                        (strpos($componentName, 'tunjangan makan') !== false) ||
+                        ($componentName === 'tunjangan makan harian') ||
+                        (strpos($componentName, 'meal') !== false && strpos($componentName, 'allowance') !== false)) {
+                        
+                        error_log("DEBUG: Multiplying legacy daily allowance - Component: '$componentName', Original: $nilaiKomponen, Days: " . intval($dk['hadir']) . ", Result: " . ($nilaiKomponen * intval($dk['hadir'])));
                         $nilaiKomponen = $nilaiKomponen * intval($dk['hadir']);
                     }
                 }
@@ -963,9 +985,13 @@ class Payroll extends ResourceController
 
                 foreach ($schemeAllowances as $allowanceName => $allowanceValue) {
                     if ($allowanceValue > 0) {
+                        // Debug log untuk scheme template allowances
+                        error_log("DEBUG: Processing scheme template allowance - Name: '$allowanceName', Value: $allowanceValue, Working Days: " . intval($dk['hadir']));
+                        
                         // Tunjangan Makan Harian dikalikan dengan jumlah hari kerja
                         if ($allowanceName === 'Tunjangan Makan Harian') {
                             $finalValue = $allowanceValue * intval($dk['hadir']);
+                            error_log("DEBUG: Scheme template daily meal - Base: $allowanceValue, Days: " . intval($dk['hadir']) . ", Final: $finalValue");
                         } else {
                             // Tunjangan lainnya tetap nominal bulanan
                             $finalValue = $allowanceValue;
