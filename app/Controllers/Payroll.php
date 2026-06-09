@@ -778,26 +778,100 @@ class Payroll extends ResourceController
             );
             $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
 
-            // Hitung komponen custom
-            $customTunjangan = 0;
-            $customPotongan = 0;
-            $customDetails = [];
+            // ── Denda Berdasarkan Skema ────────────────────────────────────────
+            // Ambil konfigurasi denda dari scheme template yang aktif untuk karyawan
+            $dendaTerlambatPerJam = 0;
+            $dendaAlfaPerHari = 0;
+            $earlyLeaveThreshold = 0;
 
-            $bpjsWageBase = $baseSalary; // Gaji Pokok is always included
-            $pphWageBase = $baseSalary;  // Gaji Pokok is always included
+            if ($schemeTemplate) {
+                $dendaTerlambatPerJam = floatval($schemeTemplate['denda_terlambat_per_jam'] ?? 0);
+                $dendaAlfaPerHari = floatval($schemeTemplate['denda_alfa_per_hari'] ?? 0);
+                $earlyLeaveThreshold = intval($schemeTemplate['early_leave_threshold'] ?? 0);
+            }
 
-            foreach ($empComponents as $comp) {
-                $nilaiKomponen = 0;
+            // ── Hitung Denda Keterlambatan ────────────────────────────────────
+            // Ambil semua attendance_logs untuk periode ini dan hitung denda secara real-time
+            $attendanceLogsForPenalty = $db->table('attendance_logs')
+                ->where('employee_id', $emp['id'])
+                ->where('tanggal >=', $startDateStr)
+                ->where('tanggal <=', $endDateStr)
+                ->get()->getResultArray();
+
+            $totalDendaTerlambat = 0;
+            $totalDendaAlfa = 0;
+            $totalAbsentPenalty = 0;
+
+            foreach ($attendanceLogsForPenalty as $log) {
+                $lateMinutes = intval($log['late_minutes'] ?? 0);
+                $status = $log['status'] ?? '';
+                $earlyLeaveMinutes = intval($log['early_leave_minutes'] ?? 0);
                 
-                if (!empty($comp['jenis_komponen'])) {
-                    // New Master Compensation component logic
-                    $base_nilai = floatval($comp['nilai']);
+                // Hitung denda keterlambatan (ceiling per jam)
+                if ($lateMinutes > 0 && $dendaTerlambatPerJam > 0) {
+                    $lateHours = ceil($lateMinutes / 60); // Ceiling per jam
+                    $dendaLate = $lateHours * $dendaTerlambatPerJam;
+                    $totalDendaTerlambat += $dendaLate;
                     
-                    if (isset($comp['sumber_nilai'])) {
-                        if ($comp['sumber_nilai'] === 'ump') {
-                            $base_nilai = $umpWageValue * ($base_nilai / 100);
-                        } else if ($comp['sumber_nilai'] === 'umk') {
-                            $base_nilai = $umkWageValue * ($base_nilai / 100);
+                    // Update attendance_logs dengan nilai denda yang dihitung
+                    $db->table('attendance_logs')
+                        ->where('id', $log['id'])
+                        ->update([
+                            'late_penalty_hours' => $lateHours,
+                            'denda_terlambat' => $dendaLate
+                        ]);
+                }
+                
+                // Hitung denda alfa (tidak masuk)
+                if ($status === 'Absen' && $dendaAlfaPerHari > 0) {
+                    $totalDendaAlfa += $dendaAlfaPerHari;
+                    
+                    $db->table('attendance_logs')
+                        ->where('id', $log['id'])
+                        ->update([
+                            'denda_alfa' => $dendaAlfaPerHari,
+                            'absent_penalty' => $dendaAlfaPerHari
+                        ]);
+                }
+                
+                // Hitung early leave yang melebihi threshold (dianggap alfa)
+                if ($earlyLeaveMinutes > $earlyLeaveThreshold && $earlyLeaveThreshold > 0 && $dendaAlfaPerHari > 0) {
+                    $totalDendaAlfa += $dendaAlfaPerHari;
+                    
+                    $db->table('attendance_logs')
+                        ->where('id', $log['id'])
+                        ->update([
+                            'is_early_leave_alfa' => 1,
+                            'denda_alfa' => $dendaAlfaPerHari,
+                            'absent_penalty' => $dendaAlfaPerHari
+                        ]);
+                }
+            }
+
+            // Total semua penalty
+            $totalAbsentPenalty = $totalDendaAlfa;
+            $potonganAlpa = $totalAbsentPenalty;
+            $potonganLate = $totalDendaTerlambat;
+
+            // Fallback ke perhitungan lama jika belum ada skema denda
+            if ($potonganAlpa == 0 && $absenCount > 0) {
+                $potonganAlpa = ($baseSalary / $standardDays) * $absenCount;
+            }
+
+            if ($potonganLate == 0) {
+                // Hitung late hours sum dari attendance_logs
+                $lateHoursSum = 0;
+                foreach ($attendanceLogsForPenalty as $log) {
+                    $lateHours = floatval($log['late_hours'] ?? 0);
+                    $lateHoursSum += $lateHours;
+                }
+                if ($lateHoursSum > 0) {
+                    $potonganLate = $lateHoursSum * $upahPerJam;
+                }
+            }
+
+            // Early leave yang dihitung alfa sudah masuk ke absent_penalty di atas
+            $potonganEarly = 0.0;
                         } else if ($comp['sumber_nilai'] === 'ump_umk') {
                             $base_nilai = $empMinimumWage * ($base_nilai / 100);
                         }

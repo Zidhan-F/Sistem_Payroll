@@ -226,11 +226,6 @@
                                 <input type="radio" name="skemaAbsenRule" value="potong_nominal" onchange="handleSkemaAbsenRuleChange()" style="cursor: pointer; width: 18px; height: 18px;">
                                 Attendance Deducts Nominal
                             </label>
-                            
-                            <div id="containerNominalPotonganSkema" class="form-group" style="display: none; margin: 8px 0 0 0;">
-                                <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 6px;">Deduction Amount per Day (Rp)</label>
-                                <input type="text" id="skemaNominalPotongan" placeholder="e.g., 100000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                            </div>
                         </div>
                         
                         <!-- Grace Periods & Min Overtime (Full Width Each Row) -->

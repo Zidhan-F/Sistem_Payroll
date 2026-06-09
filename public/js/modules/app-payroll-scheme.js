@@ -99,7 +99,7 @@ async function renderPayrollSchemes() {
                 components: selectedComponents,
                 prorate: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'prorate') ? 1 : 0,
                 absen_tidak_potong: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'tidak_potong') ? 1 : 0,
-                nominal_potongan: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'potong_nominal') ? (parseFormattedNumber(document.getElementById('skemaNominalPotongan').value) || 0) : 0,
+                nominal_potongan: 0,
                 sumber_nilai: document.getElementById('skemaSumber').value,
                 periode: document.getElementById('skemaPeriode').value,
                 nilai: parseFormattedNumber(document.getElementById('skemaNilai').value) || 0,
@@ -159,7 +159,6 @@ async function bukaModalSkema(mode, id = null) {
             if (radioProrate) radioProrate.checked = false;
             if (radioTidakPotong) radioTidakPotong.checked = false;
             if (radioPotongNominal) radioPotongNominal.checked = false;
-            document.getElementById('skemaNominalPotongan').value = '';
 
             if (s.prorate == 1) {
                 if (radioProrate) radioProrate.checked = true;
@@ -167,9 +166,6 @@ async function bukaModalSkema(mode, id = null) {
                 if (radioTidakPotong) radioTidakPotong.checked = true;
             } else if (s.nominal_potongan > 0) {
                 if (radioPotongNominal) radioPotongNominal.checked = true;
-                const elPot = document.getElementById('skemaNominalPotongan');
-                elPot.value = Math.round(parseFloat(s.nominal_potongan) || 0);
-                formatRupiahInput(elPot);
             }
             handleSkemaAbsenRuleChange();
             
@@ -268,7 +264,6 @@ async function bukaModalSkema(mode, id = null) {
         if (radioProrate) radioProrate.checked = false;
         if (radioTidakPotong) radioTidakPotong.checked = false;
         if (radioPotongNominal) radioPotongNominal.checked = false;
-        document.getElementById('skemaNominalPotongan').value = '';
         handleSkemaAbsenRuleChange();
         
         document.getElementById('skemaGraceLate').value = 0;
@@ -454,15 +449,8 @@ window.tutupModalPilihSkema = tutupModalPilihSkema;
 window.terapkanPilihanSkema = terapkanPilihanSkema;
 
 function handleSkemaAbsenRuleChange() {
-    const selectedRule = document.querySelector('input[name="skemaAbsenRule"]:checked')?.value;
-    const container = document.getElementById('containerNominalPotonganSkema');
-    if (!container) return;
-    if (selectedRule === 'potong_nominal') {
-        container.style.display = 'block';
-    } else {
-        container.style.display = 'none';
-        document.getElementById('skemaNominalPotongan').value = '';
-    }
+    // This function no longer needs to show/hide any fields
+    // All absence rule handling is now through radio buttons only
 }
 window.handleSkemaAbsenRuleChange = handleSkemaAbsenRuleChange;
 
