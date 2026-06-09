@@ -97,9 +97,9 @@ function renderGlobalWorkLocationsTable(list = null) {
                 <td>${loc.provinsi || '-'}</td>
                 <td>${loc.kota_kabupaten || '-'}</td>
                 <td>
-                    <div style="display:flex; gap:8px;">
-                        <button class="btn-icon btn-edit" onclick="editLokasiKerja(${loc.id})" title="Edit"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon btn-delete" onclick="hapusLokasiKerja(${loc.id})" title="Delete"><i class="fas fa-trash"></i></button>
+                    <div style="display:flex; justify-content:center; align-items:center; gap:12px;">
+                        <button onclick="editLokasiKerja(${loc.id})" class="btn-icon" title="Edit" style="color:#94a3b8;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
+                        <button onclick="hapusLokasiKerja(${loc.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
                     </div>
                 </td>
             </tr>

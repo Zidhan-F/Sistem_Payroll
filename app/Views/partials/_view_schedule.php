@@ -180,9 +180,24 @@
                     <p style="color: #64748b; font-size: 13px; margin: 0;">Input dan kelola kehadiran harian karyawan.</p>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                    <select id="attendanceClientSelect" onchange="loadAttendanceLogs()" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; min-width: 200px;">
+                    <select id="attendanceClientSelect" onchange="loadAttendanceLogs()" style="display: none;">
                         <option value="">-- Pilih Client --</option>
                     </select>
+                    <div class="custom-select-wrapper" style="position: relative; min-width: 200px; display: inline-block; font-family: inherit;">
+                        <div id="attendanceClientDropdownTrigger" onclick="toggleAttendanceClientDropdown(event)" style="padding: 10px 32px 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: space-between; position: relative; min-height: 42px; box-sizing: border-box; user-select: none;">
+                            <span id="attendanceClientSelectedText">-- Pilih Client --</span>
+                            <i class="fas fa-chevron-down" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #64748b; transition: transform 0.2s;"></i>
+                        </div>
+                        <div id="attendanceClientDropdownPanel" style="display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); z-index: 999; max-height: 250px; overflow-y: auto; box-sizing: border-box; padding: 6px;">
+                            <div style="position: relative; margin-bottom: 6px;">
+                                <i class="fas fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 12px;"></i>
+                                <input type="text" id="attendanceClientSearchInput" onkeyup="filterClientDropdownOptions()" placeholder="Cari client..." style="width: 100%; padding: 8px 10px 8px 30px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; font-size: 13px; color: #334155; box-sizing: border-box;" onclick="event.stopPropagation()">
+                            </div>
+                            <div id="attendanceClientOptionsContainer" style="display: flex; flex-direction: column; gap: 2px;">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+                    </div>
                     <select id="attendanceMonthSelect" onchange="loadAttendanceLogs()" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
                         <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
                         <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
@@ -195,11 +210,16 @@
                         <option value="2027">2027</option>
                     </select>
                     <button class="btn-add" onclick="bukaModalUploadAbsensi()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
-                        <img src="https://cdn-icons-png.flaticon.com/512/337/337947.png" style="width: 16px; height: 16px; object-fit: contain; filter: brightness(0) invert(1);" alt="Upload Icon"> Upload Attendance Excel
+                        <i class="fas fa-file-excel"></i> Upload Attendance Excel
                     </button>
-                    <button class="btn-add" onclick="bukaModalAttendance()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
-                        <i class="fas fa-plus"></i> Input Kehadiran
+
+                    <button class="btn-add" onclick="downloadMainAbsensiTemplate()" style="background: #2c3e50; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-download"></i> Download Template
                     </button>
+                    <div style="position: relative; display: inline-block;">
+                        <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;"></i>
+                        <input type="text" id="attendanceSearchInput" onkeyup="filterAttendanceTable()" placeholder="Search name, ID, or shift..." style="padding: 10px 12px 10px 34px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 13px; color: #334155; background: white; font-weight: 600; min-width: 240px; transition: all 0.2s;" onfocus="this.style.borderColor='var(--primary-color)';" onblur="this.style.borderColor='#cbd5e1';">
+                    </div>
                 </div>
             </div>
 
@@ -211,16 +231,19 @@
                             <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Karyawan</th>
                             <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Tanggal</th>
                             <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Shift</th>
-                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Status</th>
                             <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jam Masuk</th>
                             <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jam Keluar</th>
                             <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jam Kerja (Lembur)</th>
-                            <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Keterangan</th>
                             <th style="width: 120px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="attendanceTableBody">
-                        <!-- Dynamic rows -->
+                        <tr>
+                            <td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
+                                <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
+                                Silakan pilih client terlebih dahulu untuk menampilkan data absensi.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -270,7 +293,12 @@
                         </tr>
                     </thead>
                     <tbody id="overtimeTableBody">
-                        <!-- Dynamic rows -->
+                        <tr>
+                            <td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">
+                                <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
+                                Silakan pilih client terlebih dahulu untuk menampilkan data lembur.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

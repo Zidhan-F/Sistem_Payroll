@@ -322,6 +322,10 @@ class Migrasi extends BaseController
             ALTER TABLE payroll_schemes ADD absen_tidak_potong INT DEFAULT 0");
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'nominal_potongan')
             ALTER TABLE payroll_schemes ADD nominal_potongan DECIMAL(15,2) DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'grace_period_late')
+            ALTER TABLE payroll_schemes ADD grace_period_late INT DEFAULT 0");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'grace_period_early')
+            ALTER TABLE payroll_schemes ADD grace_period_early INT DEFAULT 0");
 
         // 16. Relaksasi kolom legacy payroll_components agar scheme-based insert berfungsi
         $db->query("ALTER TABLE payroll_components ALTER COLUMN client_id INT NULL");
@@ -445,6 +449,13 @@ class Migrasi extends BaseController
                 keterangan NVARCHAR(MAX) NULL,
                 created_at DATETIME DEFAULT GETDATE()
             )");
+
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('overtime_logs') AND name = 'status')
+            ALTER TABLE overtime_logs ADD status NVARCHAR(20) DEFAULT 'Pending'");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('overtime_logs') AND name = 'approved_by')
+            ALTER TABLE overtime_logs ADD approved_by NVARCHAR(100) NULL");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('overtime_logs') AND name = 'approved_at')
+            ALTER TABLE overtime_logs ADD approved_at DATETIME NULL");
 
         // 24. Tabel Holiday Calendar (Master Hari Libur Nasional)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'holiday_calendar')

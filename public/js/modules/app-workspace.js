@@ -368,7 +368,7 @@ async function loadSchemaMappingTable() {
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.tax_scheme_name || '-'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0;">
                         <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
-                            <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#3498db; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
+                            <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#94a3b8; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
                             <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Delete" style="color:#e74c3c; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
                         </div>
                     </td>
@@ -410,9 +410,15 @@ async function editSchemaMapping(id) {
         if (conf.payroll_scheme_id && psEl && psEl.tomselect) {
             psEl.tomselect.setValue(conf.payroll_scheme_id);
         }
-        if (conf.bpjs_scheme_id && bpjsEl) {
-            bpjsEl.value = conf.bpjs_scheme_id;
-            window.handleModalPilihanSkemaBpjsChange(conf.bpjs_scheme_id);
+        if (bpjsEl) {
+            const hasOption = Array.from(bpjsEl.options).some(opt => opt.value == conf.bpjs_scheme_id);
+            if (conf.bpjs_scheme_id && hasOption) {
+                bpjsEl.value = conf.bpjs_scheme_id;
+                window.handleModalPilihanSkemaBpjsChange(conf.bpjs_scheme_id);
+            } else {
+                bpjsEl.value = 'tambah_skema';
+                window.handleModalPilihanSkemaBpjsChange('tambah_skema');
+            }
         }
         if (conf.tax_scheme_id && tsEl && tsEl.tomselect) {
             tsEl.tomselect.setValue(conf.tax_scheme_id);
