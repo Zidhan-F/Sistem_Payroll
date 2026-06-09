@@ -311,7 +311,10 @@ class Api extends ResourceController
             'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0,
             'grace_period_late' => isset($requestData['grace_period_late']) ? intval($requestData['grace_period_late']) : 0,
             'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0,
-            'min_overtime' => isset($requestData['min_overtime']) ? intval($requestData['min_overtime']) : 30
+            'min_overtime' => isset($requestData['min_overtime']) ? intval($requestData['min_overtime']) : 30,
+            'denda_terlambat_per_jam' => isset($requestData['denda_terlambat_per_jam']) ? floatval($requestData['denda_terlambat_per_jam']) : 0,
+            'denda_alfa_per_hari' => isset($requestData['denda_alfa_per_hari']) ? floatval($requestData['denda_alfa_per_hari']) : 0,
+            'early_leave_threshold' => isset($requestData['early_leave_threshold']) ? intval($requestData['early_leave_threshold']) : 0,
         ];
         
         $this->db->table('payroll_schemes')->insert($schemeData);
@@ -371,7 +374,10 @@ class Api extends ResourceController
             'nominal_potongan' => isset($requestData['nominal_potongan']) ? floatval($requestData['nominal_potongan']) : 0,
             'grace_period_late' => isset($requestData['grace_period_late']) ? intval($requestData['grace_period_late']) : 0,
             'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0,
-            'min_overtime' => isset($requestData['min_overtime']) ? intval($requestData['min_overtime']) : 30
+            'min_overtime' => isset($requestData['min_overtime']) ? intval($requestData['min_overtime']) : 30,
+            'denda_terlambat_per_jam' => isset($requestData['denda_terlambat_per_jam']) ? floatval($requestData['denda_terlambat_per_jam']) : 0,
+            'denda_alfa_per_hari' => isset($requestData['denda_alfa_per_hari']) ? floatval($requestData['denda_alfa_per_hari']) : 0,
+            'early_leave_threshold' => isset($requestData['early_leave_threshold']) ? intval($requestData['early_leave_threshold']) : 0,
         ];
         
         $this->db->table('payroll_schemes')->where('id', $id)->update($schemeData);
@@ -646,7 +652,7 @@ class Api extends ResourceController
         if (!empty($providedShiftSchemeId)) {
             $shiftSchemeId = intval($providedShiftSchemeId);
         } else {
-            // Find active shift assignment
+            // Find active shift assignment for this employee
             $empShift = $db->table('employee_shifts')
                 ->where('employee_id', intval($employeeId))
                 ->where('start_date <=', $tanggal)
@@ -662,14 +668,20 @@ class Api extends ResourceController
         }
 
         $result = [
-            'shift_scheme_id' => $shiftSchemeId,
-            'calculated_work_hours' => 0.0,
-            'calculated_overtime_hours' => 0.0,
-            'late_hours' => 0.0,
-            'early_leave_hours' => 0.0,
-            'is_incomplete' => 0,
-            'is_rapel' => 0,
-            'payout_period' => null
+            'shift_scheme_id'            => $shiftSchemeId,
+            'calculated_work_hours'      => 0.0,
+            'calculated_overtime_hours'  => 0.0,
+            'late_hours'                 => 0.0,
+            'late_minutes'               => 0,
+            'late_penalty_hours'         => 0,
+            'denda_terlambat'            => 0.0,
+            'early_leave_hours'          => 0.0,
+            'is_early_leave_alfa'        => 0,
+            'denda_alfa'                 => 0.0,
+            'absent_penalty'             => 0.0,
+            'is_incomplete'              => 0,
+            'is_rapel'                   => 0,
+            'payout_period'              => null,
         ];
 
         // 2. Determine rapel status based on client's cut-off
@@ -739,104 +751,147 @@ class Api extends ResourceController
         $shiftIn = strtotime($tanggal . ' ' . $shift->start_time);
         $shiftOut = strtotime($tanggal . ' ' . $shift->end_time);
 
-        $graceLate = 0;
+        $graceLate  = 0;
         $graceEarly = 0;
-        $minOvertime = 30; // default 30 min
+        $minOvertime          = 30;
+        $dendaTerlambatPerJam = 0.0;
+        $dendaAlfaPerHari     = 0.0;
 
         if ($clientId) {
-            // First check STO specific scheme
             $schemeTemplateModel = new \App\Models\PayrollSchemeTemplateModel();
-            $stoScheme = $schemeTemplateModel->getSchemeForEmployee($clientId, $emp->division_id, $emp->department_id, $emp->position_id);
-            
+            $stoScheme = $schemeTemplateModel->getSchemeForEmployee(
+                $clientId,
+                $emp->division_id ?? null,
+                $emp->department_id ?? null,
+                $emp->position_id ?? null
+            );
+
             if ($stoScheme) {
-                $graceLate = intval($stoScheme['grace_period_late'] ?? 0);
-                $graceEarly = intval($stoScheme['grace_period_early'] ?? 0);
-                $minOvertime = intval($stoScheme['min_overtime'] ?? 30);
+                $graceLate            = intval($stoScheme['grace_period_late'] ?? 0);
+                $graceEarly           = intval($stoScheme['grace_period_early'] ?? 0);
+                $minOvertime          = intval($stoScheme['min_overtime'] ?? 30);
+                $dendaTerlambatPerJam = floatval($stoScheme['denda_terlambat_per_jam'] ?? 0);
+                $dendaAlfaPerHari     = floatval($stoScheme['denda_alfa_per_hari'] ?? 0);
             } else {
                 $clientConfig = $db->table('client_payroll_configs')
                                    ->where('client_id', $clientId)
-                                   ->get()
-                                   ->getRow();
+                                   ->get()->getRow();
                 if ($clientConfig && !empty($clientConfig->payroll_scheme_id)) {
                     $payrollScheme = $db->table('payroll_schemes')
                                         ->where('id', $clientConfig->payroll_scheme_id)
-                                        ->get()
-                                        ->getRow();
+                                        ->get()->getRow();
                     if ($payrollScheme) {
-                        $graceLate = intval($payrollScheme->grace_period_late);
-                        $graceEarly = intval($payrollScheme->grace_period_early);
-                        $minOvertime = intval($payrollScheme->min_overtime ?? 30);
+                        $graceLate            = intval($payrollScheme->grace_period_late ?? 0);
+                        $graceEarly           = intval($payrollScheme->grace_period_early ?? 0);
+                        $minOvertime          = intval($payrollScheme->min_overtime ?? 30);
+                        $dendaTerlambatPerJam = floatval($payrollScheme->denda_terlambat_per_jam ?? 0);
+                        $dendaAlfaPerHari     = floatval($payrollScheme->denda_alfa_per_hari ?? 0);
                     }
                 }
             }
         }
 
-        $isLate = ($inTime > ($shiftIn + ($graceLate * 60)));
-
-        $lateHours = 0;
-        if ($isLate) {
-            $lateMinutes = ceil(($inTime - $shiftIn) / 60);
-            $lateMinutesAfterGrace = max(0, $lateMinutes - $graceLate);
-            if ($lateMinutesAfterGrace > 0) {
-                $lateHours = ceil($lateMinutesAfterGrace / 60.0);
-            }
+        // ── ALFA / ABSEN ──────────────────────────────────────────────────────
+        if ($status !== 'Hadir') {
+            // Alfa atau Izin/Sakit: tidak ada perhitungan jam, hanya denda alfa
+            $dendaAlfa = ($status === 'Absen' || $status === 'Alfa') ? $dendaAlfaPerHari : 0.0;
+            $result['denda_alfa']      = $dendaAlfa;
+            $result['absent_penalty']  = $dendaAlfa;
+            return $result;
         }
 
-        $result['late_hours'] = $lateHours;
+        // ── HADIR: hitung keterlambatan ───────────────────────────────────────
+        if (empty($jamMasuk)) {
+            $result['is_incomplete'] = 1;
+            return $result;
+        }
 
+        $inTime   = strtotime($tanggal . ' ' . $jamMasuk);
+        $shiftIn  = strtotime($tanggal . ' ' . $shift->start_time);
+        $shiftOut = strtotime($tanggal . ' ' . $shift->end_time);
+
+        // Keterlambatan
+        $lateMinutes     = 0;
+        $latePenaltyHours = 0;
+        $dendaTerlambat  = 0.0;
+
+        if ($inTime > ($shiftIn + ($graceLate * 60))) {
+            // Total menit terlambat (dari jam shift, bukan dari akhir grace)
+            $lateMinutes = intval(ceil(($inTime - $shiftIn) / 60));
+            // Ceiling per jam: < 1 jam = 1 jam, < 2 jam = 2 jam, dst
+            $latePenaltyHours = intval(ceil($lateMinutes / 60.0));
+            $dendaTerlambat   = $latePenaltyHours * $dendaTerlambatPerJam;
+        }
+
+        $result['late_hours']         = round($lateMinutes / 60.0, 2);
+        $result['late_minutes']       = $lateMinutes;
+        $result['late_penalty_hours'] = $latePenaltyHours;
+        $result['denda_terlambat']    = $dendaTerlambat;
+
+        // ── Jam keluar ────────────────────────────────────────────────────────
         if (empty($jamKeluar)) {
             $result['is_incomplete'] = 1;
             return $result;
         }
 
         $outTime = strtotime($tanggal . ' ' . $jamKeluar);
-        if ($outTime < $inTime) {
+        if ($outTime <= $inTime) {
             $result['is_incomplete'] = 1;
             return $result;
         }
 
-        $isEarly = ($outTime < ($shiftOut - ($graceEarly * 60)));
-        $earlyHours = 0;
-        if ($isEarly) {
-            $earlyMinutes = ceil(($shiftOut - $outTime) / 60);
-            $earlyMinutesAfterGrace = max(0, $earlyMinutes - $graceEarly);
-            if ($earlyMinutesAfterGrace > 0) {
-                $earlyHours = ceil($earlyMinutesAfterGrace / 60.0);
+        // ── Early Leave ───────────────────────────────────────────────────────
+        $earlyLeaveMinutes  = 0;
+        $isEarlyLeaveAlfa   = 0;
+        $dendaAlfa          = 0.0;
+        $earlyLeaveHours    = 0.0;
+
+        if ($outTime < $shiftOut) {
+            $earlyLeaveMinutes = intval(ceil(($shiftOut - $outTime) / 60));
+            $earlyLeaveHours   = round($earlyLeaveMinutes / 60.0, 2);
+
+            // Jika early leave melebihi grace → dihitung Alfa
+            if ($earlyLeaveMinutes > $graceEarly) {
+                $result['is_incomplete'] = 1;
+                $isEarlyLeaveAlfa = 1;
+                $dendaAlfa        = $dendaAlfaPerHari;
             }
         }
 
-        $result['early_leave_hours'] = $earlyHours;
+        $result['early_leave_hours']   = $earlyLeaveHours;
+        $result['is_early_leave_alfa'] = $isEarlyLeaveAlfa;
+        $result['denda_alfa']          = $dendaAlfa;
+        $result['absent_penalty']      = $dendaAlfa; // early leave alfa = denda absen
 
-        if ($isEarly) {
-            $result['is_incomplete'] = 1;
-        }
-
-        $breakDuration = isset($shift->break_duration) ? floatval($shift->break_duration) : 0.0;
+        // ── Jam Kerja Aktual ──────────────────────────────────────────────────
+        $breakDuration       = isset($shift->break_duration) ? floatval($shift->break_duration) : 0.0;
         $actualDurationHours = max(0, (($outTime - $inTime) / 3600) - $breakDuration);
-        $standardDuration = floatval($shift->duration);
+        $standardDuration    = floatval($shift->duration);
 
-        $result['calculated_work_hours'] = round(min($standardDuration, $actualDurationHours), 1);
+        $workHours = round(min($standardDuration, $actualDurationHours), 2);
+        $result['calculated_work_hours'] = min(9999.99, max(0, $workHours));
 
-        $otHours = 0.0;
+        // ── Overtime ──────────────────────────────────────────────────────────
+        $otHours   = 0.0;
         $otMinutes = 0;
+
         if (intval($shift->is_overtime_shift) === 1) {
-            $otHours = $actualDurationHours;
+            $otHours   = $actualDurationHours;
             $otMinutes = $actualDurationHours * 60;
         } else {
             if ($outTime > $shiftOut) {
                 $otMinutes = ($outTime - $shiftOut) / 60;
-                $otHours = $otMinutes / 60.0;
+                $otHours   = $otMinutes / 60.0;
             }
         }
-        
-        // Enforce Min Overtime
+
         if ($otMinutes >= $minOvertime) {
-            $result['calculated_overtime_hours'] = round(max(0, $otHours), 1);
+            $result['calculated_overtime_hours'] = min(9999.99, round(max(0, $otHours), 2));
         } else {
             $result['calculated_overtime_hours'] = 0.0;
         }
 
-        // 4. Sync automatically to overtime_logs
+        // ── Sync ke overtime_logs ─────────────────────────────────────────────
         if ($result['calculated_overtime_hours'] > 0) {
             $existingOt = $db->table('overtime_logs')
                 ->where('employee_id', intval($employeeId))
@@ -844,19 +899,19 @@ class Api extends ResourceController
                 ->get()->getRow();
 
             $otData = [
-                'jam_lembur' => $result['calculated_overtime_hours'],
-                'is_holiday' => intval($shift->is_holiday_shift),
-                'keterangan' => 'Generated from shift overtime: ' . $shift->name,
-                'status' => 'Pending',
+                'jam_lembur'  => $result['calculated_overtime_hours'],
+                'is_holiday'  => intval($shift->is_holiday_shift),
+                'keterangan'  => 'Auto: shift ' . $shift->name,
+                'status'      => 'Pending',
                 'approved_by' => null,
-                'approved_at' => null
+                'approved_at' => null,
             ];
 
             if ($existingOt) {
                 $db->table('overtime_logs')->where('id', $existingOt->id)->update($otData);
             } else {
                 $otData['employee_id'] = intval($employeeId);
-                $otData['tanggal'] = $tanggal;
+                $otData['tanggal']     = $tanggal;
                 $db->table('overtime_logs')->insert($otData);
             }
         } else {
@@ -937,33 +992,45 @@ class Api extends ResourceController
                 'check_in' => $data['jam_masuk'] ?? null,
                 'check_out' => $data['jam_keluar'] ?? null,
                 'notes' => $data['keterangan'] ?? null,
-                'shift_scheme_id' => $calc['shift_scheme_id'],
-                'is_rapel' => $calc['is_rapel'],
-                'payout_period' => $calc['payout_period'],
-                'calculated_work_hours' => $calc['calculated_work_hours'],
-                'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
-                'late_hours' => $calc['late_hours'],
-                'early_leave_hours' => $calc['early_leave_hours'],
-                'is_incomplete' => $calc['is_incomplete']
+                'shift_scheme_id'            => $calc['shift_scheme_id'],
+                'is_rapel'                   => $calc['is_rapel'],
+                'payout_period'              => $calc['payout_period'],
+                'calculated_work_hours'      => $calc['calculated_work_hours'],
+                'calculated_overtime_hours'  => $calc['calculated_overtime_hours'],
+                'late_hours'                 => $calc['late_hours'],
+                'late_minutes'               => $calc['late_minutes'],
+                'late_penalty_hours'         => $calc['late_penalty_hours'],
+                'denda_terlambat'            => $calc['denda_terlambat'],
+                'early_leave_hours'          => $calc['early_leave_hours'],
+                'is_early_leave_alfa'        => $calc['is_early_leave_alfa'],
+                'denda_alfa'                 => $calc['denda_alfa'],
+                'absent_penalty'             => $calc['absent_penalty'],
+                'is_incomplete'              => $calc['is_incomplete'],
             ]);
             return $this->respond(['message' => 'Attendance log berhasil diupdate']);
         }
 
         $insertData = [
-            'employee_id' => intval($data['employee_id']),
-            'log_date' => $data['tanggal'],
-            'status' => $data['status'] ?? 'Hadir',
-            'check_in' => $data['jam_masuk'] ?? null,
-            'check_out' => $data['jam_keluar'] ?? null,
-            'notes' => $data['keterangan'] ?? null,
-            'shift_scheme_id' => $calc['shift_scheme_id'],
-            'is_rapel' => $calc['is_rapel'],
-            'payout_period' => $calc['payout_period'],
-            'calculated_work_hours' => $calc['calculated_work_hours'],
-            'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
-            'late_hours' => $calc['late_hours'],
-            'early_leave_hours' => $calc['early_leave_hours'],
-            'is_incomplete' => $calc['is_incomplete']
+            'employee_id'                => intval($data['employee_id']),
+            'log_date'                   => $data['tanggal'],
+            'status'                     => $data['status'] ?? 'Hadir',
+            'check_in'                   => $data['jam_masuk'] ?? null,
+            'check_out'                  => $data['jam_keluar'] ?? null,
+            'notes'                      => $data['keterangan'] ?? null,
+            'shift_scheme_id'            => $calc['shift_scheme_id'],
+            'is_rapel'                   => $calc['is_rapel'],
+            'payout_period'              => $calc['payout_period'],
+            'calculated_work_hours'      => $calc['calculated_work_hours'],
+            'calculated_overtime_hours'  => $calc['calculated_overtime_hours'],
+            'late_hours'                 => $calc['late_hours'],
+            'late_minutes'               => $calc['late_minutes'],
+            'late_penalty_hours'         => $calc['late_penalty_hours'],
+            'denda_terlambat'            => $calc['denda_terlambat'],
+            'early_leave_hours'          => $calc['early_leave_hours'],
+            'is_early_leave_alfa'        => $calc['is_early_leave_alfa'],
+            'denda_alfa'                 => $calc['denda_alfa'],
+            'absent_penalty'             => $calc['absent_penalty'],
+            'is_incomplete'              => $calc['is_incomplete'],
         ];
 
         $this->db->table('attendance_logs')->insert($insertData);
@@ -980,9 +1047,31 @@ class Api extends ResourceController
             if (empty($log['employee_id']) || empty($log['tanggal'])) continue;
 
             $shiftSchemeId = $log['shift_scheme_id'] ?? null;
+
+            // Jika shift_scheme_id kosong, coba resolve dari shift_name
             if (empty($shiftSchemeId) && !empty($log['shift_name'])) {
                 $matchedShift = $this->db->table('shift_schemes')
-                    ->where('name', trim($log['shift_name']))
+                    ->where('LOWER(name)', strtolower(trim($log['shift_name'])))
+                    ->get()->getRow();
+                if (!$matchedShift) {
+                    // Coba partial match
+                    $matchedShift = $this->db->table('shift_schemes')
+                        ->like('name', trim($log['shift_name']), 'none')
+                        ->get()->getRow();
+                }
+                if ($matchedShift) {
+                    $shiftSchemeId = $matchedShift->id;
+                }
+            }
+
+            // Jika masih kosong, coba auto-detect shift dari jam masuk
+            if (empty($shiftSchemeId) && !empty($log['jam_masuk'])) {
+                $jamMasukInt = intval(explode(':', $log['jam_masuk'])[0]);
+                // Shift pagi: masuk sebelum jam 12
+                // Shift siang: masuk jam 12 ke atas
+                $namaShiftGuess = $jamMasukInt < 12 ? 'Pagi' : 'Siang';
+                $matchedShift = $this->db->table('shift_schemes')
+                    ->where('name', $namaShiftGuess)
                     ->get()->getRow();
                 if ($matchedShift) {
                     $shiftSchemeId = $matchedShift->id;
@@ -1010,18 +1099,24 @@ class Api extends ResourceController
             $existing = $builder->get()->getRow();
 
             $logData = [
-                'status' => $log['status'] ?? 'Hadir',
-                'check_in' => $log['jam_masuk'] ?? null,
-                'check_out' => $log['jam_keluar'] ?? null,
-                'notes' => $log['keterangan'] ?? null,
-                'shift_scheme_id' => $calc['shift_scheme_id'],
-                'is_rapel' => $calc['is_rapel'],
-                'payout_period' => $calc['payout_period'],
-                'calculated_work_hours' => $calc['calculated_work_hours'],
-                'calculated_overtime_hours' => $calc['calculated_overtime_hours'],
-                'late_hours' => $calc['late_hours'],
-                'early_leave_hours' => $calc['early_leave_hours'],
-                'is_incomplete' => $calc['is_incomplete']
+                'status'                     => $log['status'] ?? 'Hadir',
+                'check_in'                   => $log['jam_masuk'] ?? null,
+                'check_out'                  => $log['jam_keluar'] ?? null,
+                'notes'                      => $log['keterangan'] ?? null,
+                'shift_scheme_id'            => $calc['shift_scheme_id'],
+                'is_rapel'                   => $calc['is_rapel'],
+                'payout_period'              => $calc['payout_period'],
+                'calculated_work_hours'      => min(9999.99, max(0, floatval($calc['calculated_work_hours']))),
+                'calculated_overtime_hours'  => min(9999.99, max(0, floatval($calc['calculated_overtime_hours']))),
+                'late_hours'                 => min(9999.99, max(0, floatval($calc['late_hours']))),
+                'late_minutes'               => intval($calc['late_minutes']),
+                'late_penalty_hours'         => intval($calc['late_penalty_hours']),
+                'denda_terlambat'            => floatval($calc['denda_terlambat']),
+                'early_leave_hours'          => min(9999.99, max(0, floatval($calc['early_leave_hours']))),
+                'is_early_leave_alfa'        => intval($calc['is_early_leave_alfa']),
+                'denda_alfa'                 => floatval($calc['denda_alfa']),
+                'absent_penalty'             => floatval($calc['absent_penalty']),
+                'is_incomplete'              => $calc['is_incomplete'],
             ];
 
             if ($existing) {

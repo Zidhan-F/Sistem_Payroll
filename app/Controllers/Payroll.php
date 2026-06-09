@@ -682,13 +682,45 @@ class Payroll extends ResourceController
             }
             $dk['alpa'] = $absenCount;
 
-            $potonganAlpa = ($baseSalary / $standardDays) * $absenCount;
+            // ── Potongan Alfa ─────────────────────────────────────────────────
+            // Ambil total denda_alfa dari attendance_logs (sudah dihitung per hari saat upload)
+            $totalDendaAlfa = $db->table('attendance_logs')
+                ->selectSum('denda_alfa')
+                ->selectSum('absent_penalty')
+                ->where('employee_id', $emp['id'])
+                ->where('tanggal >=', $startDateStr)
+                ->where('tanggal <=', $endDateStr)
+                ->get()->getRow();
 
-            // Potongan Keterlambatan dan Pulang Awal
-            $lateHours = isset($dk['late_hours']) ? floatval($dk['late_hours']) : 0.0;
-            $earlyHours = isset($dk['early_leave_hours']) ? floatval($dk['early_leave_hours']) : 0.0;
-            $potonganLate = $lateHours * $upahPerJam;
-            $potonganEarly = $earlyHours * $upahPerJam;
+            $potonganAlpa = $totalDendaAlfa ? floatval($totalDendaAlfa->absent_penalty) : 0.0;
+
+            // Fallback lama jika belum pakai denda scheme (backward compatible)
+            if ($potonganAlpa == 0 && $absenCount > 0) {
+                $potonganAlpa = ($baseSalary / $standardDays) * $absenCount;
+            }
+
+            // ── Potongan Keterlambatan ────────────────────────────────────────
+            // Ambil total denda_terlambat dari attendance_logs
+            $totalDendaLate = $db->table('attendance_logs')
+                ->selectSum('denda_terlambat')
+                ->selectSum('late_penalty_hours')
+                ->where('employee_id', $emp['id'])
+                ->where('tanggal >=', $startDateStr)
+                ->where('tanggal <=', $endDateStr)
+                ->get()->getRow();
+
+            $potonganLate = $totalDendaLate ? floatval($totalDendaLate->denda_terlambat) : 0.0;
+
+            // Fallback lama jika belum pakai denda scheme
+            if ($potonganLate == 0) {
+                $lateHoursSum = $totalDendaLate ? floatval($totalDendaLate->late_penalty_hours) : 0.0;
+                if ($lateHoursSum > 0) {
+                    $potonganLate = $lateHoursSum * $upahPerJam;
+                }
+            }
+
+            // Early leave yang dihitung alfa sudah masuk ke absent_penalty di atas
+            $potonganEarly = 0.0;
 
             // Langkah 5: Rapel Otomatis untuk Karyawan Baru
             if (!empty($emp['tgl_masuk'])) {
@@ -913,9 +945,8 @@ class Payroll extends ResourceController
             if ($bpjsKesKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Kesehatan (1% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsKesKaryawan]);
             if ($bpjsJhtKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JHT (2% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsJhtKaryawan]);
             if ($bpjsJpKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JP (1% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsJpKaryawan]);
-            if ($potonganAlpa > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Alpa/Absen', 'tipe' => 'Potongan', 'jumlah' => $potonganAlpa]);
-            if ($potonganLate > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Keterlambatan', 'tipe' => 'Potongan', 'jumlah' => $potonganLate]);
-            if ($potonganEarly > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Pulang Awal', 'tipe' => 'Potongan', 'jumlah' => $potonganEarly]);
+            if ($potonganAlpa > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Alfa / Early Leave', 'tipe' => 'Potongan', 'jumlah' => $potonganAlpa]);
+            if ($potonganLate > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Denda Keterlambatan', 'tipe' => 'Potongan', 'jumlah' => $potonganLate]);
             if ($pph21 > 0 && $curTaxMethod !== 'Net') {
                 $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Pajak PPh 21', 'tipe' => 'Potongan', 'jumlah' => $pph21]);
             }

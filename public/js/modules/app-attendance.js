@@ -79,12 +79,7 @@ async function loadAttendanceLogs() {
                     ${parseFloat(a.calculated_work_hours || 0).toFixed(1)}j<br>
                     <small style="color:var(--success);">OT: ${parseFloat(a.calculated_overtime_hours || 0).toFixed(1)}j</small>
                 </td>
-                <td style="text-align:center;padding:12px;color:#ef4444;font-weight:600;">
-                    ${parseFloat(a.late_hours || 0) > 0 ? parseFloat(a.late_hours).toFixed(1) + 'j' : '-'}
-                </td>
-                <td style="text-align:center;padding:12px;color:#f59e0b;font-weight:600;">
-                    ${parseFloat(a.early_leave_hours || 0) > 0 ? parseFloat(a.early_leave_hours).toFixed(1) + 'j' : '-'}
-                </td>
+
                 <td style="text-align:center;padding:12px;white-space:nowrap;">
                     <button onclick="editAttendanceLog(${a.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Edit">
                         <i class="fas fa-edit"></i>

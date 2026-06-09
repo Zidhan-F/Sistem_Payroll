@@ -9,5 +9,18 @@ if (! defined('ENVIRONMENT')) {
 CodeIgniter\Boot::bootConsole($paths);
 
 $db = \Config\Database::connect();
-$tables = $db->listTables();
-echo json_encode($tables, JSON_PRETTY_PRINT) . PHP_EOL;
+$db->transBegin();
+$db->query("
+    WITH CTE AS (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY employee_id, log_date ORDER BY COALESCE(shift_scheme_id, 0) DESC, id DESC) as rn
+        FROM attendance_logs
+    )
+    DELETE FROM CTE WHERE rn > 1
+");
+$affected = $db->affectedRows();
+$db->transCommit();
+echo "Cleaned up duplicates: $affected rows deleted.\n";
+
+
+

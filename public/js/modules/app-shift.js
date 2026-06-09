@@ -215,38 +215,45 @@ function loadShiftEmployeesDropdown() {
 
             if (filterSelect) {
                 const currentVal = filterSelect.value;
+                
+                if ($.fn.select2 && $(filterSelect).data('select2')) {
+                    $(filterSelect).select2('destroy');
+                }
+                
                 filterSelect.innerHTML = '<option value="">Semua Karyawan</option>';
-                // Handle different wrapper responses (e.g. data or direct array)
                 const employees = data.data || data;
                 employees.forEach(e => {
                     filterSelect.innerHTML += `<option value="${e.id}">${e.nama}</option>`;
                 });
                 filterSelect.value = currentVal;
-
-                // Initialize Select2 for searchable drop select
+                
                 if ($.fn.select2) {
                     $(filterSelect).select2({
                         width: '250px',
                         placeholder: "Semua Karyawan",
                         allowClear: true
-                    }).on('change', function () {
+                    }).on('change', function() {
                         loadEmployeeShifts(this.value);
                     });
                 }
             }
 
             if (assignSelect) {
-                assignSelect.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+                if ($.fn.select2 && $(assignSelect).data('select2')) {
+                    $(assignSelect).select2('destroy');
+                }
+                
+                assignSelect.innerHTML = '<option value=""></option>';
                 const employees = data.data || data;
                 employees.forEach(e => {
                     assignSelect.innerHTML += `<option value="${e.id}">${e.nama}</option>`;
                 });
-
-                // Initialize Select2 for modal
+                
                 if ($.fn.select2) {
                     $(assignSelect).select2({
                         width: '100%',
                         placeholder: "-- Pilih Karyawan --",
+                        allowClear: true,
                         dropdownParent: $('#modalAssignShift')
                     });
                 }

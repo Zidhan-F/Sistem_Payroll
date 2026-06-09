@@ -265,6 +265,11 @@ async function saveSchemeTemplate() {
         grace_period_early: parseInt(document.getElementById('schemeGraceEarly').value) || 0,
         min_overtime: parseInt(document.getElementById('schemeMinOvertime').value) || 30,
         
+        // Denda
+        denda_terlambat_per_jam: parseFloat(document.getElementById('schemeDendaTerlambatPerJam').value.replace(/[^0-9]/g, '')) || 0,
+        denda_alfa_per_hari: parseFloat(document.getElementById('schemeDendaAlfaPerHari').value.replace(/[^0-9]/g, '')) || 0,
+        early_leave_threshold: parseInt(document.getElementById('schemeEarlyLeaveThreshold').value) || 0,
+        
         // BPJS
         bpjs_kes_karyawan: parseFloat(document.getElementById('schemeBpjsKesKaryawan').value) || 1.0,
         bpjs_kes_perusahaan: parseFloat(document.getElementById('schemeBpjsKesPerusahaan').value) || 4.0,
@@ -376,6 +381,11 @@ async function editSchemeTemplate(id) {
         document.getElementById('schemeGraceLate').value = scheme.grace_period_late || 0;
         document.getElementById('schemeGraceEarly').value = scheme.grace_period_early || 0;
         document.getElementById('schemeMinOvertime').value = scheme.min_overtime || 30;
+        
+        // Denda
+        document.getElementById('schemeDendaTerlambatPerJam').value = formatRupiah(scheme.denda_terlambat_per_jam || 0);
+        document.getElementById('schemeDendaAlfaPerHari').value = formatRupiah(scheme.denda_alfa_per_hari || 0);
+        document.getElementById('schemeEarlyLeaveThreshold').value = scheme.early_leave_threshold || 0;
         
         document.getElementById('schemeBpjsKesKaryawan').value = scheme.bpjs_kes_karyawan;
         document.getElementById('schemeBpjsKesPerusahaan').value = scheme.bpjs_kes_perusahaan;

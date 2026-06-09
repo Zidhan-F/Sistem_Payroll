@@ -757,10 +757,11 @@ function handleInlineAbsensiFileSelect(event) {
     reader.onload = function(e) {
         try {
             const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            // Jangan pakai cellDates: true karena kolom jam akan terbaca sebagai Date object
+            const workbook = XLSX.read(data, { type: 'array', cellDates: false });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet);
+            const json = XLSX.utils.sheet_to_json(worksheet, { raw: false, dateNF: 'yyyy-mm-dd' });
 
             if (json.length === 0) {
                 logsDiv.innerHTML += "Error: Excel file is empty.\n";
@@ -809,9 +810,58 @@ function processInlineParsedAttendance(rows) {
         const empIdStr = String(row[empIdKey] || '').trim();
         const empNameStr = String(row[nameKey] || '').trim();
         const tglVal = row[tglKey];
-        const checkin = String(row[checkinKey] || '').trim();
-        const checkout = String(row[checkoutKey] || '').trim();
+        const checkinRaw = row[checkinKey];
+        const checkoutRaw = row[checkoutKey];
         const status = String(row[statusKey] || '').trim();
+
+        // Konversi jam: jika angka (misal 8, 13, 17) jadikan "08:00", "13:00", "17:00"
+        const toTimeStr = (val) => {
+            if (!val && val !== 0) return null;
+            
+            // Jika Date object (Excel serial time dibaca sebagai Date)
+            if (val instanceof Date) {
+                const h = String(val.getHours()).padStart(2, '0');
+                const m = String(val.getMinutes()).padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            
+            // Jika angka desimal Excel (0.333 = 08:00, 0.708 = 17:00)
+            if (typeof val === 'number') {
+                // Jika < 1 berarti ini time fraction (0.0 - 1.0)
+                if (val < 1) {
+                    const totalMinutes = Math.round(val * 24 * 60);
+                    const h = Math.floor(totalMinutes / 60);
+                    const m = totalMinutes % 60;
+                    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+                }
+                // Jika >= 1 berarti jam polos (8, 13, 17)
+                const h = Math.floor(val);
+                const m = Math.round((val - h) * 60);
+                return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+            }
+            
+            const s = String(val).trim();
+            if (!s) return null;
+            
+            // Jika sudah format "HH:MM"
+            if (/^\d{1,2}:\d{2}/.test(s)) return s.substring(0, 5);
+            
+            // Jika string angka saja ("8", "17")
+            if (/^\d+$/.test(s)) return s.padStart(2, '0') + ':00';
+            
+            // Jika string tanggal (fallback dari Excel Date) — ambil jam saja
+            const dateObj = new Date(s);
+            if (!isNaN(dateObj.getTime())) {
+                const h = String(dateObj.getHours()).padStart(2, '0');
+                const m = String(dateObj.getMinutes()).padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            
+            return s.substring(0, 5); // crop max 5 char "HH:MM"
+        };
+
+        const checkin = toTimeStr(checkinRaw);
+        const checkout = toTimeStr(checkoutRaw);
 
         if (!tglVal) return;
         const dateObj = parseExcelDate(tglVal);
@@ -839,6 +889,7 @@ function processInlineParsedAttendance(rows) {
                 tanggal: formattedDate,
                 jam_masuk: (checkin && checkin !== 'null') ? checkin : null,
                 jam_keluar: (checkout && checkout !== 'null') ? checkout : null,
+                shift_name: row[keys.find(k => k.toLowerCase().replace(/\s+/g,'') === 'shift')] || null,
                 status: status || 'Hadir'
             });
             validCount++;

@@ -758,6 +758,10 @@ async function bukaModalUploadAbsensi() {
         const configs = res.ok ? await res.json() : [];
         const clientSelect = document.getElementById('modalUploadAbsensiClient');
         
+        if ($.fn.select2 && $(clientSelect).data('select2')) {
+            $(clientSelect).select2('destroy');
+        }
+        
         clientSelect.innerHTML = '<option value=""></option>' + configs.map(c => `
             <option value="${c.id}">${c.nama}</option>
         `).join('');
@@ -767,7 +771,7 @@ async function bukaModalUploadAbsensi() {
                 width: '100%',
                 placeholder: "-- Select Client --",
                 dropdownParent: $('#modalUploadAbsensi')
-            }).off('change').on('change', function() {
+            }).off('change.absensiClient').on('change.absensiClient', function() {
                 onAbsensiClientChanged();
             });
         }
@@ -971,7 +975,35 @@ function parseExcelDate(val) {
         return new Date((val - 25569) * 86400 * 1000);
     }
     if (typeof val === 'string') {
-        let clean = val.replace(/[a-zA-Z]/g, '').trim();
+        // Handle Indonesian date format: "Rabu 1 Juli 2026", "Senin 6 Juli 2026", etc.
+        const bulanID = {
+            'januari': 0, 'februari': 1, 'maret': 2, 'april': 3,
+            'mei': 4, 'juni': 5, 'juli': 6, 'agustus': 7,
+            'september': 8, 'oktober': 9, 'november': 10, 'desember': 11
+        };
+        const hariID = ['senin','selasa','rabu','kamis','jumat','sabtu','minggu'];
+
+        const lower = val.toLowerCase().trim();
+
+        // Try "Hari Tgl Bulan Tahun" - e.g. "Rabu 1 Juli 2026"
+        const matchID = lower.match(/(?:senin|selasa|rabu|kamis|jumat|sabtu|minggu)?\s*(\d{1,2})\s+([a-z]+)\s+(\d{4})/);
+        if (matchID) {
+            const tgl = parseInt(matchID[1]);
+            const bulan = bulanID[matchID[2]];
+            const thn = parseInt(matchID[3]);
+            if (bulan !== undefined) {
+                return new Date(thn, bulan, tgl);
+            }
+        }
+
+        // Try standard formats: remove day names then parse
+        let clean = val.replace(/senin|selasa|rabu|kamis|jumat|sabtu|minggu/gi, '').trim();
+        // Replace Indonesian month names
+        Object.entries(bulanID).forEach(([name, idx]) => {
+            clean = clean.replace(new RegExp(name, 'gi'), String(idx + 1).padStart(2, '0'));
+        });
+        clean = clean.replace(/[^0-9\/\-]/g, ' ').trim().replace(/\s+/g, '-');
+
         let parts = clean.split(/[-/]/);
         if (parts.length === 3) {
             if (parts[0].length === 4) {
@@ -1012,10 +1044,10 @@ function handleAbsensiFileSelect(event) {
     reader.onload = function(e) {
         try {
             const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const workbook = XLSX.read(data, { type: 'array', cellDates: false });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-            const json = XLSX.utils.sheet_to_json(worksheet);
+            const json = XLSX.utils.sheet_to_json(worksheet, { raw: false, dateNF: 'yyyy-mm-dd' });
 
             if (json.length === 0) {
                 logsDiv.innerHTML += "Error: Excel file is empty.\n";
