@@ -1099,7 +1099,6 @@ class Api extends ResourceController
             $existing = $builder->get()->getRow();
 
             $logData = [
-                'status'                     => $log['status'] ?? 'Hadir',
                 'check_in'                   => $log['jam_masuk'] ?? null,
                 'check_out'                  => $log['jam_keluar'] ?? null,
                 'notes'                      => $log['keterangan'] ?? null,
@@ -1113,6 +1112,7 @@ class Api extends ResourceController
                 'late_penalty_hours'         => intval($calc['late_penalty_hours']),
                 'denda_terlambat'            => floatval($calc['denda_terlambat']),
                 'early_leave_hours'          => min(9999.99, max(0, floatval($calc['early_leave_hours']))),
+                'early_leave_minutes'        => intval($calc['early_leave_minutes'] ?? 0),
                 'is_early_leave_alfa'        => intval($calc['is_early_leave_alfa']),
                 'denda_alfa'                 => floatval($calc['denda_alfa']),
                 'absent_penalty'             => floatval($calc['absent_penalty']),
