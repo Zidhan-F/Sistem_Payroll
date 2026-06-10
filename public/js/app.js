@@ -554,6 +554,10 @@ function switchView(view) {
             else if (tabId === 'subTabScheduleSystemSettings') switchScheduleSubTab('systemSettings');
         }
     }
+
+    if (typeof window.updateAiAssistantContext === 'function') {
+        window.updateAiAssistantContext();
+    }
 }
 
 
@@ -880,8 +884,11 @@ async function fetchNotifications() {
         list.innerHTML = data.map(item => {
             const iconClass = item.type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-exclamation-triangle';
             const iconColorClass = item.type === 'error' ? 'error' : 'warning';
+            const clientId = item.client_id || 'null';
+            const clientName = item.client_name ? item.client_name.replace(/'/g, "\\'") : '';
+            const clientSektor = item.client_sektor ? item.client_sektor.replace(/'/g, "\\'") : '';
             return `
-                <div class="notification-item" onclick="handleNotificationClick('${item.link}')">
+                <div class="notification-item" onclick="handleNotificationClick('${item.link}', ${clientId}, '${clientName}', '${clientSektor}')">
                     <div class="notification-icon ${iconColorClass}">
                         <i class="${iconClass}"></i>
                     </div>
@@ -902,14 +909,21 @@ async function fetchNotifications() {
     }
 }
 
-function handleNotificationClick(link) {
+function handleNotificationClick(link, clientId = null, clientName = '', clientSektor = '') {
     // Close dropdown
     const dropdown = document.getElementById('notificationsDropdown');
     if (dropdown) dropdown.classList.remove('show');
 
     // Switch view
     if (link === 'klien') {
-        switchView('klien');
+        if (clientId && typeof selectClient === 'function') {
+            selectClient(clientId, clientName, clientSektor);
+            if (typeof switchWorkspaceTab === 'function') {
+                switchWorkspaceTab('proses');
+            }
+        } else {
+            switchView('klien');
+        }
     } else if (link === 'kompensasi') {
         if (typeof switchPayrollSub === 'function') {
             switchPayrollSub('kompensasi');

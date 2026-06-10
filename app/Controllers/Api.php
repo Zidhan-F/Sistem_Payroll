@@ -44,45 +44,15 @@ class Api extends ResourceController
                     'type' => 'warning',
                     'title' => 'Cut-off Periode Belum Dibuat',
                     'message' => "Klien <strong>" . esc($client['nama']) . "</strong> belum memiliki tanggal cut-off / periode aktif untuk bulan " . esc($monthName) . " " . esc($currentYear) . "!",
-                    'link' => 'klien'
+                    'link' => 'klien',
+                    'client_id' => intval($client['id']),
+                    'client_name' => $client['nama'],
+                    'client_sektor' => $client['sektor']
                 ];
             }
         }
 
-        // 2. Check if there are active employees without a matching payroll scheme template
-        $employees = $this->db->table('employees')
-                              ->where('status', 'Aktif')
-                              ->get()
-                              ->getResultArray();
 
-        $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
-
-        foreach ($employees as $emp) {
-            $scheme = $schemeModel->getSchemeForEmployee(
-                $emp['client_id'],
-                $emp['division_id'] ?? null,
-                $emp['department_id'] ?? null,
-                $emp['position_id'] ?? null
-            );
-
-            if (!$scheme) {
-                // Get client name
-                $clientName = '-';
-                foreach ($clients as $c) {
-                    if ($c['id'] == $emp['client_id']) {
-                        $clientName = $c['nama'];
-                        break;
-                    }
-                }
-                $notifications[] = [
-                    'id' => 'scheme_' . $emp['id'],
-                    'type' => 'error',
-                    'title' => 'Skema Gaji Belum Sinkron',
-                    'message' => "Karyawan <strong>" . esc($emp['nama']) . "</strong> (" . esc($emp['nik']) . ") di klien <strong>" . esc($clientName) . "</strong> belum memiliki skema payroll yang terasosiasi!",
-                    'link' => 'kompensasi'
-                ];
-            }
-        }
 
         return $this->respond([
             'status' => 200,
@@ -755,7 +725,11 @@ class Api extends ResourceController
         $graceEarly = 0;
         $minOvertime          = 30;
         $dendaTerlambatPerJam = 0.0;
-        $dendaAlfaPerHari     = 0.0;
+
+        // Skema absensi (untuk early leave / alfa) — dari payroll_scheme
+        $absenTidakPotong    = 0;    // 1 = tidak potong gaji
+        $absenNominalPerHari = 0.0;  // nominal potongan per hari (Attendance Deducts Nominal)
+        $absenProrate        = 1;    // default prorate (gaji/hari kerja)
 
         if ($clientId) {
             $schemeTemplateModel = new \App\Models\PayrollSchemeTemplateModel();
@@ -771,7 +745,6 @@ class Api extends ResourceController
                 $graceEarly           = intval($stoScheme['grace_period_early'] ?? 0);
                 $minOvertime          = intval($stoScheme['min_overtime'] ?? 30);
                 $dendaTerlambatPerJam = floatval($stoScheme['denda_terlambat_per_jam'] ?? 0);
-                $dendaAlfaPerHari     = floatval($stoScheme['denda_alfa_per_hari'] ?? 0);
             } else {
                 $clientConfig = $db->table('client_payroll_configs')
                                    ->where('client_id', $clientId)
@@ -785,7 +758,12 @@ class Api extends ResourceController
                         $graceEarly           = intval($payrollScheme->grace_period_early ?? 0);
                         $minOvertime          = intval($payrollScheme->min_overtime ?? 30);
                         $dendaTerlambatPerJam = floatval($payrollScheme->denda_terlambat_per_jam ?? 0);
-                        $dendaAlfaPerHari     = floatval($payrollScheme->denda_alfa_per_hari ?? 0);
+
+                        // Baca skema absensi dari payroll_scheme
+                        $absenTidakPotong    = intval($payrollScheme->absen_tidak_potong ?? 0);
+                        $absenNominalPerHari = floatval($payrollScheme->nominal_potongan ?? 0);
+                        // prorate = 1 jika bukan "tidak potong" dan bukan "nominal"
+                        $absenProrate = ($absenTidakPotong == 0 && $absenNominalPerHari == 0) ? 1 : 0;
                     }
                 }
             }
@@ -793,10 +771,8 @@ class Api extends ResourceController
 
         // ── ALFA / ABSEN ──────────────────────────────────────────────────────
         if ($status !== 'Hadir') {
-            // Alfa atau Izin/Sakit: tidak ada perhitungan jam, hanya denda alfa
-            $dendaAlfa = ($status === 'Absen' || $status === 'Alfa') ? $dendaAlfaPerHari : 0.0;
-            $result['denda_alfa']      = $dendaAlfa;
-            $result['absent_penalty']  = $dendaAlfa;
+            // Tidak hitung denda di sini — potongan alfa dihitung di Payroll.php
+            // berdasarkan skema absensi (prorate / nominal / tidak potong)
             return $result;
         }
 
@@ -811,14 +787,12 @@ class Api extends ResourceController
         $shiftOut = strtotime($tanggal . ' ' . $shift->end_time);
 
         // Keterlambatan
-        $lateMinutes     = 0;
+        $lateMinutes      = 0;
         $latePenaltyHours = 0;
-        $dendaTerlambat  = 0.0;
+        $dendaTerlambat   = 0.0;
 
         if ($inTime > ($shiftIn + ($graceLate * 60))) {
-            // Total menit terlambat (dari jam shift, bukan dari akhir grace)
-            $lateMinutes = intval(ceil(($inTime - $shiftIn) / 60));
-            // Ceiling per jam: < 1 jam = 1 jam, < 2 jam = 2 jam, dst
+            $lateMinutes      = intval(ceil(($inTime - $shiftIn) / 60));
             $latePenaltyHours = intval(ceil($lateMinutes / 60.0));
             $dendaTerlambat   = $latePenaltyHours * $dendaTerlambatPerJam;
         }
@@ -841,27 +815,26 @@ class Api extends ResourceController
         }
 
         // ── Early Leave ───────────────────────────────────────────────────────
-        $earlyLeaveMinutes  = 0;
-        $isEarlyLeaveAlfa   = 0;
-        $dendaAlfa          = 0.0;
-        $earlyLeaveHours    = 0.0;
+        $earlyLeaveMinutes = 0;
+        $isEarlyLeaveAlfa  = 0;
+        $earlyLeaveHours   = 0.0;
 
         if ($outTime < $shiftOut) {
             $earlyLeaveMinutes = intval(ceil(($shiftOut - $outTime) / 60));
             $earlyLeaveHours   = round($earlyLeaveMinutes / 60.0, 2);
 
-            // Jika early leave melebihi grace → dihitung Alfa
+            // Jika early leave melebihi toleransi grace → dihitung sebagai Alfa
             if ($earlyLeaveMinutes > $graceEarly) {
                 $result['is_incomplete'] = 1;
                 $isEarlyLeaveAlfa = 1;
-                $dendaAlfa        = $dendaAlfaPerHari;
+                // Potongan untuk early leave dihitung di Payroll.php (ikut skema absensi)
             }
         }
 
         $result['early_leave_hours']   = $earlyLeaveHours;
         $result['is_early_leave_alfa'] = $isEarlyLeaveAlfa;
-        $result['denda_alfa']          = $dendaAlfa;
-        $result['absent_penalty']      = $dendaAlfa; // early leave alfa = denda absen
+        $result['denda_alfa']          = 0.0;   // Tidak dipakai, dihitung di Payroll.php
+        $result['absent_penalty']      = 0.0;   // Tidak dipakai, dihitung di Payroll.php
 
         // ── Jam Kerja Aktual ──────────────────────────────────────────────────
         $breakDuration       = isset($shift->break_duration) ? floatval($shift->break_duration) : 0.0;
@@ -875,14 +848,9 @@ class Api extends ResourceController
         $otHours   = 0.0;
         $otMinutes = 0;
 
-        if (intval($shift->is_overtime_shift) === 1) {
-            $otHours   = $actualDurationHours;
-            $otMinutes = $actualDurationHours * 60;
-        } else {
-            if ($outTime > $shiftOut) {
-                $otMinutes = ($outTime - $shiftOut) / 60;
-                $otHours   = $otMinutes / 60.0;
-            }
+        if ($outTime > $shiftOut) {
+            $otMinutes = ($outTime - $shiftOut) / 60;
+            $otHours   = $otMinutes / 60.0;
         }
 
         if ($otMinutes >= $minOvertime) {
@@ -898,9 +866,20 @@ class Api extends ResourceController
                 ->where('tanggal', $tanggal)
                 ->get()->getRow();
 
+            $isHoliday = 0;
+            $dayOfWeek = date('w', strtotime($tanggal));
+            if ($dayOfWeek == 0) {
+                $isHoliday = 1;
+            } else {
+                $holiday = $db->table('holiday_calendar')->where('tanggal', $tanggal)->get()->getRow();
+                if ($holiday) {
+                    $isHoliday = 1;
+                }
+            }
+
             $otData = [
                 'jam_lembur'  => $result['calculated_overtime_hours'],
-                'is_holiday'  => intval($shift->is_holiday_shift),
+                'is_holiday'  => $isHoliday,
                 'keterangan'  => 'Auto: shift ' . $shift->name,
                 'status'      => 'Pending',
                 'approved_by' => null,
@@ -1286,6 +1265,231 @@ class Api extends ResourceController
 
         $this->db->table('overtime_logs')->insert($insertData);
         return $this->respondCreated(['message' => 'Overtime log berhasil ditambahkan']);
+    }
+
+    public function importOvertimeLogs()
+    {
+        $db = \Config\Database::connect();
+        $json = $this->request->getJSON(true);
+        $logs = $json['logs'] ?? [];
+        $payoutPeriodStr = $json['payout_period'] ?? null;
+        
+        if (empty($logs)) {
+            return $this->failValidationErrors('Tidak ada data lembur yang diunggah.');
+        }
+
+        $successCount = 0;
+        $errorLogs = [];
+
+        foreach ($logs as $index => $row) {
+            $nik = trim($row['nik'] ?? '');
+            $nama = trim($row['nama'] ?? '');
+            $tanggal = trim($row['tanggal'] ?? '');
+            $nominal = floatval($row['nominal'] ?? 0);
+
+            if (empty($tanggal) || $nominal <= 0 || (empty($nik) && empty($nama))) {
+                $errorLogs[] = "Baris " . ($index + 1) . ": Data tidak lengkap atau nominal <= 0.";
+                continue;
+            }
+
+            // 1. Lookup Employee
+            $employee = null;
+            if (!empty($nik)) {
+                $employee = $db->table('employees')->where('nik', $nik)->get()->getRowArray();
+            }
+            if (!$employee && !empty($nama)) {
+                $employee = $db->table('employees')->where('LOWER(nama)', strtolower($nama))->get()->getRowArray();
+            }
+            if (!$employee && !empty($nama)) {
+                $employee = $db->table('employees')->like('nama', $nama)->get()->getRowArray();
+            }
+
+            if (!$employee) {
+                $errorLogs[] = "Baris " . ($index + 1) . ": Karyawan '" . ($nik ?: $nama) . "' tidak ditemukan.";
+                continue;
+            }
+
+            $empId = $employee['id'];
+            $clientId = $employee['client_id'];
+
+            // 2. Resolve Base Salary
+            $baseSalary = floatval($employee['gaji_pokok'] ?? 0);
+            $activeContract = $db->table('contracts')
+                ->where('employee_id', $empId)
+                ->where('status_pkwt', 'Aktif')
+                ->orderBy('tgl_mulai', 'DESC')
+                ->get()->getRow();
+            if ($activeContract && floatval($activeContract->gaji_pokok) > 0) {
+                $baseSalary = floatval($activeContract->gaji_pokok);
+            } else {
+                $payrollConfig = $db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
+                if ($payrollConfig) {
+                    if ($payrollConfig->payroll_type === 'UMP' || $payrollConfig->payroll_type === 'UMK') {
+                        if ($payrollConfig->minimum_wage_nominal > 0) {
+                            $baseSalary = floatval($payrollConfig->minimum_wage_nominal);
+                        }
+                    } elseif ($payrollConfig->payroll_type === 'Nominal') {
+                        if ($payrollConfig->custom_nominal > 0) {
+                            $baseSalary = floatval($payrollConfig->custom_nominal);
+                        }
+                    }
+                }
+            }
+
+            // 3. Resolve PKWT components
+            $pkwt = $db->table('pkwt')
+                ->where('client_id', $clientId)
+                ->where('employee_name', $employee['nama'])
+                ->where('status', 'Active')
+                ->get()->getRow();
+
+            $empComponents = [];
+            if ($pkwt) {
+                $dbComponents = $db->table('pkwt_components')
+                    ->where('pkwt_id', $pkwt->id)
+                    ->get()->getResultArray();
+                foreach ($dbComponents as $comp) {
+                    $isBasic = (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') || (stripos($comp['nama'], 'Gaji Pokok') !== false);
+                    if (!$isBasic) {
+                        $empComponents[] = [
+                            'nama_komponen' => $comp['nama'],
+                            'nilai' => floatval($comp['nilai']),
+                            'sumber_nilai' => $comp['sumber_nilai'] ?? '',
+                        ];
+                    }
+                }
+            }
+
+            // Resolve UMP/UMK values for UMP/UMK fallback in components
+            $empMinimumWage = 0.0;
+            if ($employee['minimum_wage_id']) {
+                $mw = $db->table('minimum_wages')->where('id', $employee['minimum_wage_id'])->get()->getRow();
+                if ($mw) {
+                    $empMinimumWage = floatval($mw->nominal);
+                }
+            }
+            $umpWageValue = $empMinimumWage;
+            $umkWageValue = $empMinimumWage;
+
+            // 4. Resolve Nominal Lembur Bulanan
+            $nominalLemburBulanan = 0.0;
+            foreach ($empComponents as $comp) {
+                $compName = $comp['nama_komponen'] ?? '';
+                if (stripos($compName, 'Lembur') !== false || stripos($compName, 'Overtime') !== false) {
+                    $baseVal = floatval($comp['nilai']);
+                    $sumberVal = $comp['sumber_nilai'] ?? 'nominal';
+                    if ($sumberVal === 'ump') {
+                        $baseVal = $umpWageValue * ($baseVal / 100);
+                    } else if ($sumberVal === 'umk') {
+                        $baseVal = $umkWageValue * ($baseVal / 100);
+                    } else if ($sumberVal === 'ump_umk') {
+                        $baseVal = $empMinimumWage * ($baseVal / 100);
+                    }
+                    $nominalLemburBulanan = $baseVal;
+                    break;
+                }
+            }
+            if ($nominalLemburBulanan <= 0.0) {
+                $nominalLemburBulanan = $baseSalary;
+            }
+
+            // 5. Resolve hourly rate
+            $workDaysConfig = isset($employee['hari_kerja']) ? intval($employee['hari_kerja']) : 5;
+            $standardHours = ($workDaysConfig === 6) ? 48.0 : 40.0;
+            $upahPerJam = $nominalLemburBulanan / $standardHours;
+
+            if ($upahPerJam <= 0) {
+                $errorLogs[] = "Baris " . ($index + 1) . ": Tarif lembur per jam untuk '" . $employee['nama'] . "' bernilai 0.";
+                continue;
+            }
+
+            $jamLembur = round($nominal / $upahPerJam, 1);
+
+            // 6. Detect holiday
+            $isHoliday = 0;
+            $holiday = $db->table('holiday_calendar')->where('tanggal', $tanggal)->get()->getRow();
+            if ($holiday) {
+                $isHoliday = 1;
+            } else {
+                $dayOfWeek = date('w', strtotime($tanggal));
+                if ($dayOfWeek == 0 || $dayOfWeek == 6) {
+                    $isHoliday = 1;
+                }
+            }
+
+            // 7. Detect rapel status based on client's cut-off
+            $cutoffStart = 21;
+            $cutoffEnd = 20;
+            $clientConfig = $db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
+            if ($clientConfig && !empty($clientConfig->scheme_template_id)) {
+                $scheme = $db->table('payroll_scheme_templates')->where('id', $clientConfig->scheme_template_id)->get()->getRow();
+                if ($scheme && !empty($scheme->schedule_template_id)) {
+                    $sched = $db->table('payroll_schedules')->where('id', $scheme->schedule_template_id)->get()->getRow();
+                    if ($sched) {
+                        $cutoffStart = intval($sched->cutoff_start);
+                        $cutoffEnd = intval($sched->cutoff_end);
+                    }
+                }
+            }
+
+            $ts = strtotime($tanggal);
+            $tYear = intval(date('Y', $ts));
+            $tMonth = intval(date('n', $ts));
+            $tDay = intval(date('j', $ts));
+
+            if ($tDay > $cutoffEnd) {
+                $natMonth = $tMonth + 1;
+                $natYear = $tYear;
+                if ($natMonth > 12) {
+                    $natMonth = 1;
+                    $natYear++;
+                }
+            } else {
+                $natMonth = $tMonth;
+                $natYear = $tYear;
+            }
+            $naturalPeriod = $natMonth . '-' . $natYear;
+
+            $isRapel = 0;
+            if (!empty($payoutPeriodStr) && $payoutPeriodStr !== $naturalPeriod) {
+                $isRapel = 1;
+            }
+
+            // 8. Insert or Update Log
+            $existing = $db->table('overtime_logs')
+                ->where('employee_id', $empId)
+                ->where('tanggal', $tanggal)
+                ->get()->getRow();
+
+            $approvedBy = session()->get('username') ?: 'Admin';
+
+            $logData = [
+                'employee_id'   => $empId,
+                'tanggal'       => $tanggal,
+                'jam_lembur'    => $jamLembur,
+                'is_holiday'    => $isHoliday,
+                'keterangan'    => $row['keterangan'] ?? 'Imported from Excel',
+                'status'        => 'Approved',
+                'approved_by'   => $approvedBy,
+                'approved_at'   => date('Y-m-d H:i:s'),
+                'is_rapel'      => $isRapel,
+                'payout_period' => $payoutPeriodStr
+            ];
+
+            if ($existing) {
+                $db->table('overtime_logs')->where('id', $existing->id)->update($logData);
+            } else {
+                $db->table('overtime_logs')->insert($logData);
+            }
+
+            $successCount++;
+        }
+
+        return $this->respond([
+            'success' => true,
+            'imported_count' => $successCount,
+            'errors' => $errorLogs
+        ]);
     }
 
     public function updateOvertimeLog($id)
@@ -2112,8 +2316,8 @@ class Api extends ResourceController
                         ->selectSum('late_hours')
                         ->selectSum('early_leave_hours')
                         ->where('employee_id', $emp->id)
-                        ->where('tanggal >=', $startDateStr)
-                        ->where('tanggal <=', $endDateStr)
+                        ->where('log_date >=', $startDateStr)
+                        ->where('log_date <=', $endDateStr)
                         ->get()->getRow();
                 }
                 
@@ -3941,8 +4145,6 @@ class Api extends ResourceController
             'break_end_time' => isset($data['break_end_time']) ? $data['break_end_time'] : null,
             'break_duration' => isset($data['break_duration']) ? floatval($data['break_duration']) : 0.0,
 
-            'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
-            'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -3968,8 +4170,6 @@ class Api extends ResourceController
             'break_end_time' => isset($data['break_end_time']) ? $data['break_end_time'] : null,
             'break_duration' => isset($data['break_duration']) ? floatval($data['break_duration']) : 0.0,
 
-            'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
-            'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
             'updated_at' => date('Y-m-d H:i:s')
         ];
 

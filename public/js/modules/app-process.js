@@ -1066,6 +1066,8 @@ function handleAbsensiFileSelect(event) {
 
 function processParsedAttendance(rows) {
     const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
+    const activePeriod = (window.modalUploadPeriods || []).find(p => p.id == periodId);
+    const payoutPeriodStr = activePeriod ? `${activePeriod.bulan}-${activePeriod.tahun}` : '';
     const logsDiv = document.getElementById('uploadAbsensiLogs');
     const employees = window.currentPeriodAttendance || [];
     if (employees.length === 0) {
@@ -1154,7 +1156,8 @@ function processParsedAttendance(rows) {
                 jam_keluar: row.checkout && row.checkout !== 'null' ? row.checkout : '',
                 status: row.status || 'Hadir',
                 keterangan: '',
-                shift_name: row.shift
+                shift_name: row.shift,
+                payout_period: payoutPeriodStr
             });
 
             const dayOfWeek = dateObj.getDay();

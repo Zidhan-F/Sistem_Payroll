@@ -64,17 +64,11 @@ function renderShiftSchemesTable() {
     }
 
     allShiftSchemes.forEach((s, idx) => {
-        const jenisList = [];
-        if (parseInt(s.is_holiday_shift) === 1) jenisList.push('<span style="background:#fef08a;color:#854d0e;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Hari Libur</span>');
-        if (parseInt(s.is_overtime_shift) === 1) jenisList.push('<span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Lembur Penuh</span>');
-        if (jenisList.length === 0) jenisList.push('<span style="background:#f1f5f9;color:#475569;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Standar</span>');
-
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0; hover:background:#f8fafc;">
                 <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${idx + 1}</td>
                 <td style="padding: 12px; font-weight: 700; color: #1e293b;">${s.name}</td>
                 <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${s.start_time.substring(0, 5)} - ${s.end_time.substring(0, 5)}</td>
-                <td style="text-align: center; padding: 12px;">${jenisList.join(' ')}</td>
                 <td style="text-align: center; padding: 12px; display: flex; gap: 8px; justify-content: center;">
                     <button class="btn-icon btn-edit" onclick="bukaModalShiftScheme('edit', ${s.id})" title="Edit"><i class="fas fa-edit"></i></button>
                     <button class="btn-icon btn-delete" onclick="hapusShiftScheme(${s.id})" title="Delete"><i class="fas fa-trash"></i></button>

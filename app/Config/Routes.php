@@ -119,6 +119,7 @@ $routes->group('api', function($routes) {
     $routes->post('overtime-logs/reject/(:num)', 'Api::rejectOvertimeLog/$1');
     $routes->post('overtime-logs/bulk-approve', 'Api::bulkApproveOvertimeLogs');
     $routes->post('overtime-logs/bulk-reject', 'Api::bulkRejectOvertimeLogs');
+    $routes->post('overtime-logs/import', 'Api::importOvertimeLogs');
 
     // Holiday Calendar
     $routes->get('holidays', 'Api::getHolidays');
@@ -220,4 +221,9 @@ $routes->group('api', function($routes) {
     $routes->get('employee-shifts', 'Api::getEmployeeShifts');
     $routes->post('employee-shifts', 'Api::assignEmployeeShift');
     $routes->delete('employee-shifts/(:num)', 'Api::deleteEmployeeShift/$1');
+
+    // AI Assistant & Summarizer
+    $routes->post('ai/summarize-dashboard', 'Ai::summarizeDashboard');
+    $routes->post('ai/summarize-payroll', 'Ai::summarizePayroll');
+    $routes->post('ai/chat', 'Ai::chat');
 });

@@ -256,13 +256,6 @@
                                 </label>
                                 <input type="text" id="skemaDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
-                                    Denda Alfa / Hari (Rp)
-                                    <span style="font-weight: 400; color: #94a3b8;"> — berlaku untuk Alfa & Early Leave melebihi toleransi</span>
-                                </label>
-                                <input type="text" id="skemaDendaAlfaPerHari" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                            </div>
                         </div>
 
                         <!-- Description -->
@@ -1679,21 +1672,12 @@
                         <h5 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
                             <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Konfigurasi Denda
                         </h5>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">
-                                    Denda Terlambat / Jam (Rp)
-                                    <span style="display: block; font-size: 11px; font-weight: 400; color: #94a3b8; margin-top: 2px;">Dihitung ceiling per jam (kurang dari 1 jam = 1 jam)</span>
-                                </label>
-                                <input type="text" id="schemeDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">
-                                    Denda Alfa / Hari (Rp)
-                                    <span style="display: block; font-size: 11px; font-weight: 400; color: #94a3b8; margin-top: 2px;">Berlaku untuk Alfa dan Early Leave melebihi toleransi</span>
-                                </label>
-                                <input type="text" id="schemeDendaAlfaPerHari" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">
+                                Denda Terlambat / Jam (Rp)
+                                <span style="display: block; font-size: 11px; font-weight: 400; color: #94a3b8; margin-top: 2px;">Dihitung ceiling per jam (kurang dari 1 jam = 1 jam)</span>
+                            </label>
+                            <input type="text" id="schemeDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         </div>
                     </div>
                 </div>
@@ -1889,6 +1873,57 @@
         <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
             <button type="button" class="btn-cancel" onclick="tutupModalUploadAbsensi()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
             <button type="button" id="btnSaveUploadedAbsensi" disabled onclick="saveUploadedAbsensi()" style="background: #f39c12; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Attendance</button>
+        </div>
+    </div>
+
+    <!-- Upload Overtime Excel Modal -->
+    <div id="modalUploadLembur" class="modal-skema" style="display: none; width: 650px; max-width: 95%;">
+        <div class="modal-header" style="background: #0284c7;">
+            <h3>Upload Overtime Log</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadLembur()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Client</label>
+                    <select id="modalUploadLemburClient" onchange="onLemburClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
+                        <option value="">-- Select Client --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Period</label>
+                    <select id="modalUploadLemburPeriod" onchange="onLemburPeriodChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;" disabled>
+                        <option value="">-- Select Client First --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Excel File</label>
+                
+                <!-- Simple file input button -->
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 12px;">
+                    <label for="fileLemburExcel" style="background: #0284c7; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; display: inline-block; font-weight: 600; font-size: 14px; margin: 0;">
+                        <i class="fas fa-upload"></i> Choose Excel File
+                    </label>
+                    <input type="file" id="fileLemburExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleLemburFileSelect(event);">
+                    <button type="button" onclick="downloadLemburTemplate()" style="background: #64748b; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; display: inline-block; font-weight: 600; font-size: 14px; border: none;">
+                        <i class="fas fa-download"></i> Download Template
+                    </button>
+                </div>
+                <span id="labelLemburFilename" style="font-size: 13px; font-weight: 600; color: #0284c7; display: block; margin-top: 8px;">No file selected</span>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Parsing & Converted Logs Summary</label>
+                <div id="uploadLemburLogs" style="background: #1e293b; color: #38bdf8; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; height: 180px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
+                    Waiting for file...
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+            <button type="button" class="btn-cancel" onclick="tutupModalUploadLembur()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
+            <button type="button" id="btnSaveUploadedLembur" disabled onclick="saveUploadedLembur()" style="background: #0284c7; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Overtime</button>
         </div>
     </div>
 

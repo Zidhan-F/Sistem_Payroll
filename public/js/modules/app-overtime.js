@@ -348,6 +348,323 @@ async function deleteOvertimeLog(id) {
     }
 }
 
+// === Overtime Upload Logic ===
+let parsedLemburData = [];
+
+function parseExcelDate(val) {
+    if (!val) return null;
+    if (val instanceof Date) return val;
+    
+    // Check if it's a number (Excel serial date)
+    if (!isNaN(val)) {
+        const date = new Date((val - 25569) * 24 * 60 * 60 * 1000);
+        return date;
+    }
+
+    const s = String(val).trim();
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) {
+        const parts = s.split('-');
+        return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    }
+    if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(s)) {
+        const separator = s.includes('/') ? '/' : '-';
+        const parts = s.split(separator);
+        return new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+    }
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d;
+    return null;
+}
+
+async function bukaModalUploadLembur() {
+    document.getElementById('uploadLemburLogs').innerHTML = "Select Client and Period to start.";
+    document.getElementById('labelLemburFilename').innerText = "No file selected";
+    document.getElementById('fileLemburExcel').value = "";
+    document.getElementById('btnSaveUploadedLembur').disabled = true;
+    document.getElementById('btnSaveUploadedLembur').style.opacity = "0.5";
+    document.getElementById('btnSaveUploadedLembur').style.cursor = "not-allowed";
+
+    parsedLemburData = [];
+
+    // Populate Clients
+    const select = document.getElementById('modalUploadLemburClient');
+    const periodSelect = document.getElementById('modalUploadLemburPeriod');
+    select.innerHTML = '<option value="">-- Select Client --</option>';
+    periodSelect.innerHTML = '<option value="">-- Select Client First --</option>';
+    periodSelect.disabled = true;
+
+    try {
+        const res = await fetch(`${API_URL}/clients`);
+        const clients = await res.json();
+        clients.forEach(c => {
+            select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
+        });
+
+        // Auto-select current selected client in the main page
+        const mainClientId = document.getElementById('overtimeClientSelect')?.value;
+        if (mainClientId) {
+            select.value = mainClientId;
+            await onLemburClientChanged();
+        }
+    } catch(e) {
+        console.error(e);
+        showToast('Gagal memuat client list', 'error');
+    }
+
+    document.getElementById('modalUploadLembur').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+}
+
+function tutupModalUploadLembur() {
+    document.getElementById('modalUploadLembur').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+}
+
+async function onLemburClientChanged() {
+    const clientId = document.getElementById('modalUploadLemburClient').value;
+    const periodSelect = document.getElementById('modalUploadLemburPeriod');
+    if (!clientId) {
+        periodSelect.innerHTML = '<option value="">-- Select Client First --</option>';
+        periodSelect.disabled = true;
+        return;
+    }
+
+    periodSelect.innerHTML = '<option value="">Loading periods...</option>';
+    periodSelect.disabled = true;
+
+    try {
+        const res = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+        const periods = res.ok ? await res.json() : [];
+        window.lemburUploadPeriods = periods;
+
+        if (periods.length === 0) {
+            periodSelect.innerHTML = '<option value="">No periods available</option>';
+            return;
+        }
+
+        periodSelect.innerHTML = '<option value="" disabled selected hidden>-- Select Period --</option>' + periods.map(p => `
+            <option value="${p.id}">${p.nama} (${p.status})</option>
+        `).join('');
+        periodSelect.disabled = false;
+
+        // Auto-select based on main page selection
+        const mainMonth = document.getElementById('overtimeMonthSelect')?.value;
+        const mainYear = document.getElementById('overtimeYearSelect')?.value;
+        if (mainMonth && mainYear) {
+            const matchedPeriod = periods.find(p => parseInt(p.bulan) == parseInt(mainMonth) && parseInt(p.tahun) == parseInt(mainYear));
+            if (matchedPeriod) {
+                periodSelect.value = matchedPeriod.id;
+                onLemburPeriodChanged();
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        periodSelect.innerHTML = '<option value="">Error loading periods</option>';
+    }
+}
+
+async function onLemburPeriodChanged() {
+    const logsDiv = document.getElementById('uploadLemburLogs');
+    logsDiv.innerHTML = "Ready to upload Overtime Excel file.";
+}
+
+async function downloadLemburTemplate() {
+    const clientId = document.getElementById('modalUploadLemburClient').value;
+    const periodId = document.getElementById('modalUploadLemburPeriod').value;
+    if (!clientId || !periodId) {
+        showToast('Please select Client and Period first.', 'warning');
+        return;
+    }
+
+    const activePeriod = (window.lemburUploadPeriods || []).find(p => p.id == periodId);
+    if (!activePeriod) {
+        showToast('Period details not found.', 'error');
+        return;
+    }
+
+    showToast('Generating template...', 'info');
+    try {
+        const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
+        const data = await res.json();
+        const rawEmps = data.data || data || [];
+        const emps = rawEmps.filter(e => e.status === 'Aktif');
+
+        if (emps.length === 0) {
+            showToast('No active employees found for this client.', 'warning');
+            return;
+        }
+
+        const templateData = emps.map(e => ({
+            'NIK': e.nik || '',
+            'Nama': e.nama || '',
+            'Tanggal': `${activePeriod.tahun}-${String(activePeriod.bulan).padStart(2, '0')}-01`,
+            'Nominal': 100000
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(templateData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Overtime Template");
+
+        const max_widths = [15, 25, 15, 15];
+        worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+        const filename = `Overtime_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+        showToast('Template downloaded successfully!', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to download template: ' + e.message, 'error');
+    }
+}
+
+function handleLemburFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const clientId = document.getElementById('modalUploadLemburClient').value;
+    const periodId = document.getElementById('modalUploadLemburPeriod').value;
+    if (!clientId || !periodId) {
+        showToast('Please select Client and Period first before choosing file.', 'warning');
+        return;
+    }
+
+    document.getElementById('labelLemburFilename').innerText = file.name;
+    const logsDiv = document.getElementById('uploadLemburLogs');
+    logsDiv.innerHTML = "Reading file...\n";
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+
+            if (json.length === 0) {
+                logsDiv.innerHTML += "Error: Excel file is empty.\n";
+                return;
+            }
+
+            logsDiv.innerHTML += `Parsed ${json.length} rows from sheet "${sheetName}".\n`;
+            processParsedLembur(json);
+        } catch (err) {
+            console.error(err);
+            logsDiv.innerHTML += `Error parsing file: ${err.message || err}\n`;
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function processParsedLembur(rows) {
+    const logsDiv = document.getElementById('uploadLemburLogs');
+    const finalData = [];
+    let logText = "";
+    let validCount = 0;
+
+    rows.forEach((row, index) => {
+        const keys = Object.keys(row);
+        const nikKey = keys.find(k => k.toLowerCase() === 'nik' || k.toLowerCase().replace(/\s+/g, '') === 'employeeid');
+        const nameKey = keys.find(k => k.toLowerCase() === 'nama' || k.toLowerCase() === 'name');
+        const tglKey = keys.find(k => k.toLowerCase() === 'tanggal' || k.toLowerCase() === 'date');
+        const nominalKey = keys.find(k => k.toLowerCase() === 'nominal' || k.toLowerCase() === 'amount');
+
+        const nikVal = String(row[nikKey] || '').trim();
+        const nameVal = String(row[nameKey] || '').trim();
+        const tglVal = row[tglKey];
+        const nominalVal = parseFloat(String(row[nominalKey] || '').replace(/[^0-9.-]+/g, '')) || 0;
+
+        if (!tglVal || nominalVal <= 0 || (!nikVal && !nameVal)) {
+            logText += `⚠️ Row ${index + 1}: Skipped (Missing date/nominal/name).\n`;
+            return;
+        }
+
+        const dateObj = parseExcelDate(tglVal);
+        if (!dateObj) {
+            logText += `⚠️ Row ${index + 1}: Invalid date format "${tglVal}".\n`;
+            return;
+        }
+
+        const yyyy = dateObj.getFullYear();
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const formattedDate = `${yyyy}-${mm}-${dd}`;
+
+        finalData.push({
+            nik: nikVal,
+            nama: nameVal,
+            tanggal: formattedDate,
+            nominal: nominalVal
+        });
+
+        validCount++;
+    });
+
+    parsedLemburData = finalData;
+    logsDiv.innerHTML += logText;
+    logsDiv.innerHTML += `\nSuccess: Loaded ${validCount} valid overtime records.\nClick 'Apply & Save Overtime' to submit.`;
+
+    if (validCount > 0) {
+        const btn = document.getElementById('btnSaveUploadedLembur');
+        btn.disabled = false;
+        btn.style.cursor = 'pointer';
+        btn.style.opacity = '1';
+    }
+}
+
+async function saveUploadedLembur() {
+    if (parsedLemburData.length === 0) {
+        showToast('No parsed data to apply.', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('btnSaveUploadedLembur');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'not-allowed';
+
+    const periodId = document.getElementById('modalUploadLemburPeriod').value;
+    const activePeriod = (window.lemburUploadPeriods || []).find(p => p.id == periodId);
+    const payoutPeriodStr = activePeriod ? `${activePeriod.bulan}-${activePeriod.tahun}` : '';
+
+    showToast('Saving overtime logs...', 'info');
+
+    try {
+        const res = await fetch(`${API_URL}/overtime-logs/import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                logs: parsedLemburData,
+                payout_period: payoutPeriodStr
+            })
+        });
+
+        const result = await res.json();
+        if (res.ok && result.success) {
+            showToast(`Successfully imported ${result.imported_count} records!`, 'success');
+            tutupModalUploadLembur();
+
+            // Refresh table if period matches
+            const mainMonth = document.getElementById('overtimeMonthSelect')?.value;
+            const mainYear = document.getElementById('overtimeYearSelect')?.value;
+            if (activePeriod && parseInt(mainMonth) == parseInt(activePeriod.bulan) && parseInt(mainYear) == parseInt(activePeriod.tahun)) {
+                loadOvertimeLogs();
+            }
+        } else {
+            showToast(result.message || 'Failed to import overtime logs.', 'error');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Error saving: ' + err.message, 'error');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    }
+}
+
 Object.assign(window, {
     loadOvertimeClients,
     loadOvertimeLogs,
@@ -360,5 +677,12 @@ Object.assign(window, {
     toggleSelectAllOvertime,
     onOvertimeCheckboxChange,
     bulkApproveOvertime,
-    bulkRejectOvertime
+    bulkRejectOvertime,
+    bukaModalUploadLembur,
+    tutupModalUploadLembur,
+    onLemburClientChanged,
+    onLemburPeriodChanged,
+    downloadLemburTemplate,
+    handleLemburFileSelect,
+    saveUploadedLembur
 });
