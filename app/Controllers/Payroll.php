@@ -579,19 +579,52 @@ class Payroll extends ResourceController
             }
 
             // === ENGINE PERHITUNGAN BARU ===
+            $workDaysConfig = isset($emp['hari_kerja']) ? intval($emp['hari_kerja']) : 5;
+            $defaultDays = ($workDaysConfig === 6) ? 26 : 22;
+
             // Standar hari kerja per bulan (default dari system_settings, fallback 22, or override per employee)
             $standardDaysRow = $db->table('system_settings')->where('setting_key', 'standard_work_days')->get()->getRow();
-            $systemStandardDays = $standardDaysRow ? intval($standardDaysRow->setting_value) : 22;
+            $systemStandardDays = $standardDaysRow ? intval($standardDaysRow->setting_value) : $defaultDays;
             $standardDays = isset($emp['custom_standard_days']) && intval($emp['custom_standard_days']) > 0 
                 ? intval($emp['custom_standard_days']) 
-                : $systemStandardDays;
+                : $defaultDays;
             if ($standardDays <= 0) {
-                $standardDays = 22;
+                $standardDays = $defaultDays;
             }
 
-            // Overtime divisor (default 160, or system configuration)
-            $standardHours = isset($overtimeDivisor) ? $overtimeDivisor : 160.0;
-            $upahPerJam = $baseSalary / $standardHours;
+            // Overtime divisor (5 days = 40 hours, 6 days = 48 hours)
+            $standardHours = ($workDaysConfig === 6) ? 48.0 : 40.0;
+
+            // Resolve Nominal Lembur Bulanan (contains "Lembur" or "Overtime" in name)
+            $nominalLemburBulanan = 0.0;
+            foreach ($empComponents as $comp) {
+                $compName = $comp['nama_komponen'] ?? $comp['nama'] ?? '';
+                if (stripos($compName, 'Lembur') !== false || stripos($compName, 'Overtime') !== false) {
+                    $baseVal = floatval($comp['nilai']);
+                    $sumberVal = $comp['sumber_nilai'] ?? 'nominal';
+                    if ($sumberVal === 'ump') {
+                        $baseVal = $umpWageValue * ($baseVal / 100);
+                    } else if ($sumberVal === 'umk') {
+                        $baseVal = $umkWageValue * ($baseVal / 100);
+                    } else if ($sumberVal === 'ump_umk') {
+                        $baseVal = $empMinimumWage * ($baseVal / 100);
+                    }
+                    $nominalLemburBulanan = $baseVal;
+                    break;
+                }
+            }
+            if ($nominalLemburBulanan <= 0.0) {
+                $nominalLemburBulanan = $baseSalary; // fallback to base salary
+            }
+
+            $upahPerJam = $nominalLemburBulanan / $standardHours;
+
+            // Initialize running totals for components
+            $customTunjangan = 0.0;
+            $customPotongan = 0.0;
+            $customDetails = [];
+            $bpjsWageBase = $baseSalary;
+            $pphWageBase = $baseSalary;
 
             // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs berdasarkan cutoff period
             $attendanceLogs = $db->table('attendance_logs')
@@ -904,10 +937,18 @@ class Payroll extends ResourceController
 
             // Early leave yang dihitung alfa sudah masuk ke absent_penalty di atas
             $potonganEarly = 0.0;
-                        } else if ($comp['sumber_nilai'] === 'ump_umk') {
-                            $base_nilai = $empMinimumWage * ($base_nilai / 100);
-                        }
-                    }
+
+            // Process PKWT Components
+            foreach ($empComponents as $comp) {
+                $base_nilai = floatval($comp['nilai']);
+                $sumber_nilai = $comp['sumber_nilai'] ?? 'nominal';
+                if ($sumber_nilai === 'ump') {
+                    $base_nilai = $umpWageValue * ($base_nilai / 100);
+                } else if ($sumber_nilai === 'umk') {
+                    $base_nilai = $umkWageValue * ($base_nilai / 100);
+                } else if ($sumber_nilai === 'ump_umk') {
+                    $base_nilai = $empMinimumWage * ($base_nilai / 100);
+                }
                     
                     // Scale by period
                     if (($comp['periode'] ?? '') === 'hari' || ($comp['periode'] ?? '') === 'hari_kerja') {
@@ -1132,6 +1173,150 @@ class Payroll extends ResourceController
                 }
             }
 
+            // ── Comprehensive Rapel Engine ─────────────────────────────────────
+            // 1. Previous month prorate difference:
+            $prevUnpaidSalary = 0.0;
+            if (!empty($emp['tgl_masuk'])) {
+                $prevMonth = intval($bulan) - 1;
+                $prevYear = intval($tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
+                }
+                $prevPeriodStr = $prevMonth . '-' . $prevYear;
+                
+                // Check if employee has a payroll record for the previous period
+                $prevPayroll = $db->table('payrolls')
+                    ->where('employee_id', $emp['id'])
+                    ->where('bulan', $prevMonth)
+                    ->where('tahun', $prevYear)
+                    ->get()->getRow();
+                
+                // If they joined before the current period start date and have no payroll record for last month
+                if (!$prevPayroll && strtotime($emp['tgl_masuk']) < strtotime($startDateStr)) {
+                    // Resolve previous period standard days
+                    $prevWorkDaysConfig = isset($emp['hari_kerja']) ? intval($emp['hari_kerja']) : 5;
+                    $prevDefaultDays = ($prevWorkDaysConfig === 6) ? 26 : 22;
+                    $prevStandardDays = isset($emp['custom_standard_days']) && intval($emp['custom_standard_days']) > 0 
+                        ? intval($emp['custom_standard_days']) 
+                        : $prevDefaultDays;
+                    if ($prevStandardDays <= 0) {
+                        $prevStandardDays = $prevDefaultDays;
+                    }
+                    
+                    // Get their actual attendance logs from last month (before current period start)
+                    $prevPeriodLogs = $db->table('attendance_logs')
+                        ->where('employee_id', $emp['id'])
+                        ->where('log_date <', $startDateStr)
+                        ->where('status', 'Hadir')
+                        ->get()->getResultArray();
+                    
+                    $prevDaysWorked = count($prevPeriodLogs);
+                    if ($prevDaysWorked > 0) {
+                        $prevUnpaidSalary = ($prevDaysWorked / $prevStandardDays) * $baseSalary;
+                    }
+                }
+            }
+
+            // 2. Sum up overtime pay from previous month(s) marked as rapel (is_rapel = 1 and matching payout_period)
+            $overtimeRapelLogs = $db->table('overtime_logs')
+                ->where('employee_id', $emp['id'])
+                ->where('status', 'Approved')
+                ->where('is_rapel', 1)
+                ->where('payout_period', $payoutPeriodStr)
+                ->get()->getResultArray();
+
+            $totalRapelEmber1 = 0;
+            $totalRapelEmber2 = 0;
+            $rapelLemburLibur = 0;
+            
+            foreach ($overtimeRapelLogs as $otLog) {
+                $jam = floatval($otLog['jam_lembur']);
+                
+                $isHoliday = intval($otLog['is_holiday'] ?? 0);
+                if (!$isHoliday) {
+                    $dayOfWeek = date('w', strtotime($otLog['tanggal']));
+                    if ($dayOfWeek == 0) {
+                        $isHoliday = 1;
+                    } else {
+                        $holiday = $db->table('holiday_calendar')->where('tanggal', $otLog['tanggal'])->get()->getRow();
+                        if ($holiday) {
+                            $isHoliday = 1;
+                        }
+                    }
+                }
+
+                if ($isHoliday) {
+                    if ($jam <= 6) {
+                        $rapelLemburLibur += $jam * 2 * $upahPerJam;
+                    } elseif ($jam == 7) {
+                        $rapelLemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam);
+                    } else {
+                        $rapelLemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam) + (($jam - 7) * 4 * $upahPerJam);
+                    }
+                } else {
+                    $jam = min($jam, 3);
+                    $ember1 = min($jam, 1);
+                    $ember2 = max($jam - 1, 0);
+                    $totalRapelEmber1 += $ember1;
+                    $totalRapelEmber2 += $ember2;
+                }
+            }
+            
+            $rapelLemburReguler = ($totalRapelEmber1 * 1.5 * $upahPerJam) + ($totalRapelEmber2 * 2.0 * $upahPerJam);
+            $rapelOvertimePay = $rapelLemburReguler + $rapelLemburLibur;
+
+            // 3. Subtract unpaid leave/absence deductions from previous month(s) marked as rapel
+            $attendanceRapelLogs = $db->table('attendance_logs')
+                ->where('employee_id', $emp['id'])
+                ->where('is_rapel', 1)
+                ->where('payout_period', $payoutPeriodStr)
+                ->get()->getResultArray();
+
+            $rapelAbsenDays = 0;
+            $rapelLateHours = 0.0;
+            foreach ($attendanceRapelLogs as $log) {
+                if ($log['status'] === 'Absen' || intval($log['is_early_leave_alfa'] ?? 0) === 1) {
+                    $rapelAbsenDays++;
+                }
+                if (floatval($log['late_hours'] ?? 0) > 0) {
+                    $rapelLateHours += floatval($log['late_hours']);
+                }
+            }
+
+            $rapelDeduction = 0.0;
+            if ($ps && floatval($ps->nominal_potongan ?? 0) > 0) {
+                $rapelDeduction = floatval($ps->nominal_potongan) * $rapelAbsenDays;
+            } else {
+                $rapelDeduction = ($baseSalary / $standardDays) * $rapelAbsenDays;
+            }
+
+            if ($dendaTerlambatPerJam > 0) {
+                $rapelDeduction += $rapelLateHours * $dendaTerlambatPerJam;
+            } else {
+                $rapelDeduction += $rapelLateHours * $upahPerJam;
+            }
+
+            // 4. Combined Net Rapel
+            $netRapel = $prevUnpaidSalary + $rapelOvertimePay - $rapelDeduction;
+
+            if ($netRapel > 0) {
+                $customTunjangan += $netRapel;
+                $customDetails[] = [
+                    'nama_komponen' => 'Rapel Gaji & Lembur',
+                    'tipe' => 'Tunjangan',
+                    'jumlah' => $netRapel
+                ];
+            } elseif ($netRapel < 0) {
+                $absNetRapel = abs($netRapel);
+                $customPotongan += $absNetRapel;
+                $customDetails[] = [
+                    'nama_komponen' => 'Rapel Gaji & Lembur',
+                    'tipe' => 'Potongan',
+                    'jumlah' => $absNetRapel
+                ];
+            }
+
             // Hitung BPJS & Pajak TER 2024
             $empMinimumWage = $minimumWage;
             if (!empty($emp['minimum_wage_id'])) {
@@ -1150,8 +1335,8 @@ class Payroll extends ResourceController
                 $ptkpStatus = $schemeTemplate['ptkp_status'];
             }
 
-            // Adjust PPh wage base for attendance variations & overtime
-            $pphWageBaseFinal = $pphWageBase + $overtimePay - $potonganAlpa;
+            // Adjust PPh wage base for attendance variations & overtime (including Rapel)
+            $pphWageBaseFinal = $pphWageBase + $overtimePay - $potonganAlpa + $netRapel;
 
             // Fallback for BPJS wage base to minimumWage if lower
             if ($empMinimumWage > 0 && $bpjsWageBase < $empMinimumWage) {

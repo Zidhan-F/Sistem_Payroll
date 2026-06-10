@@ -20,17 +20,23 @@ class Ai extends ResourceController
      */
     private function callGemini($prompt, $systemInstruction = '', $enableSearch = false)
     {
-        $apiKey = env('GEMINI_API_KEY') ?: getenv('GEMINI_API_KEY');
+        $apiKeysString = env('GEMINI_API_KEY') ?: getenv('GEMINI_API_KEY');
         
         // Fallback jika API Key tidak diset
-        if (empty($apiKey)) {
+        if (empty($apiKeysString)) {
+            return $this->getMockResponse($prompt);
+        }
+
+        // Split keys by comma if multiple are provided
+        $apiKeys = array_map('trim', explode(',', $apiKeysString));
+        $apiKeys = array_filter($apiKeys); // remove empty keys
+
+        if (empty($apiKeys)) {
             return $this->getMockResponse($prompt);
         }
 
         // Tipe model: gunakan gemini-2.5-flash sebagai default tercepat dan termurah
         $model = 'gemini-2.5-flash';
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-
         $client = Services::curlrequest();
 
         $contents = [];
@@ -62,33 +68,43 @@ class Ai extends ResourceController
             ];
         }
 
-        try {
-            $response = $client->request('POST', $url, [
-                'headers' => [
-                    'Content-Type' => 'application/json'
-                ],
-                'json' => $payload,
-                'http_errors' => false
-            ]);
+        $lastError = "Maaf, tidak ada API Key yang berhasil merespon.";
+        
+        // Coba setiap API Key secara berurutan jika ada error / rate limit (429)
+        foreach ($apiKeys as $index => $apiKey) {
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            
+            try {
+                $response = $client->request('POST', $url, [
+                    'headers' => [
+                        'Content-Type' => 'application/json'
+                    ],
+                    'json' => $payload,
+                    'http_errors' => false
+                ]);
 
-            $statusCode = $response->getStatusCode();
-            $body = $response->getBody();
+                $statusCode = $response->getStatusCode();
+                $body = $response->getBody();
 
-            if ($statusCode !== 200) {
-                log_message('error', "Gemini API Error (status {$statusCode}): " . $body);
-                return "Maaf, terjadi kesalahan saat menghubungi server AI (HTTP Status {$statusCode}). Silakan periksa konfigurasi API Key Anda.";
+                if ($statusCode === 200) {
+                    $result = json_decode($body, true);
+                    if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
+                        return $result['candidates'][0]['content']['parts'][0]['text'];
+                    }
+                    $lastError = "Maaf, AI tidak mengembalikan respon yang valid.";
+                } else {
+                    log_message('error', "Gemini API Error with Key #" . ($index + 1) . " (status {$statusCode}): " . $body);
+                    $lastError = "Maaf, terjadi kesalahan saat menghubungi server AI (HTTP Status {$statusCode}). Silakan periksa konfigurasi API Key Anda.";
+                    
+                    // Jika error bukan 429 atau Server Error, tetap coba key berikutnya
+                }
+            } catch (\Exception $e) {
+                log_message('error', "Gemini Connection Exception with Key #" . ($index + 1) . ": " . $e->getMessage());
+                $lastError = "Koneksi ke AI terputus. Silakan coba beberapa saat lagi. Detail error: " . $e->getMessage();
             }
-
-            $result = json_decode($body, true);
-            if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
-                return $result['candidates'][0]['content']['parts'][0]['text'];
-            }
-
-            return "Maaf, AI tidak mengembalikan respon yang valid.";
-        } catch (\Exception $e) {
-            log_message('error', "Gemini Connection Exception: " . $e->getMessage());
-            return "Koneksi ke AI terputus. Silakan coba beberapa saat lagi. Detail error: " . $e->getMessage();
         }
+
+        return $lastError;
     }
 
     /**

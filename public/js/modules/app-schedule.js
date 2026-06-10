@@ -779,6 +779,9 @@ function handleInlineAbsensiFileSelect(event) {
 }
 
 function processInlineParsedAttendance(rows) {
+    const periodId = document.getElementById('inlineUploadAbsensiPeriod').value;
+    const activePeriod = (window.inlineUploadPeriods || []).find(p => p.id == periodId);
+    const payoutPeriodStr = activePeriod ? `${activePeriod.bulan}-${activePeriod.tahun}` : '';
     const logsDiv = document.getElementById('inlineUploadAbsensiLogs');
     const employees = inlinePeriodAttendance || [];
     if (employees.length === 0) {
@@ -890,7 +893,8 @@ function processInlineParsedAttendance(rows) {
                 jam_masuk: (checkin && checkin !== 'null') ? checkin : null,
                 jam_keluar: (checkout && checkout !== 'null') ? checkout : null,
                 shift_name: row[keys.find(k => k.toLowerCase().replace(/\s+/g,'') === 'shift')] || null,
-                status: status || 'Hadir'
+                status: status || 'Hadir',
+                payout_period: payoutPeriodStr
             });
             validCount++;
         }

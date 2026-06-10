@@ -1876,6 +1876,57 @@
         </div>
     </div>
 
+    <!-- Upload Overtime Excel Modal -->
+    <div id="modalUploadLembur" class="modal-skema" style="display: none; width: 650px; max-width: 95%;">
+        <div class="modal-header" style="background: #0284c7;">
+            <h3>Upload Overtime Log</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadLembur()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Client</label>
+                    <select id="modalUploadLemburClient" onchange="onLemburClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
+                        <option value="">-- Select Client --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Period</label>
+                    <select id="modalUploadLemburPeriod" onchange="onLemburPeriodChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;" disabled>
+                        <option value="">-- Select Client First --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Excel File</label>
+                
+                <!-- Simple file input button -->
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 12px;">
+                    <label for="fileLemburExcel" style="background: #0284c7; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; display: inline-block; font-weight: 600; font-size: 14px; margin: 0;">
+                        <i class="fas fa-upload"></i> Choose Excel File
+                    </label>
+                    <input type="file" id="fileLemburExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleLemburFileSelect(event);">
+                    <button type="button" onclick="downloadLemburTemplate()" style="background: #64748b; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; display: inline-block; font-weight: 600; font-size: 14px; border: none;">
+                        <i class="fas fa-download"></i> Download Template
+                    </button>
+                </div>
+                <span id="labelLemburFilename" style="font-size: 13px; font-weight: 600; color: #0284c7; display: block; margin-top: 8px;">No file selected</span>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Parsing & Converted Logs Summary</label>
+                <div id="uploadLemburLogs" style="background: #1e293b; color: #38bdf8; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; height: 180px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
+                    Waiting for file...
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+            <button type="button" class="btn-cancel" onclick="tutupModalUploadLembur()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
+            <button type="button" id="btnSaveUploadedLembur" disabled onclick="saveUploadedLembur()" style="background: #0284c7; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Overtime</button>
+        </div>
+    </div>
+
     <!-- Holiday Modal -->
     <div id="holidayModal" class="modal-skema" style="width: 480px; max-width: 95%; display: none; z-index: 2000;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">

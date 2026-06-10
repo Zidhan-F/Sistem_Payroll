@@ -119,6 +119,7 @@ $routes->group('api', function($routes) {
     $routes->post('overtime-logs/reject/(:num)', 'Api::rejectOvertimeLog/$1');
     $routes->post('overtime-logs/bulk-approve', 'Api::bulkApproveOvertimeLogs');
     $routes->post('overtime-logs/bulk-reject', 'Api::bulkRejectOvertimeLogs');
+    $routes->post('overtime-logs/import', 'Api::importOvertimeLogs');
 
     // Holiday Calendar
     $routes->get('holidays', 'Api::getHolidays');
