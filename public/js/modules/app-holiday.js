@@ -163,7 +163,7 @@ function renderCalendarGrid(monthlyHolidays) {
                     <span style="font-size:10px; color:#ef4444; font-weight:700;"><i class="fas fa-umbrella-beach"></i> Libur</span>
                     <span style="font-weight: 700; font-size: 14px;">${day}</span>
                 </div>
-                <div class="holiday-tooltip-trigger" style="background:#fee2e2; border-left:3px solid #ef4444; padding:3px 5px; border-radius:4px; font-size:10px; line-height:1.25; font-weight:600; color:#b91c1c; text-align:left; word-break:break-word; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;" title="${holiday.deskripsi}">
+                <div class="holiday-tooltip-trigger" style="background:#fee2e2; border-left:3px solid #ef4444; padding:4px 6px; border-radius:4px; font-size:10px; line-height:1.2; font-weight:600; color:#b91c1c; text-align:left; word-break:break-word; width: 100%; box-sizing: border-box;" title="${holiday.deskripsi}">
                     ${holiday.deskripsi}
                 </div>
             `;
