@@ -42,7 +42,7 @@ class RenameAttendanceLogsColumns extends Migration
             // Drop default constraint first if exists
             $constraint = $db->query("SELECT dc.name 
                                     FROM sys.default_constraints dc
-                                    JOIN sys.columns c ON dc.parent_column_id = c.column_id
+                                    JOIN sys.columns c ON dc.parent_column_id = c.column_id AND dc.parent_object_id = c.object_id
                                     WHERE c.object_id = OBJECT_ID('attendance_logs') 
                                     AND c.name = 'status'")->getRow();
             
