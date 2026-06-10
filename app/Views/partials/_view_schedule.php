@@ -341,6 +341,16 @@
 
             <!-- Tab Content 1: Persetujuan Lembur (Pending) -->
             <div id="otSubPanelPending" class="ot-subpanel">
+                <!-- Search Filter Row -->
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 15px;">
+                    <div style="position: relative; width: 260px;">
+                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="otPendingSearchInput" onkeyup="filterOvertimePending()" placeholder="Cari nama karyawan..." 
+                               style="width: 100%; padding: 8px 12px 8px 32px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 13px; color: #334155; box-sizing: border-box;">
+                    </div>
+                </div>
                 <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white; margin-bottom: 15px;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>

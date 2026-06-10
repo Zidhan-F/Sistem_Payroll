@@ -48,6 +48,8 @@ async function loadOvertimeLogs() {
         window.currentOvertimeLogs = data || [];
 
         // Reset search inputs on reload
+        const pendingSearchInput = document.getElementById('otPendingSearchInput');
+        if (pendingSearchInput) pendingSearchInput.value = '';
         const searchInput = document.getElementById('otHistorySearchInput');
         if (searchInput) searchInput.value = '';
         const statusFilter = document.getElementById('otHistoryStatusFilter');
@@ -814,6 +816,70 @@ function filterOvertimeHistory() {
     historyTbody.innerHTML = historyHtml || `<tr><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur yang cocok dengan pencarian.</td></tr>`;
 }
 
+function filterOvertimePending() {
+    const searchVal = (document.getElementById('otPendingSearchInput')?.value || '').toLowerCase().trim();
+    const pendingTbody = document.getElementById('overtimePendingTableBody');
+    if (!pendingTbody || !window.currentOvertimeLogs) return;
+
+    // Filter only pending logs matching the search term
+    const filtered = window.currentOvertimeLogs.filter(o => {
+        const status = String(o.status || 'Pending').toLowerCase().trim();
+        if (status !== 'pending') return false;
+
+        if (searchVal) {
+            const empName = String(o.employee_name || '').toLowerCase();
+            if (!empName.includes(searchVal)) return false;
+        }
+
+        return true;
+    });
+
+    let pendingIndex = 1;
+    let pendingHtml = '';
+
+    filtered.forEach(o => {
+        const d = new Date(o.tanggal);
+        const tanggalFormatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        const isHoliday = parseInt(o.is_holiday);
+        const tipeLabel = isHoliday ? 'Hari Libur' : 'Hari Kerja';
+        const tipeStyle = isHoliday ? 'background:#fef3c7;color:#92400e;' : 'background:#dcfce7;color:#166534;';
+
+        const statusBadge = `<span style="background:#fffbeb;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-clock"></i> Pending</span>`;
+        
+        const actionButtons = `
+            <button onclick="approveOvertimeLog(${o.id})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Setujui (Approve)">
+                <i class="fas fa-check"></i>
+            </button>
+            <button onclick="rejectOvertimeLog(${o.id})" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Tolak (Reject)">
+                <i class="fas fa-times"></i>
+            </button>
+            <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+
+        pendingHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="text-align:center;padding:12px;">
+                <input type="checkbox" class="overtime-row-checkbox" value="${o.id}" onchange="onOvertimeCheckboxChange()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary-color);">
+            </td>
+            <td style="text-align:center;padding:12px;color:#64748b;">${pendingIndex++}</td>
+            <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+            <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+            <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
+            <td style="text-align:center;padding:12px;">
+                <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
+            </td>
+            <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
+            <td style="text-align:center;padding:12px;">${statusBadge}</td>
+            <td style="text-align:center;padding:12px;">
+                <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
+            </td>
+        </tr>`;
+    });
+
+    pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending yang cocok dengan pencarian.</td></tr>`;
+}
+
 Object.assign(window, {
     loadOvertimeClients,
     loadOvertimeLogs,
@@ -835,5 +901,6 @@ Object.assign(window, {
     handleLemburFileSelect,
     saveUploadedLembur,
     switchOvertimeSubTab,
-    filterOvertimeHistory
+    filterOvertimeHistory,
+    filterOvertimePending
 });
