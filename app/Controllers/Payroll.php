@@ -91,8 +91,8 @@ class Payroll extends ResourceController
             // Hadir
             $hadirStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('tanggal >=', $startDateStr)
-                             ->where('tanggal <=', $endDateStr)
+                             ->where('log_date >=', $startDateStr)
+                             ->where('log_date <=', $endDateStr)
                              ->where('status', 'Hadir')
                              ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                              ->countAllResults();
@@ -109,8 +109,8 @@ class Payroll extends ResourceController
             // Sakit/Izin/Cuti
             $sakitStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('tanggal >=', $startDateStr)
-                             ->where('tanggal <=', $endDateStr)
+                             ->where('log_date >=', $startDateStr)
+                             ->where('log_date <=', $endDateStr)
                              ->groupStart()
                                  ->where('status', 'Sakit')
                                  ->orWhere('status', 'Izin')
@@ -135,8 +135,8 @@ class Payroll extends ResourceController
             // Absen/Alpa
             $alpaStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('tanggal >=', $startDateStr)
-                             ->where('tanggal <=', $endDateStr)
+                             ->where('log_date >=', $startDateStr)
+                             ->where('log_date <=', $endDateStr)
                              ->where('status', 'Absen')
                              ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                              ->countAllResults();
@@ -153,16 +153,16 @@ class Payroll extends ResourceController
             // Late & Early Leave (hours sum)
             $lateSumObj = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('tanggal >=', $startDateStr)
-                             ->where('tanggal <=', $endDateStr)
+                             ->where('log_date >=', $startDateStr)
+                             ->where('log_date <=', $endDateStr)
                              ->selectSum('late_hours')
                              ->get()->getRow();
             $lateHours = $lateSumObj ? floatval($lateSumObj->late_hours) : 0.0;
 
             $earlySumObj = $db->table('attendance_logs')
                               ->where('employee_id', $emp['id'])
-                              ->where('tanggal >=', $startDateStr)
-                              ->where('tanggal <=', $endDateStr)
+                              ->where('log_date >=', $startDateStr)
+                              ->where('log_date <=', $endDateStr)
                               ->selectSum('early_leave_hours')
                               ->get()->getRow();
             $earlyHours = $earlySumObj ? floatval($earlySumObj->early_leave_hours) : 0.0;
@@ -480,7 +480,18 @@ class Payroll extends ResourceController
             }
 
             $baseSalary = floatval($emp['gaji_pokok'] ?? 0);
-            if ($payrollConfig) {
+
+            // ── PRIORITAS 1: Ambil dari contracts table (yang ditampilkan di PKWT Contract tab) ──
+            $activeContract = $db->table('contracts')
+                ->where('employee_id', $emp['id'])
+                ->where('status_pkwt', 'Aktif')
+                ->orderBy('tgl_mulai', 'DESC')
+                ->get()->getRow();
+
+            if ($activeContract && floatval($activeContract->gaji_pokok) > 0) {
+                $baseSalary = floatval($activeContract->gaji_pokok);
+            } elseif ($payrollConfig) {
+                // ── PRIORITAS 2: Dari client_payroll_configs (UMP/UMK/Nominal) ──
                 if ($payrollConfig->payroll_type === 'UMP' || $payrollConfig->payroll_type === 'UMK') {
                     if ($payrollConfig->minimum_wage_nominal > 0) {
                         $baseSalary = floatval($payrollConfig->minimum_wage_nominal);
@@ -513,22 +524,26 @@ class Payroll extends ResourceController
 
                     $isBasic = (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') || (stripos($comp['nama'], 'Gaji Pokok') !== false);
                     if ($isBasic) {
-                        $sumber_nilai = $comp['sumber_nilai'] ?? 'nominal';
-                        $base_nilai = floatval($comp['nilai']);
-                        if ($sumber_nilai === 'ump') {
-                            $baseSalary = $umpWageValue * ($base_nilai / 100);
-                        } else if ($sumber_nilai === 'umk') {
-                            $baseSalary = $umkWageValue * ($base_nilai / 100);
-                        } else if ($sumber_nilai === 'ump_umk') {
-                            $baseSalary = $empMinimumWage * ($base_nilai / 100);
+                        // Jika sudah dapat dari contracts, skip override dari PKWT components
+                        if ($activeContract && floatval($activeContract->gaji_pokok) > 0) {
+                            // baseSalary sudah dari contracts, jangan di-override
                         } else {
-                            // Force base_nilai to use Employee's setup if available!
-                            if ($emp && isset($emp['gaji_pokok']) && floatval($emp['gaji_pokok']) > 0) {
-                                $baseSalary = floatval($emp['gaji_pokok']);
-                            } else if ($empMinimumWage > 0) {
-                                $baseSalary = $empMinimumWage;
+                            $sumber_nilai = $comp['sumber_nilai'] ?? 'nominal';
+                            $base_nilai = floatval($comp['nilai']);
+                            if ($sumber_nilai === 'ump') {
+                                $baseSalary = $umpWageValue * ($base_nilai / 100);
+                            } else if ($sumber_nilai === 'umk') {
+                                $baseSalary = $umkWageValue * ($base_nilai / 100);
+                            } else if ($sumber_nilai === 'ump_umk') {
+                                $baseSalary = $empMinimumWage * ($base_nilai / 100);
                             } else {
-                                $baseSalary = $base_nilai;
+                                if ($emp && isset($emp['gaji_pokok']) && floatval($emp['gaji_pokok']) > 0) {
+                                    $baseSalary = floatval($emp['gaji_pokok']);
+                                } else if ($empMinimumWage > 0) {
+                                    $baseSalary = $empMinimumWage;
+                                } else {
+                                    $baseSalary = $base_nilai;
+                                }
                             }
                         }
                     } else {
@@ -581,8 +596,8 @@ class Payroll extends ResourceController
             // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs berdasarkan cutoff period
             $attendanceLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
                 ->where('status', 'Hadir')
                 ->get()->getResultArray();
             $actualDaysWorked = count($attendanceLogs);
@@ -670,8 +685,8 @@ class Payroll extends ResourceController
             $absenCount = 0;
             $absenLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
                 ->where('status', 'Absen')
                 ->get()->getResultArray();
             $absenCount = count($absenLogs);
@@ -683,20 +698,37 @@ class Payroll extends ResourceController
             $dk['alpa'] = $absenCount;
 
             // ── Potongan Alfa ─────────────────────────────────────────────────
-            // Ambil total denda_alfa dari attendance_logs (sudah dihitung per hari saat upload)
-            $totalDendaAlfa = $db->table('attendance_logs')
-                ->selectSum('denda_alfa')
-                ->selectSum('absent_penalty')
+            // Hitung jumlah hari tidak masuk: alfa + early leave dihitung alfa
+            $earlyLeaveAlfaDays = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
-                ->get()->getRow();
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
+                ->where('is_early_leave_alfa', 1)
+                ->countAllResults();
 
-            $potonganAlpa = $totalDendaAlfa ? floatval($totalDendaAlfa->absent_penalty) : 0.0;
+            $totalAbsenDays = $absenCount + $earlyLeaveAlfaDays;
 
-            // Fallback lama jika belum pakai denda scheme (backward compatible)
-            if ($potonganAlpa == 0 && $absenCount > 0) {
-                $potonganAlpa = ($baseSalary / $standardDays) * $absenCount;
+            // Ikut skema absensi dari payroll_scheme
+            $potonganAlpa = 0.0;
+            if ($payrollConfig) {
+                $ps = null;
+                if (!empty($payrollConfig->payroll_scheme_id)) {
+                    $ps = $db->table('payroll_schemes')->where('id', $payrollConfig->payroll_scheme_id)->get()->getRow();
+                }
+
+                if ($ps && intval($ps->absen_tidak_potong ?? 0) == 1) {
+                    // Attendance Does Not Deduct Salary
+                    $potonganAlpa = 0.0;
+                } elseif ($ps && floatval($ps->nominal_potongan ?? 0) > 0) {
+                    // Attendance Deducts Nominal
+                    $potonganAlpa = floatval($ps->nominal_potongan) * $totalAbsenDays;
+                } else {
+                    // Prorate (default): gaji / hari kerja * hari tidak masuk
+                    $potonganAlpa = ($baseSalary / $standardDays) * $totalAbsenDays;
+                }
+            } else {
+                // Fallback: prorate
+                $potonganAlpa = ($baseSalary / $standardDays) * $totalAbsenDays;
             }
 
             // ── Potongan Keterlambatan ────────────────────────────────────────
@@ -705,8 +737,8 @@ class Payroll extends ResourceController
                 ->selectSum('denda_terlambat')
                 ->selectSum('late_penalty_hours')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('log_date >=', $startDateStr)
+                ->where('log_date <=', $endDateStr)
                 ->get()->getRow();
 
             $potonganLate = $totalDendaLate ? floatval($totalDendaLate->denda_terlambat) : 0.0;
@@ -1624,4 +1656,7 @@ class Payroll extends ResourceController
         }
     }
 }
+
+
+
 

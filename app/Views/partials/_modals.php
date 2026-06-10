@@ -256,13 +256,6 @@
                                 </label>
                                 <input type="text" id="skemaDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
-                                    Denda Alfa / Hari (Rp)
-                                    <span style="font-weight: 400; color: #94a3b8;"> — berlaku untuk Alfa & Early Leave melebihi toleransi</span>
-                                </label>
-                                <input type="text" id="skemaDendaAlfaPerHari" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                            </div>
                         </div>
 
                         <!-- Description -->
@@ -1679,21 +1672,12 @@
                         <h5 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
                             <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Konfigurasi Denda
                         </h5>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">
-                                    Denda Terlambat / Jam (Rp)
-                                    <span style="display: block; font-size: 11px; font-weight: 400; color: #94a3b8; margin-top: 2px;">Dihitung ceiling per jam (kurang dari 1 jam = 1 jam)</span>
-                                </label>
-                                <input type="text" id="schemeDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">
-                                    Denda Alfa / Hari (Rp)
-                                    <span style="display: block; font-size: 11px; font-weight: 400; color: #94a3b8; margin-top: 2px;">Berlaku untuk Alfa dan Early Leave melebihi toleransi</span>
-                                </label>
-                                <input type="text" id="schemeDendaAlfaPerHari" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                            </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">
+                                Denda Terlambat / Jam (Rp)
+                                <span style="display: block; font-size: 11px; font-weight: 400; color: #94a3b8; margin-top: 2px;">Dihitung ceiling per jam (kurang dari 1 jam = 1 jam)</span>
+                            </label>
+                            <input type="text" id="schemeDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         </div>
                     </div>
                 </div>

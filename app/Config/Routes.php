@@ -220,4 +220,9 @@ $routes->group('api', function($routes) {
     $routes->get('employee-shifts', 'Api::getEmployeeShifts');
     $routes->post('employee-shifts', 'Api::assignEmployeeShift');
     $routes->delete('employee-shifts/(:num)', 'Api::deleteEmployeeShift/$1');
+
+    // AI Assistant & Summarizer
+    $routes->post('ai/summarize-dashboard', 'Ai::summarizeDashboard');
+    $routes->post('ai/summarize-payroll', 'Ai::summarizePayroll');
+    $routes->post('ai/chat', 'Ai::chat');
 });

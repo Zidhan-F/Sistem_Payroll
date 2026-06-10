@@ -128,6 +128,9 @@ function cariKaryawanGlobalAktif() {
 
 function bukaModalKaryawanGlobal() {
     window.selectedClientId = null;
+    if (typeof window.updateAiAssistantContext === 'function') {
+        window.updateAiAssistantContext();
+    }
     if (typeof bukaModalKaryawan === 'function') {
         bukaModalKaryawan('tambah');
     }
@@ -135,6 +138,9 @@ function bukaModalKaryawanGlobal() {
 
 async function bukaModalKaryawanGlobalEdit(id, clientId) {
     window.selectedClientId = clientId;
+    if (typeof window.updateAiAssistantContext === 'function') {
+        window.updateAiAssistantContext();
+    }
     if (typeof bukaModalKaryawan === 'function') {
         await bukaModalKaryawan('edit', id);
     }
