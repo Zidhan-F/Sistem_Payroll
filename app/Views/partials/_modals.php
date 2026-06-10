@@ -1099,11 +1099,7 @@
                     </select>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Custom Standard Days for Prorata (Optional)</label>
-                    <input type="number" id="empCustomStandardDays" placeholder="Default global: 20 days" min="1" max="31" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                    <small style="color: #94a3b8; font-size: 12px;">Leave empty to use global default of 20 standard days.</small>
-                </div>
+                <input type="hidden" id="empCustomStandardDays">
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Skema Shift (Opsional)</label>

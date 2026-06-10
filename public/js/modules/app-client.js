@@ -205,7 +205,25 @@ function bukaModal(mode, id = null) {
             document.getElementById('clientId').value = client.id;
             document.getElementById('namaKlien').value = client.nama;
             document.getElementById('emailKlien').value = client.email;
-            document.getElementById('sektorKlien').value = client.sektor;
+            const sektorSel = document.getElementById('sektorKlien');
+            if (sektorSel && client.sektor) {
+                let found = false;
+                for (let i = 0; i < sektorSel.options.length; i++) {
+                    if (sektorSel.options[i].value === client.sektor) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    const opt = document.createElement('option');
+                    opt.value = client.sektor;
+                    opt.innerText = client.sektor;
+                    sektorSel.appendChild(opt);
+                }
+            }
+            if (sektorSel) {
+                sektorSel.value = client.sektor || '';
+            }
             document.getElementById('nib').value = client.nib;
             document.getElementById('npwp').value = client.npwp ? String(client.npwp) : '';
             document.getElementById('tanggalBergabung').value = client.tgl_gabung ? client.tgl_gabung.split('T')[0] : '';

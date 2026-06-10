@@ -550,6 +550,7 @@ async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
 }
 
 async function bukaModalKaryawan(mode,id=null){
+    window.isKaryawanModalInitializing = true;
     currentSelectedPayrollType = null;
     const m=document.getElementById('modalKaryawan'),cs=document.getElementById('empClientId');
     m.style.display='block';document.getElementById('overlay').style.display='block';
@@ -637,6 +638,7 @@ async function bukaModalKaryawan(mode,id=null){
     }
 
     cs.onchange = async () => {
+        if (window.isKaryawanModalInitializing) return;
         const cid = cs.value;
         if (cid) {
             await loadWorkLocationsForSelect(cid);
@@ -684,7 +686,11 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empTanggalLahir').value = emp.tanggal_lahir || '';
         document.getElementById('empNpwp').value = emp.npwp || '';
         if (document.getElementById('empStatusPernikahan')) {
-            document.getElementById('empStatusPernikahan').value = emp.status_pernikahan || '';
+            let statusVal = emp.status_pernikahan || '';
+            if (statusVal === 'Belum Kawin') statusVal = 'Belum';
+            else if (statusVal === 'Kawin') statusVal = 'Sudah';
+            else if (statusVal === 'Cerai Hidup' || statusVal === 'Cerai Mati') statusVal = 'Cerai';
+            document.getElementById('empStatusPernikahan').value = statusVal;
         }
 
         if (jumlahAnakInput) jumlahAnakInput.value = emp.jumlah_anak || 0;
@@ -739,6 +745,10 @@ async function bukaModalKaryawan(mode,id=null){
     if (empLocEl) {
         empLocEl.addEventListener('change', checkSchemaAvailability);
     }
+    
+    setTimeout(() => {
+        window.isKaryawanModalInitializing = false;
+    }, 800);
 }
 
 async function loadPositions(cid){

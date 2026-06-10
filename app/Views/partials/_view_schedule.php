@@ -71,7 +71,6 @@
                             <i class="fas fa-list"></i> Daftar Tabel
                         </button>
                     </div>
-                    
                     <button class="btn-add" onclick="bukaModalHoliday()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-plus"></i> Tambah Hari Libur
                     </button>
@@ -117,7 +116,7 @@
                 </div>
 
                 <!-- Main Layout: Grid Calendar & Side Summary -->
-                <div style="display: grid; grid-template-columns: 2.2fr 1fr; gap: 20px; align-items: start;">
+                <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 20px; align-items: start;">
                     <!-- Calendar Grid Wrapper -->
                     <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
                         <!-- Days of Week Headers (Sunday is first column) -->

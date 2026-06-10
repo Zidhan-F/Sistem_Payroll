@@ -7,6 +7,20 @@ let allHolidaysData = [];
 
 async function loadHolidays() {
     try {
+        // Silently sync with Google Calendar in background
+        fetch(`${API_URL}/holidays/sync`, { method: 'POST' })
+            .then(res => {
+                if (res.ok) {
+                    fetch(`${API_URL}/holidays?tahun=${currentHolidayYear}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            allHolidaysData = data || [];
+                            renderHolidayView();
+                        });
+                }
+            })
+            .catch(err => console.error('Silent Google Calendar sync failed:', err));
+
         const res = await fetch(`${API_URL}/holidays?tahun=${currentHolidayYear}`);
         if (!res.ok) throw new Error('Network response was not ok');
         allHolidaysData = await res.json();
@@ -90,7 +104,7 @@ function renderCalendarGrid(monthlyHolidays) {
             background: #f8fafc;
             color: #cbd5e1;
             padding: 10px;
-            min-height: 85px;
+            min-height: 125px;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -115,10 +129,11 @@ function renderCalendarGrid(monthlyHolidays) {
             background: white;
             color: #334155;
             padding: 8px;
-            min-height: 85px;
+            min-height: 125px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
+            gap: 8px;
             font-size: 13px;
             position: relative;
             cursor: pointer;
@@ -148,7 +163,7 @@ function renderCalendarGrid(monthlyHolidays) {
                     <span style="font-size:10px; color:#ef4444; font-weight:700;"><i class="fas fa-umbrella-beach"></i> Libur</span>
                     <span style="font-weight: 700; font-size: 14px;">${day}</span>
                 </div>
-                <div class="holiday-tooltip-trigger" style="background:#fee2e2; border-left:3px solid #ef4444; padding:4px 6px; border-radius:4px; font-size:11px; font-weight:600; color:#b91c1c; text-align:left; word-break:break-word; max-height:45px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;" title="${holiday.deskripsi}">
+                <div class="holiday-tooltip-trigger" style="background:#fee2e2; border-left:3px solid #ef4444; padding:4px 6px; border-radius:4px; font-size:10px; line-height:1.2; font-weight:600; color:#b91c1c; text-align:left; word-break:break-word; width: 100%; box-sizing: border-box;" title="${holiday.deskripsi}">
                     ${holiday.deskripsi}
                 </div>
             `;
@@ -189,7 +204,7 @@ function renderCalendarGrid(monthlyHolidays) {
             background: #f8fafc;
             color: #cbd5e1;
             padding: 10px;
-            min-height: 85px;
+            min-height: 125px;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -375,6 +390,38 @@ async function confirmDeleteHoliday(id, tanggal, deskripsi) {
     }
 }
 
+async function syncGoogleCalendar() {
+    const btn = document.getElementById('btnSyncGoogleCalendar');
+    const originalHtml = btn ? btn.innerHTML : '';
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/holidays/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.message || 'Gagal melakukan sinkronisasi.');
+        }
+
+        showToast(data.message || 'Sinkronisasi berhasil!', 'success');
+        loadHolidays();
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+}
+
 // Expose functions globally
 Object.assign(window, {
     loadHolidays,
@@ -385,5 +432,6 @@ Object.assign(window, {
     confirmDeleteHoliday,
     switchHolidayView,
     navigateHolidayMonth,
-    onHolidayMonthYearChange
+    onHolidayMonthYearChange,
+    syncGoogleCalendar
 });

@@ -124,6 +124,7 @@ $routes->group('api', function($routes) {
     // Holiday Calendar
     $routes->get('holidays', 'Api::getHolidays');
     $routes->post('holidays', 'Api::createHoliday');
+    $routes->post('holidays/sync', 'Api::syncGoogleHolidays');
     $routes->put('holidays/(:num)', 'Api::updateHoliday/$1');
     $routes->delete('holidays/(:num)', 'Api::deleteHoliday/$1');
 
