@@ -71,6 +71,9 @@
                             <i class="fas fa-list"></i> Daftar Tabel
                         </button>
                     </div>
+                    <button class="btn-add" id="btnSyncGoogleCalendar" onclick="syncGoogleCalendar()" style="background: #4285f4; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s; margin-right: 4px;">
+                        <i class="fab fa-google"></i> Sync Google Calendar
+                    </button>
                     
                     <button class="btn-add" onclick="bukaModalHoliday()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-plus"></i> Tambah Hari Libur

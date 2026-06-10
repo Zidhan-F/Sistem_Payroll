@@ -375,6 +375,38 @@ async function confirmDeleteHoliday(id, tanggal, deskripsi) {
     }
 }
 
+async function syncGoogleCalendar() {
+    const btn = document.getElementById('btnSyncGoogleCalendar');
+    const originalHtml = btn ? btn.innerHTML : '';
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/holidays/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(data.message || 'Gagal melakukan sinkronisasi.');
+        }
+
+        showToast(data.message || 'Sinkronisasi berhasil!', 'success');
+        loadHolidays();
+    } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+}
+
 // Expose functions globally
 Object.assign(window, {
     loadHolidays,
@@ -385,5 +417,6 @@ Object.assign(window, {
     confirmDeleteHoliday,
     switchHolidayView,
     navigateHolidayMonth,
-    onHolidayMonthYearChange
+    onHolidayMonthYearChange,
+    syncGoogleCalendar
 });

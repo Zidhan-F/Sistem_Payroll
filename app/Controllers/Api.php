@@ -1633,6 +1633,101 @@ class Api extends ResourceController
         return $this->respondCreated(['message' => 'Hari libur berhasil ditambahkan']);
     }
 
+    public function syncGoogleHolidays()
+    {
+        $url = 'https://calendar.google.com/calendar/ical/id.indonesian%23holiday%40group.v.calendar.google.com/public/basic.ics';
+        
+        // Fetch ICS using cURL
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        $icsContent = curl_exec($ch);
+        curl_close($ch);
+
+        if (!$icsContent) {
+            return $this->fail('Gagal mengunduh data dari Google Calendar.');
+        }
+
+        // Parse ICS file
+        $events = [];
+        $lines = explode("\n", $icsContent);
+        $currentEvent = null;
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            if ($line === 'BEGIN:VEVENT') {
+                $currentEvent = [];
+            } elseif ($line === 'END:VEVENT') {
+                if ($currentEvent && !empty($currentEvent['start']) && !empty($currentEvent['summary'])) {
+                    $events[] = $currentEvent;
+                }
+                $currentEvent = null;
+            } elseif ($currentEvent !== null) {
+                if (strpos($line, ':') !== false) {
+                    list($key, $val) = explode(':', $line, 2);
+                    $keyClean = explode(';', $key)[0]; // strip parameters like VALUE=DATE
+
+                    if ($keyClean === 'DTSTART') {
+                        $dateStr = trim($val);
+                        if (strlen($dateStr) >= 8) {
+                            $yyyy = substr($dateStr, 0, 4);
+                            $mm = substr($dateStr, 4, 2);
+                            $dd = substr($dateStr, 6, 2);
+                            $currentEvent['start'] = "$yyyy-$mm-$dd";
+                        }
+                    } elseif ($keyClean === 'SUMMARY') {
+                        $currentEvent['summary'] = str_replace(['\\,', '\\;'], [',', ';'], trim($val));
+                    }
+                }
+            }
+        }
+
+        if (empty($events)) {
+            return $this->fail('Tidak ada hari libur yang ditemukan dalam Google Calendar.');
+        }
+
+        $insertedCount = 0;
+        $updatedCount = 0;
+
+        foreach ($events as $evt) {
+            $tanggal = $evt['start'];
+            $deskripsi = $evt['summary'];
+            $tahun = intval(date('Y', strtotime($tanggal)));
+
+            // Check if already exists
+            $existing = $this->db->table('holiday_calendar')
+                ->where('tanggal', $tanggal)
+                ->get()->getRow();
+
+            if ($existing) {
+                if ($existing->deskripsi !== $deskripsi) {
+                    $this->db->table('holiday_calendar')
+                        ->where('id', $existing->id)
+                        ->update(['deskripsi' => $deskripsi]);
+                    $updatedCount++;
+                }
+            } else {
+                $this->db->table('holiday_calendar')->insert([
+                    'tanggal' => $tanggal,
+                    'deskripsi' => $deskripsi,
+                    'tahun' => $tahun
+                ]);
+                $insertedCount++;
+            }
+        }
+
+        $this->logActivity("Sinkronisasi hari libur dengan Google Calendar: Berhasil menambahkan {$insertedCount} dan memperbarui {$updatedCount} hari libur.");
+
+        return $this->respond([
+            'message' => "Sinkronisasi berhasil! Menambahkan {$insertedCount} hari libur baru, memperbarui {$updatedCount} hari libur."
+        ]);
+    }
+
     public function updateHoliday($id)
     {
         $data = $this->request->getJSON(true);
