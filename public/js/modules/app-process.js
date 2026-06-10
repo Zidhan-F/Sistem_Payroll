@@ -354,6 +354,11 @@ async function exportGajiToExcel() {
             return;
         }
         
+        const formatMoney = (val) => {
+            const num = parseFloat(val || 0);
+            return Math.round(num).toLocaleString('id-ID');
+        };
+
         // Format the rows for Excel
         const formatted = data.map((row, index) => {
             const bpjsTK = parseFloat(row.bpjs_jht_karyawan || 0) + parseFloat(row.bpjs_jp_karyawan || 0);
@@ -372,17 +377,17 @@ async function exportGajiToExcel() {
                 'Department': row.department_name || '-',
                 'Position / Role': row.position_name || '-',
                 'Work Location': row.location_name || '-',
-                'Min. Wage (UMP/UMK)': row.min_wage ? parseFloat(row.min_wage) : 0,
-                'Basic Salary': parseFloat(row.gaji_pokok || 0),
-                'Overtime Pay': parseFloat(row.lembur_pay || 0),
-                'Bonus/Lainnya': parseFloat(row.bonus_tambahan || 0),
-                'Total Income (Pendapatan)': parseFloat(row.total_pendapatan || 0),
-                'Absence Deduction': parseFloat(row.potongan_absen || 0),
-                'BPJS Ketenagakerjaan (Karyawan)': bpjsTK,
-                'BPJS Kesehatan (Karyawan)': bpjsKes,
-                'Tax (PPh21)': parseFloat(row.pph21 || 0),
-                'Total Deductions (Potongan)': parseFloat(row.total_potongan || 0),
-                'Take Home Pay': parseFloat(row.take_home_pay || 0),
+                'Min. Wage (UMP/UMK)': row.min_wage ? formatMoney(row.min_wage) : '0',
+                'Basic Salary': formatMoney(row.gaji_pokok),
+                'Overtime Pay': formatMoney(row.lembur_pay),
+                'Bonus/Lainnya': formatMoney(row.bonus_tambahan),
+                'Total Income (Pendapatan)': formatMoney(row.total_pendapatan),
+                'Absence Deduction': formatMoney(row.potongan_absen),
+                'BPJS Ketenagakerjaan (Karyawan)': formatMoney(bpjsTK),
+                'BPJS Kesehatan (Karyawan)': formatMoney(bpjsKes),
+                'Tax (PPh21)': formatMoney(row.pph21),
+                'Total Deductions (Potongan)': formatMoney(row.total_potongan),
+                'Take Home Pay': formatMoney(row.take_home_pay),
                 'Status': row.status_approval || 'Pending'
             };
         });
