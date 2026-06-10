@@ -90,7 +90,7 @@ function renderCalendarGrid(monthlyHolidays) {
             background: #f8fafc;
             color: #cbd5e1;
             padding: 10px;
-            min-height: 85px;
+            min-height: 125px;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -115,7 +115,7 @@ function renderCalendarGrid(monthlyHolidays) {
             background: white;
             color: #334155;
             padding: 8px;
-            min-height: 85px;
+            min-height: 125px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -189,7 +189,7 @@ function renderCalendarGrid(monthlyHolidays) {
             background: #f8fafc;
             color: #cbd5e1;
             padding: 10px;
-            min-height: 85px;
+            min-height: 125px;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
