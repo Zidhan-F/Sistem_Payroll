@@ -132,7 +132,8 @@ function renderCalendarGrid(monthlyHolidays) {
             min-height: 125px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
+            gap: 8px;
             font-size: 13px;
             position: relative;
             cursor: pointer;
