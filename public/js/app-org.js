@@ -686,7 +686,11 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empTanggalLahir').value = emp.tanggal_lahir || '';
         document.getElementById('empNpwp').value = emp.npwp || '';
         if (document.getElementById('empStatusPernikahan')) {
-            document.getElementById('empStatusPernikahan').value = emp.status_pernikahan || '';
+            let statusVal = emp.status_pernikahan || '';
+            if (statusVal === 'Belum Kawin') statusVal = 'Belum';
+            else if (statusVal === 'Kawin') statusVal = 'Sudah';
+            else if (statusVal === 'Cerai Hidup' || statusVal === 'Cerai Mati') statusVal = 'Cerai';
+            document.getElementById('empStatusPernikahan').value = statusVal;
         }
 
         if (jumlahAnakInput) jumlahAnakInput.value = emp.jumlah_anak || 0;
