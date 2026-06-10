@@ -455,6 +455,8 @@ async function bukaSlipGaji(id) {
         if (parseFloat(info.bpjs_jkk_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JKK (Beban Perusahaan)', value: parseFloat(info.bpjs_jkk_perusahaan) });
         if (parseFloat(info.bpjs_jkm_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JKM (Beban Perusahaan)', value: parseFloat(info.bpjs_jkm_perusahaan) });
 
+        const totalEarnings = data.earnings.reduce((sum, e) => sum + parseFloat(e.nilai || 0), 0);
+        const totalDeductions = data.deductions.reduce((sum, d) => sum + parseFloat(d.nilai || 0), 0);
         const hasBpjs = companyBurdens.length > 0 || parseFloat(info.bpjs_kes_karyawan) > 0 || parseFloat(info.bpjs_jht_karyawan) > 0 || parseFloat(info.bpjs_jp_karyawan) > 0;
 
         document.getElementById('slipContent').innerHTML = `
@@ -481,12 +483,20 @@ async function bukaSlipGaji(id) {
             </thead>
             <tbody>
                 ${data.earnings.map(e => `<tr><td style="padding:8px 10px;">${e.nama}</td><td style="text-align:right;padding:8px 10px;">${formatRupiah(e.nilai)}</td></tr>`).join('')}
+                <tr style="border-top: 1px solid #eee; font-weight: bold; background: #fafafa;">
+                    <td style="padding:8px 10px;">Total Earnings</td>
+                    <td style="text-align:right;padding:8px 10px;">${formatRupiah(totalEarnings)}</td>
+                </tr>
             </tbody>
             <thead>
                 <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Deductions</th></tr>
             </thead>
             <tbody>
                 ${data.deductions.map(d => `<tr><td style="padding:8px 10px;">${d.nama}</td><td style="text-align:right;color:#e74c3c;padding:8px 10px;">- ${formatRupiah(d.nilai)}</td></tr>`).join('')}
+                <tr style="border-top: 1px solid #eee; font-weight: bold; background: #fafafa;">
+                    <td style="padding:8px 10px;">Total Deductions</td>
+                    <td style="text-align:right;color:#e74c3c;padding:8px 10px;">- ${formatRupiah(totalDeductions)}</td>
+                </tr>
             </tbody>
             <tfoot>
                 <tr style="border-top:2px solid #eee;">

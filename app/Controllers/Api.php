@@ -2356,6 +2356,104 @@ class Api extends ResourceController
                 $totalPendapatan += $overtimePay;
             }
 
+            // Calculate scheme template allowances and deductions
+            $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
+            $schemeAllowances = [];
+            $schemeDeductions = [];
+
+            if ($schemeTemplate) {
+                $schemeAllowances = [
+                    'Tunjangan Transport' => floatval($schemeTemplate['tunjangan_transport'] ?? 0),
+                    'Tunjangan Makan Harian' => floatval($schemeTemplate['tunjangan_makan'] ?? 0),
+                    'Tunjangan Komunikasi' => floatval($schemeTemplate['tunjangan_komunikasi'] ?? 0),
+                    'Tunjangan Jabatan' => floatval($schemeTemplate['tunjangan_jabatan'] ?? 0),
+                    'Tunjangan Kehadiran' => floatval($schemeTemplate['tunjangan_kehadiran'] ?? 0),
+                    'Tunjangan Kinerja' => floatval($schemeTemplate['tunjangan_kinerja'] ?? 0),
+                ];
+
+                foreach ($schemeAllowances as $allowanceName => $allowanceValue) {
+                    if ($allowanceValue > 0) {
+                        if ($allowanceName === 'Tunjangan Makan Harian') {
+                            $finalValue = $allowanceValue * $days;
+                        } else {
+                            $finalValue = $allowanceValue;
+                        }
+
+                        $totalPendapatan += $finalValue;
+
+                        // Check BPJS and PPh inclusion for this allowance
+                        $bpjsField = '';
+                        $pphField = '';
+                        switch ($allowanceName) {
+                            case 'Tunjangan Transport':
+                                $bpjsField = 'bpjs_inc_transport';
+                                $pphField = 'pph_inc_transport';
+                                break;
+                            case 'Tunjangan Makan Harian':
+                                $bpjsField = 'bpjs_inc_makan';
+                                $pphField = 'pph_inc_makan';
+                                break;
+                            case 'Tunjangan Komunikasi':
+                                $bpjsField = 'bpjs_inc_komunikasi';
+                                $pphField = 'pph_inc_komunikasi';
+                                break;
+                            case 'Tunjangan Jabatan':
+                                $bpjsField = 'bpjs_inc_jabatan';
+                                $pphField = 'pph_inc_jabatan';
+                                break;
+                            case 'Tunjangan Kehadiran':
+                                $bpjsField = 'bpjs_inc_kehadiran';
+                                $pphField = 'pph_inc_kehadiran';
+                                break;
+                            case 'Tunjangan Kinerja':
+                                $bpjsField = 'bpjs_inc_kinerja';
+                                $pphField = 'pph_inc_kinerja';
+                                break;
+                        }
+
+                        $isBpjsInc = !empty($bpjsField) && ($schemeTemplate[$bpjsField] ?? 0) == 1;
+                        $isPphInc = !empty($pphField) && ($schemeTemplate[$pphField] ?? 0) == 1;
+
+                        if ($isBpjsInc) {
+                            $bpjsWageBase += $finalValue;
+                        }
+                        if ($isPphInc) {
+                            $pphWageBase += $finalValue;
+                        }
+
+                        // Append to components array for raw_components JSON storage
+                        $compObj = new \stdClass();
+                        $compObj->nama = $allowanceName;
+                        $compObj->tipe = 'pendapatan';
+                        $compObj->nilai = $finalValue;
+                        $compObj->is_persentase = 0;
+                        $compObj->jenis_komponen = 'scheme_template';
+                        $components[] = $compObj;
+                    }
+                }
+
+                $schemeDeductions = [
+                    'Potongan Pinjaman' => floatval($schemeTemplate['potongan_pinjaman'] ?? 0),
+                    'Potongan Kasbon' => floatval($schemeTemplate['potongan_kasbon'] ?? 0),
+                    'Potongan Lainnya' => floatval($schemeTemplate['potongan_lainnya'] ?? 0),
+                ];
+
+                foreach ($schemeDeductions as $deductionName => $deductionValue) {
+                    if ($deductionValue > 0) {
+                        $totalPotongan += $deductionValue;
+
+                        // Append to components array for raw_components JSON storage
+                        $compObj = new \stdClass();
+                        $compObj->nama = $deductionName;
+                        $compObj->tipe = 'potongan';
+                        $compObj->nilai = $deductionValue;
+                        $compObj->is_persentase = 0;
+                        $compObj->jenis_komponen = 'scheme_template';
+                        $components[] = $compObj;
+                    }
+                }
+            }
+
             // Adjust PPh wage base for attendance variations
             $pphWageBaseFinal = $pphWageBase;
             if ($att) {
@@ -2909,6 +3007,53 @@ class Api extends ResourceController
                 }
                 if ($potongan_absen > 0) {
                     $deductions[] = ['nama' => 'Potongan Absen', 'nilai' => $potongan_absen];
+                }
+            }
+        }
+
+        // Match payroll scheme template for organizational matching
+        $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
+        $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
+            $final['client_id'],
+            $emp->division_id ?? null,
+            $emp->department_id ?? null,
+            $emp->position_id ?? null
+        );
+        $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+
+        $workingDays = ($att && isset($att['hari_kerja']) && $att['hari_kerja'] !== null) ? intval($att['hari_kerja']) : $stdWorkingDays;
+
+        if ($schemeTemplate) {
+            $schemeAllowances = [
+                'Tunjangan Transport' => floatval($schemeTemplate['tunjangan_transport'] ?? 0),
+                'Tunjangan Makan Harian' => floatval($schemeTemplate['tunjangan_makan'] ?? 0),
+                'Tunjangan Komunikasi' => floatval($schemeTemplate['tunjangan_komunikasi'] ?? 0),
+                'Tunjangan Jabatan' => floatval($schemeTemplate['tunjangan_jabatan'] ?? 0),
+                'Tunjangan Kehadiran' => floatval($schemeTemplate['tunjangan_kehadiran'] ?? 0),
+                'Tunjangan Kinerja' => floatval($schemeTemplate['tunjangan_kinerja'] ?? 0),
+            ];
+
+            foreach ($schemeAllowances as $allowanceName => $allowanceValue) {
+                if ($allowanceValue > 0) {
+                    if ($allowanceName === 'Tunjangan Makan Harian') {
+                        $finalValue = $allowanceValue * $workingDays;
+                    } else {
+                        $finalValue = $allowanceValue;
+                    }
+
+                    $earnings[] = ['nama' => $allowanceName, 'nilai' => $finalValue];
+                }
+            }
+
+            $schemeDeductions = [
+                'Potongan Pinjaman' => floatval($schemeTemplate['potongan_pinjaman'] ?? 0),
+                'Potongan Kasbon' => floatval($schemeTemplate['potongan_kasbon'] ?? 0),
+                'Potongan Lainnya' => floatval($schemeTemplate['potongan_lainnya'] ?? 0),
+            ];
+
+            foreach ($schemeDeductions as $deductionName => $deductionValue) {
+                if ($deductionValue > 0) {
+                    $deductions[] = ['nama' => $deductionName, 'nilai' => $deductionValue];
                 }
             }
         }

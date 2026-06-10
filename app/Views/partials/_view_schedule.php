@@ -277,6 +277,9 @@
                         <button class="btn-add" onclick="bukaModalOvertime()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                             <i class="fas fa-plus"></i> Input Lembur
                         </button>
+                        <button class="btn-add" onclick="bukaModalUploadLembur()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                            <i class="fas fa-upload"></i> Upload Lembur
+                        </button>
                     </div>
                 </div>
 
@@ -291,9 +294,6 @@
                     </button>
                     <button onclick="bulkRejectOvertime()" style="background: #ef4444; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; transition: all 0.2s;">
                         <i class="fas fa-times"></i> Tolak Masal (Reject)
-                    </button>
-                    <button class="btn-add" onclick="bukaModalUploadLembur()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
-                        <i class="fas fa-upload"></i> Upload Lembur
                     </button>
                 </div>
             </div>
@@ -372,6 +372,22 @@
 
             <!-- Tab Content 2: Riwayat Lembur (Approved/Rejected) -->
             <div id="otSubPanelHistory" class="ot-subpanel" style="display: none;">
+                <!-- Search & Status Filter Row -->
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 15px;">
+                    <div style="position: relative; width: 260px;">
+                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="otHistorySearchInput" onkeyup="filterOvertimeHistory()" placeholder="Cari nama karyawan..." 
+                               style="width: 100%; padding: 8px 12px 8px 32px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 13px; color: #334155; box-sizing: border-box;">
+                    </div>
+                    <select id="otHistoryStatusFilter" onchange="filterOvertimeHistory()" 
+                            style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 13px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
+                        <option value="">-- Semua Status --</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
                 <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
@@ -398,66 +414,6 @@
                     </table>
                 </div>
             </div>
-        </div>
-
-        <!-- Overtime Summary Indicators -->
-        <div id="otSummaryContainer" style="display: none; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px;">
-            <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
-                <div style="background: #fef3c7; color: #d97706; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div>
-                    <div style="font-size: 12px; color: #b45309; font-weight: 600;">Menunggu Persetujuan</div>
-                    <div id="otSummaryPending" style="font-size: 16px; font-weight: 700; color: #92400e;">0 Jam (0 logs)</div>
-                </div>
-            </div>
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
-                <div style="background: #dcfce7; color: #166534; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div>
-                    <div style="font-size: 12px; color: #15803d; font-weight: 600;">Telah Disetujui (Paid)</div>
-                    <div id="otSummaryApproved" style="font-size: 16px; font-weight: 700; color: #166534;">0 Jam (0 logs)</div>
-                </div>
-            </div>
-            <div style="background: #fef2f2; border: 1px solid #fca5a5; padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
-                <div style="background: #fee2e2; color: #991b1b; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                    <i class="fas fa-times-circle"></i>
-                </div>
-                <div>
-                    <div style="font-size: 12px; color: #b91c1c; font-weight: 600;">Ditolak (Unpaid)</div>
-                    <div id="otSummaryRejected" style="font-size: 16px; font-weight: 700; color: #991b1b;">0 Jam (0 logs)</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f8fafc;">
-                        <th style="width: 40px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0;">
-                            <input type="checkbox" id="overtimeSelectAll" onchange="toggleSelectAllOvertime(this)" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-color);">
-                        </th>
-                        <th style="width: 50px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">No</th>
-                        <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Karyawan</th>
-                        <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Tanggal</th>
-                        <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Lembur</th>
-                        <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Hari Libur</th>
-                        <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Keterangan</th>
-                        <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
-                        <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Verifikator</th>
-                        <th style="width: 160px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="overtimeTableBody">
-                    <tr>
-                        <td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
-                            <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
-                            Silakan pilih client terlebih dahulu untuk menampilkan data lembur.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     </div>
     </div>

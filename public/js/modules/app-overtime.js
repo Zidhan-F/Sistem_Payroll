@@ -45,6 +45,13 @@ async function loadOvertimeLogs() {
     try {
         const res = await fetch(`${API_URL}/overtime-logs?client_id=${clientId}&bulan=${bulan}&tahun=${tahun}`);
         const data = await res.json();
+        window.currentOvertimeLogs = data || [];
+
+        // Reset search inputs on reload
+        const searchInput = document.getElementById('otHistorySearchInput');
+        if (searchInput) searchInput.value = '';
+        const statusFilter = document.getElementById('otHistoryStatusFilter');
+        if (statusFilter) statusFilter.value = '';
 
         if (!data || data.length === 0) {
             const noDataHtml = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
@@ -727,6 +734,86 @@ function switchOvertimeSubTab(tab) {
     }
 }
 
+function filterOvertimeHistory() {
+    const searchVal = (document.getElementById('otHistorySearchInput')?.value || '').toLowerCase().trim();
+    const statusVal = (document.getElementById('otHistoryStatusFilter')?.value || '').toLowerCase().trim();
+    const historyTbody = document.getElementById('overtimeHistoryTableBody');
+    if (!historyTbody || !window.currentOvertimeLogs) return;
+
+    // Filter only historical (non-Pending) logs
+    const filtered = window.currentOvertimeLogs.filter(o => {
+        const status = String(o.status || 'Pending').toLowerCase().trim();
+        if (status === 'pending') return false; // Exclude pending from history
+
+        // Apply status filter (Approved/Rejected)
+        if (statusVal) {
+            const mappedStatus = (status === 'approved' || status === 'setuju') ? 'approved' : 'rejected';
+            if (mappedStatus !== statusVal) return false;
+        }
+
+        // Apply search name filter
+        if (searchVal) {
+            const empName = String(o.employee_name || '').toLowerCase();
+            if (!empName.includes(searchVal)) return false;
+        }
+
+        return true;
+    });
+
+    // Re-render history table rows
+    let historyIndex = 1;
+    let historyHtml = '';
+
+    filtered.forEach(o => {
+        const d = new Date(o.tanggal);
+        const tanggalFormatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        const isHoliday = parseInt(o.is_holiday);
+        const tipeLabel = isHoliday ? 'Hari Libur' : 'Hari Kerja';
+        const tipeStyle = isHoliday ? 'background:#fef3c7;color:#92400e;' : 'background:#dcfce7;color:#166534;';
+
+        const rawStatus = String(o.status || 'Pending');
+        let statusBadge = '';
+        if (rawStatus === 'Approved') {
+            statusBadge = `<span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-check-circle"></i> Approved</span>`;
+        } else {
+            statusBadge = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-times-circle"></i> Rejected</span>`;
+        }
+
+        let approverDetails = '-';
+        if (o.approved_by) {
+            const appDate = o.approved_at ? new Date(o.approved_at).toLocaleDateString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+            approverDetails = `<span style="font-size:12px;font-weight:600;color:#334155;">${o.approved_by}</span><br><span style="font-size:10px;color:#94a3b8;">${appDate}</span>`;
+        }
+
+        const actionButtons = `
+            <button onclick="resetOvertimeLog(${o.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Kembalikan ke Pending">
+                <i class="fas fa-undo"></i>
+            </button>
+            <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+
+        historyHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="text-align:center;padding:12px;color:#64748b;">${historyIndex++}</td>
+            <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+            <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+            <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
+            <td style="text-align:center;padding:12px;">
+                <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
+            </td>
+            <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
+            <td style="text-align:center;padding:12px;">${statusBadge}</td>
+            <td style="padding:12px;">${approverDetails}</td>
+            <td style="text-align:center;padding:12px;">
+                <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
+            </td>
+        </tr>`;
+    });
+
+    historyTbody.innerHTML = historyHtml || `<tr><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur yang cocok dengan pencarian.</td></tr>`;
+}
+
 Object.assign(window, {
     loadOvertimeClients,
     loadOvertimeLogs,
@@ -747,5 +834,6 @@ Object.assign(window, {
     downloadLemburTemplate,
     handleLemburFileSelect,
     saveUploadedLembur,
-    switchOvertimeSubTab
+    switchOvertimeSubTab,
+    filterOvertimeHistory
 });

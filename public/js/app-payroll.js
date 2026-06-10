@@ -263,6 +263,9 @@ async function viewSlip(id){
     const companyBurdens = details.filter(d => d.tipe === 'Beban Perusahaan');
     const hasBpjs = details.some(d => d.nama_komponen.includes('BPJS'));
 
+    const totalEarnings = parseFloat(slip.gaji_pokok || 0) + details.filter(d => d.tipe === 'Tunjangan' || d.tipe === 'Allowance').reduce((sum, d) => sum + parseFloat(d.jumlah || 0), 0);
+    const totalDeductions = details.filter(d => d.tipe === 'Potongan' || d.tipe === 'Deduction').reduce((sum, d) => sum + parseFloat(d.jumlah || 0), 0);
+
     document.getElementById('slipContent').innerHTML=`
         <div style="text-align:center;border-bottom:2px solid #eee;padding-bottom:15px;margin-bottom:20px;">
             <h2 style="color:var(--primary-color); margin: 0;">PAYSLIP</h2>
@@ -287,12 +290,20 @@ async function viewSlip(id){
             <tbody>
                 <tr><td style="padding:8px 10px;">Basic Salary</td><td style="text-align:right;padding:8px 10px;">${formatRupiah(slip.gaji_pokok)}</td></tr>
                 ${details.filter(d=>d.tipe==='Tunjangan' || d.tipe==='Allowance').map(d=>`<tr><td style="padding:8px 10px;">${d.nama_komponen}</td><td style="text-align:right;padding:8px 10px;">${formatRupiah(d.jumlah)}</td></tr>`).join('')}
+                <tr style="border-top: 1px solid #eee; font-weight: bold; background: #fafafa;">
+                    <td style="padding:8px 10px;">Total Earnings</td>
+                    <td style="text-align:right;padding:8px 10px;">${formatRupiah(totalEarnings)}</td>
+                </tr>
             </tbody>
             <thead>
                 <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Deductions</th></tr>
             </thead>
             <tbody>
                 ${details.filter(d=>d.tipe==='Potongan' || d.tipe==='Deduction').map(d=>`<tr><td style="padding:8px 10px;">${d.nama_komponen}</td><td style="text-align:right;color:#e74c3c;padding:8px 10px;">- ${formatRupiah(d.jumlah)}</td></tr>`).join('')}
+                <tr style="border-top: 1px solid #eee; font-weight: bold; background: #fafafa;">
+                    <td style="padding:8px 10px;">Total Deductions</td>
+                    <td style="text-align:right;color:#e74c3c;padding:8px 10px;">- ${formatRupiah(totalDeductions)}</td>
+                </tr>
             </tbody>
             <tfoot>
                 <tr style="border-top:2px solid #eee;">
