@@ -612,6 +612,51 @@ class Api extends ResourceController
         return $this->respondDeleted(['message' => 'Schedule template berhasil dihapus']);
     }
 
+    private function resolveClientConfigForEmployee($employeeId)
+    {
+        $db = \Config\Database::connect();
+        $emp = $db->table('employees')->where('id', intval($employeeId))->get()->getRow();
+        if (!$emp) {
+            return null;
+        }
+        $clientId = $emp->client_id;
+        $divId = $emp->division_id ?? null;
+        $deptId = $emp->department_id ?? null;
+        $posId = $emp->position_id ?? null;
+
+        $config = null;
+        if ($posId) {
+            $config = $db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('position_id', $posId)
+                ->get()->getRow();
+        }
+        if (!$config && $deptId) {
+            $config = $db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('department_id', $deptId)
+                ->where('position_id IS NULL')
+                ->get()->getRow();
+        }
+        if (!$config && $divId) {
+            $config = $db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('division_id', $divId)
+                ->where('department_id IS NULL')
+                ->where('position_id IS NULL')
+                ->get()->getRow();
+        }
+        if (!$config) {
+            $config = $db->table('client_payroll_configs')
+                ->where('client_id', $clientId)
+                ->where('division_id IS NULL')
+                ->where('department_id IS NULL')
+                ->where('position_id IS NULL')
+                ->get()->getRow();
+        }
+        return $config;
+    }
+
     // --- ATTENDANCE LOGS ---
     private function calculateShiftAttendance($employeeId, $tanggal, $jamMasuk, $jamKeluar, $status, $providedShiftSchemeId = null, $payoutPeriod = null)
     {
@@ -660,15 +705,18 @@ class Api extends ResourceController
 
         $cutoffStart = 21;
         $cutoffEnd = 20;
-        if ($clientId) {
-            $clientConfig = $db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
-            if ($clientConfig && !empty($clientConfig->scheme_template_id)) {
-                $scheme = $db->table('payroll_scheme_templates')->where('id', $clientConfig->scheme_template_id)->get()->getRow();
-                if ($scheme && !empty($scheme->schedule_template_id)) {
-                    $sched = $db->table('payroll_schedules')->where('id', $scheme->schedule_template_id)->get()->getRow();
-                    if ($sched) {
-                        $cutoffStart = intval($sched->cutoff_start);
-                        $cutoffEnd = intval($sched->cutoff_end);
+        if ($clientId && $emp) {
+            $clientConfig = $this->resolveClientConfigForEmployee($employeeId);
+            if ($clientConfig) {
+                if (isset($clientConfig->cutoff_start) && $clientConfig->cutoff_start !== null && $clientConfig->cutoff_start !== '') {
+                    $cutoffStart = intval($clientConfig->cutoff_start);
+                }
+                if (isset($clientConfig->cutoff_end) && $clientConfig->cutoff_end !== null && $clientConfig->cutoff_end !== '') {
+                    $cutoffEnd = intval($clientConfig->cutoff_end);
+                } else {
+                    $cutoffEnd = $cutoffStart - 1;
+                    if ($cutoffEnd < 1) {
+                        $cutoffEnd = 31;
                     }
                 }
             }
@@ -693,9 +741,36 @@ class Api extends ResourceController
         }
         $naturalPeriod = $natMonth . '-' . $natYear;
 
-        if (!empty($payoutPeriod) && $payoutPeriod !== $naturalPeriod) {
-            $result['is_rapel'] = 1;
-            $result['payout_period'] = $payoutPeriod;
+        $result['payout_period'] = $naturalPeriod;
+        $result['is_rapel'] = 0;
+
+        if (!empty($payoutPeriod)) {
+            $naturalVal = $natYear * 12 + $natMonth;
+            
+            $payoutMonth = null;
+            $payoutYear = null;
+            $parts = explode('-', $payoutPeriod);
+            if (count($parts) === 2) {
+                $payoutMonth = intval($parts[0]);
+                $payoutYear = intval($parts[1]);
+            }
+            
+            if ($payoutMonth && $payoutYear) {
+                $payoutVal = $payoutYear * 12 + $payoutMonth;
+                if ($naturalVal > $payoutVal) {
+                    // Future natural period relative to the upload period: not a rapel, just natural future payroll period
+                    $result['is_rapel'] = 0;
+                    $result['payout_period'] = $naturalPeriod;
+                } elseif ($naturalVal < $payoutVal) {
+                    // Past natural period: paid in a later period, so it is a Rapel
+                    $result['is_rapel'] = 1;
+                    $result['payout_period'] = $payoutPeriod;
+                } else {
+                    // Matches perfectly
+                    $result['is_rapel'] = 0;
+                    $result['payout_period'] = $naturalPeriod;
+                }
+            }
         }
 
         // Auto-detect shift jika tidak ada assignment di employee_shifts
@@ -1437,14 +1512,17 @@ class Api extends ResourceController
             // 7. Detect rapel status based on client's cut-off
             $cutoffStart = 21;
             $cutoffEnd = 20;
-            $clientConfig = $db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
-            if ($clientConfig && !empty($clientConfig->scheme_template_id)) {
-                $scheme = $db->table('payroll_scheme_templates')->where('id', $clientConfig->scheme_template_id)->get()->getRow();
-                if ($scheme && !empty($scheme->schedule_template_id)) {
-                    $sched = $db->table('payroll_schedules')->where('id', $scheme->schedule_template_id)->get()->getRow();
-                    if ($sched) {
-                        $cutoffStart = intval($sched->cutoff_start);
-                        $cutoffEnd = intval($sched->cutoff_end);
+            $clientConfig = $this->resolveClientConfigForEmployee($empId);
+            if ($clientConfig) {
+                if (isset($clientConfig->cutoff_start) && $clientConfig->cutoff_start !== null && $clientConfig->cutoff_start !== '') {
+                    $cutoffStart = intval($clientConfig->cutoff_start);
+                }
+                if (isset($clientConfig->cutoff_end) && $clientConfig->cutoff_end !== null && $clientConfig->cutoff_end !== '') {
+                    $cutoffEnd = intval($clientConfig->cutoff_end);
+                } else {
+                    $cutoffEnd = $cutoffStart - 1;
+                    if ($cutoffEnd < 1) {
+                        $cutoffEnd = 31;
                     }
                 }
             }
@@ -1468,8 +1546,34 @@ class Api extends ResourceController
             $naturalPeriod = $natMonth . '-' . $natYear;
 
             $isRapel = 0;
-            if (!empty($payoutPeriodStr) && $payoutPeriodStr !== $naturalPeriod) {
-                $isRapel = 1;
+            $finalPayoutPeriod = $naturalPeriod;
+
+            if (!empty($payoutPeriodStr)) {
+                $naturalVal = $natYear * 12 + $natMonth;
+                
+                $payoutMonth = null;
+                $payoutYear = null;
+                $parts = explode('-', $payoutPeriodStr);
+                if (count($parts) === 2) {
+                    $payoutMonth = intval($parts[0]);
+                    $payoutYear = intval($parts[1]);
+                }
+                
+                if ($payoutMonth && $payoutYear) {
+                    $payoutVal = $payoutYear * 12 + $payoutMonth;
+                    if ($naturalVal > $payoutVal) {
+                        // Future natural period relative to upload period
+                        $isRapel = 0;
+                        $finalPayoutPeriod = $naturalPeriod;
+                    } elseif ($naturalVal < $payoutVal) {
+                        // Past natural period (rapel)
+                        $isRapel = 1;
+                        $finalPayoutPeriod = $payoutPeriodStr;
+                    } else {
+                        $isRapel = 0;
+                        $finalPayoutPeriod = $naturalPeriod;
+                    }
+                }
             }
 
             // 8. Insert or Update Log
@@ -1490,7 +1594,7 @@ class Api extends ResourceController
                 'approved_by'   => $approvedBy,
                 'approved_at'   => date('Y-m-d H:i:s'),
                 'is_rapel'      => $isRapel,
-                'payout_period' => $payoutPeriodStr
+                'payout_period' => $finalPayoutPeriod
             ];
 
             if ($existing) {
