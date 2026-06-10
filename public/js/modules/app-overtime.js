@@ -15,8 +15,10 @@ async function loadOvertimeClients() {
 }
 
 async function loadOvertimeLogs() {
-    const tbody = document.getElementById('overtimeTableBody');
-    if (!tbody) return;
+    const pendingTbody = document.getElementById('overtimePendingTableBody');
+    const historyTbody = document.getElementById('overtimeHistoryTableBody');
+    if (!pendingTbody || !historyTbody) return;
+
     const clientId = document.getElementById('overtimeClientSelect')?.value;
     const bulan = document.getElementById('overtimeMonthSelect')?.value;
     const tahun = document.getElementById('overtimeYearSelect')?.value;
@@ -26,24 +28,30 @@ async function loadOvertimeLogs() {
     document.getElementById('overtimeBulkActions').style.display = 'none';
 
     if (!clientId) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8;">
+        const noClientHtml = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
             Silakan pilih client terlebih dahulu untuk menampilkan data lembur.</td></tr>`;
+        pendingTbody.innerHTML = noClientHtml;
+        historyTbody.innerHTML = noClientHtml;
         document.getElementById('otSummaryContainer').style.display = 'none';
         return;
     }
 
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
+    const loadingHtml = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
+    pendingTbody.innerHTML = loadingHtml;
+    historyTbody.innerHTML = loadingHtml;
 
     try {
         const res = await fetch(`${API_URL}/overtime-logs?client_id=${clientId}&bulan=${bulan}&tahun=${tahun}`);
         const data = await res.json();
 
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
+            const noDataHtml = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
                 <i class="fas fa-clock" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
                 Belum ada data lembur untuk periode ini.</td></tr>`;
+            pendingTbody.innerHTML = noDataHtml;
+            historyTbody.innerHTML = noDataHtml;
             document.getElementById('otSummaryContainer').style.display = 'none';
             return;
         }
@@ -73,7 +81,12 @@ async function loadOvertimeLogs() {
         document.getElementById('otSummaryRejected').innerText = `${rejectedHrs.toFixed(1)} Jam (${rejectedLogs} data)`;
         document.getElementById('otSummaryContainer').style.display = 'grid';
 
-        tbody.innerHTML = data.map((o, i) => {
+        let pendingIndex = 1;
+        let historyIndex = 1;
+        let pendingHtml = '';
+        let historyHtml = '';
+
+        data.forEach(o => {
             const d = new Date(o.tanggal);
             const tanggalFormatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
             const isHoliday = parseInt(o.is_holiday);
@@ -82,69 +95,86 @@ async function loadOvertimeLogs() {
                 ? 'background:#fef3c7;color:#92400e;'
                 : 'background:#dcfce7;color:#166534;';
 
-            // Status label & badge
             const statusVal = String(o.status || 'Pending');
-            let statusBadge = '';
-            if (statusVal === 'Approved') {
-                statusBadge = `<span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-check-circle"></i> Approved</span>`;
-            } else if (statusVal === 'Rejected') {
-                statusBadge = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-times-circle"></i> Rejected</span>`;
-            } else {
-                statusBadge = `<span style="background:#fffbeb;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-clock"></i> Pending</span>`;
-            }
 
-            // Approver details
-            let approverDetails = '-';
-            if (o.approved_by) {
-                const appDate = o.approved_at ? new Date(o.approved_at).toLocaleDateString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
-                approverDetails = `<span style="font-size:12px;font-weight:600;color:#334155;">${o.approved_by}</span><br><span style="font-size:10px;color:#94a3b8;">${appDate}</span>`;
-            }
-
-            // Action buttons based on status
-            let actionButtons = '';
             if (statusVal === 'Pending') {
-                actionButtons = `
+                const statusBadge = `<span style="background:#fffbeb;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-clock"></i> Pending</span>`;
+                
+                const actionButtons = `
                     <button onclick="approveOvertimeLog(${o.id})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Setujui (Approve)">
                         <i class="fas fa-check"></i>
                     </button>
                     <button onclick="rejectOvertimeLog(${o.id})" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Tolak (Reject)">
                         <i class="fas fa-times"></i>
                     </button>
+                    <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 `;
+
+                pendingHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="text-align:center;padding:12px;">
+                        <input type="checkbox" class="overtime-row-checkbox" value="${o.id}" onchange="onOvertimeCheckboxChange()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary-color);">
+                    </td>
+                    <td style="text-align:center;padding:12px;color:#64748b;">${pendingIndex++}</td>
+                    <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+                    <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
+                    <td style="text-align:center;padding:12px;">
+                        <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
+                    </td>
+                    <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
+                    <td style="text-align:center;padding:12px;">${statusBadge}</td>
+                    <td style="text-align:center;padding:12px;">
+                        <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
+                    </td>
+                </tr>`;
             } else {
-                actionButtons = `
+                let statusBadge = '';
+                if (statusVal === 'Approved') {
+                    statusBadge = `<span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-check-circle"></i> Approved</span>`;
+                } else if (statusVal === 'Rejected') {
+                    statusBadge = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-times-circle"></i> Rejected</span>`;
+                }
+
+                let approverDetails = '-';
+                if (o.approved_by) {
+                    const appDate = o.approved_at ? new Date(o.approved_at).toLocaleDateString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+                    approverDetails = `<span style="font-size:12px;font-weight:600;color:#334155;">${o.approved_by}</span><br><span style="font-size:10px;color:#94a3b8;">${appDate}</span>`;
+                }
+
+                const actionButtons = `
                     <button onclick="resetOvertimeLog(${o.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Kembalikan ke Pending">
                         <i class="fas fa-undo"></i>
                     </button>
+                    <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 `;
-            }
-            actionButtons += `
-                <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
-                    <i class="fas fa-trash"></i>
-                </button>
-            `;
 
-            return `<tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="text-align:center;padding:12px;">
-                    <input type="checkbox" class="overtime-row-checkbox" value="${o.id}" onchange="onOvertimeCheckboxChange()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary-color);">
-                </td>
-                <td style="text-align:center;padding:12px;color:#64748b;">${i+1}</td>
-                <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
-                <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
-                <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
-                <td style="text-align:center;padding:12px;">
-                    <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
-                </td>
-                <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
-                <td style="text-align:center;padding:12px;">${statusBadge}</td>
-                <td style="padding:12px;">${approverDetails}</td>
-                <td style="text-align:center;padding:12px;">
-                    <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
-                </td>
-            </tr>`;
-        }).join('');
+                historyHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="text-align:center;padding:12px;color:#64748b;">${historyIndex++}</td>
+                    <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+                    <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
+                    <td style="text-align:center;padding:12px;">
+                        <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
+                    </td>
+                    <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
+                    <td style="text-align:center;padding:12px;">${statusBadge}</td>
+                    <td style="padding:12px;">${approverDetails}</td>
+                    <td style="text-align:center;padding:12px;">
+                        <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
+                    </td>
+                </tr>`;
+            }
+        });
+
+        pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending.</td></tr>`;
+        historyTbody.innerHTML = historyHtml || `<tr><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur.</td></tr>`;
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        pendingTbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        historyTbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
     }
 }
 
@@ -173,7 +203,7 @@ async function bulkApproveOvertime() {
     const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
     if (ids.length === 0) return;
 
-    if (!await showConfirm(`Yakin ingin menyetujui (Approve) ${ids.length} data lembur terpilih?`)) return;
+    if (!await showConfirm(`Yakin ingin menyetujui (Approve) ${ids.length} data lembur terpilih?`, 'Konfirmasi Persetujuan', 'Ya, Setujui', 'Batal', 'success')) return;
 
     try {
         const res = await fetch(`${API_URL}/overtime-logs/bulk-approve`, {
@@ -198,7 +228,7 @@ async function bulkRejectOvertime() {
     const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
     if (ids.length === 0) return;
 
-    if (!await showConfirm(`Yakin ingin menolak (Reject) ${ids.length} data lembur terpilih?`)) return;
+    if (!await showConfirm(`Yakin ingin menolak (Reject) ${ids.length} data lembur terpilih?`, 'Konfirmasi Penolakan', 'Ya, Tolak', 'Batal', 'danger')) return;
 
     try {
         const res = await fetch(`${API_URL}/overtime-logs/bulk-reject`, {
@@ -245,7 +275,7 @@ async function rejectOvertimeLog(id) {
 }
 
 async function resetOvertimeLog(id) {
-    if (!await showConfirm('Yakin ingin mengembalikan status lembur ini ke Pending?')) return;
+    if (!await showConfirm('Yakin ingin mengembalikan status lembur ini ke Pending?', 'Reset Status', 'Ya, Reset', 'Batal', 'primary')) return;
     try {
         const res = await fetch(`${API_URL}/overtime-logs/${id}`, {
             method: 'PUT',
@@ -338,7 +368,7 @@ async function simpanOvertime(e) {
 }
 
 async function deleteOvertimeLog(id) {
-    if (!await showConfirm('Yakin ingin menghapus log lembur ini?')) return;
+    if (!await showConfirm('Yakin ingin menghapus log lembur ini?', 'Hapus Log Lembur', 'Ya, Hapus', 'Batal', 'danger')) return;
     try {
         await fetch(`${API_URL}/overtime-logs/${id}`, { method: 'DELETE' });
         showToast('Log lembur berhasil dihapus!', 'success');
@@ -665,6 +695,38 @@ async function saveUploadedLembur() {
     }
 }
 
+function switchOvertimeSubTab(tab) {
+    const panels = document.querySelectorAll('.ot-subpanel');
+    panels.forEach(p => p.style.display = 'none');
+
+    const btns = document.querySelectorAll('.ot-tab-btn');
+    btns.forEach(b => {
+        b.classList.remove('active');
+        b.style.color = '#64748b';
+        b.style.borderBottomColor = 'transparent';
+    });
+
+    if (tab === 'pending') {
+        const panel = document.getElementById('otSubPanelPending');
+        if (panel) panel.style.display = 'block';
+        const btn = document.getElementById('otTabPending');
+        if (btn) {
+            btn.classList.add('active');
+            btn.style.color = 'var(--primary-color)';
+            btn.style.borderBottomColor = 'var(--primary-color)';
+        }
+    } else if (tab === 'history') {
+        const panel = document.getElementById('otSubPanelHistory');
+        if (panel) panel.style.display = 'block';
+        const btn = document.getElementById('otTabHistory');
+        if (btn) {
+            btn.classList.add('active');
+            btn.style.color = 'var(--primary-color)';
+            btn.style.borderBottomColor = 'var(--primary-color)';
+        }
+    }
+}
+
 Object.assign(window, {
     loadOvertimeClients,
     loadOvertimeLogs,
@@ -684,5 +746,6 @@ Object.assign(window, {
     onLemburPeriodChanged,
     downloadLemburTemplate,
     handleLemburFileSelect,
-    saveUploadedLembur
+    saveUploadedLembur,
+    switchOvertimeSubTab
 });

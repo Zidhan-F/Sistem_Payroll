@@ -14,6 +14,16 @@ async function renderTable() {
     } catch (err) { console.error(err); }
 }
 
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function renderClientTableData(data) {
     const tbody = document.getElementById('tabelKlienBody');
     if (!tbody) return;
@@ -24,13 +34,13 @@ function renderClientTableData(data) {
             day: 'numeric'
         }) : '-';
         return `
-            <tr style="cursor: pointer;" title="Click to open workspace for ${client.nama.replace(/"/g, '&quot;')}" onclick="event.target.closest('button') ? null : selectClient(${client.id}, '${client.nama.replace(/'/g, "\\'")}', '${client.sektor.replace(/'/g, "\\'")}')">
-                <td class="client-name-td">${client.nama} <i class="fas fa-chevron-right client-arrow-icon"></i></td>
-                <td>${client.sektor}</td>
-                <td>${client.npwp ? `'${client.npwp}'` : '-'}</td>
-                <td>${client.nib || '-'}</td>
+            <tr style="cursor: pointer;" title="Click to open workspace for ${escapeHtml(client.nama)}" onclick="event.target.closest('button') ? null : selectClient(${client.id})">
+                <td class="client-name-td">${escapeHtml(client.nama)} <i class="fas fa-chevron-right client-arrow-icon"></i></td>
+                <td>${escapeHtml(client.sektor)}</td>
+                <td>${client.npwp ? `'${escapeHtml(client.npwp)}'` : '-'}</td>
+                <td>${escapeHtml(client.nib) || '-'}</td>
                 <td>${dateJoined}</td>
-                <td>${client.alamat}</td>
+                <td>${escapeHtml(client.alamat)}</td>
                 <td>
                     <div class="action-btns">
                         <button class="btn-icon btn-edit" onclick="bukaModal('edit', ${client.id})"><i class="fas fa-edit"></i></button>
@@ -64,13 +74,20 @@ window.selectedClientName = null;
 window.selectedClientSektor = null;
 
 function selectClient(id, name, sektor) {
+    if (!name || !sektor) {
+        const client = (window.clients || clients || []).find(c => c.id == id);
+        if (client) {
+            name = client.nama;
+            sektor = client.sektor;
+        }
+    }
     window.selectedClientId = id;
     window.selectedClientName = name;
     window.selectedClientSektor = sektor;
     window.currentPeriodId = null; // Reset period selection when switching clients
 
-    document.getElementById('clientWorkspaceTitle').innerText = name;
-    document.getElementById('clientWorkspaceSektor').innerText = sektor;
+    document.getElementById('clientWorkspaceTitle').innerText = name || '-';
+    document.getElementById('clientWorkspaceSektor').innerText = sektor || '-';
 
     switchView('clientWorkspace');
     switchWorkspaceTab('karyawan');

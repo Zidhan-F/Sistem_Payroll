@@ -698,6 +698,28 @@ class Api extends ResourceController
             $result['payout_period'] = $payoutPeriod;
         }
 
+        // Auto-detect shift jika tidak ada assignment di employee_shifts
+        if (!$shiftSchemeId && !empty($jamMasuk)) {
+            $jamMasukInt = intval(explode(':', $jamMasuk)[0]);
+            $namaShiftGuess = $jamMasukInt < 12 ? 'Pagi' : 'Siang';
+            $matchedShift = $db->table('shift_schemes')
+                ->where('name', $namaShiftGuess)
+                ->get()->getRow();
+            if ($matchedShift) {
+                $shiftSchemeId = intval($matchedShift->id);
+                $result['shift_scheme_id'] = $shiftSchemeId;
+            }
+        }
+
+        // Fallback: ambil shift pertama yang tersedia
+        if (!$shiftSchemeId) {
+            $firstShift = $db->table('shift_schemes')->orderBy('id', 'ASC')->get()->getRow();
+            if ($firstShift) {
+                $shiftSchemeId = intval($firstShift->id);
+                $result['shift_scheme_id'] = $shiftSchemeId;
+            }
+        }
+
         if (!$shiftSchemeId) {
             return $result;
         }
@@ -909,6 +931,7 @@ class Api extends ResourceController
         $bulan = $this->request->getGet('bulan');
         $tahun = $this->request->getGet('tahun');
         $clientId = $this->request->getGet('client_id');
+        $tanggal = $this->request->getGet('tanggal');
 
         $builder = $this->db->table('attendance_logs');
         $builder->select('attendance_logs.id, attendance_logs.employee_id, attendance_logs.log_date as tanggal, 
@@ -927,7 +950,9 @@ class Api extends ResourceController
         if ($clientId) {
             $builder->where('employees.client_id', intval($clientId));
         }
-        if ($bulan && $tahun) {
+        if ($tanggal) {
+            $builder->where('attendance_logs.log_date', $tanggal);
+        } elseif ($bulan && $tahun) {
             $builder->where('MONTH(attendance_logs.log_date)', intval($bulan));
             $builder->where('YEAR(attendance_logs.log_date)', intval($tahun));
         }
@@ -955,15 +980,11 @@ class Api extends ResourceController
             $data['payout_period'] ?? null
         );
 
-        $builder = $this->db->table('attendance_logs')
+        // Cek duplikat hanya berdasarkan employee_id + log_date (abaikan shift_scheme_id)
+        $existing = $this->db->table('attendance_logs')
             ->where('employee_id', intval($data['employee_id']))
-            ->where('log_date', $data['tanggal']);
-        if (!empty($calc['shift_scheme_id'])) {
-            $builder->where('shift_scheme_id', $calc['shift_scheme_id']);
-        } else {
-            $builder->where('shift_scheme_id IS NULL');
-        }
-        $existing = $builder->get()->getRow();
+            ->where('log_date', $data['tanggal'])
+            ->get()->getRow();
 
         if ($existing) {
             $this->db->table('attendance_logs')->where('id', $existing->id)->update([
@@ -1069,15 +1090,11 @@ class Api extends ResourceController
                 $log['payout_period'] ?? null
             );
 
-            $builder = $this->db->table('attendance_logs')
+            // Cek duplikat hanya berdasarkan employee_id + log_date (abaikan shift_scheme_id)
+            $existing = $this->db->table('attendance_logs')
                 ->where('employee_id', intval($log['employee_id']))
-                ->where('log_date', $log['tanggal']);
-            if (!empty($calc['shift_scheme_id'])) {
-                $builder->where('shift_scheme_id', $calc['shift_scheme_id']);
-            } else {
-                $builder->where('shift_scheme_id IS NULL');
-            }
-            $existing = $builder->get()->getRow();
+                ->where('log_date', $log['tanggal'])
+                ->get()->getRow();
 
             $logData = [
                 'status'                     => $log['status'] ?? 'Hadir',
@@ -2125,7 +2142,7 @@ class Api extends ResourceController
                     
                     // Scale by period
                     if (isset($comp->periode)) {
-                        if ($comp->periode === 'hari') {
+                        if ($comp->periode === 'hari' || $comp->periode === 'hari_kerja') {
                             $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                             $base_nilai = $base_nilai * $days;
                         } elseif ($comp->periode === 'minggu') {
@@ -2215,7 +2232,7 @@ class Api extends ResourceController
                         }
                         
                         // Scale by period
-                        if ($comp->periode === 'hari') {
+                        if ($comp->periode === 'hari' || $comp->periode === 'hari_kerja') {
                             $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                             $nilai = $base_nilai * $days;
                         } elseif ($comp->periode === 'minggu') {

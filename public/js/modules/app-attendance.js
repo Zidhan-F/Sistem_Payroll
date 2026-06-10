@@ -127,6 +127,60 @@ function bukaModalAttendance() {
     }
     loadAttendanceEmployees();
     openModal('attendanceModal');
+
+    // Bind auto-check listeners setelah modal terbuka
+    setTimeout(() => {
+        const empSelect = document.getElementById('attendanceEmployeeSelect');
+        const dateInput = document.getElementById('attendanceTanggal');
+        if (empSelect && !empSelect._autoCheckBound) {
+            empSelect.addEventListener('change', checkExistingAttendance);
+            empSelect._autoCheckBound = true;
+        }
+        if (dateInput && !dateInput._autoCheckBound) {
+            dateInput.addEventListener('change', checkExistingAttendance);
+            dateInput._autoCheckBound = true;
+        }
+    }, 100);
+}
+
+// Auto-deteksi data kehadiran yang sudah ada saat karyawan & tanggal dipilih
+async function checkExistingAttendance() {
+    const employeeId = document.getElementById('attendanceEmployeeSelect')?.value;
+    const tanggal = document.getElementById('attendanceTanggal')?.value;
+
+    // Hanya cek jika keduanya sudah terisi dan bukan sedang mode edit manual
+    if (!employeeId || !tanggal || editingAttendanceLogId) return;
+
+    try {
+        const res = await fetch(`${API_URL}/attendance-logs?employee_id=${employeeId}&tanggal=${tanggal}`);
+        const data = await res.json();
+        const logs = Array.isArray(data) ? data : (data.data || []);
+
+        if (logs.length > 0) {
+            const existing = logs[0];
+            // Auto-fill form dengan data yang sudah ada
+            const statusInput = document.getElementById('attendanceStatus');
+            const jamMasukInput = document.getElementById('attendanceJamMasuk');
+            const jamKeluarInput = document.getElementById('attendanceJamKeluar');
+            const keteranganInput = document.getElementById('attendanceKeterangan');
+
+            if (statusInput) statusInput.value = existing.status || 'Hadir';
+            if (jamMasukInput) jamMasukInput.value = existing.jam_masuk || '';
+            if (jamKeluarInput) jamKeluarInput.value = existing.jam_keluar || '';
+            if (keteranganInput) keteranganInput.value = existing.keterangan || '';
+
+            // Beralih ke mode edit
+            editingAttendanceLogId = existing.id;
+            document.getElementById('attendanceModalTitle').innerText = 'Edit Kehadiran (Data Ditemukan)';
+            showToast('Data kehadiran ditemukan, form telah diisi otomatis.', 'info');
+        } else {
+            // Reset ke mode tambah baru
+            editingAttendanceLogId = null;
+            document.getElementById('attendanceModalTitle').innerText = 'Input Kehadiran';
+        }
+    } catch (e) {
+        console.error('Auto-check attendance error:', e);
+    }
 }
 
 async function simpanAttendance(e) {

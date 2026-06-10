@@ -540,15 +540,14 @@ function switchView(view) {
             attYear.dataset.initialized = 'true';
         }
 
-        // default to master schedule sub tab if none is active
+        // default to holiday calendar sub tab if none is active
         const activeSubTab = document.querySelector('.sub-tab-btn.active[id^="subTabSchedule"]');
         if (!activeSubTab) {
-            switchScheduleSubTab('master');
+            switchScheduleSubTab('holiday');
         } else {
             // refresh active tab
             const tabId = activeSubTab.id;
-            if (tabId === 'subTabScheduleMaster') switchScheduleSubTab('master');
-            else if (tabId === 'subTabScheduleHoliday') switchScheduleSubTab('holiday');
+            if (tabId === 'subTabScheduleHoliday') switchScheduleSubTab('holiday');
             else if (tabId === 'subTabScheduleAttendance') switchScheduleSubTab('attendance');
             else if (tabId === 'subTabScheduleOvertime') switchScheduleSubTab('overtime');
             else if (tabId === 'subTabScheduleSystemSettings') switchScheduleSubTab('systemSettings');
