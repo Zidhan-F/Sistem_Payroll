@@ -550,6 +550,7 @@ async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
 }
 
 async function bukaModalKaryawan(mode,id=null){
+    window.isKaryawanModalInitializing = true;
     currentSelectedPayrollType = null;
     const m=document.getElementById('modalKaryawan'),cs=document.getElementById('empClientId');
     m.style.display='block';document.getElementById('overlay').style.display='block';
@@ -637,6 +638,7 @@ async function bukaModalKaryawan(mode,id=null){
     }
 
     cs.onchange = async () => {
+        if (window.isKaryawanModalInitializing) return;
         const cid = cs.value;
         if (cid) {
             await loadWorkLocationsForSelect(cid);
@@ -739,6 +741,10 @@ async function bukaModalKaryawan(mode,id=null){
     if (empLocEl) {
         empLocEl.addEventListener('change', checkSchemaAvailability);
     }
+    
+    setTimeout(() => {
+        window.isKaryawanModalInitializing = false;
+    }, 800);
 }
 
 async function loadPositions(cid){
