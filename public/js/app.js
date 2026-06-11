@@ -384,6 +384,8 @@ function switchScheduleSubTab(tab) {
         if (typeof loadHolidays === 'function') loadHolidays();
     } else if (tab === 'attendance') {
         if (typeof loadAttendanceClients === 'function') loadAttendanceClients();
+    } else if (tab === 'overtime') {
+        if (typeof loadOvertimeClients === 'function') loadOvertimeClients();
     }
 }
 

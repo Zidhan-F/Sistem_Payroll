@@ -78,7 +78,6 @@ function renderShiftSchemesTable() {
                 <td style="text-align: center; padding: 12px; font-size: 13px; color: #475569;">
                     Late: ${s.grace_period_late}m<br>Early: ${s.grace_period_early}m
                 </td>
-                <td style="text-align: center; padding: 12px;">${jenisList.join(' ')}</td>
                 <td style="text-align: center; padding: 12px; display: flex; gap: 8px; justify-content: center;">
                     <button onclick="bukaModalShiftScheme('edit', ${s.id})" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;"><i class="fas fa-edit"></i> Edit</button>
                     <button onclick="hapusShiftScheme(${s.id})" style="background:#ef4444;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;"><i class="fas fa-trash"></i> Hapus</button>
