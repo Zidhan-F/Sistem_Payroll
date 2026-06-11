@@ -4692,10 +4692,10 @@ class Api extends ResourceController
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
-            'break_start_time' => isset($data['break_start_time']) ? $data['break_start_time'] : null,
-            'break_end_time' => isset($data['break_end_time']) ? $data['break_end_time'] : null,
-            'break_duration' => isset($data['break_duration']) ? floatval($data['break_duration']) : 0.0,
-
+            'grace_period_late' => isset($data['grace_period_late']) ? intval($data['grace_period_late']) : 0,
+            'grace_period_early' => isset($data['grace_period_early']) ? intval($data['grace_period_early']) : 0,
+            'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
+            'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -4717,10 +4717,10 @@ class Api extends ResourceController
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
-            'break_start_time' => isset($data['break_start_time']) ? $data['break_start_time'] : null,
-            'break_end_time' => isset($data['break_end_time']) ? $data['break_end_time'] : null,
-            'break_duration' => isset($data['break_duration']) ? floatval($data['break_duration']) : 0.0,
-
+            'grace_period_late' => isset($data['grace_period_late']) ? intval($data['grace_period_late']) : 0,
+            'grace_period_early' => isset($data['grace_period_early']) ? intval($data['grace_period_early']) : 0,
+            'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
+            'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
             'updated_at' => date('Y-m-d H:i:s')
         ];
 

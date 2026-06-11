@@ -3,7 +3,7 @@
 
     <div id="modalSlip" class="modal-skema" style="width: 600px; max-width: 95%; display: none; z-index: 2000;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
-            <h3>Salary Slip</h3>
+            <h3>Pay Slip</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalSlip()"></i>
         </div>
         <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
@@ -127,24 +127,23 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px;">
                     
                     <!-- Left Column: Allowances -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 18px;">
-                        <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Allowances</h4>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Allowances</h4>
                         
                         <!-- Basic Salary -->
-                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div class="form-group" style="margin: 0;">
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Basic Salary Source</label>
                                 <select id="skemaSumber" onchange="handlePayrollSchemeSumberNilaiChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
                                     <option value="ump">UMP (Province)</option>
                                     <option value="umk">UMK (City/Regency)</option>
                                     <option value="nominal" selected>Custom Nominal</option>
-                                </select>
-                            </div>
-                            
+                    </select>
+                </div>
                             <div class="form-group" style="margin: 0;">
-                                <label id="labelNilaiSkemaPayroll" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Custom Nominal (Rp)</label>
-                                <input type="text" id="skemaNilai" placeholder="e.g., 5000000" onkeyup="handleSkemaNilaiInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                            </div>
+                                <label id="labelNilaiSkemaPayroll" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Basic Salary (IDR)</label>
+                                 <input type="text" id="skemaNilai" placeholder="Enter Basic Salary" onkeyup="handleSkemaNilaiInput(this)" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+            </div>
                         </div>
 
                         <!-- Salary Period -->
@@ -159,13 +158,13 @@
                         </div>
 
                         <!-- Fixed Allowance Table -->
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Fixed Allowance</label>
                                 <button type="button" onclick="bukaModalPilihSkema('tetap')" style="background: none; border: none; color: #0d6efd; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Select Scheme</button>
                             </div>
                             
-                            <div style="max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+                            <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
                                 <table style="width: 100%; border-collapse: collapse;">
                                     <thead>
                                         <tr style="background: #0d6efd; color: white;">
@@ -175,7 +174,7 @@
                                     </thead>
                                     <tbody id="tabelKompensasiTetapBody">
                                         <tr>
-                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 12px;">No allowance scheme selected yet</td>
+                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">No allowance scheme selected yet</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -183,13 +182,13 @@
                         </div>
 
                         <!-- Non-Fixed Allowance Table -->
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Non-Fixed Allowance</label>
                                 <button type="button" onclick="bukaModalPilihSkema('tidak_tetap')" style="background: none; border: none; color: #0d6efd; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0;">Select Scheme</button>
                             </div>
                             
-                            <div style="max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
+                            <div style="max-height: 150px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: white;">
                                 <table style="width: 100%; border-collapse: collapse;">
                                     <thead>
                                         <tr style="background: #0d6efd; color: white;">
@@ -199,17 +198,19 @@
                                     </thead>
                                     <tbody id="tabelKompensasiTidakTetapBody">
                                         <tr>
-                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 12px;">No allowance scheme selected yet</td>
+                                            <td colspan="2" style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">No allowance scheme selected yet</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
+
+
                     </div>
 
                     <!-- Right Column: Attendance Scheme & Description -->
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 18px;">
-                        <h4 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Attendance Scheme</h4>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <h4 style="margin: 0 0 5px 0; font-size: 16px; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Attendance Scheme</h4>
                         
                         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; gap: 12px;">
                             <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; cursor: pointer; color: #1e293b; margin: 0;">
@@ -226,42 +227,17 @@
                                 <input type="radio" name="skemaAbsenRule" value="potong_nominal" onchange="handleSkemaAbsenRuleChange()" style="cursor: pointer; width: 18px; height: 18px;">
                                 Attendance Deducts Nominal
                             </label>
-                        </div>
-                        
-                        <!-- Grace Periods & Min Overtime (Full Width Each Row) -->
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
-                                <input type="number" id="skemaGraceLate" min="0" value="0" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
-                                <input type="number" id="skemaGraceEarly" min="0" value="0" placeholder="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                            </div>
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
-                                <input type="number" id="skemaMinOvertime" min="0" value="30" placeholder="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                            </div>
-                        </div>
-
-                        <!-- Denda -->
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <label style="font-weight: 700; font-size: 13px; color: #1e293b; display: flex; align-items: center; gap: 6px; margin: 0;">
-                                <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Konfigurasi Denda
-                            </label>
-                            <div class="form-group" style="margin: 0;">
-                                <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
-                                    Denda Terlambat / Jam (Rp)
-                                    <span style="font-weight: 400; color: #94a3b8;"> — ceiling per jam (< 1 jam = 1 jam)</span>
-                                </label>
-                                <input type="text" id="skemaDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                            
+                            <div id="containerNominalPotonganSkema" class="form-group" style="display: none; margin: 8px 0 0 0;">
+                                <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Attendance Deduction Amount per Day (IDR)</label>
+                                 <input type="text" id="skemaNominalPotongan" placeholder="Example: 100000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
                         </div>
 
                         <!-- Description -->
                         <div class="form-group" style="margin: 0; flex-grow: 1; display: flex; flex-direction: column;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Description / Notes</label>
-                            <textarea id="skemaDeskripsi" rows="6" placeholder="Enter a brief description of the payroll scheme or additional notes here..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: vertical; font-family: inherit; min-height: 100px;"></textarea>
+                            <textarea id="skemaDeskripsi" rows="8" placeholder="Enter a brief description of the payroll scheme or additional notes here..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: none; font-family: inherit; flex-grow: 1; min-height: 180px;"></textarea>
                         </div>
                     </div>
                 </div>
@@ -405,7 +381,22 @@
                     </select>
                     <div id="quickBadgeContainer" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; display: none;"></div>
                 </div>
-
+                <!-- Extra Fields (Hanya untuk Posisi) -->
+                <div id="posExtraFields" style="display: none;">
+                    <div class="form-group">
+                        <label>Position Level</label>
+                        <select id="posLevel" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px;">
+                            <option value="">-- Select Level --</option>
+                            <option value="Intern">Intern</option>
+                            <option value="Junior">Junior</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Staff Senior">Senior Staff</option>
+                            <option value="Assistant Manager">Assistant Manager</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Lead">Lead</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="tutupModalOrg()">Cancel</button>
@@ -612,26 +603,10 @@
                         </select>
                     </div>
 
-                    <!-- Cut-off & Pay Date Configuration -->
-                    <div style="display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
-                        <span style="font-weight: 600; color: #475569;"><i class="fas fa-calendar-alt" style="margin-right: 8px;"></i>Cut-off & Pay Date Configuration</span>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label style="font-size: 12px; font-weight: 600; color: #64748b;">Cut-off Start Day</label>
-                                <input type="number" id="modalPilihanSkemaCutoffStart" min="1" max="31" required style="padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;" oninput="const startVal = parseInt(this.value, 10); if (!isNaN(startVal) && startVal >= 1 && startVal <= 31) { document.getElementById('modalPilihanSkemaCutoffEnd').value = startVal === 1 ? 31 : (startVal - 1); }">
-                            </div>
-                            <input type="hidden" id="modalPilihanSkemaCutoffEnd" value="">
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <label style="font-size: 12px; font-weight: 600; color: #64748b;">Pay Day of Month</label>
-                                <input type="number" id="modalPilihanSkemaPayDate" min="1" max="31" required style="padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- BPJS Scheme (Hidden from user, defaults to tambah_skema) -->
                     <div style="display: none;">
                         <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required>
-                            <option value="tambah_skema">Add Scheme</option>
+                            <option value="tambah_skema">Tambah Skema</option>
                         </select>
                     </div>
 
@@ -664,7 +639,7 @@
                                         <i class="fas fa-coins" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Old Age Security (JHT)</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Hari Tua (JHT)</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJhtDesc">Default: Karyawan 2%, Perusahaan 3.7%</div>
                                     </div>
                                 </div>
@@ -678,7 +653,7 @@
                                         <i class="fas fa-piggy-bank" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Pension Security (JP)</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Pensiun (JP)</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJpDesc">Default: Karyawan 1%, Perusahaan 2%</div>
                                     </div>
                                 </div>
@@ -692,7 +667,7 @@
                                         <i class="fas fa-user-shield" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Work Accident Security (JKK)</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kecelakaan Kerja (JKK)</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkkDesc">Default: Perusahaan 0.24%</div>
                                     </div>
                                 </div>
@@ -706,7 +681,7 @@
                                         <i class="fas fa-heartbeat" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Death Security (JKM)</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kematian (JKM)</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkmDesc">Default: Perusahaan 0.3%</div>
                                     </div>
                                 </div>
@@ -1099,7 +1074,11 @@
                     </select>
                 </div>
 
-                <input type="hidden" id="empCustomStandardDays">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Custom Standard Days for Prorata (Optional)</label>
+                    <input type="number" id="empCustomStandardDays" placeholder="Default global: 20 days" min="1" max="31" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <small style="color: #94a3b8; font-size: 12px;">Leave empty to use global default of 20 standard days.</small>
+                </div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Skema Shift (Opsional)</label>
@@ -1647,35 +1626,6 @@
                             <input type="text" id="schemeRateLembur" placeholder="0 = auto (salary/173)x1.5" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         </div>
                     </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px;">
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
-                            <input type="number" id="schemeGraceLate" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
-                            <input type="number" id="schemeGraceEarly" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
-                            <input type="number" id="schemeMinOvertime" min="0" value="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                        </div>
-                    </div>
-
-                    <!-- Section Denda -->
-                    <div style="margin-top: 20px; padding: 15px; background: white; border: 1px solid #e2e8f0; border-radius: 10px;">
-                        <h5 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Konfigurasi Denda
-                        </h5>
-                        <div class="form-group" style="margin: 0;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">
-                                Denda Terlambat / Jam (Rp)
-                                <span style="display: block; font-size: 11px; font-weight: 400; color: #94a3b8; margin-top: 2px;">Dihitung ceiling per jam (kurang dari 1 jam = 1 jam)</span>
-                            </label>
-                            <input type="text" id="schemeDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                        </div>
-                    </div>
                 </div>
                 
                 <!-- BPJS -->
@@ -1819,7 +1769,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                 <div class="form-group">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Client</label>
-                    <select id="modalUploadAbsensiClient" onchange="onAbsensiClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
+                    <select id="modalUploadAbsensiClient" onchange="onAbsensiClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         <option value="">-- Select Client --</option>
                     </select>
                 </div>
@@ -1831,54 +1781,21 @@
                 </div>
             </div>
 
-            <style>
-                #dropzoneAbsensiExcel {
-                    transition: all 0.3s ease-in-out;
-                }
-                #dropzoneAbsensiExcel:hover {
-                    border-color: #27ae60 !important;
-                    background-color: #f4fbf7 !important;
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.06);
-                }
-            </style>
-
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="font-weight: 600; margin-bottom: 8px; display: block; color: #475569;">Excel File</label>
+            <div style="background: rgba(243, 156, 18, 0.08); border: 1px dashed #f39c12; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+                <i class="fas fa-file-excel" style="font-size: 36px; color: #f39c12; margin-bottom: 10px; display: block;"></i>
+                <span style="font-size: 14px; font-weight: 600; color: #2c3e50; display: block; margin-bottom: 5px;">Select Excel Attendance File</span>
+                <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 12px;">Required columns: Employee ID, Nama, Tgl dan Hari, Jam Masuk, Jam Keluar, Status</span>
                 
-                <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event);">
-                
-                <!-- Unified Premium Drag & Drop Zone -->
-                <div id="dropzoneAbsensiExcel" 
-                     style="border: 2px dashed #cbd5e1; 
-                            border-radius: 12px; 
-                            padding: 30px 20px; 
-                            text-align: center; 
-                            background: #ffffff; 
-                            cursor: pointer;
-                            display: flex;
-                            flex-direction: column;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 8px;"
-                     onclick="document.getElementById('fileAbsensiExcel').click();"
-                     ondragover="handleAbsensiDragOver(event)"
-                     ondragleave="handleAbsensiDragLeave(event)"
-                     ondrop="handleAbsensiDrop(event)">
-                    
-                    <i class="fas fa-file-excel" style="font-size: 48px; color: #27ae60; margin-bottom: 4px; display: inline-block;"></i>
-                    
-                    <span id="dropzoneAbsensiText1" style="font-size: 14px; font-weight: 600; color: #334155; display: block;">
-                        Drag & Drop your Excel file here
-                    </span>
-                    <span id="dropzoneAbsensiText2" style="font-size: 12px; color: #64748b; display: block;">
-                        or click to browse files from your computer
-                    </span>
-                    
-                    <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: inline-block; margin-top: 8px; padding: 4px 12px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px;">
-                        No file chosen
-                    </span>
+                <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 10px;">
+                    <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event)">
+                    <button type="button" class="btn-add" onclick="document.getElementById('fileAbsensiExcel').click()" style="background: #f39c12; padding: 8px 20px; font-weight: 600;">
+                        Choose File
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="downloadAbsensiTemplate()" style="padding: 8px 16px; border: 1px solid #cbd5e0; background: white; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-download"></i> Download Template
+                    </button>
                 </div>
+                <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: block; margin-top: 5px;">No file chosen</span>
             </div>
 
             <div style="margin-bottom: 15px; display: none;">
@@ -1891,57 +1808,6 @@
         <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
             <button type="button" class="btn-cancel" onclick="tutupModalUploadAbsensi()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
             <button type="button" id="btnSaveUploadedAbsensi" disabled onclick="saveUploadedAbsensi()" style="background: #f39c12; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Attendance</button>
-        </div>
-    </div>
-
-    <!-- Upload Overtime Excel Modal -->
-    <div id="modalUploadLembur" class="modal-skema" style="display: none; width: 650px; max-width: 95%;">
-        <div class="modal-header" style="background: #0284c7;">
-            <h3>Upload Overtime Log</h3>
-            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadLembur()"></i>
-        </div>
-        <div class="modal-body" style="padding: 20px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                <div class="form-group">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Client</label>
-                    <select id="modalUploadLemburClient" onchange="onLemburClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
-                        <option value="">-- Select Client --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Period</label>
-                    <select id="modalUploadLemburPeriod" onchange="onLemburPeriodChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;" disabled>
-                        <option value="">-- Select Client First --</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Excel File</label>
-                
-                <!-- Simple file input button -->
-                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 12px;">
-                    <label for="fileLemburExcel" style="background: #0284c7; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; display: inline-block; font-weight: 600; font-size: 14px; margin: 0;">
-                        <i class="fas fa-upload"></i> Choose Excel File
-                    </label>
-                    <input type="file" id="fileLemburExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleLemburFileSelect(event);">
-                    <button type="button" onclick="downloadLemburTemplate()" style="background: #64748b; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; display: inline-block; font-weight: 600; font-size: 14px; border: none;">
-                        <i class="fas fa-download"></i> Download Template
-                    </button>
-                </div>
-                <span id="labelLemburFilename" style="font-size: 13px; font-weight: 600; color: #0284c7; display: block; margin-top: 8px;">No file selected</span>
-            </div>
-
-            <div style="margin-bottom: 15px;">
-                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Parsing & Converted Logs Summary</label>
-                <div id="uploadLemburLogs" style="background: #1e293b; color: #38bdf8; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; height: 180px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
-                    Waiting for file...
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
-            <button type="button" class="btn-cancel" onclick="tutupModalUploadLembur()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
-            <button type="button" id="btnSaveUploadedLembur" disabled onclick="saveUploadedLembur()" style="background: #0284c7; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Overtime</button>
         </div>
     </div>
 
@@ -2069,7 +1935,7 @@
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalShiftScheme()"></i>
         </div>
         <div class="modal-body" style="padding: 25px;">
-                <form id="formShiftScheme" onsubmit="simpanShiftScheme(event)">
+            <form id="formShiftScheme" onsubmit="simpanShiftScheme(event)">
                 <input type="hidden" id="shiftSchemeId">
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Nama Shift <span style="color: #ef4444;">*</span></label>
@@ -2085,25 +1951,29 @@
                         <input type="time" id="shiftSchemeEndTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                     </div>
                 </div>
-                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
-                    <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Mulai Istirahat</label>
-                        <input type="time" id="shiftSchemeBreakStartTime" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Selesai Istirahat</label>
-                        <input type="time" id="shiftSchemeBreakEndTime" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                    </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Kerja Standar (Jam) <span style="color: #ef4444;">*</span></label>
+                    <input type="number" id="shiftSchemeDuration" step="0.5" min="1" max="24" value="8" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                 </div>
                 <div style="display: flex; gap: 12px; margin-bottom: 15px;">
                     <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Istirahat (Jam)</label>
-                        <input type="number" id="shiftSchemeBreakDuration" step="0.1" min="0" max="24" readonly style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background-color: #f8fafc; color: #64748b;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Toleransi Terlambat (Menit)</label>
+                        <input type="number" id="shiftSchemeGraceLate" min="0" value="0" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                     </div>
                     <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Kerja Standar (Jam) <span style="color: #ef4444;">*</span></label>
-                        <input type="number" id="shiftSchemeDuration" step="0.1" min="0" max="24" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background-color: #f8fafc; color: #64748b;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Toleransi Early Leave (Menit)</label>
+                        <input type="number" id="shiftSchemeGraceEarly" min="0" value="0" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                     </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="shiftSchemeIsHoliday" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hitung sebagai Lembur Hari Libur</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="shiftSchemeIsOvertime" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
+                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hitung Seluruh Durasi Sebagai Lembur (Overtime-only shift)</span>
+                    </label>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
                     <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>

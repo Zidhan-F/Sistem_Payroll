@@ -28,8 +28,9 @@
                             <th style="width: 60px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">No</th>
                             <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Nama Shift</th>
                             <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jam Masuk - Keluar</th>
-                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jam Istirahat</th>
-                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Durasi Kerja</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Durasi Standar</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Toleransi (Late/Early)</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Jenis Shift</th>
                             <th style="width: 150px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Aksi</th>
                         </tr>
                     </thead>
@@ -52,7 +53,7 @@
                 <div style="display: flex; gap: 12px; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 13px; font-weight: 600; color: #64748b;">Filter Karyawan:</span>
-                        <select id="shiftEmployeeFilterSelect" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; min-width: 250px;">
+                        <select id="shiftEmployeeFilterSelect" onchange="loadEmployeeShifts(this.value)" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; min-width: 200px;">
                             <option value="">Semua Karyawan</option>
                         </select>
                     </div>
