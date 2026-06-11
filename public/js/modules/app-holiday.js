@@ -59,6 +59,13 @@ function switchHolidayView(mode) {
 }
 
 function renderHolidayView() {
+    const today = new Date();
+    const formattedToday = today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    const label = document.getElementById('holidayTodayDateLabel');
+    if (label) {
+        label.innerText = formattedToday;
+    }
+
     const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const titleEl = document.getElementById('holidayCurrentMonthYear');
     if (titleEl) {
@@ -124,6 +131,10 @@ function renderCalendarGrid(monthlyHolidays) {
         const isSunday = new Date(Y, M, day).getDay() === 0;
         const holiday = monthlyHolidays.find(h => h.tanggal === dateStr);
 
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const isToday = (dateStr === todayStr);
+
         const cell = document.createElement('div');
         cell.style.cssText = `
             background: white;
@@ -141,27 +152,48 @@ function renderCalendarGrid(monthlyHolidays) {
             border: 1px solid #f1f5f9;
         `;
 
+        if (isToday) {
+            cell.style.borderColor = 'var(--primary-color, #f97316)';
+            cell.style.borderWidth = '2px';
+            cell.style.boxShadow = '0 0 10px rgba(249, 115, 22, 0.25)';
+            cell.style.zIndex = '2';
+        }
+
         cell.onmouseover = () => {
-            cell.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-            cell.style.zIndex = '5';
-            cell.style.transform = 'translateY(-2px)';
+            if (!isToday) {
+                cell.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                cell.style.zIndex = '5';
+                cell.style.transform = 'translateY(-2px)';
+            } else {
+                cell.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.3)';
+                cell.style.transform = 'translateY(-2px)';
+            }
         };
         cell.onmouseout = () => {
-            cell.style.boxShadow = 'none';
-            cell.style.zIndex = '1';
-            cell.style.transform = 'none';
+            if (!isToday) {
+                cell.style.boxShadow = 'none';
+                cell.style.zIndex = '1';
+                cell.style.transform = 'none';
+            } else {
+                cell.style.boxShadow = '0 0 10px rgba(249, 115, 22, 0.25)';
+                cell.style.transform = 'none';
+            }
         };
 
+        const todayBadge = isToday ? `<span style="font-size:10px; background:var(--primary-color, #f97316); color:white; padding:2px 6px; border-radius:4px; font-weight:700; box-shadow:0 2px 4px rgba(249, 115, 22, 0.2);">Hari Ini</span>` : '';
         let cellContent = '';
 
         if (holiday) {
-            cell.style.background = '#fef2f2';
+            cell.style.background = isToday ? '#fff1f2' : '#fef2f2';
             cell.style.color = '#991b1b';
             
             cellContent = `
                 <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                     <span style="font-size:10px; color:#ef4444; font-weight:700;"><i class="fas fa-umbrella-beach"></i> Libur</span>
-                    <span style="font-weight: 700; font-size: 14px;">${day}</span>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        ${todayBadge}
+                        <span style="font-weight: 700; font-size: 14px;">${day}</span>
+                    </div>
                 </div>
                 <div class="holiday-tooltip-trigger" style="background:#fee2e2; border-left:3px solid #ef4444; padding:4px 6px; border-radius:4px; font-size:10px; line-height:1.2; font-weight:600; color:#b91c1c; text-align:left; word-break:break-word; width: 100%; box-sizing: border-box;" title="${holiday.deskripsi}">
                     ${holiday.deskripsi}
@@ -169,21 +201,28 @@ function renderCalendarGrid(monthlyHolidays) {
             `;
             cell.onclick = () => confirmDeleteHoliday(holiday.id, holiday.tanggal, holiday.deskripsi);
         } else if (isSunday) {
-            cell.style.background = '#fffbeb';
+            cell.style.background = isToday ? '#fffbeb' : '#fffbeb';
             cell.style.color = '#b45309';
             
             cellContent = `
-                <div style="display:flex; justify-content:space-between; width:100%;">
+                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                     <span style="font-size:10px; color:#d97706; font-weight:600;">Minggu</span>
-                    <span style="font-weight: 700; font-size: 14px; color:#ef4444;">${day}</span>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        ${todayBadge}
+                        <span style="font-weight: 700; font-size: 14px; color:#ef4444;">${day}</span>
+                    </div>
                 </div>
                 <div></div>
             `;
             cell.onclick = () => bukaModalHolidayDenganTanggal(dateStr);
         } else {
+            if (isToday) {
+                cell.style.background = '#fff7ed';
+            }
             cellContent = `
-                <div style="display:flex; justify-content:flex-end; width:100%;">
-                    <span style="font-weight: 500; font-size: 14px;">${day}</span>
+                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                    ${todayBadge}
+                    <span style="font-weight: 500; font-size: 14px; ${isToday ? 'font-weight:700; color:var(--primary-color, #f97316);' : ''}">${day}</span>
                 </div>
                 <div></div>
             `;

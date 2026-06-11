@@ -181,7 +181,7 @@ async function renderReviewGajiTable() {
                     <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
                     <td>
                         <div style="display:flex; gap:6px; align-items:center;">
-                            <button class="btn-icon btn-neutral" onclick="bukaSlipGaji(${row.id})" title="View Pay Slip / Details" style="width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
+                            <button class="btn-icon btn-neutral" onclick="bukaSlipGaji(${row.id})" title="View Salary Slip / Details" style="width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
                         </div>
                     </td>
                 </tr>
@@ -356,7 +356,7 @@ async function exportGajiToExcel() {
         
         const formatMoney = (val) => {
             const num = parseFloat(val || 0);
-            return Math.round(num).toLocaleString('id-ID');
+            return 'Rp ' + Math.round(num).toLocaleString('id-ID');
         };
 
         // Format the rows for Excel
@@ -454,11 +454,17 @@ async function bukaSlipGaji(id) {
         
         // Build company burdens array for PKWT
         const companyBurdens = [];
-        if (parseFloat(info.bpjs_kes_perusahaan) > 0) companyBurdens.push({ name: 'BPJS Kesehatan (4% Beban Perusahaan)', value: parseFloat(info.bpjs_kes_perusahaan) });
-        if (parseFloat(info.bpjs_jht_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JHT (3.7% Beban Perusahaan)', value: parseFloat(info.bpjs_jht_perusahaan) });
-        if (parseFloat(info.bpjs_jp_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JP (2% Beban Perusahaan)', value: parseFloat(info.bpjs_jp_perusahaan) });
-        if (parseFloat(info.bpjs_jkk_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JKK (Beban Perusahaan)', value: parseFloat(info.bpjs_jkk_perusahaan) });
-        if (parseFloat(info.bpjs_jkm_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JKM (Beban Perusahaan)', value: parseFloat(info.bpjs_jkm_perusahaan) });
+        if (data.company_burdens && data.company_burdens.length > 0) {
+            data.company_burdens.forEach(cb => {
+                companyBurdens.push({ name: cb.nama, value: parseFloat(cb.nilai) });
+            });
+        } else {
+            if (parseFloat(info.bpjs_kes_perusahaan) > 0) companyBurdens.push({ name: 'BPJS Kesehatan (4% Beban Perusahaan)', value: parseFloat(info.bpjs_kes_perusahaan) });
+            if (parseFloat(info.bpjs_jht_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JHT (3.7% Beban Perusahaan)', value: parseFloat(info.bpjs_jht_perusahaan) });
+            if (parseFloat(info.bpjs_jp_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JP (2% Beban Perusahaan)', value: parseFloat(info.bpjs_jp_perusahaan) });
+            if (parseFloat(info.bpjs_jkk_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JKK (Beban Perusahaan)', value: parseFloat(info.bpjs_jkk_perusahaan) });
+            if (parseFloat(info.bpjs_jkm_perusahaan) > 0) companyBurdens.push({ name: 'BPJS TK JKM (Beban Perusahaan)', value: parseFloat(info.bpjs_jkm_perusahaan) });
+        }
 
         const totalEarnings = data.earnings.reduce((sum, e) => sum + parseFloat(e.nilai || 0), 0);
         const totalDeductions = data.deductions.reduce((sum, d) => sum + parseFloat(d.nilai || 0), 0);
@@ -466,7 +472,7 @@ async function bukaSlipGaji(id) {
 
         document.getElementById('slipContent').innerHTML = `
         <div style="text-align:center;border-bottom:2px solid #eee;padding-bottom:15px;margin-bottom:20px;">
-            <h2 style="color:var(--primary-color); margin: 0;">PAYSLIP</h2>
+            <h2 style="color:var(--primary-color); margin: 0;">SALARY SLIP</h2>
             <p style="font-size:13px;color:#666; margin: 5px 0 0 0;">Period: ${info.period_name || info.periode}</p>
         </div>
         <table style="width:100%; border:none; margin-bottom:20px; font-size:14px; line-height:1.5; border-collapse:collapse;">
@@ -543,7 +549,7 @@ function downloadSlip() {
     const element = document.getElementById('slipContent');
     if (!element) return;
     
-    let filename = 'payslip.pdf';
+    let filename = 'salary_slip.pdf';
     try {
         const htmlText = element.innerHTML;
         // Parse the name and period from the DOM structure
@@ -560,7 +566,7 @@ function downloadSlip() {
             periodStr = '_' + periodMatch[1].trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
         }
         
-        filename = `payslip_${nameStr}${periodStr}.pdf`;
+        filename = `salary_slip_${nameStr}${periodStr}.pdf`;
     } catch(e) {
         console.error('Error generating filename:', e);
     }
@@ -585,7 +591,7 @@ function downloadSlip() {
     };
     
     html2pdf().set(opt).from(element).save().then(() => {
-        showToast('Payslip downloaded successfully!', 'success');
+        showToast('Salary slip downloaded successfully!', 'success');
     }).catch(err => {
         console.error('PDF Generation Error:', err);
         showToast('Failed to download PDF', 'error');
@@ -684,7 +690,18 @@ function bukaModalOrg(type, mode, id = null) {
 function bukaModalPeriode() {
     document.getElementById('modalPeriode').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
+    
+    // Set default month and year in the form to current month and year
+    const d = new Date();
+    const currentMonth = d.getMonth() + 1; // 1-12
+    const currentYear = d.getFullYear();
+    
+    const monthSelect = document.getElementById('periodMonth');
+    const yearInput = document.getElementById('periodYear');
+    if (monthSelect) monthSelect.value = currentMonth;
+    if (yearInput) yearInput.value = currentYear;
 }
+window.bukaModalPeriode = bukaModalPeriode;
 
 function bukaModalCutOff(pkwtId, empName, hariKerja = 22, jamLembur = 0, potongan = 0, bonus = 0) {
     document.getElementById('modalCutOff').style.display = 'block';
@@ -990,6 +1007,10 @@ function parseExcelDate(val) {
         return new Date((val - 25569) * 86400 * 1000);
     }
     if (typeof val === 'string') {
+        const num = parseFloat(val);
+        if (!isNaN(num) && num > 40000 && num < 60000) {
+            return new Date((num - 25569) * 86400 * 1000);
+        }
         // Handle Indonesian date format: "Rabu 1 Juli 2026", "Senin 6 Juli 2026", etc.
         const bulanID = {
             'januari': 0, 'februari': 1, 'maret': 2, 'april': 3,
@@ -1033,10 +1054,7 @@ function parseExcelDate(val) {
     return null;
 }
 
-function handleAbsensiFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
+function processAbsensiFile(file) {
     const clientId = document.getElementById('modalUploadAbsensiClient').value;
     const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
     if (!clientId || !periodId) {
@@ -1079,6 +1097,12 @@ function handleAbsensiFileSelect(event) {
     reader.readAsArrayBuffer(file);
 }
 
+function handleAbsensiFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    processAbsensiFile(file);
+}
+
 function processParsedAttendance(rows) {
     const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
     const activePeriod = (window.modalUploadPeriods || []).find(p => p.id == periodId);
@@ -1094,21 +1118,75 @@ function processParsedAttendance(rows) {
     const excelByEmp = {};
     rows.forEach(row => {
         const keys = Object.keys(row);
-        const empIdKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'employeeid');
-        const nameKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'nama' || k.toLowerCase().replace(/\s+/g, '') === 'name');
-        const tglKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'tgldanhari' || k.toLowerCase().replace(/\s+/g, '') === 'tanggal' || k.toLowerCase().replace(/\s+/g, '') === 'date');
-        const checkinKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jammasuk' || k.toLowerCase().replace(/\s+/g, '') === 'checkin');
-        const checkoutKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'jamkeluar' || k.toLowerCase().replace(/\s+/g, '') === 'checkout');
-        const statusKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'status');
-        const shiftKey = keys.find(k => k.toLowerCase().replace(/\s+/g, '') === 'shift');
+        const empIdKey = keys.find(k => {
+            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return clean === 'employeeid' || clean === 'nik' || clean === 'idkaryawan' || clean.includes('employeeid') || clean.includes('idkaryawan');
+        });
+        const nameKey = keys.find(k => {
+            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return clean === 'nama' || clean === 'name' || clean === 'employeename' || clean === 'namakaryawan' || clean.includes('name') || clean.includes('nama');
+        });
+        const tglKey = keys.find(k => {
+            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return clean === 'tgldanhari' || clean === 'tanggal' || clean === 'date' || clean === 'tgl' || clean.includes('date') || clean.includes('tanggal') || clean.includes('tgl');
+        });
+        const checkinKey = keys.find(k => {
+            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return clean === 'jammasuk' || clean === 'checkin' || clean === 'timein' || clean === 'masuk' || clean.includes('masuk') || clean.includes('checkin') || clean.includes('timein');
+        });
+        const checkoutKey = keys.find(k => {
+            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return clean === 'jamkeluar' || clean === 'checkout' || clean === 'timeout' || clean === 'keluar' || clean.includes('keluar') || clean.includes('checkout') || clean.includes('timeout');
+        });
+        const statusKey = keys.find(k => {
+            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return clean === 'status' || clean.includes('status');
+        });
+        const shiftKey = keys.find(k => {
+            const clean = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return clean === 'shift' || clean.includes('shift');
+        });
 
-        const empId = String(row[empIdKey] || '').trim();
-        const empName = String(row[nameKey] || '').trim();
-        const tglVal = row[tglKey];
-        const checkin = String(row[checkinKey] || '').trim();
-        const checkout = String(row[checkoutKey] || '').trim();
-        const status = String(row[statusKey] || '').trim();
-        const shift = String(row[shiftKey] || '').trim();
+        const empId = empIdKey ? String(row[empIdKey] || '').trim() : '';
+        const empName = nameKey ? String(row[nameKey] || '').trim() : '';
+        const tglVal = tglKey ? row[tglKey] : '';
+        
+        let checkin = '';
+        if (checkinKey) {
+            const rawVal = row[checkinKey];
+            if (rawVal !== undefined && rawVal !== null) {
+                const strVal = String(rawVal).trim();
+                const num = parseFloat(strVal);
+                if (!isNaN(num) && num >= 0 && num < 1) {
+                    const totalMinutes = Math.round(num * 24 * 60);
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    checkin = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                } else {
+                    checkin = strVal;
+                }
+            }
+        }
+        
+        let checkout = '';
+        if (checkoutKey) {
+            const rawVal = row[checkoutKey];
+            if (rawVal !== undefined && rawVal !== null) {
+                const strVal = String(rawVal).trim();
+                const num = parseFloat(strVal);
+                if (!isNaN(num) && num >= 0 && num < 1) {
+                    const totalMinutes = Math.round(num * 24 * 60);
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    checkout = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                } else {
+                    checkout = strVal;
+                }
+            }
+        }
+        
+        const status = statusKey ? String(row[statusKey] || '').trim() : '';
+        const shift = shiftKey ? String(row[shiftKey] || '').trim() : '';
 
         const key = empId || empName.toLowerCase();
         if (!key) return;
@@ -1207,16 +1285,8 @@ function processParsedAttendance(rows) {
                 totalHadir++;
             }
 
-            if (isPresent && hasTimes) {
-                const diffHrs = (checkoutTime - checkinTime) / (1000 * 60 * 60);
-                if (isRestDay) {
-                    const ot = Math.max(0, diffHrs - (diffHrs > 4 ? 1 : 0));
-                    totalLembur += ot;
-                } else {
-                    const ot = Math.max(0, diffHrs - 9);
-                    totalLembur += ot;
-                }
-            }
+            // Overtime will be calculated on the backend from daily shift attendance logs
+
 
             const isAbsent = (statusNorm === 'alfa' || statusNorm === 'absent' || statusNorm === 'missing');
             if (isAbsent && !isRestDay) {
@@ -1350,15 +1420,22 @@ function handleAbsensiDrop(event) {
     }
     
     if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        const file = event.dataTransfer.files[0];
         const fileInput = document.getElementById('fileAbsensiExcel');
         if (fileInput) {
             fileInput.files = event.dataTransfer.files;
-            // Trigger the change handler
-            const changeEvent = new Event('change', { bubbles: true });
-            fileInput.dispatchEvent(changeEvent);
         }
+        processAbsensiFile(file);
     }
 }
+
+// Prevent default drag/drop behavior on window to avoid browser navigating away
+window.addEventListener("dragover", function(e) {
+    e.preventDefault();
+}, false);
+window.addEventListener("drop", function(e) {
+    e.preventDefault();
+}, false);
 
 window.handleAbsensiDragOver = handleAbsensiDragOver;
 window.handleAbsensiDragLeave = handleAbsensiDragLeave;

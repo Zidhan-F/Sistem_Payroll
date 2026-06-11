@@ -54,7 +54,7 @@ function renderShiftSchemesTable() {
     if (allShiftSchemes.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align: center; padding: 30px; color: #64748b;">
+                <td colspan="6" style="text-align: center; padding: 30px; color: #64748b;">
                     <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
                     Belum ada skema shift yang terdaftar.
                 </td>
@@ -64,11 +64,17 @@ function renderShiftSchemesTable() {
     }
 
     allShiftSchemes.forEach((s, idx) => {
+        const breakTimeText = (s.break_start_time && s.break_end_time)
+            ? `${s.break_start_time.substring(0, 5)} - ${s.break_end_time.substring(0, 5)} (${s.break_duration || 0} Jam)`
+            : '<span style="color: #94a3b8; font-style: italic;">Tidak ada</span>';
+
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0; hover:background:#f8fafc;">
                 <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${idx + 1}</td>
                 <td style="padding: 12px; font-weight: 700; color: #1e293b;">${s.name}</td>
                 <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${s.start_time.substring(0, 5)} - ${s.end_time.substring(0, 5)}</td>
+                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${breakTimeText}</td>
+                <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${s.duration || 0} Jam</td>
                 <td style="text-align: center; padding: 12px; display: flex; gap: 8px; justify-content: center;">
                     <button class="btn-icon btn-edit" onclick="bukaModalShiftScheme('edit', ${s.id})" title="Edit"><i class="fas fa-edit"></i></button>
                     <button class="btn-icon btn-delete" onclick="hapusShiftScheme(${s.id})" title="Delete"><i class="fas fa-trash"></i></button>
@@ -107,6 +113,10 @@ function bukaModalShiftScheme(mode, id = null) {
             document.getElementById('shiftSchemeName').value = s.name;
             document.getElementById('shiftSchemeStartTime').value = s.start_time.substring(0, 5);
             document.getElementById('shiftSchemeEndTime').value = s.end_time.substring(0, 5);
+            document.getElementById('shiftSchemeBreakStartTime').value = s.break_start_time ? s.break_start_time.substring(0, 5) : '';
+            document.getElementById('shiftSchemeBreakEndTime').value = s.break_end_time ? s.break_end_time.substring(0, 5) : '';
+            document.getElementById('shiftSchemeBreakDuration').value = s.break_duration || 0;
+            document.getElementById('shiftSchemeDuration').value = s.duration || 8;
 
             modal.style.display = 'block';
             document.getElementById('overlay').style.display = 'block';
@@ -132,8 +142,10 @@ function simpanShiftScheme(event) {
         return;
     }
 
-    // Hitung durasi shift
-    var duration = calculateSimpleDuration(startTime, endTime);
+    var breakStartTime = document.getElementById('shiftSchemeBreakStartTime').value || null;
+    var breakEndTime = document.getElementById('shiftSchemeBreakEndTime').value || null;
+    var breakDuration = parseFloat(document.getElementById('shiftSchemeBreakDuration').value) || 0.0;
+    var duration = parseFloat(document.getElementById('shiftSchemeDuration').value) || 8.0;
 
     var id = document.getElementById('shiftSchemeId').value;
     var body = {
@@ -141,9 +153,9 @@ function simpanShiftScheme(event) {
         start_time: startTime,
         end_time: endTime,
         duration: duration,
-        break_start_time: null,
-        break_end_time: null,
-        break_duration: 0
+        break_start_time: breakStartTime,
+        break_end_time: breakEndTime,
+        break_duration: breakDuration
     };
 
     var url = id ? (API_URL + '/shift-schemes/' + id) : (API_URL + '/shift-schemes');
@@ -166,21 +178,60 @@ function simpanShiftScheme(event) {
         });
 }
 
-function calculateSimpleDuration(startTime, endTime) {
-    if (!startTime || !endTime) return 8.0;
-    
-    var [startH, startM] = startTime.split(':').map(Number);
-    var [endH, endM] = endTime.split(':').map(Number);
-    
-    var durationMins = (endH * 60 + endM) - (startH * 60 + startM);
-    
-    // Handle overnight shift
-    if (durationMins < 0) {
-        durationMins += 24 * 60;
+function calculateShiftDuration() {
+    const startTimeStr = document.getElementById('shiftSchemeStartTime').value;
+    const endTimeStr = document.getElementById('shiftSchemeEndTime').value;
+    const breakStartTimeStr = document.getElementById('shiftSchemeBreakStartTime').value;
+    const breakEndTimeStr = document.getElementById('shiftSchemeBreakEndTime').value;
+
+    let totalMins = 0;
+    if (startTimeStr && endTimeStr) {
+        const [startH, startM] = startTimeStr.split(':').map(Number);
+        const [endH, endM] = endTimeStr.split(':').map(Number);
+        totalMins = (endH * 60 + endM) - (startH * 60 + startM);
+        if (totalMins < 0) totalMins += 24 * 60;
     }
-    
-    return parseFloat((durationMins / 60).toFixed(2));
+
+    let breakMins = 0;
+    if (breakStartTimeStr && breakEndTimeStr) {
+        const [bStartH, bStartM] = breakStartTimeStr.split(':').map(Number);
+        const [bEndH, bEndM] = breakEndTimeStr.split(':').map(Number);
+        breakMins = (bEndH * 60 + bEndM) - (bStartH * 60 + bStartM);
+        if (breakMins < 0) breakMins += 24 * 60;
+    }
+
+    const breakHours = parseFloat((breakMins / 60).toFixed(2));
+    const breakDurationInput = document.getElementById('shiftSchemeBreakDuration');
+    if (breakDurationInput) {
+        breakDurationInput.value = breakHours || 0;
+    }
+
+    const workMins = totalMins - breakMins;
+    const workHours = parseFloat((workMins / 60).toFixed(2));
+    const durationInput = document.getElementById('shiftSchemeDuration');
+    if (durationInput) {
+        durationInput.value = workHours >= 0 ? workHours : 0;
+    }
 }
+
+function setupShiftSchemeListeners() {
+    const startInput = document.getElementById('shiftSchemeStartTime');
+    const endInput = document.getElementById('shiftSchemeEndTime');
+    const breakStartInput = document.getElementById('shiftSchemeBreakStartTime');
+    const breakEndInput = document.getElementById('shiftSchemeBreakEndTime');
+
+    if (startInput) startInput.addEventListener('input', calculateShiftDuration);
+    if (endInput) endInput.addEventListener('input', calculateShiftDuration);
+    if (breakStartInput) breakStartInput.addEventListener('input', calculateShiftDuration);
+    if (breakEndInput) breakEndInput.addEventListener('input', calculateShiftDuration);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupShiftSchemeListeners);
+} else {
+    setupShiftSchemeListeners();
+}
+
 
 function hapusShiftScheme(id) {
     if (confirm('Apakah Anda yakin ingin menghapus skema shift ini?')) {

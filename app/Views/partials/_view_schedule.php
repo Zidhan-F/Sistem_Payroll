@@ -6,7 +6,6 @@
         <button class="sub-tab-btn active" id="subTabScheduleHoliday" onclick="switchScheduleSubTab('holiday')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Holiday Calendar</button>
         <button class="sub-tab-btn" id="subTabScheduleAttendance" onclick="switchScheduleSubTab('attendance')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Attendance</button>
         <button class="sub-tab-btn" id="subTabScheduleOvertime" onclick="switchScheduleSubTab('overtime')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Overtime</button>
-        <button class="sub-tab-btn" id="subTabScheduleSystemSettings" onclick="switchScheduleSubTab('systemSettings')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">System Settings</button>
     </div>
 
     <!-- Panel 1: Master Schedule -->
@@ -59,7 +58,12 @@
             <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
                 <div>
                     <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Holiday Calendar</h3>
-                    <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola hari libur nasional dan tanggal libur khusus.</p>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px;">
+                        <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola hari libur nasional dan tanggal libur khusus.</p>
+                        <span style="font-size: 12px; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="far fa-calendar-alt"></i> Hari Ini: <span id="holidayTodayDateLabel">-</span>
+                        </span>
+                    </div>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                     <!-- Toggle View Buttons -->
@@ -71,6 +75,9 @@
                             <i class="fas fa-list"></i> Daftar Tabel
                         </button>
                     </div>
+                    <button id="btnSyncGoogleCalendar" onclick="syncGoogleCalendar()" style="background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; display: none; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; padding: 10px 20px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='#e0f2fe'">
+                        <i class="fas fa-sync-alt"></i> Sync Google Calendar
+                    </button>
                     <button class="btn-add" onclick="bukaModalHoliday()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-plus"></i> Tambah Hari Libur
                     </button>
@@ -424,67 +431,4 @@
                 </div>
             </div>
         </div>
-    </div>
-    </div>
-
-    <!-- Panel 5: System Settings -->
-    <div id="panelScheduleSystemSettings" class="schedule-subpanel" style="display: none;">
-        <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white; max-width: 600px; margin: 0 auto;">
-            <div class="section-header" style="margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">
-                        <i class="fas fa-sliders-h" style="color: var(--primary-color); margin-right: 8px;"></i>System Configuration Settings
-                    </h3>
-                    <p style="color: #64748b; font-size: 13px; margin: 0;">Adjust global variables and default values for the payroll calculation engine.</p>
-                </div>
-            </div>
-
-            <form id="formSystemSettings" onsubmit="saveSystemSettings(event)">
-                <div style="margin-bottom: 25px;">
-                    <label style="font-weight: 600; color: #475569; display: block; margin-bottom: 8px; font-size: 14px;">
-                        Overtime Hours Divisor (Default)
-                    </label>
-                    <div style="position: relative;">
-                        <input type="number" id="settingOvertimeDivisor" required min="1" max="1000" placeholder="160" 
-                               style="width: 100%; padding: 12px 14px; border: 1px solid #cbd5e0; border-radius: 8px; outline: none; font-size: 14px; box-sizing: border-box;">
-                    </div>
-                    <small style="color: #94a3b8; font-size: 12px; display: block; margin-top: 6px; line-height: 1.5;">
-                        Standard hourly wage rate is calculated as: <code>Base Salary / Overtime Divisor</code>. 
-                        Standard Depnaker regulation specifies 173 hours, but this application is configured to default to 160 hours based on internal company specifications. You can modify this divisor value dynamically here.
-                    </small>
-                </div>
-
-                <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
-                    <button type="submit" class="btn-add" style="padding: 12px 24px; background: var(--primary-color); border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-save"></i> Save Configuration
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white; max-width: 800px; margin: 20px auto 0 auto;">
-            <div class="section-header" style="margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px;">
-                <h4 style="font-size: 16px; color: var(--secondary-color); font-weight: 700; margin: 0;">
-                    <i class="fas fa-list" style="color: var(--primary-color); margin-right: 8px;"></i>Active System Settings List
-                </h4>
-            </div>
-            
-            <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #f8fafc;">
-                            <th style="width: 60px; text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">No</th>
-                            <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Setting Description</th>
-                            <th style="text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Setting Key</th>
-                            <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Value</th>
-                            <th style="text-align: center; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Last Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody id="systemSettingsTableBody">
-                        <!-- Dynamic settings rows -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>

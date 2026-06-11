@@ -1341,6 +1341,7 @@ class Api extends ResourceController
                 'approved_by' => null,
                 'approved_at' => null
             ]);
+            $this->syncPayrollAttendanceOvertimeForLog($existing->id);
             return $this->respond(['message' => 'Overtime log berhasil diupdate']);
         }
 
@@ -1356,6 +1357,7 @@ class Api extends ResourceController
         ];
 
         $this->db->table('overtime_logs')->insert($insertData);
+        $this->syncPayrollAttendanceOvertime($insertData['employee_id'], $insertData['tanggal']);
         return $this->respondCreated(['message' => 'Overtime log berhasil ditambahkan']);
     }
 
@@ -1602,6 +1604,7 @@ class Api extends ResourceController
             } else {
                 $db->table('overtime_logs')->insert($logData);
             }
+            $this->syncPayrollAttendanceOvertime($empId, $tanggal);
 
             $successCount++;
         }
@@ -1633,12 +1636,21 @@ class Api extends ResourceController
         ];
 
         $this->db->table('overtime_logs')->where('id', $id)->update($updateData);
+        $this->syncPayrollAttendanceOvertimeForLog($id);
         return $this->respond(['message' => 'Overtime log berhasil diupdate']);
     }
 
     public function deleteOvertimeLog($id)
     {
-        $this->db->table('overtime_logs')->where('id', $id)->delete();
+        $log = $this->db->table('overtime_logs')->where('id', intval($id))->get()->getRow();
+        if ($log) {
+            $employeeId = $log->employee_id;
+            $tanggal = $log->tanggal;
+            $this->db->table('overtime_logs')->where('id', $id)->delete();
+            $this->syncPayrollAttendanceOvertime($employeeId, $tanggal);
+        } else {
+            $this->db->table('overtime_logs')->where('id', $id)->delete();
+        }
         return $this->respondDeleted(['message' => 'Overtime log berhasil dihapus']);
     }
 
@@ -1650,6 +1662,7 @@ class Api extends ResourceController
             'approved_by' => $approvedBy,
             'approved_at' => date('Y-m-d H:i:s')
         ]);
+        $this->syncPayrollAttendanceOvertimeForLog($id);
         return $this->respond(['message' => 'Overtime log berhasil disetujui.']);
     }
 
@@ -1661,6 +1674,7 @@ class Api extends ResourceController
             'approved_by' => $approvedBy,
             'approved_at' => date('Y-m-d H:i:s')
         ]);
+        $this->syncPayrollAttendanceOvertimeForLog($id);
         return $this->respond(['message' => 'Overtime log berhasil ditolak.']);
     }
 
@@ -1672,11 +1686,19 @@ class Api extends ResourceController
             return $this->failValidationErrors('Tidak ada ID lembur yang dipilih.');
         }
         $approvedBy = session()->get('username') ?: 'Admin';
+        
+        $logs = $this->db->table('overtime_logs')->whereIn('id', $ids)->get()->getResult();
+        
         $this->db->table('overtime_logs')->whereIn('id', $ids)->update([
             'status' => 'Approved',
             'approved_by' => $approvedBy,
             'approved_at' => date('Y-m-d H:i:s')
         ]);
+
+        foreach ($logs as $log) {
+            $this->syncPayrollAttendanceOvertime($log->employee_id, $log->tanggal);
+        }
+        
         return $this->respond(['message' => count($ids) . ' data lembur berhasil disetujui.']);
     }
 
@@ -1688,11 +1710,19 @@ class Api extends ResourceController
             return $this->failValidationErrors('Tidak ada ID lembur yang dipilih.');
         }
         $approvedBy = session()->get('username') ?: 'Admin';
+        
+        $logs = $this->db->table('overtime_logs')->whereIn('id', $ids)->get()->getResult();
+        
         $this->db->table('overtime_logs')->whereIn('id', $ids)->update([
             'status' => 'Rejected',
             'approved_by' => $approvedBy,
             'approved_at' => date('Y-m-d H:i:s')
         ]);
+
+        foreach ($logs as $log) {
+            $this->syncPayrollAttendanceOvertime($log->employee_id, $log->tanggal);
+        }
+        
         return $this->respond(['message' => count($ids) . ' data lembur berhasil ditolak.']);
     }
 
@@ -2156,6 +2186,109 @@ class Api extends ResourceController
                 continue;
             }
 
+            $pkwt = $this->db->table('pkwt')->where('id', $pkwtId)->get()->getRow();
+            $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+            $employee = null;
+            if ($pkwt) {
+                $employee = $this->db->table('employees')
+                                     ->where('client_id', $pkwt->client_id)
+                                     ->where('nama', $pkwt->employee_name)
+                                     ->get()->getRow();
+            }
+
+            $hariKerja = $record['hari_kerja'] ?? 0;
+            $jamLembur = $record['jam_lembur'] ?? 0;
+            $potonganAbsensi = $record['potongan_absensi'] ?? 0;
+
+            if ($employee && $period) {
+                $clientId = $pkwt->client_id;
+                $clientConfig = $this->db->table('client_payroll_configs')
+                                     ->where('client_id', $clientId)
+                                     ->get()->getRow();
+
+                $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
+                $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+                $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
+                
+                if ($cutoffStart <= 0) $cutoffStart = 1;
+                if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
+
+                $bulan_start = intval($period->bulan);
+                $tahun_start = intval($period->tahun);
+                $bulan_end = $bulan_start;
+                $tahun_end = $tahun_start;
+                if ($cutoffStart > 1) {
+                    $bulan_start -= 1;
+                    if ($bulan_start < 1) {
+                        $bulan_start = 12;
+                        $tahun_start -= 1;
+                    }
+                }
+                $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+                $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+
+                // 1. Query total hari_kerja (Hadir)
+                $hadirCount = $this->db->table('attendance_logs')
+                                       ->where('employee_id', $employee->id)
+                                       ->where('log_date >=', $startDateStr)
+                                       ->where('log_date <=', $endDateStr)
+                                       ->where('status', 'Hadir')
+                                       ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                       ->countAllResults();
+                
+                // 2. Query total jam_lembur (ONLY APPROVED) dari overtime_logs
+                $lemburSumObj = $this->db->table('overtime_logs')
+                                         ->selectSum('jam_lembur')
+                                         ->where('employee_id', $employee->id)
+                                         ->where('tanggal >=', $startDateStr)
+                                         ->where('tanggal <=', $endDateStr)
+                                         ->where('status', 'Approved')
+                                         ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                         ->get()->getRow();
+                $lemburSum = $lemburSumObj ? floatval($lemburSumObj->jam_lembur) : 0.0;
+
+
+                // 3. Query total alpa (Absen)
+                $alpaCount = $this->db->table('attendance_logs')
+                                      ->where('employee_id', $employee->id)
+                                      ->where('log_date >=', $startDateStr)
+                                      ->where('log_date <=', $endDateStr)
+                                      ->where('status', 'Absen')
+                                      ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                      ->countAllResults();
+
+                // 4. Hitung potongan_absensi berdasarkan gaji pokok & hari_kerja config
+                $workDaysConfig = isset($employee->hari_kerja) ? intval($employee->hari_kerja) : 5;
+                $gajiPokok = floatval($employee->gaji_pokok);
+                
+                // Check if employee has an active contract that sets a different basic salary
+                $activeContract = $this->db->table('contracts')
+                                            ->where('employee_id', $employee->id)
+                                            ->where('status_pkwt', 'Aktif')
+                                            ->orderBy('tgl_mulai', 'DESC')
+                                            ->get()->getRow();
+                if ($activeContract && floatval($activeContract->gaji_pokok) > 0) {
+                    $gajiPokok = floatval($activeContract->gaji_pokok);
+                }
+
+                $divider = ($workDaysConfig === 5) ? 22 : (($workDaysConfig === 6) ? 26 : 30);
+                $dendaAbsenPerDay = $gajiPokok / $divider;
+                $calculatedPotongan = $alpaCount * $dendaAbsenPerDay;
+
+                // Override values with DB calculated ones if we found daily logs
+                $hasAnyLogs = $this->db->table('attendance_logs')
+                                       ->where('employee_id', $employee->id)
+                                       ->where('log_date >=', $startDateStr)
+                                       ->where('log_date <=', $endDateStr)
+                                       ->countAllResults();
+                
+                if ($hasAnyLogs > 0) {
+                    $hariKerja = $hadirCount;
+                    $jamLembur = $lemburSum;
+                    $potonganAbsensi = $calculatedPotongan;
+                }
+            }
+
             $existing = $this->db->table('payroll_attendance')
                                  ->where('period_id', $periodId)
                                  ->where('pkwt_id', $pkwtId)
@@ -2164,9 +2297,9 @@ class Api extends ResourceController
             $saveData = [
                 'period_id' => $periodId,
                 'pkwt_id' => $pkwtId,
-                'hari_kerja' => $record['hari_kerja'] ?? 0,
-                'jam_lembur' => $record['jam_lembur'] ?? 0,
-                'potongan_absensi' => $record['potongan_absensi'] ?? 0,
+                'hari_kerja' => $hariKerja,
+                'jam_lembur' => $jamLembur,
+                'potongan_absensi' => $potonganAbsensi,
                 'bonus_tambahan' => $record['bonus_tambahan'] ?? 0,
             ];
 
@@ -3257,16 +3390,52 @@ class Api extends ResourceController
             }
         }
 
+        // Resolve BPJS Rates dynamically
+        $taxScheme = null;
+        if ($clientConfig && $clientConfig->tax_scheme_id) {
+            $taxScheme = $this->db->table('tax_schemes')->where('id', $clientConfig->tax_scheme_id)->get()->getRow();
+        }
+        $bpjsScheme = null;
+        if ($clientConfig && !empty($clientConfig->bpjs_scheme_id)) {
+            $bpjsScheme = $this->db->table('tax_schemes')->where('id', $clientConfig->bpjs_scheme_id)->get()->getRow();
+        }
+        if (!$bpjsScheme) {
+            $bpjsScheme = $taxScheme;
+        }
+
+        $bpjsSrc = $bpjsScheme ?: ($schemeTemplate ?: $taxScheme);
+        $isBpjsTemplate = is_array($bpjsSrc);
+
+        $kesRateEmp = 1.0;
+        $jhtRateEmp = 2.0;
+        $jpRateEmp = 1.0;
+        $kesRateComp = 4.0;
+        $jhtRateComp = 3.7;
+        $jpRateComp = 2.0;
+        $jkkRateComp = 0.24;
+        $jkmRateComp = 0.30;
+
+        if ($bpjsSrc) {
+            $kesRateEmp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_kes_karyawan'] ?? 1.0) : ($bpjsSrc->bpjs_kes_karyawan ?? 1.0));
+            $jhtRateEmp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jht_karyawan'] ?? 2.0) : ($bpjsSrc->bpjs_jht_karyawan ?? 2.0));
+            $jpRateEmp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jp_karyawan'] ?? 1.0) : ($bpjsSrc->bpjs_jp_karyawan ?? 1.0));
+            $kesRateComp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_kes_perusahaan'] ?? 4.0) : ($bpjsSrc->bpjs_kes_perusahaan ?? 4.0));
+            $jhtRateComp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jht_perusahaan'] ?? 3.7) : ($bpjsSrc->bpjs_jht_perusahaan ?? 3.7));
+            $jpRateComp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jp_perusahaan'] ?? 2.0) : ($bpjsSrc->bpjs_jp_perusahaan ?? 2.0));
+            $jkkRateComp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jkk_perusahaan'] ?? 0.24) : ($bpjsSrc->bpjs_jkk_perusahaan ?? 0.24));
+            $jkmRateComp = floatval($isBpjsTemplate ? ($bpjsSrc['bpjs_jkm_perusahaan'] ?? 0.30) : ($bpjsSrc->bpjs_jkm_perusahaan ?? 0.30));
+        }
+
         // Add BPJS and PPh 21 detailed lines
         if (isset($final['bpjs_kes_karyawan'])) {
             if (floatval($final['bpjs_kes_karyawan']) > 0) {
-                $deductions[] = ['nama' => 'BPJS Kesehatan (1% Karyawan)', 'nilai' => floatval($final['bpjs_kes_karyawan'])];
+                $deductions[] = ['nama' => 'BPJS Kesehatan (' . floatval($kesRateEmp) . '% Karyawan)', 'nilai' => floatval($final['bpjs_kes_karyawan'])];
             }
             if (floatval($final['bpjs_jht_karyawan']) > 0) {
-                $deductions[] = ['nama' => 'BPJS TK JHT (2% Karyawan)', 'nilai' => floatval($final['bpjs_jht_karyawan'])];
+                $deductions[] = ['nama' => 'BPJS TK JHT (' . floatval($jhtRateEmp) . '% Karyawan)', 'nilai' => floatval($final['bpjs_jht_karyawan'])];
             }
             if (floatval($final['bpjs_jp_karyawan']) > 0) {
-                $deductions[] = ['nama' => 'BPJS TK JP (1% Karyawan)', 'nilai' => floatval($final['bpjs_jp_karyawan'])];
+                $deductions[] = ['nama' => 'BPJS TK JP (' . floatval($jpRateEmp) . '% Karyawan)', 'nilai' => floatval($final['bpjs_jp_karyawan'])];
             }
 
             if (floatval($final['pph21']) > 0) {
@@ -3279,10 +3448,31 @@ class Api extends ResourceController
             }
         }
 
+        // Add company burdens (informational)
+        $companyBurdens = [];
+        if (isset($final['bpjs_kes_perusahaan'])) {
+            if (floatval($final['bpjs_kes_perusahaan']) > 0) {
+                $companyBurdens[] = ['nama' => 'BPJS Kesehatan (' . floatval($kesRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_kes_perusahaan'])];
+            }
+            if (floatval($final['bpjs_jht_perusahaan']) > 0) {
+                $companyBurdens[] = ['nama' => 'BPJS TK JHT (' . floatval($jhtRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_jht_perusahaan'])];
+            }
+            if (floatval($final['bpjs_jp_perusahaan']) > 0) {
+                $companyBurdens[] = ['nama' => 'BPJS TK JP (' . floatval($jpRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_jp_perusahaan'])];
+            }
+            if (floatval($final['bpjs_jkk_perusahaan']) > 0) {
+                $companyBurdens[] = ['nama' => 'BPJS TK JKK (' . floatval($jkkRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_jkk_perusahaan'])];
+            }
+            if (floatval($final['bpjs_jkm_perusahaan']) > 0) {
+                $companyBurdens[] = ['nama' => 'BPJS TK JKM (' . floatval($jkmRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_jkm_perusahaan'])];
+            }
+        }
+
         return $this->respond([
             'info' => $final,
             'earnings' => $earnings,
-            'deductions' => $deductions
+            'deductions' => $deductions,
+            'company_burdens' => $companyBurdens
         ]);
     }
 
@@ -3395,17 +3585,17 @@ class Api extends ResourceController
                 $row['department_name'] ?? '-',
                 $row['position_name'] ?? '-',
                 $row['location_name'] ?? '-',
-                isset($row['min_wage']) ? number_format((float)$row['min_wage'], 0, ',', '.') : '-',
-                number_format((float)($row['gaji_pokok'] ?? 0), 0, ',', '.'),
-                number_format((float)($row['lembur_pay'] ?? 0), 0, ',', '.'),
-                number_format((float)($row['bonus_tambahan'] ?? 0), 0, ',', '.'),
-                number_format((float)($row['total_pendapatan'] ?? 0), 0, ',', '.'),
-                number_format((float)($row['potongan_absen'] ?? 0), 0, ',', '.'),
-                number_format($bpjsTK, 0, ',', '.'),
-                number_format($bpjsKes, 0, ',', '.'),
-                number_format((float)($row['pph21'] ?? 0), 0, ',', '.'),
-                number_format((float)($row['total_potongan'] ?? 0), 0, ',', '.'),
-                number_format((float)($row['take_home_pay'] ?? 0), 0, ',', '.'),
+                isset($row['min_wage']) ? 'Rp ' . number_format((float)$row['min_wage'], 0, ',', '.') : '-',
+                'Rp ' . number_format((float)($row['gaji_pokok'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format((float)($row['lembur_pay'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format((float)($row['bonus_tambahan'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format((float)($row['total_pendapatan'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format((float)($row['potongan_absen'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format($bpjsTK, 0, ',', '.'),
+                'Rp ' . number_format($bpjsKes, 0, ',', '.'),
+                'Rp ' . number_format((float)($row['pph21'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format((float)($row['total_potongan'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format((float)($row['take_home_pay'] ?? 0), 0, ',', '.'),
                 $row['status_approval'] ?? 'Pending'
             ], ';');
         }
@@ -4404,19 +4594,19 @@ class Api extends ResourceController
                 $row['position_name'] ?? '-',
                 $taxMethod,
                 $row['ptkp_status'] ?? '-',
-                number_format($gajiPokok, 0, ',', '.'),
-                number_format($lemburPay, 0, ',', '.'),
-                number_format($bonus, 0, ',', '.'),
-                number_format($tunjanganLainnya, 0, ',', '.'),
-                number_format($totalPendapatan, 0, ',', '.'),
-                number_format($potonganAbsen, 0, ',', '.'),
-                number_format($bpjsKes, 0, ',', '.'),
-                number_format($bpjsJht, 0, ',', '.'),
-                number_format($bpjsJp, 0, ',', '.'),
-                number_format($pph21, 0, ',', '.'),
-                number_format($potonganLainnya, 0, ',', '.'),
-                number_format($totalPotongan, 0, ',', '.'),
-                number_format(floatval($row['take_home_pay'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format($gajiPokok, 0, ',', '.'),
+                'Rp ' . number_format($lemburPay, 0, ',', '.'),
+                'Rp ' . number_format($bonus, 0, ',', '.'),
+                'Rp ' . number_format($tunjanganLainnya, 0, ',', '.'),
+                'Rp ' . number_format($totalPendapatan, 0, ',', '.'),
+                'Rp ' . number_format($potonganAbsen, 0, ',', '.'),
+                'Rp ' . number_format($bpjsKes, 0, ',', '.'),
+                'Rp ' . number_format($bpjsJht, 0, ',', '.'),
+                'Rp ' . number_format($bpjsJp, 0, ',', '.'),
+                'Rp ' . number_format($pph21, 0, ',', '.'),
+                'Rp ' . number_format($potonganLainnya, 0, ',', '.'),
+                'Rp ' . number_format($totalPotongan, 0, ',', '.'),
+                'Rp ' . number_format(floatval($row['take_home_pay'] ?? 0), 0, ',', '.'),
                 $row['bank_name'] ?? '-',
                 $row['no_rekening'] ?? '-'
             ]);
@@ -4621,6 +4811,110 @@ class Api extends ResourceController
         $this->db->table('employee_shifts')->where('id', $id)->delete();
         $this->logActivity("Menghapus alokasi shift karyawan ID: " . $id);
         return $this->respondDeleted(['message' => 'Alokasi shift berhasil dihapus']);
+    }
+
+    private function syncPayrollAttendanceOvertime($employeeId, $date)
+    {
+        $employee = $this->db->table('employees')->where('id', intval($employeeId))->get()->getRow();
+        if (!$employee) return;
+        $clientId = $employee->client_id;
+
+        $clientConfig = $this->db->table('client_payroll_configs')
+                             ->where('client_id', $clientId)
+                             ->get()->getRow();
+        $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+        $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
+        if ($cutoffStart <= 0) $cutoffStart = 1;
+
+        $d = strtotime($date);
+        $day = intval(date('d', $d));
+        $month = intval(date('m', $d));
+        $year = intval(date('Y', $d));
+
+        if ($cutoffStart > 1) {
+            if ($day >= $cutoffStart) {
+                $periodMonth = $month + 1;
+                $periodYear = $year;
+                if ($periodMonth > 12) {
+                    $periodMonth = 1;
+                    $periodYear += 1;
+                }
+            } else {
+                $periodMonth = $month;
+                $periodYear = $year;
+            }
+        } else {
+            $periodMonth = $month;
+            $periodYear = $year;
+        }
+
+        $period = $this->db->table('payroll_periods')
+                            ->where('client_id', $clientId)
+                            ->where('bulan', $periodMonth)
+                            ->where('tahun', $periodYear)
+                            ->get()->getRow();
+        if (!$period) return;
+
+        $daysInMonth = date('t', mktime(0, 0, 0, $periodMonth, 1, $periodYear));
+        $cutoffEndVal = $cutoffEnd > $daysInMonth ? $daysInMonth : $cutoffEnd;
+        
+        $bulan_start = $periodMonth;
+        $tahun_start = $periodYear;
+        $bulan_end = $periodMonth;
+        $tahun_end = $periodYear;
+        if ($cutoffStart > 1) {
+            $bulan_start -= 1;
+            if ($bulan_start < 1) {
+                $bulan_start = 12;
+                $tahun_start -= 1;
+            }
+        }
+        $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+        $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEndVal);
+
+        $lemburSumObj = $this->db->table('overtime_logs')
+                                 ->selectSum('jam_lembur')
+                                 ->where('employee_id', $employeeId)
+                                 ->where('tanggal >=', $startDateStr)
+                                 ->where('tanggal <=', $endDateStr)
+                                 ->where('status', 'Approved')
+                                 ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                 ->get()->getRow();
+        $lemburSum = $lemburSumObj ? floatval($lemburSumObj->jam_lembur) : 0.0;
+
+        $pkwt = $this->db->table('pkwt')
+                         ->where('client_id', $clientId)
+                         ->where('employee_name', $employee->nama)
+                         ->where('status', 'Active')
+                         ->get()->getRow();
+        if (!$pkwt) return;
+
+        $existing = $this->db->table('payroll_attendance')
+                             ->where('period_id', $period->id)
+                             ->where('pkwt_id', $pkwt->id)
+                             ->get()->getRow();
+        if ($existing) {
+            $this->db->table('payroll_attendance')
+                     ->where('id', $existing->id)
+                     ->update(['jam_lembur' => $lemburSum]);
+        } else {
+            $this->db->table('payroll_attendance')->insert([
+                'period_id' => $period->id,
+                'pkwt_id' => $pkwt->id,
+                'hari_kerja' => 22,
+                'jam_lembur' => $lemburSum,
+                'potongan_absensi' => 0.0,
+                'bonus_tambahan' => 0.0
+            ]);
+        }
+    }
+
+    private function syncPayrollAttendanceOvertimeForLog($id)
+    {
+        $log = $this->db->table('overtime_logs')->where('id', intval($id))->get()->getRow();
+        if ($log) {
+            $this->syncPayrollAttendanceOvertime($log->employee_id, $log->tanggal);
+        }
     }
 }
 

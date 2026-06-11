@@ -238,7 +238,7 @@ async function doCheckAndApprove(){
 async function forceApproveAll(){
     const bulan=document.getElementById('payrollBulan').value,tahun=document.getElementById('payrollTahun').value;
     const r=await fetch(`${API}/payroll/approve-all`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:selectedClientId,bulan,tahun})});
-    if(r.ok){updateStepper(5);showToast('All payroll approved successfully! Payslips ready.');filterPayrollByClient();}
+    if(r.ok){updateStepper(5);showToast('All payroll approved successfully! Salary slips ready.');filterPayrollByClient();}
 }
 
 async function approvePayroll(id){
@@ -268,7 +268,7 @@ async function viewSlip(id){
 
     document.getElementById('slipContent').innerHTML=`
         <div style="text-align:center;border-bottom:2px solid #eee;padding-bottom:15px;margin-bottom:20px;">
-            <h2 style="color:var(--primary-color); margin: 0;">PAYSLIP</h2>
+            <h2 style="color:var(--primary-color); margin: 0;">SALARY SLIP</h2>
             <p style="font-size:13px;color:#666; margin: 5px 0 0 0;">Period: ${slip.bulan}/${slip.tahun}${period&&period.pay_date?' • Pay Date: '+period.pay_date:''}</p>
         </div>
         <table style="width:100%; border:none; margin-bottom:20px; font-size:14px; line-height:1.5; border-collapse:collapse;">

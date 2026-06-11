@@ -3,7 +3,7 @@
 
     <div id="modalSlip" class="modal-skema" style="width: 600px; max-width: 95%; display: none; z-index: 2000;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
-            <h3>Pay Slip</h3>
+            <h3>Salary Slip</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalSlip()"></i>
         </div>
         <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
@@ -1831,31 +1831,53 @@
                 </div>
             </div>
 
+            <style>
+                #dropzoneAbsensiExcel {
+                    transition: all 0.3s ease-in-out;
+                }
+                #dropzoneAbsensiExcel:hover {
+                    border-color: #27ae60 !important;
+                    background-color: #f4fbf7 !important;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.06);
+                }
+            </style>
+
             <div class="form-group" style="margin-bottom: 15px;">
-                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Excel File</label>
+                <label style="font-weight: 600; margin-bottom: 8px; display: block; color: #475569;">Excel File</label>
                 
-                <!-- Simple file input button -->
-                <div style="margin-bottom: 15px;">
-                    <label for="fileAbsensiExcel" style="background: #27ae60; color: white; padding: 12px 24px; border-radius: 8px; cursor: pointer; display: inline-block; font-weight: 600; font-size: 14px;">
-                        <i class="fas fa-upload"></i> Choose Excel File
-                    </label>
-                    <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event);">
-                    <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: block; margin-top: 8px;">No file selected</span>
-                </div>
+                <input type="file" id="fileAbsensiExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleAbsensiFileSelect(event);">
                 
-                <!-- Optional dropzone for drag and drop -->
+                <!-- Unified Premium Drag & Drop Zone -->
                 <div id="dropzoneAbsensiExcel" 
                      style="border: 2px dashed #cbd5e1; 
                             border-radius: 12px; 
                             padding: 30px 20px; 
                             text-align: center; 
-                            background: #f8fafc; 
-                            display: none;"
+                            background: #ffffff; 
+                            cursor: pointer;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 8px;"
+                     onclick="document.getElementById('fileAbsensiExcel').click();"
                      ondragover="handleAbsensiDragOver(event)"
                      ondragleave="handleAbsensiDragLeave(event)"
                      ondrop="handleAbsensiDrop(event)">
-                    <i class="fas fa-file-excel" style="font-size: 48px; color: #27ae60; margin-bottom: 12px; display: inline-block;"></i>
-                    <span id="dropzoneAbsensiText1" style="font-size: 14px; color: #64748b; display: block;">or drag and drop file here</span>
+                    
+                    <i class="fas fa-file-excel" style="font-size: 48px; color: #27ae60; margin-bottom: 4px; display: inline-block;"></i>
+                    
+                    <span id="dropzoneAbsensiText1" style="font-size: 14px; font-weight: 600; color: #334155; display: block;">
+                        Drag & Drop your Excel file here
+                    </span>
+                    <span id="dropzoneAbsensiText2" style="font-size: 12px; color: #64748b; display: block;">
+                        or click to browse files from your computer
+                    </span>
+                    
+                    <span id="labelAbsensiFilename" style="font-size: 13px; font-weight: 600; color: #f39c12; display: inline-block; margin-top: 8px; padding: 4px 12px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 6px;">
+                        No file chosen
+                    </span>
                 </div>
             </div>
 
@@ -2061,6 +2083,26 @@
                     <div style="flex: 1;">
                         <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Selesai <span style="color: #ef4444;">*</span></label>
                         <input type="time" id="shiftSchemeEndTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Mulai Istirahat</label>
+                        <input type="time" id="shiftSchemeBreakStartTime" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Selesai Istirahat</label>
+                        <input type="time" id="shiftSchemeBreakEndTime" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Istirahat (Jam)</label>
+                        <input type="number" id="shiftSchemeBreakDuration" step="0.1" min="0" max="24" readonly style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background-color: #f8fafc; color: #64748b;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Kerja Standar (Jam) <span style="color: #ef4444;">*</span></label>
+                        <input type="number" id="shiftSchemeDuration" step="0.1" min="0" max="24" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background-color: #f8fafc; color: #64748b;">
                     </div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">

@@ -344,9 +344,6 @@ function switchPayrollSub(sub) {
         switchPayrollSubTab('skema');
     } else if (sub === 'pajak') {
         switchView('pajak');
-    } else if (sub === 'system_settings') {
-        switchView('schedule');
-        switchScheduleSubTab('systemSettings');
     } else if (sub === 'schedule') {
         switchView('schedule');
     }
@@ -387,20 +384,10 @@ function switchScheduleSubTab(tab) {
         if (typeof loadHolidays === 'function') loadHolidays();
     } else if (tab === 'attendance') {
         if (typeof loadAttendanceClients === 'function') loadAttendanceClients();
-    } else if (tab === 'overtime') {
-        if (typeof loadOvertimeClients === 'function') loadOvertimeClients();
-    } else if (tab === 'systemSettings') {
-        if (typeof fetchSystemSettings === 'function') fetchSystemSettings();
     }
 }
 
 function switchView(view) {
-    // Redirect consolidated schedule sub-views to the main schedule view with active tab
-    if (view === 'systemSettings') {
-        switchView('schedule');
-        switchScheduleSubTab('systemSettings');
-        return;
-    }
     if (view === 'holiday') {
         switchView('schedule');
         switchScheduleSubTab('holiday');
@@ -475,7 +462,8 @@ function switchView(view) {
         pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme',
         systemSettings: 'System Settings',
-        schedule: 'Schedule'
+        schedule: 'Schedule',
+        skemaShift: 'Employee Management'
     };
     document.getElementById('viewTitle').innerText = titles[view] || 'Employee Management';
 
@@ -550,7 +538,6 @@ function switchView(view) {
             if (tabId === 'subTabScheduleHoliday') switchScheduleSubTab('holiday');
             else if (tabId === 'subTabScheduleAttendance') switchScheduleSubTab('attendance');
             else if (tabId === 'subTabScheduleOvertime') switchScheduleSubTab('overtime');
-            else if (tabId === 'subTabScheduleSystemSettings') switchScheduleSubTab('systemSettings');
         }
     }
 
@@ -886,8 +873,9 @@ async function fetchNotifications() {
             const clientId = item.client_id || 'null';
             const clientName = item.client_name ? item.client_name.replace(/'/g, "\\'") : '';
             const clientSektor = item.client_sektor ? item.client_sektor.replace(/'/g, "\\'") : '';
+            const itemId = item.id ? item.id.replace(/'/g, "\\'") : '';
             return `
-                <div class="notification-item" onclick="handleNotificationClick('${item.link}', ${clientId}, '${clientName}', '${clientSektor}')">
+                <div class="notification-item" onclick="handleNotificationClick('${item.link}', ${clientId}, '${clientName}', '${clientSektor}', '${itemId}')">
                     <div class="notification-icon ${iconColorClass}">
                         <i class="${iconClass}"></i>
                     </div>
@@ -908,7 +896,7 @@ async function fetchNotifications() {
     }
 }
 
-function handleNotificationClick(link, clientId = null, clientName = '', clientSektor = '') {
+function handleNotificationClick(link, clientId = null, clientName = '', clientSektor = '', itemId = '') {
     // Close dropdown
     const dropdown = document.getElementById('notificationsDropdown');
     if (dropdown) dropdown.classList.remove('show');
@@ -919,6 +907,14 @@ function handleNotificationClick(link, clientId = null, clientName = '', clientS
             selectClient(clientId, clientName, clientSektor);
             if (typeof switchWorkspaceTab === 'function') {
                 switchWorkspaceTab('proses');
+            }
+            // If it is a cutoff notification, open the modal to create new period automatically
+            if (itemId && itemId.startsWith('cutoff_')) {
+                if (typeof window.bukaModalPeriode === 'function') {
+                    window.bukaModalPeriode();
+                } else if (typeof bukaModalPeriode === 'function') {
+                    bukaModalPeriode();
+                }
             }
         } else {
             switchView('klien');
