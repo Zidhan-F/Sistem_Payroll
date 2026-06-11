@@ -232,6 +232,43 @@
                                 <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Attendance Deduction Amount per Day (IDR)</label>
                                  <input type="text" id="skemaNominalPotongan" placeholder="Example: 100000" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
+                            
+                            <!-- Grace Periods & Min Overtime -->
+                            <div style="display: flex; gap: 12px; margin-top: 5px;">
+                                <div style="flex: 1;">
+                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
+                                    <input type="number" id="skemaGraceLate" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
+                                    <input type="number" id="skemaGraceEarly" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
+                                    <input type="number" id="skemaMinOvertime" min="0" value="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                            </div>
+
+                            <!-- Denda -->
+                            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+                                <label style="font-weight: 700; font-size: 13px; color: #1e293b; display: flex; align-items: center; gap: 6px; margin: 0;">
+                                    <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Konfigurasi Denda
+                                </label>
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
+                                        Denda Terlambat / Jam (Rp)
+                                        <span style="font-weight: 400; color: #94a3b8;"> — ceiling per jam (&lt; 1 jam = 1 jam)</span>
+                                    </label>
+                                    <input type="text" id="skemaDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
+                                        Denda Alfa / Hari (Rp)
+                                        <span style="font-weight: 400; color: #94a3b8;"> — berlaku untuk Alfa &amp; Early Leave melebihi toleransi</span>
+                                    </label>
+                                    <input type="text" id="skemaDendaAlfaPerHari" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Description -->
@@ -1102,7 +1139,7 @@
                     </select>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 15px;">
+                <div class="form-group" style="margin-bottom: 15px; display: none;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Custom Standard Days for Prorata (Optional)</label>
                     <input type="number" id="empCustomStandardDays" placeholder="Default global: 20 days" min="1" max="31" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     <small style="color: #94a3b8; font-size: 12px;">Leave empty to use global default of 20 standard days.</small>
@@ -1654,6 +1691,45 @@
                             <input type="text" id="schemeRateLembur" placeholder="0 = auto (salary/173)x1.5" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         </div>
                     </div>
+
+                    <!-- Grace Periods & Min Overtime -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
+                            <input type="number" id="schemeGraceLate" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
+                            <input type="number" id="schemeGraceEarly" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
+                            <input type="number" id="schemeMinOvertime" min="0" value="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                        </div>
+                    </div>
+
+                    <!-- Denda -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                        <div class="form-group" style="margin: 0; grid-column: 1 / span 3;">
+                            <label style="font-weight: 700; font-size: 13px; color: #1e293b; display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+                                <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Konfigurasi Denda
+                            </label>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
+                                Denda Terlambat / Jam (Rp)
+                                <span style="font-weight: 400; color: #94a3b8;"> — ceiling per jam (&lt; 1 jam = 1 jam)</span>
+                            </label>
+                            <input type="text" id="schemeDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
+                                Denda Alfa / Hari (Rp)
+                                <span style="font-weight: 400; color: #94a3b8;"> — berlaku untuk Alfa &amp; Early Leave melebihi toleransi</span>
+                            </label>
+                            <input type="text" id="schemeDendaAlfaPerHari" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- BPJS -->
@@ -1979,29 +2055,13 @@
                         <input type="time" id="shiftSchemeEndTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                     </div>
                 </div>
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Durasi Kerja Standar (Jam) <span style="color: #ef4444;">*</span></label>
-                    <input type="number" id="shiftSchemeDuration" step="0.5" min="1" max="24" value="8" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                </div>
-                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
-                    <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Toleransi Terlambat (Menit)</label>
-                        <input type="number" id="shiftSchemeGraceLate" min="0" value="0" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                    </div>
-                    <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Toleransi Early Leave (Menit)</label>
-                        <input type="number" id="shiftSchemeGraceEarly" min="0" value="0" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                    </div>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" id="shiftSchemeIsHoliday" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hitung sebagai Lembur Hari Libur</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                        <input type="checkbox" id="shiftSchemeIsOvertime" style="width: 18px; height: 18px; accent-color: var(--primary-color);">
-                        <span style="font-weight: 600; color: #334155; font-size: 14px;">Hitung Seluruh Durasi Sebagai Lembur (Overtime-only shift)</span>
-                    </label>
+                <!-- Hidden fields to maintain JavaScript compatibility without displaying in the form -->
+                <div style="display: none;">
+                    <input type="number" id="shiftSchemeDuration" value="8">
+                    <input type="number" id="shiftSchemeGraceLate" value="0">
+                    <input type="number" id="shiftSchemeGraceEarly" value="0">
+                    <input type="checkbox" id="shiftSchemeIsHoliday">
+                    <input type="checkbox" id="shiftSchemeIsOvertime">
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
                     <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
