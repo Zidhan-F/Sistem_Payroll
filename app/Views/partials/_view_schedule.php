@@ -123,11 +123,11 @@
                 </div>
 
                 <!-- Main Layout: Grid Calendar & Side Summary -->
-                <div style="display: grid; grid-template-columns: 3fr 1fr; gap: 20px; align-items: start;">
+                <div style="display: grid; grid-template-columns: 1fr 280px; gap: 20px; align-items: start;">
                     <!-- Calendar Grid Wrapper -->
-                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
+                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.02); min-width: 0;">
                         <!-- Days of Week Headers (Sunday is first column) -->
-                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; text-align: center;">
+                        <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; text-align: center;">
                             <div style="padding: 14px 8px; font-weight: 700; color: #ef4444; font-size: 13px; text-transform: uppercase;">Min</div>
                             <div style="padding: 14px 8px; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase;">Sen</div>
                             <div style="padding: 14px 8px; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase;">Sel</div>
@@ -138,17 +138,17 @@
                         </div>
                         
                         <!-- Days Grid -->
-                        <div id="holidayCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px;">
+                        <div id="holidayCalendarGrid" style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: #e2e8f0; gap: 1px;">
                             <!-- Filled dynamically by JS -->
                         </div>
                     </div>
 
                     <!-- Right Side: Monthly Holiday Summary -->
-                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #fafafa; min-height: 250px; border-left: 4px solid var(--primary-color);">
+                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; background: #fafafa; min-height: 250px; border-left: 4px solid var(--primary-color); min-width: 0;">
                         <h4 style="margin: 0 0 15px 0; font-size: 14px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 8px;">
-                            <i class="fas fa-info-circle" style="color: var(--primary-color);"></i> Daftar Hari Libur Bulan Ini
+                            <i class="fas fa-info-circle" style="color: var(--primary-color);"></i> Daftar Hari Libur
                         </h4>
-                        <div id="holidaySideSummary" style="display: flex; flex-direction: column; gap: 12px;">
+                        <div id="holidaySideSummary" style="display: flex; flex-direction: column; gap: 10px;">
                             <!-- Filled dynamically by JS -->
                         </div>
                     </div>

@@ -423,9 +423,8 @@ async function editSchemaMapping(id) {
         if (conf.tax_scheme_id && tsEl && tsEl.tomselect) {
             tsEl.tomselect.setValue(conf.tax_scheme_id);
         }
-        document.getElementById('modalPilihanSkemaCutoffStart').value = conf.cutoff_start !== undefined && conf.cutoff_start !== null ? conf.cutoff_start : 21;
-        document.getElementById('modalPilihanSkemaCutoffEnd').value = conf.cutoff_end !== undefined && conf.cutoff_end !== null ? conf.cutoff_end : 20;
-        document.getElementById('modalPilihanSkemaPayDate').value = conf.pay_date !== undefined && conf.pay_date !== null ? conf.pay_date : 25;
+        document.getElementById('modalPilihanSkemaCutoffStart').value = conf.cutoff_start !== undefined && conf.cutoff_start !== null ? conf.cutoff_start : '';
+        document.getElementById('modalPilihanSkemaPayDate').value = conf.pay_date !== undefined && conf.pay_date !== null ? conf.pay_date : '';
     } catch(e) { console.error('Error in editSchemaMapping:', e); }
 }
 
@@ -702,7 +701,6 @@ window.simpanPilihanSkema = async function() {
             compensation_scheme_id: compSchemeId || (generalExisting ? generalExisting.compensation_scheme_id : null),
             pay_date: isModal ? (parseInt(document.getElementById('modalPilihanSkemaPayDate').value, 10) || null) : (generalExisting ? generalExisting.pay_date : null),
             cutoff_start: isModal ? (parseInt(document.getElementById('modalPilihanSkemaCutoffStart').value, 10) || null) : (generalExisting ? generalExisting.cutoff_start : null),
-            cutoff_end: isModal ? (parseInt(document.getElementById('modalPilihanSkemaCutoffEnd').value, 10) || null) : (generalExisting ? generalExisting.cutoff_end : null),
             
             // Add org hierarchy based on selected level
             division_id: (level !== 'general' && divId) ? divId : null,
@@ -832,7 +830,6 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     
     // Set default values for cutoff and payday to empty
     document.getElementById('modalPilihanSkemaCutoffStart').value = '';
-    document.getElementById('modalPilihanSkemaCutoffEnd').value = '';
     document.getElementById('modalPilihanSkemaPayDate').value = '';
     
     // Set client name

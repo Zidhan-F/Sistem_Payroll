@@ -603,6 +603,34 @@
                         </select>
                     </div>
 
+                    <!-- Cut Off & Pay Day Configuration -->
+                    <div style="display: flex; flex-direction: column; gap: 12px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; margin-top: -5px;">
+                        <h4 style="margin: 0 0 2px 0; font-size: 14px; font-weight: 700; color: #1e293b;"><i class="fas fa-calendar-alt" style="color: var(--primary-color); margin-right: 6px;"></i>Cut Off & Pay Day</h4>
+                        <p style="margin: 0; font-size: 12px; color: #64748b;">
+                            Konfigurasi tanggal cut off dan tanggal gajian untuk skema ini. Wajib diisi.
+                        </p>
+
+                        <div style="display: flex; gap: 24px; align-items: flex-start;">
+                            <!-- Cut Off -->
+                            <div style="flex: 1;">
+                                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Tanggal Cut Off</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="number" id="modalPilihanSkemaCutoffStart" min="1" max="30" placeholder="-" required style="width: 60px; height: 42px; text-align: center; font-size: 16px; font-weight: 700; border: 1px solid #ddd; border-radius: 8px; outline: none; color: #1e293b; background: white; -moz-appearance: textfield;" oninput="if(this.value>30)this.value=30;if(this.value<1&&this.value!=='')this.value=1;">
+                                    <small style="color: #94a3b8; font-size: 11px; line-height: 1.3;"><i class="fas fa-info-circle" style="margin-right: 3px;"></i>Tanggal mulai perhitungan<br>periode payroll (rapel).</small>
+                                </div>
+                            </div>
+
+                            <!-- Pay Day -->
+                            <div style="flex: 1;">
+                                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;"><i class="fas fa-money-check-alt" style="color: #16a34a; margin-right: 4px;"></i>Pay Day / Tanggal Gajian</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="number" id="modalPilihanSkemaPayDate" min="1" max="30" placeholder="-" required style="width: 60px; height: 42px; text-align: center; font-size: 16px; font-weight: 700; border: 1px solid #ddd; border-radius: 8px; outline: none; color: #1e293b; background: white; -moz-appearance: textfield;" oninput="if(this.value>30)this.value=30;if(this.value<1&&this.value!=='')this.value=1;">
+                                    <small style="color: #94a3b8; font-size: 11px; line-height: 1.3;"><i class="fas fa-info-circle" style="margin-right: 3px;"></i>Tanggal pembayaran gaji<br>setiap bulan.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- BPJS Scheme (Hidden from user, defaults to tambah_skema) -->
                     <div style="display: none;">
                         <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required>

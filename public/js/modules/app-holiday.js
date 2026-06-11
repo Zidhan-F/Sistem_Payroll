@@ -278,16 +278,16 @@ function renderSideSummary(monthlyHolidays) {
         const dayName = dayNames[d.getDay()];
         
         return `
-            <div style="background:white; border:1px solid #e2e8f0; border-radius:8px; padding:12px; display:flex; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
-                <div style="background:#fee2e2; color:#ef4444; font-weight:700; border-radius:6px; width:45px; height:45px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
-                    <span style="font-size:9px; text-transform:uppercase; font-weight:600; line-height:1;">${dayName}</span>
-                    <span style="font-size:16px; line-height:1.2; font-weight:700;">${d.getDate()}</span>
+            <div style="background:white; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; display:flex; align-items:center; gap:8px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+                <div style="background:#fee2e2; color:#ef4444; font-weight:700; border-radius:6px; width:40px; height:40px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
+                    <span style="font-size:8px; text-transform:uppercase; font-weight:600; line-height:1;">${dayName}</span>
+                    <span style="font-size:14px; line-height:1.2; font-weight:700;">${d.getDate()}</span>
                 </div>
                 <div style="flex-grow:1; min-width:0;">
-                    <p style="margin:0; font-weight:600; color:#1e293b; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${h.deskripsi}">${h.deskripsi}</p>
-                    <p style="margin:2px 0 0 0; color:#64748b; font-size:11px;">${h.tanggal}</p>
+                    <p style="margin:0; font-weight:600; color:#1e293b; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${h.deskripsi}">${h.deskripsi}</p>
+                    <p style="margin:1px 0 0 0; color:#64748b; font-size:10px;">${h.tanggal}</p>
                 </div>
-                <button onclick="confirmDeleteHoliday(${h.id}, '${h.tanggal}', '${h.deskripsi}')" style="background:transparent; border:none; color:#94a3b8; cursor:pointer; padding:4px 8px; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">
+                <button onclick="confirmDeleteHoliday(${h.id}, '${h.tanggal}', '${h.deskripsi}')" style="background:transparent; border:none; color:#94a3b8; cursor:pointer; padding:2px 4px; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
