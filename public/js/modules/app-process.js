@@ -10,12 +10,8 @@ async function loadActivePeriod() {
         window.loadedPeriods = periods;
         
         // 1. Render dropdown selector on the main page
-        const select = document.getElementById('selectPeriodInput');
-        if (select) {
-            select.innerHTML = '<option value="" disabled selected hidden>-- Select Period --</option>' + periods.map(p => `
-                <option value="${p.id}" ${p.id == currentPeriodId ? 'selected' : ''}>${p.nama} (${p.status})</option>
-            `).join('');
-        }
+        const monthSelect = document.getElementById('processMonthSelect');
+        const yearSelect = document.getElementById('processYearSelect');
         
         // 2. Render history list inside the popup modal
         const list = document.getElementById('periodHistoryList');
@@ -30,24 +26,35 @@ async function loadActivePeriod() {
         
         if (periods.length > 0) {
             const hasCurrentPeriod = periods.some(p => p.id == currentPeriodId);
+            let activePeriod = periods.find(p => p.id == currentPeriodId);
             if (!currentPeriodId || !hasCurrentPeriod) {
-                selectPeriod(periods[0].id, periods[0].nama);
-                if (select) select.value = periods[0].id;
-            } else {
-                selectPeriod(currentPeriodId, periods.find(p => p.id == currentPeriodId)?.nama || '');
-                if (select) select.value = currentPeriodId;
+                activePeriod = periods[0];
             }
+            
+            currentPeriodId = activePeriod.id;
+            window.currentPeriodId = activePeriod.id;
+            
+            if (monthSelect) monthSelect.value = activePeriod.bulan;
+            if (yearSelect) yearSelect.value = activePeriod.tahun;
+            
+            selectPeriod(currentPeriodId, activePeriod.nama);
         } else {
-            document.getElementById('prosesActions').style.display = 'none';
-            document.getElementById('prosesEmptyState').style.display = 'block';
-            if (document.getElementById('resultSection')) document.getElementById('resultSection').style.display = 'none';
-            if (document.getElementById('resultsEmptyState')) document.getElementById('resultsEmptyState').style.display = 'block';
+            // Default select to current month/year if no periods exist
+            const d = new Date();
+            if (monthSelect) monthSelect.value = d.getMonth() + 1;
+            if (yearSelect) yearSelect.value = d.getFullYear();
+            
+            currentPeriodId = null;
+            window.currentPeriodId = null;
+            
+            selectPeriod(null, '');
         }
     } catch (err) { console.error(err); }
 }
 
 function selectPeriod(id, name) {
     currentPeriodId = id;
+    window.currentPeriodId = id;
     if (!id || id === 'null' || id === '') {
         document.getElementById('prosesActions').style.display = 'none';
         document.getElementById('prosesEmptyState').style.display = 'block';
@@ -74,6 +81,39 @@ function selectPeriod(id, name) {
     renderReviewGajiTable();
     tutupSemuaModal();
 }
+
+function onProcessPeriodChange() {
+    const monthSelect = document.getElementById('processMonthSelect');
+    const yearSelect = document.getElementById('processYearSelect');
+    if (!monthSelect || !yearSelect || !window.loadedPeriods) return;
+    
+    const selectedMonth = parseInt(monthSelect.value);
+    const selectedYear = parseInt(yearSelect.value);
+    
+    const matchedPeriod = window.loadedPeriods.find(p => parseInt(p.bulan) === selectedMonth && parseInt(p.tahun) === selectedYear);
+    
+    if (matchedPeriod) {
+        selectPeriod(matchedPeriod.id, matchedPeriod.nama);
+    } else {
+        // No period opened for this month and year
+        currentPeriodId = null;
+        window.currentPeriodId = null;
+        document.getElementById('prosesActions').style.display = 'none';
+        document.getElementById('prosesEmptyState').style.display = 'block';
+        
+        // Update the empty state message dynamically to guide the user
+        const emptyStateText = document.querySelector('#prosesEmptyState p');
+        if (emptyStateText) {
+            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const monthName = monthNames[selectedMonth - 1] || '';
+            emptyStateText.innerHTML = `Periode <strong>${monthName} ${selectedYear}</strong> belum dibuka untuk client ini. Silakan klik tombol <strong>'Open New Period'</strong> di sub-menu Attendance untuk membuka periode baru.`;
+        }
+        
+        if (document.getElementById('resultSection')) document.getElementById('resultSection').style.display = 'none';
+        if (document.getElementById('resultsEmptyState')) document.getElementById('resultsEmptyState').style.display = 'block';
+    }
+}
+window.onProcessPeriodChange = onProcessPeriodChange;
 
 function switchPayrollProcessSubTab(tab) {
     document.querySelectorAll('.client-proses-subpanel').forEach(p => p.style.display = 'none');
@@ -110,7 +150,7 @@ async function renderCutOffTable() {
     try {
         const tbody = document.getElementById('tabelCutOffBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
         const res = await fetch(url);
@@ -121,22 +161,19 @@ async function renderCutOffTable() {
         window.currentPeriodAttendance = data;
         if (!tbody) return;
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Tidak ada data karyawan aktif untuk periode ini.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Tidak ada data karyawan aktif untuk periode ini.</td></tr>`;
             return;
         }
         tbody.innerHTML = data.map(row => {
             const hariKerja = parseFloat(row.hari_kerja) || 0;
             const jamLembur = parseFloat(row.jam_lembur) || 0;
-            const jamLemburBiasa = parseFloat(row.jam_lembur_hari_biasa) || 0;
-            const jamLemburLibur = parseFloat(row.jam_lembur_hari_libur) || 0;
             const potongan = parseFloat(row.potongan_absensi) || 0;
             const bonus = parseFloat(row.bonus_tambahan) || 0;
             return `
             <tr>
                 <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
                 <td>${hariKerja} Days</td>
-                <td>${jamLemburBiasa > 0 ? jamLemburBiasa + ' Hrs' : '-'}</td>
-                <td>${jamLemburLibur > 0 ? '<span style="color:#e67e22; font-weight:600;">' + jamLemburLibur + ' Hrs</span>' : '-'}</td>
+                <td>${jamLembur > 0 ? jamLembur + ' Hours' : '-'}</td>
                 <td>${formatRupiah(potongan)}</td>
                 <td>${formatRupiah(bonus)}</td>
                 <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja || 22}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
@@ -146,7 +183,7 @@ async function renderCutOffTable() {
         console.error(err); 
         const tbody = document.getElementById('tabelCutOffBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat data cut-off: ${err.message || err}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat data cut-off: ${err.message || err}</td></tr>`;
         }
     }
 }
@@ -428,11 +465,13 @@ async function exportGajiToExcel() {
         ];
         ws['!cols'] = wscols;
         
-        // Get period name from dropdown selection
-        const select = document.getElementById('selectPeriodInput');
+        // Get period name from current period ID
         let periodText = 'Report';
-        if (select && select.selectedIndex >= 0) {
-            periodText = select.options[select.selectedIndex].text.split('(')[0].trim().replace(/\s+/g, '_');
+        if (currentPeriodId && window.loadedPeriods) {
+            const periodObj = window.loadedPeriods.find(p => p.id == currentPeriodId);
+            if (periodObj) {
+                periodText = periodObj.nama.trim().replace(/\s+/g, '_');
+            }
         }
         
         // Download real .xlsx file
@@ -691,6 +730,19 @@ function bukaModalOrg(type, mode, id = null) {
 }
 
 function bukaModalPeriode() {
+    // Sinkronkan selectedClientId dari select attendance jika window.selectedClientId belum terisi
+    if (!window.selectedClientId) {
+        const attClientId = document.getElementById('attendanceClientSelect')?.value;
+        if (attClientId) {
+            window.selectedClientId = attClientId;
+        }
+    }
+
+    if (!window.selectedClientId) {
+        showToast('Silakan pilih client terlebih dahulu!', 'warning');
+        return;
+    }
+
     document.getElementById('modalPeriode').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
     

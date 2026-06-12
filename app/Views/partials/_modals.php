@@ -259,13 +259,7 @@
                                     </label>
                                     <input type="text" id="skemaDendaTerlambatPerJam" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                                 </div>
-                                <div class="form-group" style="margin: 0;">
-                                    <label style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 4px;">
-                                        Denda Alfa / Hari (Rp)
-                                        <span style="font-weight: 400; color: #94a3b8;"> — berlaku untuk Alfa &amp; Early Leave melebihi toleransi</span>
-                                    </label>
-                                    <input type="text" id="skemaDendaAlfaPerHari" placeholder="0" onkeyup="formatRupiahInput(this)" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                                </div>
+                                <input type="hidden" id="skemaDendaAlfaPerHari" value="0">
                             </div>
                         </div>
 

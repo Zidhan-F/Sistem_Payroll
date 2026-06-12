@@ -151,12 +151,21 @@
                                 <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                                     <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Monthly Salary Processing</h3>
                                     <div style="display: flex; gap: 12px; align-items: center;">
-                                        <select id="selectPeriodInput" onchange="if(this.value) selectPeriod(this.value, this.options[this.selectedIndex].text)" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 200px;">
-                                            <option value="">-- Select Period --</option>
+                                        <select id="processMonthSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 130px;">
+                                            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                                            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                                            <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                                            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
                                         </select>
-                                        <button class="btn-add" onclick="bukaModalPeriode()" style="background: #2c3e50; font-weight: 600;">
-                                            <i class="fas fa-calendar-plus"></i> Open New Period
-                                        </button>
+                                        <select id="processYearSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 100px;">
+                                            <?php 
+                                            $currentYear = intval(date('Y'));
+                                            for ($y = $currentYear - 2; $y <= $currentYear + 3; $y++) {
+                                                $selected = ($y === $currentYear) ? 'selected' : '';
+                                                echo "<option value=\"$y\" $selected>$y</option>";
+                                            }
+                                            ?>
+                                        </select>
                                     </div>
                                 </div>
 
@@ -181,13 +190,12 @@
                                             <table id="tabelCutOff">
                                                 <thead>
                                                     <tr>
-                                                        <th>Employee Name</th>
-                                                        <th>Working Days</th>
-                                                        <th>OT Biasa</th>
-                                                        <th>OT Libur</th>
-                                                        <th>Deductions</th>
-                                                        <th>Bonus</th>
-                                                        <th>Action</th>
+                                                         <th>Employee Name</th>
+                                                         <th>Working Days</th>
+                                                         <th>Overtime</th>
+                                                         <th>Deductions</th>
+                                                         <th>Bonus</th>
+                                                         <th>Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tabelCutOffBody"></tbody>

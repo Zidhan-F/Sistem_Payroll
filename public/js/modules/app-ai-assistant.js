@@ -405,9 +405,8 @@
         showReportLoading('aiPageResult', 'aiPagePlaceholder');
         STATE.isLoading = true;
 
-        // Get period ID if active (from selectPeriodInput dropdown)
-        const selectPeriod = document.getElementById('selectPeriodInput');
-        const periodId = selectPeriod ? selectPeriod.value : null;
+        // Get period ID if active (from window.currentPeriodId)
+        const periodId = window.currentPeriodId || null;
 
         try {
             const res = await fetch(`${window.API}/ai/summarize-payroll`, {

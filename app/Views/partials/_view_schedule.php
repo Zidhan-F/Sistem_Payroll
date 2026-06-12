@@ -115,9 +115,13 @@
                         </select>
                         
                         <select id="holidayYearSelect" onchange="onHolidayMonthYearChange()" style="padding: 8px 14px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 14px; font-weight: 600; color: #334155; cursor: pointer; background: white; min-width: 90px;">
-                            <option value="2025">2025</option>
-                            <option value="2026" selected>2026</option>
-                            <option value="2027">2027</option>
+                            <?php 
+                            $currentYear = intval(date('Y'));
+                            for ($y = $currentYear - 2; $y <= $currentYear + 3; $y++) {
+                                $selected = ($y === $currentYear) ? 'selected' : '';
+                                echo "<option value=\"$y\" $selected>$y</option>";
+                            }
+                            ?>
                         </select>
                     </div>
                 </div>
@@ -211,9 +215,13 @@
                         <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
                     </select>
                     <select id="attendanceYearSelect" onchange="loadAttendanceLogs()" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
-                        <option value="2025">2025</option>
-                        <option value="2026" selected>2026</option>
-                        <option value="2027">2027</option>
+                        <?php 
+                        $currentYear = intval(date('Y'));
+                        for ($y = $currentYear - 2; $y <= $currentYear + 3; $y++) {
+                            $selected = ($y === $currentYear) ? 'selected' : '';
+                            echo "<option value=\"$y\" $selected>$y</option>";
+                        }
+                        ?>
                     </select>
                     <button class="btn-add" onclick="bukaModalUploadAbsensi()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-file-excel"></i> Upload Attendance Excel
@@ -221,6 +229,9 @@
 
                     <button class="btn-add" onclick="downloadMainAbsensiTemplate()" style="background: #2c3e50; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-download"></i> Download Template
+                    </button>
+                    <button class="btn-add" onclick="bukaModalPeriode()" style="background: #2980b9; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-calendar-plus"></i> Open New Period
                     </button>
                     <div style="position: relative; display: inline-block;">
                         <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;"></i>
@@ -276,9 +287,13 @@
                             <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
                         </select>
                         <select id="overtimeYearSelect" onchange="loadOvertimeLogs()" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
-                            <option value="2025">2025</option>
-                            <option value="2026" selected>2026</option>
-                            <option value="2027">2027</option>
+                            <?php 
+                            $currentYear = intval(date('Y'));
+                            for ($y = $currentYear - 2; $y <= $currentYear + 3; $y++) {
+                                $selected = ($y === $currentYear) ? 'selected' : '';
+                                echo "<option value=\"$y\" $selected>$y</option>";
+                            }
+                            ?>
                         </select>
                         <button class="btn-add" onclick="bukaModalOvertime()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                             <i class="fas fa-plus"></i> Input Lembur

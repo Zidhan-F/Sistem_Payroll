@@ -43,6 +43,9 @@ async function loadAttendanceLogs() {
         return;
     }
 
+    // Sinkronisasi selectedClientId secara global
+    window.selectedClientId = clientId;
+
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
 
