@@ -183,7 +183,8 @@
                                                     <tr>
                                                         <th>Employee Name</th>
                                                         <th>Working Days</th>
-                                                        <th>Overtime</th>
+                                                        <th>OT Biasa</th>
+                                                        <th>OT Libur</th>
                                                         <th>Deductions</th>
                                                         <th>Bonus</th>
                                                         <th>Action</th>

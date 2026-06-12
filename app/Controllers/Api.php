@@ -727,6 +727,10 @@ class Api extends ResourceController
         $tYear = intval(date('Y', $ts));
         $tMonth = intval(date('n', $ts));
         $tDay = intval(date('j', $ts));
+        
+        if ($cutoffEnd <= 0) {
+            $cutoffEnd = date('t', $ts);
+        }
 
         if ($tDay > $cutoffEnd) {
             $natMonth = $tMonth + 1;
@@ -2101,6 +2105,16 @@ class Api extends ResourceController
         }
         unset($data['hari_kerja']);
         
+        if (isset($data['cutoff_start'])) {
+            $cutoffStartVal = intval($data['cutoff_start']);
+            $cutoffEndVal = $cutoffStartVal - 1;
+            if ($cutoffEndVal < 1) {
+                $cutoffEndVal = 0;
+            }
+            $data['cutoff_end'] = $cutoffEndVal;
+        }
+
+        
         // Cek jika sudah ada skema untuk level organisasi ini yang SPESIFIK
         $query = $this->db->table('client_payroll_configs')->where('client_id', $clientId);
         if ($divisionId) $query->where('division_id', $divisionId); else $query->where('division_id IS NULL');
@@ -2293,6 +2307,7 @@ class Api extends ResourceController
         $query = $this->db->table('pkwt')
                           ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, 
                                     payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, 
+                                    payroll_attendance.jam_lembur_hari_biasa, payroll_attendance.jam_lembur_hari_libur,
                                     payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan,
                                     employees.id as employee_id, employees.employ_id, employees.nik, employees.gaji_pokok,
                                     employees.hari_kerja as employee_hari_kerja, positions.hari_kerja as position_hari_kerja')
@@ -2390,16 +2405,32 @@ class Api extends ResourceController
                                        ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                                        ->countAllResults();
                 
-                // 2. Query total jam_lembur (ONLY APPROVED) dari overtime_logs
-                $lemburSumObj = $this->db->table('overtime_logs')
+                // 2. Query total jam_lembur (ONLY APPROVED) dari overtime_logs — SPLIT by is_holiday
+                // 2a. Lembur Hari Biasa (is_holiday = 0)
+                $lemburBiasaObj = $this->db->table('overtime_logs')
                                          ->selectSum('jam_lembur')
                                          ->where('employee_id', $employee->id)
                                          ->where('tanggal >=', $startDateStr)
                                          ->where('tanggal <=', $endDateStr)
                                          ->where('status', 'Approved')
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                         ->where('(is_holiday = 0 OR is_holiday IS NULL)')
                                          ->get()->getRow();
-                $lemburSum = $lemburSumObj ? floatval($lemburSumObj->jam_lembur) : 0.0;
+                $lemburBiasa = $lemburBiasaObj ? floatval($lemburBiasaObj->jam_lembur) : 0.0;
+
+                // 2b. Lembur Hari Libur (is_holiday = 1)
+                $lemburLiburObj = $this->db->table('overtime_logs')
+                                         ->selectSum('jam_lembur')
+                                         ->where('employee_id', $employee->id)
+                                         ->where('tanggal >=', $startDateStr)
+                                         ->where('tanggal <=', $endDateStr)
+                                         ->where('status', 'Approved')
+                                         ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                         ->where('is_holiday', 1)
+                                         ->get()->getRow();
+                $lemburLibur = $lemburLiburObj ? floatval($lemburLiburObj->jam_lembur) : 0.0;
+
+                $lemburSum = $lemburBiasa + $lemburLibur;
 
 
                 // 3. Query total alpa (Absen)
@@ -2441,6 +2472,10 @@ class Api extends ResourceController
                     $jamLembur = $lemburSum;
                     $potonganAbsensi = $calculatedPotongan;
                 }
+
+                // Set breakdown values (only available when we have daily logs)
+                $jamLemburHariBiasa = $lemburBiasa ?? 0;
+                $jamLemburHariLibur = $lemburLibur ?? 0;
             }
 
             $existing = $this->db->table('payroll_attendance')
@@ -2453,6 +2488,8 @@ class Api extends ResourceController
                 'pkwt_id' => $pkwtId,
                 'hari_kerja' => $hariKerja,
                 'jam_lembur' => $jamLembur,
+                'jam_lembur_hari_biasa' => $jamLemburHariBiasa ?? 0,
+                'jam_lembur_hari_libur' => $jamLemburHariLibur ?? 0,
                 'potongan_absensi' => $potonganAbsensi,
                 'bonus_tambahan' => $record['bonus_tambahan'] ?? 0,
             ];
@@ -2515,11 +2552,11 @@ class Api extends ResourceController
                 }
             }
 
-            // Get Client's overtime_rate_per_hour
+            // Get Client's overtime_rate_per_hour (manual flat rate, or 0 = use formula)
             $client = $this->db->table('clients')->where('id', $pkwt->client_id)->get()->getRow();
-            $otRate = ($client && isset($client->overtime_rate_per_hour) && floatval($client->overtime_rate_per_hour) > 0)
-                      ? floatval($client->overtime_rate_per_hour)
-                      : 20000;
+            $clientManualOtRate = ($client && isset($client->overtime_rate_per_hour)) ? floatval($client->overtime_rate_per_hour) : 0;
+            // Also check scheme template rate
+            $schemeOtRate = 0; // will be resolved after scheme template is loaded
 
             // 2. Get Fixed Components from PKWT
             $components = $this->db->table('pkwt_components')->where('pkwt_id', $pkwt->id)->get()->getResult();
@@ -2774,6 +2811,7 @@ class Api extends ResourceController
 
             // 7. Add Variable Data from Attendance
             $potonganAbsenVal = 0;
+            $overtimePay = 0;
             if ($att) {
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
@@ -2838,8 +2876,39 @@ class Api extends ResourceController
                 
                 $totalPendapatan += $att->bonus_tambahan;
                 
-                // Overtime Calculation based on Client's overtime_rate_per_hour
-                $overtimePay = $att->jam_lembur * $otRate; 
+                // === Overtime Calculation — PP No. 35 Tahun 2021 (Progressive Multiplier) ===
+                $jamLemburBiasa = floatval($att->jam_lembur_hari_biasa ?? 0);
+                $jamLemburLibur = floatval($att->jam_lembur_hari_libur ?? 0);
+
+                // Fallback: if breakdown columns are empty but total jam_lembur has value,
+                // treat all as regular day overtime (backward compatibility)
+                if ($jamLemburBiasa == 0 && $jamLemburLibur == 0 && floatval($att->jam_lembur) > 0) {
+                    $jamLemburBiasa = floatval($att->jam_lembur);
+                }
+
+                // Determine working days per week for holiday multiplier bracket
+                $workDaysPerWeek = 5;
+                if ($emp && isset($emp->position_hari_kerja)) {
+                    $posHkOt = intval($emp->position_hari_kerja);
+                    if ($posHkOt == 6) $workDaysPerWeek = 6;
+                }
+
+                // Calculate upah sejam (hourly rate for overtime)
+                // Priority: manual client rate > scheme template rate > formula (salary/173)
+                $upahSejamLembur = 0;
+                if ($clientManualOtRate > 0) {
+                    $upahSejamLembur = $clientManualOtRate;
+                } else {
+                    // Use formula: Gaji Pokok / 173 (PP 35/2021)
+                    $gajiPokokForOt = ($unproratedGajiPokok > 0) ? $unproratedGajiPokok : $gajiPokok;
+                    $upahSejamLembur = ($gajiPokokForOt > 0) ? ($gajiPokokForOt / 173) : 0;
+                }
+
+                // Calculate converted hours with progressive multiplier
+                $jamKonversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $workDaysPerWeek);
+                $jamKonversiLibur = $this->hitungJamLemburKonversi($jamLemburLibur, true, $workDaysPerWeek);
+
+                $overtimePay = ($jamKonversiBiasa + $jamKonversiLibur) * $upahSejamLembur;
                 $totalPendapatan += $overtimePay;
             }
 
@@ -2944,7 +3013,7 @@ class Api extends ResourceController
             // Adjust PPh wage base for attendance variations
             $pphWageBaseFinal = $pphWageBase;
             if ($att) {
-                $pphWageBaseFinal += ($att->jam_lembur * $otRate) + floatval($att->bonus_tambahan) - $potonganAbsenVal;
+                $pphWageBaseFinal += $overtimePay + floatval($att->bonus_tambahan) - $potonganAbsenVal;
             }
 
             // Fallback for BPJS wage base to minimumWage if lower
@@ -3020,7 +3089,9 @@ class Api extends ResourceController
                 'gaji_pokok' => $gajiPokok,
                 'potongan_absen' => $potonganAbsenVal,
                 'jam_lembur' => ($att) ? floatval($att->jam_lembur) : 0,
-                'lembur_pay' => ($att) ? (floatval($att->jam_lembur) * $otRate) : 0,
+                'jam_lembur_biasa' => ($att) ? floatval($att->jam_lembur_hari_biasa ?? 0) : 0,
+                'jam_lembur_libur' => ($att) ? floatval($att->jam_lembur_hari_libur ?? 0) : 0,
+                'lembur_pay' => ($att) ? $overtimePay : 0,
                 'bonus_tambahan' => ($att) ? floatval($att->bonus_tambahan) : 0,
                 'raw_components' => json_encode($components)
             ];
@@ -3465,10 +3536,46 @@ class Api extends ResourceController
         }
 
         if ($att) {
-            if (isset($final['jam_lembur']) && floatval($final['lembur_pay']) > 0) {
-                $earnings[] = ['nama' => 'Lembur', 'nilai' => floatval($final['lembur_pay'])];
-            } else if ($att['jam_lembur'] > 0) {
-                $earnings[] = ['nama' => 'Lembur', 'nilai' => $att['jam_lembur'] * $otRate];
+            // === Overtime Breakdown in Salary Slip ===
+            $jamLemburBiasa = floatval($final['jam_lembur_biasa'] ?? 0);
+            $jamLemburLibur = floatval($final['jam_lembur_libur'] ?? 0);
+            $lemburPayTotal = floatval($final['lembur_pay'] ?? 0);
+
+            if ($lemburPayTotal > 0 && ($jamLemburBiasa > 0 || $jamLemburLibur > 0)) {
+                // We have breakdown data — show separate lines
+                // Determine working days per week for conversion calc
+                $wdPerWeekSlip = 5;
+                if ($emp && isset($emp->position_hari_kerja) && intval($emp->position_hari_kerja) == 6) {
+                    $wdPerWeekSlip = 6;
+                }
+
+                // Calculate upah sejam for proportional split
+                $clientManualOtRateSlip = ($client && isset($client->overtime_rate_per_hour)) ? floatval($client->overtime_rate_per_hour) : 0;
+                $unproratedGpSlip = floatval($final['gaji_pokok'] ?? 0);
+                $upahSejamSlip = ($clientManualOtRateSlip > 0) ? $clientManualOtRateSlip : (($unproratedGpSlip > 0) ? ($unproratedGpSlip / 173) : 0);
+
+                if ($jamLemburBiasa > 0) {
+                    $konversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $wdPerWeekSlip);
+                    $payBiasa = $konversiBiasa * $upahSejamSlip;
+                    $earnings[] = [
+                        'nama' => 'Lembur Hari Biasa (' . $jamLemburBiasa . ' jam → ' . $konversiBiasa . ' jam konversi)',
+                        'nilai' => $payBiasa
+                    ];
+                }
+                if ($jamLemburLibur > 0) {
+                    $konversiLibur = $this->hitungJamLemburKonversi($jamLemburLibur, true, $wdPerWeekSlip);
+                    $payLibur = $konversiLibur * $upahSejamSlip;
+                    $earnings[] = [
+                        'nama' => 'Lembur Hari Libur (' . $jamLemburLibur . ' jam → ' . $konversiLibur . ' jam konversi)',
+                        'nilai' => $payLibur
+                    ];
+                }
+            } else if ($lemburPayTotal > 0) {
+                // Fallback: no breakdown, show single line
+                $earnings[] = ['nama' => 'Lembur', 'nilai' => $lemburPayTotal];
+            } else if (floatval($att['jam_lembur'] ?? 0) > 0) {
+                // Legacy fallback: calculate from attendance
+                $earnings[] = ['nama' => 'Lembur', 'nilai' => floatval($att['jam_lembur']) * $otRate];
             }
 
             if (isset($final['bonus_tambahan']) && floatval($final['bonus_tambahan']) > 0) {
@@ -4183,6 +4290,78 @@ class Api extends ResourceController
             'denda_absen' => round($dendaAbsen),
             'description' => $desc
         ]);
+    }
+
+    /**
+     * Hitung Jam Lembur Konversi berdasarkan PP No. 35 Tahun 2021.
+     * 
+     * Hari Kerja Biasa:
+     *   Jam pertama  => x 1.5
+     *   Jam ke-2 dst => x 2.0
+     * 
+     * Hari Libur / Tanggal Merah (5 hari kerja/minggu):
+     *   8 jam pertama => x 2.0
+     *   Jam ke-9      => x 3.0
+     *   Jam ke-10+    => x 4.0
+     * 
+     * Hari Libur / Tanggal Merah (6 hari kerja/minggu):
+     *   7 jam pertama => x 2.0
+     *   Jam ke-8      => x 3.0
+     *   Jam ke-9+     => x 4.0
+     *
+     * @param float $jamLembur  Total jam lembur riil
+     * @param bool  $isHoliday  Apakah lembur di hari libur/tanggal merah
+     * @param int   $workingDaysPerWeek  Jumlah hari kerja per minggu (5 atau 6)
+     * @return float Jam lembur konversi (sudah dikalikan multiplier)
+     */
+    private function hitungJamLemburKonversi(float $jamLembur, bool $isHoliday = false, int $workingDaysPerWeek = 5): float
+    {
+        if ($jamLembur <= 0) {
+            return 0.0;
+        }
+
+        $jamKonversi = 0.0;
+
+        if (!$isHoliday) {
+            // === Lembur di Hari Kerja Biasa ===
+            // Jam pertama x 1.5
+            $jamPertama = min(1.0, $jamLembur);
+            $jamKonversi += $jamPertama * 1.5;
+
+            // Jam ke-2 dst x 2.0
+            if ($jamLembur > 1.0) {
+                $jamBerikutnya = $jamLembur - 1.0;
+                $jamKonversi += $jamBerikutnya * 2.0;
+            }
+        } else {
+            // === Lembur di Hari Libur / Tanggal Merah ===
+            if ($workingDaysPerWeek == 6) {
+                // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4
+                $batasAwal = 7.0;
+            } else {
+                // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10+ x4
+                $batasAwal = 8.0;
+            }
+
+            if ($jamLembur <= $batasAwal) {
+                $jamKonversi += $jamLembur * 2.0;
+            } else {
+                $jamKonversi += $batasAwal * 2.0; // Jam awal
+
+                $sisa = $jamLembur - $batasAwal;
+                if ($sisa <= 1.0) {
+                    // Jam transisi x 3.0
+                    $jamKonversi += $sisa * 3.0;
+                } else {
+                    // Jam transisi penuh x 3.0
+                    $jamKonversi += 1.0 * 3.0;
+                    // Jam selebihnya x 4.0
+                    $jamKonversi += ($sisa - 1.0) * 4.0;
+                }
+            }
+        }
+
+        return round($jamKonversi, 2);
     }
 
     private function calculateBpjsAndTax($gajiPokok, $bpjsWageBase, $pphWageBase, $schemeTemplate, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme = null)
@@ -5004,15 +5183,30 @@ class Api extends ResourceController
             $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
 
             if ($date >= $startDateStr && $date <= $endDateStr) {
-                $lemburSumObj = $this->db->table('overtime_logs')
+                // Query regular and holiday overtime separately
+                $lemburBiasaObj = $this->db->table('overtime_logs')
                                          ->selectSum('jam_lembur')
                                          ->where('employee_id', $employeeId)
                                          ->where('tanggal >=', $startDateStr)
                                          ->where('tanggal <=', $endDateStr)
                                          ->where('status', 'Approved')
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                         ->where('(is_holiday = 0 OR is_holiday IS NULL)')
                                          ->get()->getRow();
-                $lemburSum = $lemburSumObj ? floatval($lemburSumObj['jam_lembur']) : 0.0;
+                $lemburBiasa = $lemburBiasaObj ? floatval($lemburBiasaObj->jam_lembur) : 0.0;
+
+                $lemburLiburObj = $this->db->table('overtime_logs')
+                                         ->selectSum('jam_lembur')
+                                         ->where('employee_id', $employeeId)
+                                         ->where('tanggal >=', $startDateStr)
+                                         ->where('tanggal <=', $endDateStr)
+                                         ->where('status', 'Approved')
+                                         ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                         ->where('is_holiday', 1)
+                                         ->get()->getRow();
+                $lemburLibur = $lemburLiburObj ? floatval($lemburLiburObj->jam_lembur) : 0.0;
+
+                $lemburSum = $lemburBiasa + $lemburLibur;
 
                 $pkwt = $this->db->table('pkwt')
                                  ->where('client_id', $clientId)
@@ -5029,7 +5223,11 @@ class Api extends ResourceController
                 if ($existing) {
                     $this->db->table('payroll_attendance')
                              ->where('id', $existing->id)
-                             ->update(['jam_lembur' => $lemburSum]);
+                             ->update([
+                                 'jam_lembur' => $lemburSum,
+                                 'jam_lembur_hari_biasa' => $lemburBiasa,
+                                 'jam_lembur_hari_libur' => $lemburLibur,
+                             ]);
                 } else {
                     $stdWorkingDays = 20;
                     $posHk = 5;
@@ -5050,6 +5248,8 @@ class Api extends ResourceController
                         'pkwt_id' => $pkwt->id,
                         'hari_kerja' => $stdWorkingDays,
                         'jam_lembur' => $lemburSum,
+                        'jam_lembur_hari_biasa' => $lemburBiasa,
+                        'jam_lembur_hari_libur' => $lemburLibur,
                         'potongan_absensi' => 0.0,
                         'bonus_tambahan' => 0.0
                     ]);
