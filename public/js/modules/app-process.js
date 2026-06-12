@@ -1243,19 +1243,27 @@ function processParsedAttendance(rows) {
         const status = statusKey ? String(row[statusKey] || '').trim() : '';
         const shift = shiftKey ? String(row[shiftKey] || '').trim() : '';
 
-        const key = empId || empName.toLowerCase();
-        if (!key) return;
-
-        if (!excelByEmp[key]) {
-            excelByEmp[key] = [];
-        }
-        excelByEmp[key].push({
+        const rowData = {
             dateVal: tglVal,
             checkin: checkin,
             checkout: checkout,
             status: status,
             shift: shift
-        });
+        };
+
+        if (empId) {
+            if (!excelByEmp[empId]) {
+                excelByEmp[empId] = [];
+            }
+            excelByEmp[empId].push(rowData);
+        }
+        if (empName) {
+            const nameKey = empName.toLowerCase();
+            if (!excelByEmp[nameKey]) {
+                excelByEmp[nameKey] = [];
+            }
+            excelByEmp[nameKey].push(rowData);
+        }
     });
 
     const finalAttendance = [];
