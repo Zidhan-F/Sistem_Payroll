@@ -365,21 +365,20 @@
                                     <input type="checkbox" id="overtimeSelectAll" onchange="toggleSelectAllOvertime(this)" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-color);">
                                 </th>
                                 <th style="width: 50px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">No</th>
-                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Employee ID</th>
                                 <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Karyawan</th>
+                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">NIK</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Tanggal</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Masuk</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Keluar</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Lembur</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Hari Libur</th>
-                                <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Keterangan</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
                                 <th style="width: 160px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="overtimePendingTableBody">
                             <tr>
-                                <td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
+                                <td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
                                     <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
                                     Silakan pilih client terlebih dahulu untuk menampilkan data lembur.
                                 </td>
@@ -412,14 +411,13 @@
                         <thead>
                             <tr style="background: #f8fafc;">
                                 <th style="width: 50px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">No</th>
-                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Employee ID</th>
                                 <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Karyawan</th>
+                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">NIK</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Tanggal</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Masuk</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Keluar</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Lembur</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Hari Libur</th>
-                                <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Keterangan</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
                                 <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Verifikator</th>
                                 <th style="width: 120px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Aksi</th>
@@ -427,7 +425,7 @@
                         </thead>
                         <tbody id="overtimeHistoryTableBody">
                             <tr>
-                                <td colspan="13" style="text-align:center;padding:40px;color:#94a3b8;">
+                                <td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
                                     <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
                                     Silakan pilih client terlebih dahulu untuk menampilkan data lembur.
                                 </td>

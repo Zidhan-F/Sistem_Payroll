@@ -28,7 +28,7 @@ async function loadOvertimeLogs() {
     document.getElementById('overtimeBulkActions').style.display = 'none';
 
     if (!clientId) {
-        const noClientHtml = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
+        const noClientHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
             Silakan pilih client terlebih dahulu untuk menampilkan data lembur.</td></tr>`;
         pendingTbody.innerHTML = noClientHtml;
@@ -37,7 +37,7 @@ async function loadOvertimeLogs() {
         return;
     }
 
-    const loadingHtml = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
+    const loadingHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
     pendingTbody.innerHTML = loadingHtml;
     historyTbody.innerHTML = loadingHtml;
@@ -56,7 +56,7 @@ async function loadOvertimeLogs() {
         if (statusFilter) statusFilter.value = '';
 
         if (!data || data.length === 0) {
-            const noDataHtml = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
+            const noDataHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
                 <i class="fas fa-clock" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
                 Belum ada data lembur untuk periode ini.</td></tr>`;
             pendingTbody.innerHTML = noDataHtml;
@@ -126,8 +126,8 @@ async function loadOvertimeLogs() {
                         <input type="checkbox" class="overtime-row-checkbox" value="${o.id}" onchange="onOvertimeCheckboxChange()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary-color);">
                     </td>
                     <td style="text-align:center;padding:12px;color:#64748b;">${pendingIndex++}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
                     <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
                     <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_masuk || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_keluar || '-'}</td>
@@ -135,7 +135,6 @@ async function loadOvertimeLogs() {
                     <td style="text-align:center;padding:12px;">
                         <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
                     </td>
-                    <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
                     <td style="text-align:center;padding:12px;">${statusBadge}</td>
                     <td style="text-align:center;padding:12px;">
                         <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
@@ -166,8 +165,8 @@ async function loadOvertimeLogs() {
 
                 historyHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="text-align:center;padding:12px;color:#64748b;">${historyIndex++}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
                     <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
                     <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_masuk || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_keluar || '-'}</td>
@@ -175,7 +174,6 @@ async function loadOvertimeLogs() {
                     <td style="text-align:center;padding:12px;">
                         <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
                     </td>
-                    <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
                     <td style="text-align:center;padding:12px;">${statusBadge}</td>
                     <td style="padding:12px;">${approverDetails}</td>
                     <td style="text-align:center;padding:12px;">
@@ -185,11 +183,11 @@ async function loadOvertimeLogs() {
             }
         });
 
-        pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="12" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending.</td></tr>`;
-        historyTbody.innerHTML = historyHtml || `<tr><td colspan="13" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur.</td></tr>`;
+        pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending.</td></tr>`;
+        historyTbody.innerHTML = historyHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur.</td></tr>`;
     } catch (e) {
-        pendingTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
-        historyTbody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        pendingTbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        historyTbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
     }
 }
 
@@ -805,12 +803,14 @@ function filterOvertimeHistory() {
         historyHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
             <td style="text-align:center;padding:12px;color:#64748b;">${historyIndex++}</td>
             <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
             <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_masuk || '-'}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_keluar || '-'}</td>
             <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
             <td style="text-align:center;padding:12px;">
                 <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
             </td>
-            <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
             <td style="text-align:center;padding:12px;">${statusBadge}</td>
             <td style="padding:12px;">${approverDetails}</td>
             <td style="text-align:center;padding:12px;">
@@ -819,7 +819,7 @@ function filterOvertimeHistory() {
         </tr>`;
     });
 
-    historyTbody.innerHTML = historyHtml || `<tr><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur yang cocok dengan pencarian.</td></tr>`;
+    historyTbody.innerHTML = historyHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur yang cocok dengan pencarian.</td></tr>`;
 }
 
 function filterOvertimePending() {
@@ -870,12 +870,14 @@ function filterOvertimePending() {
             </td>
             <td style="text-align:center;padding:12px;color:#64748b;">${pendingIndex++}</td>
             <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
             <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_masuk || '-'}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_keluar || '-'}</td>
             <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
             <td style="text-align:center;padding:12px;">
                 <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
             </td>
-            <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
             <td style="text-align:center;padding:12px;">${statusBadge}</td>
             <td style="text-align:center;padding:12px;">
                 <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
@@ -883,7 +885,7 @@ function filterOvertimePending() {
         </tr>`;
     });
 
-    pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending yang cocok dengan pencarian.</td></tr>`;
+    pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending yang cocok dengan pencarian.</td></tr>`;
 }
 
 Object.assign(window, {
