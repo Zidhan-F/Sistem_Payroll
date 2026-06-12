@@ -2576,15 +2576,15 @@ class Api extends ResourceController
                             ->get()
                             ->getRow();
 
-            $stdWorkingDays = 21;
-            if ($emp && isset($emp->position_hari_kerja)) {
-                $posHk = intval($emp->position_hari_kerja);
-                if ($posHk === 6) {
-                    $stdWorkingDays = 25;
-                } elseif ($posHk === 7) {
-                    $stdWorkingDays = 30;
+            $workDaysConfig = 5;
+            if ($emp) {
+                if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
+                    $workDaysConfig = intval($emp->hari_kerja);
+                } elseif (isset($emp->position_hari_kerja) && intval($emp->position_hari_kerja) > 0) {
+                    $workDaysConfig = intval($emp->position_hari_kerja);
                 }
             }
+            $stdWorkingDays = $this->getStandardWorkingDays(intval($period->tahun), intval($period->bulan), $workDaysConfig);
             
             $minimumWage = 0;
             $mwId = null;
@@ -2673,12 +2673,6 @@ class Api extends ResourceController
                             $base_nilai = $base_nilai * 4;
                         } elseif ($comp->periode === 'tahun') {
                             $base_nilai = $base_nilai / 12;
-                        } else {
-                            // bulanan
-                            if ($isProrate) {
-                                $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
-                                $base_nilai = $base_nilai * ($days / $daysInMonth);
-                            }
                         }
                     }
                     
@@ -2690,10 +2684,6 @@ class Api extends ResourceController
             if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
                 $unproratedGajiPokok = floatval($emp->gaji_pokok);
                 $gajiPokok = $unproratedGajiPokok;
-                if ($isProrate) {
-                    $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
-                    $gajiPokok = $gajiPokok * ($days / $daysInMonth);
-                }
             }
             // 6. Second pass: Calculate all components
             $totalPendapatan = 0;
@@ -2816,11 +2806,11 @@ class Api extends ResourceController
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
                     if ($potongan_absen == 0) {
-                        $missingDays = max(0, $daysInMonth - intval($att->hari_kerja));
+                        $missingDays = max(0, $stdWorkingDays - intval($att->hari_kerja));
                         if ($missingDays > 0) {
                             if ($isProrate) {
-                                // Pro-rate: potongan = Base Salary * (Hari Tidak Masuk / Hari dalam Bulan)
-                                $potongan_absen = $unproratedGajiPokok * ($missingDays / $daysInMonth);
+                                // Pro-rate: potongan = Base Salary * (Hari Tidak Masuk / Hari Kerja Standard)
+                                $potongan_absen = $unproratedGajiPokok * ($missingDays / $stdWorkingDays);
                             } else {
                                 // Deduction tetap: potongan = nominal yang ditetapkan per hari absen
                                 $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
@@ -3334,15 +3324,17 @@ class Api extends ResourceController
                         ->get()
                         ->getRow();
 
-        $stdWorkingDays = 21;
-        if ($emp && isset($emp->position_hari_kerja)) {
-            $posHk = intval($emp->position_hari_kerja);
-            if ($posHk === 6) {
-                $stdWorkingDays = 25;
-            } elseif ($posHk === 7) {
-                $stdWorkingDays = 30;
+        $workDaysConfig = 5;
+        if ($emp) {
+            if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
+                $workDaysConfig = intval($emp->hari_kerja);
+            } elseif (isset($emp->position_hari_kerja) && intval($emp->position_hari_kerja) > 0) {
+                $workDaysConfig = intval($emp->position_hari_kerja);
             }
         }
+        $year = $period ? intval($period->tahun) : intval(date('Y'));
+        $month = $period ? intval($period->bulan) : intval(date('m'));
+        $stdWorkingDays = $this->getStandardWorkingDays($year, $month, $workDaysConfig);
         
         $minimumWage = 0;
         $mwId = null;
@@ -3443,12 +3435,6 @@ class Api extends ResourceController
                         $base_nilai = $base_nilai * 4;
                     } elseif ($comp['periode'] === 'tahun') {
                         $base_nilai = $base_nilai / 12;
-                    } else {
-                        // bulanan
-                        if ($isProrate) {
-                            $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
-                            $base_nilai = $base_nilai * ($days / $daysInMonth);
-                        }
                     }
                 }
                 
@@ -3460,10 +3446,6 @@ class Api extends ResourceController
         if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
             $unproratedGajiPokok = floatval($emp->gaji_pokok);
             $gajiPokok = $unproratedGajiPokok;
-            if ($isProrate) {
-                $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
-                $gajiPokok = $gajiPokok * ($days / $daysInMonth);
-            }
         }
 
         $earnings = [];
@@ -3589,10 +3571,10 @@ class Api extends ResourceController
             } else if (!$isAbsenTidakPotong) {
                 $potongan_absen = floatval($att['potongan_absensi']);
                 if ($potongan_absen == 0) {
-                    $missingDays = max(0, $daysInMonth - intval($att['hari_kerja']));
+                    $missingDays = max(0, $stdWorkingDays - intval($att['hari_kerja']));
                     if ($missingDays > 0) {
                         if ($isProrate) {
-                            $potongan_absen = $unproratedGajiPokok * ($missingDays / $daysInMonth);
+                            $potongan_absen = $unproratedGajiPokok * ($missingDays / $stdWorkingDays);
                         } else {
                             $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
                             $potongan_absen = $missingDays * $nominalPotongan;
@@ -4362,6 +4344,27 @@ class Api extends ResourceController
         }
 
         return round($jamKonversi, 2);
+    }
+
+    private function getStandardWorkingDays(int $year, int $month, int $workDaysConfig): int
+    {
+        $daysInMonth = date('t', mktime(0, 0, 0, $month, 1, $year));
+        $stdDays = 0;
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $dayOfWeek = date('w', mktime(0, 0, 0, $month, $d, $year)); // 0 = Sunday, 6 = Saturday
+            if ($workDaysConfig === 5) {
+                if ($dayOfWeek != 0 && $dayOfWeek != 6) {
+                    $stdDays++;
+                }
+            } elseif ($workDaysConfig === 6) {
+                if ($dayOfWeek != 0) {
+                    $stdDays++;
+                }
+            } else {
+                $stdDays++;
+            }
+        }
+        return $stdDays;
     }
 
     private function calculateBpjsAndTax($gajiPokok, $bpjsWageBase, $pphWageBase, $schemeTemplate, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme = null)
