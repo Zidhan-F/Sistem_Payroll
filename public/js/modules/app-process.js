@@ -1434,8 +1434,8 @@ function handleAbsensiDragOver(event) {
     event.preventDefault();
     const zone = document.getElementById('dropzoneAbsensiExcel');
     if (zone) {
-        zone.style.borderColor = '#f39c12';
-        zone.style.backgroundColor = '#fdf6e2';
+        zone.style.borderColor = '#e67e22';
+        zone.style.backgroundColor = 'rgba(243, 156, 18, 0.18)';
     }
 }
 
@@ -1443,8 +1443,8 @@ function handleAbsensiDragLeave(event) {
     event.preventDefault();
     const zone = document.getElementById('dropzoneAbsensiExcel');
     if (zone) {
-        zone.style.borderColor = '#cbd5e1';
-        zone.style.backgroundColor = '#ffffff';
+        zone.style.borderColor = '#f39c12';
+        zone.style.backgroundColor = 'rgba(243, 156, 18, 0.08)';
     }
 }
 
@@ -1452,8 +1452,8 @@ function handleAbsensiDrop(event) {
     event.preventDefault();
     const zone = document.getElementById('dropzoneAbsensiExcel');
     if (zone) {
-        zone.style.borderColor = '#cbd5e1';
-        zone.style.backgroundColor = '#ffffff';
+        zone.style.borderColor = '#f39c12';
+        zone.style.backgroundColor = 'rgba(243, 156, 18, 0.08)';
     }
     
     if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {

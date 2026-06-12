@@ -102,6 +102,51 @@ class Payroll extends ResourceController
                        ->where('status', 'Active')
                        ->get()->getRow();
 
+            $empConfig = null;
+            if (!empty($emp['position_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('position_id', $emp['position_id'])
+                    ->get()->getRow();
+            }
+            if (!$empConfig && !empty($emp['department_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('department_id', $emp['department_id'])
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$empConfig && !empty($emp['division_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('division_id', $emp['division_id'])
+                    ->where('department_id IS NULL')
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$empConfig) {
+                $empConfig = $payrollConfig;
+            }
+
+            $daysInMonth = date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun)));
+            $empCutoffStart = $empConfig ? intval($empConfig->cutoff_start) : 21;
+            if ($empCutoffStart <= 0) $empCutoffStart = 21;
+            $empCutoffEnd = $empCutoffStart === 1 ? $daysInMonth : ($empCutoffStart - 1);
+
+            if ($empCutoffStart <= 1) {
+                $empStartDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
+                $empEndDateStr = date('Y-m-t', strtotime($empStartDateStr));
+            } else {
+                $prevMonth = intval($bulan) - 1;
+                $prevYear = intval($tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
+                }
+                $empStartDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $empCutoffStart);
+                $empEndDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $empCutoffEnd);
+            }
+
             $hasAttendanceRecord = false;
             $hariKerjaVal = 0;
             $jamLemburVal = 0.0;
@@ -121,8 +166,8 @@ class Payroll extends ResourceController
             // Hadir
             $hadirStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('log_date >=', $startDateStr)
-                             ->where('log_date <=', $endDateStr)
+                             ->where('log_date >=', $empStartDateStr)
+                             ->where('log_date <=', $empEndDateStr)
                              ->where('status', 'Hadir')
                              ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                              ->countAllResults();
@@ -139,8 +184,8 @@ class Payroll extends ResourceController
             // Sakit/Izin/Cuti
             $sakitStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('log_date >=', $startDateStr)
-                             ->where('log_date <=', $endDateStr)
+                             ->where('log_date >=', $empStartDateStr)
+                             ->where('log_date <=', $empEndDateStr)
                              ->groupStart()
                                  ->where('status', 'Sakit')
                                  ->orWhere('status', 'Izin')
@@ -165,8 +210,8 @@ class Payroll extends ResourceController
             // Absen/Alpa
             $alpaStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('log_date >=', $startDateStr)
-                             ->where('log_date <=', $endDateStr)
+                             ->where('log_date >=', $empStartDateStr)
+                             ->where('log_date <=', $empEndDateStr)
                              ->where('status', 'Absen')
                              ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                              ->countAllResults();
@@ -183,16 +228,16 @@ class Payroll extends ResourceController
             // Late & Early Leave (hours sum)
             $lateSumObj = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('log_date >=', $startDateStr)
-                             ->where('log_date <=', $endDateStr)
+                             ->where('log_date >=', $empStartDateStr)
+                             ->where('log_date <=', $empEndDateStr)
                              ->selectSum('late_hours')
                              ->get()->getRow();
             $lateHours = $lateSumObj ? floatval($lateSumObj->late_hours) : 0.0;
 
             $earlySumObj = $db->table('attendance_logs')
                               ->where('employee_id', $emp['id'])
-                              ->where('log_date >=', $startDateStr)
-                              ->where('log_date <=', $endDateStr)
+                              ->where('log_date >=', $empStartDateStr)
+                              ->where('log_date <=', $empEndDateStr)
                               ->selectSum('early_leave_hours')
                               ->get()->getRow();
             $earlyHours = $earlySumObj ? floatval($earlySumObj->early_leave_hours) : 0.0;
@@ -200,8 +245,8 @@ class Payroll extends ResourceController
             // Lembur (hours sum) - ONLY APPROVED
             $lemburStdSum = $db->table('overtime_logs')
                              ->where('overtime_logs.employee_id', $emp['id'])
-                             ->where('overtime_logs.tanggal >=', $startDateStr)
-                             ->where('overtime_logs.tanggal <=', $endDateStr)
+                             ->where('overtime_logs.tanggal >=', $empStartDateStr)
+                             ->where('overtime_logs.tanggal <=', $empEndDateStr)
                              ->where('overtime_logs.status', 'Approved')
                              ->selectSum('overtime_logs.jam_lembur')
                              ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.log_date = overtime_logs.tanggal', 'left')
@@ -329,32 +374,68 @@ class Payroll extends ResourceController
             $overtimeDivisor = 160.0;
         }
 
-        // Get cutoff dates
-        $cutoffStartDay = $payrollConfig ? intval($payrollConfig->cutoff_start) : 21;
-        $cutoffEndDay = $payrollConfig ? intval($payrollConfig->cutoff_end) : 20;
+        // Check for any Pending overtime logs for this client's employees in their respective cutoff periods
+        $pendingOvertimeCount = 0;
+        $activeEmployees = $db->table('employees')
+            ->where('client_id', $clientId)
+            ->where('status', 'Aktif')
+            ->get()->getResultArray();
 
-        if ($cutoffStartDay <= 1) {
-            $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
-            $endDateStr = date('Y-m-t', strtotime($startDateStr));
-        } else {
-            $prevMonth = intval($bulan) - 1;
-            $prevYear = intval($tahun);
-            if ($prevMonth == 0) {
-                $prevMonth = 12;
-                $prevYear--;
+        foreach ($activeEmployees as $activeEmp) {
+            $empConfig = null;
+            if (!empty($activeEmp['position_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('position_id', $activeEmp['position_id'])
+                    ->get()->getRow();
             }
-            $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $cutoffStartDay);
-            $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $cutoffEndDay);
-        }
+            if (!$empConfig && !empty($activeEmp['department_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('department_id', $activeEmp['department_id'])
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$empConfig && !empty($activeEmp['division_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('division_id', $activeEmp['division_id'])
+                    ->where('department_id IS NULL')
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$empConfig) {
+                $empConfig = $payrollConfig;
+            }
 
-        // Check for any Pending overtime logs for this client's employees in the cutoff period
-        $pendingOvertimeCount = $db->table('overtime_logs')
-            ->join('employees', 'employees.id = overtime_logs.employee_id')
-            ->where('employees.client_id', $clientId)
-            ->where('overtime_logs.tanggal >=', $startDateStr)
-            ->where('overtime_logs.tanggal <=', $endDateStr)
-            ->where('overtime_logs.status', 'Pending')
-            ->countAllResults();
+            $empCutoffStart = $empConfig ? intval($empConfig->cutoff_start) : 21;
+            if ($empCutoffStart <= 0) $empCutoffStart = 21;
+            $empCutoffEnd = $empCutoffStart === 1 ? $daysInMonth : ($empCutoffStart - 1);
+
+            if ($empCutoffStart <= 1) {
+                $empStartDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
+                $empEndDateStr = date('Y-m-t', strtotime($empStartDateStr));
+            } else {
+                $prevMonth = intval($bulan) - 1;
+                $prevYear = intval($tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
+                }
+                $empStartDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $empCutoffStart);
+                $empEndDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $empCutoffEnd);
+            }
+
+            $empPendingCount = $db->table('overtime_logs')
+                ->where('employee_id', $activeEmp['id'])
+                ->where('tanggal >=', $empStartDateStr)
+                ->where('tanggal <=', $empEndDateStr)
+                ->where('status', 'Pending')
+                ->countAllResults();
+            if ($empPendingCount > 0) {
+                $pendingOvertimeCount += $empPendingCount;
+            }
+        }
 
         if ($pendingOvertimeCount > 0) {
             return $this->failValidationErrors("Terdapat $pendingOvertimeCount data lembur yang masih berstatus 'Pending' pada periode cut-off ini. Harap setujui (Approve) atau tolak (Reject) terlebih dahulu di tab Overtime.");
@@ -383,6 +464,50 @@ class Payroll extends ResourceController
                        ->where('status', 'Active')
                        ->get()
                        ->getRow();
+
+            $empConfig = null;
+            if (!empty($emp['position_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('position_id', $emp['position_id'])
+                    ->get()->getRow();
+            }
+            if (!$empConfig && !empty($emp['department_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('department_id', $emp['department_id'])
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$empConfig && !empty($emp['division_id'])) {
+                $empConfig = $db->table('client_payroll_configs')
+                    ->where('client_id', $clientId)
+                    ->where('division_id', $emp['division_id'])
+                    ->where('department_id IS NULL')
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$empConfig) {
+                $empConfig = $payrollConfig;
+            }
+
+            $empCutoffStart = $empConfig ? intval($empConfig->cutoff_start) : 21;
+            if ($empCutoffStart <= 0) $empCutoffStart = 21;
+            $empCutoffEnd = $empCutoffStart === 1 ? $daysInMonth : ($empCutoffStart - 1);
+
+            if ($empCutoffStart <= 1) {
+                $empStartDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
+                $empEndDateStr = date('Y-m-t', strtotime($empStartDateStr));
+            } else {
+                $prevMonth = intval($bulan) - 1;
+                $prevYear = intval($tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
+                }
+                $empStartDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $empCutoffStart);
+                $empEndDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $empCutoffEnd);
+            }
 
             // Resolve employee-specific minimum wage and UMP/UMK values
             $empMinimumWage = $minimumWage;
@@ -664,8 +789,8 @@ class Payroll extends ResourceController
             // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs berdasarkan cutoff period
             $attendanceLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $startDateStr)
-                ->where('log_date <=', $endDateStr)
+                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date <=', $empEndDateStr)
                 ->where('status', 'Hadir')
                 ->get()->getResultArray();
             $actualDaysWorked = count($attendanceLogs);
@@ -686,8 +811,8 @@ class Payroll extends ResourceController
             // Langkah 2: Hitung Lembur dari overtime_logs berdasarkan cutoff period (hanya yang APPROVED)
             $overtimeLogs = $db->table('overtime_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $startDateStr)
-                ->where('tanggal <=', $endDateStr)
+                ->where('tanggal >=', $empStartDateStr)
+                ->where('tanggal <=', $empEndDateStr)
                 ->where('status', 'Approved')
                 ->get()->getResultArray();
 
@@ -753,8 +878,8 @@ class Payroll extends ResourceController
             $absenCount = 0;
             $absenLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $startDateStr)
-                ->where('log_date <=', $endDateStr)
+                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date <=', $empEndDateStr)
                 ->where('status', 'Absen')
                 ->get()->getResultArray();
             $absenCount = count($absenLogs);
@@ -769,8 +894,8 @@ class Payroll extends ResourceController
             // Hitung jumlah hari tidak masuk: alfa + early leave dihitung alfa
             $earlyLeaveAlfaDays = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $startDateStr)
-                ->where('log_date <=', $endDateStr)
+                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date <=', $empEndDateStr)
                 ->where('is_early_leave_alfa', 1)
                 ->countAllResults();
 
@@ -805,8 +930,8 @@ class Payroll extends ResourceController
                 ->selectSum('denda_terlambat')
                 ->selectSum('late_penalty_hours')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $startDateStr)
-                ->where('log_date <=', $endDateStr)
+                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date <=', $empEndDateStr)
                 ->get()->getRow();
 
             $potonganLate = $totalDendaLate ? floatval($totalDendaLate->denda_terlambat) : 0.0;
@@ -894,8 +1019,8 @@ class Payroll extends ResourceController
             // Ambil semua attendance_logs untuk periode ini dan hitung denda secara real-time
             $attendanceLogsForPenalty = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $startDateStr)
-                ->where('log_date <=', $endDateStr)
+                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date <=', $empEndDateStr)
                 ->get()->getResultArray();
 
             $totalDendaTerlambat = 0;

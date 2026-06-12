@@ -1023,12 +1023,14 @@ class Api extends ResourceController
             }
 
             $otData = [
-                'jam_lembur'  => $result['calculated_overtime_hours'],
-                'is_holiday'  => $isHoliday,
-                'keterangan'  => 'Auto: shift ' . $shift->name,
-                'status'      => 'Pending',
-                'approved_by' => null,
-                'approved_at' => null,
+                'jam_lembur'    => $result['calculated_overtime_hours'],
+                'is_holiday'    => $isHoliday,
+                'keterangan'    => 'Auto: shift ' . $shift->name,
+                'status'        => 'Pending',
+                'approved_by'   => null,
+                'approved_at'   => null,
+                'is_rapel'      => $result['is_rapel'],
+                'payout_period' => $result['payout_period']
             ];
 
             if ($existingOt) {
@@ -1168,6 +1170,72 @@ class Api extends ResourceController
         $logs = $data['logs'] ?? [];
         log_message('error', 'BULK LOGS RECEIVED: ' . json_encode($logs));
         $count = 0;
+
+        if (!empty($logs)) {
+            $firstLog = $logs[0];
+            $empId = intval($firstLog['employee_id']);
+            $payoutPeriod = $firstLog['payout_period'] ?? null;
+            
+            if ($empId && $payoutPeriod) {
+                $emp = $this->db->table('employees')->where('id', $empId)->get()->getRow();
+                if ($emp) {
+                    $clientId = $emp->client_id;
+                    $employees = $this->db->table('employees')->where('client_id', $clientId)->get()->getResultArray();
+                    $employeeIds = array_column($employees, 'id');
+                    
+                    if (!empty($employeeIds)) {
+                        // Delete existing attendance logs for this client and payout period
+                        $this->db->table('attendance_logs')
+                            ->whereIn('employee_id', $employeeIds)
+                            ->where('payout_period', $payoutPeriod)
+                            ->delete();
+                            
+                        // Collect all unique dates from uploaded logs to clean up overtime
+                        $uploadedDates = [];
+                        foreach ($logs as $l) {
+                            if (!empty($l['tanggal'])) {
+                                $uploadedDates[] = $l['tanggal'];
+                            }
+                        }
+                        $uploadedDates = array_unique($uploadedDates);
+                        
+                        // Delete ALL auto-generated pending overtime logs for these employees + dates
+                        // regardless of payout_period (fixes cross-period cleanup)
+                        if (!empty($uploadedDates)) {
+                            $this->db->table('overtime_logs')
+                                ->whereIn('employee_id', $employeeIds)
+                                ->whereIn('tanggal', $uploadedDates)
+                                ->where('status', 'Pending')
+                                ->like('keterangan', 'Auto: shift', 'after')
+                                ->delete();
+                        }
+                        
+                        // Also clean up by payout_period for any dates NOT in the upload
+                        $parts = explode('-', $payoutPeriod);
+                        if (count($parts) === 2) {
+                            $pMonth = intval($parts[0]);
+                            $pYear = intval($parts[1]);
+                            $this->db->table('overtime_logs')
+                                ->whereIn('employee_id', $employeeIds)
+                                ->where('status', 'Pending')
+                                ->like('keterangan', 'Auto: shift', 'after')
+                                ->groupStart()
+                                    ->where('payout_period', $payoutPeriod)
+                                    ->orGroupStart()
+                                        ->groupStart()
+                                            ->where('payout_period IS NULL')
+                                            ->orWhere('payout_period', '')
+                                        ->groupEnd()
+                                        ->where('MONTH(tanggal)', $pMonth)
+                                        ->where('YEAR(tanggal)', $pYear)
+                                    ->groupEnd()
+                                ->groupEnd()
+                                ->delete();
+                        }
+                    }
+                }
+            }
+        }
 
         foreach ($logs as $log) {
             if (empty($log['employee_id']) || empty($log['tanggal'])) {
@@ -1325,8 +1393,9 @@ class Api extends ResourceController
         $clientId = $this->request->getGet('client_id');
 
         $builder = $this->db->table('overtime_logs');
-        $builder->select('overtime_logs.*, employees.nama as employee_name');
+        $builder->select('overtime_logs.*, employees.nama as employee_name, employees.nik as employee_nik, attendance_logs.check_in as jam_masuk, attendance_logs.check_out as jam_keluar');
         $builder->join('employees', 'employees.id = overtime_logs.employee_id', 'left');
+        $builder->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.log_date = overtime_logs.tanggal', 'left');
 
         if ($employeeId) {
             $builder->where('overtime_logs.employee_id', intval($employeeId));
@@ -1422,6 +1491,38 @@ class Api extends ResourceController
         
         if (empty($logs)) {
             return $this->failValidationErrors('Tidak ada data lembur yang diunggah.');
+        }
+
+        if (!empty($logs) && !empty($payoutPeriodStr)) {
+            $firstLog = $logs[0];
+            $nik = trim($firstLog['nik'] ?? '');
+            $nama = trim($firstLog['nama'] ?? '');
+            
+            $employee = null;
+            if (!empty($nik)) {
+                $employee = $db->table('employees')->where('nik', $nik)->get()->getRowArray();
+            }
+            if (!$employee && !empty($nama)) {
+                $employee = $db->table('employees')->where('LOWER(nama)', strtolower($nama))->get()->getRowArray();
+            }
+            if (!$employee && !empty($nama)) {
+                $employee = $db->table('employees')->like('nama', $nama)->get()->getRowArray();
+            }
+            
+            if ($employee) {
+                $clientId = $employee['client_id'];
+                $employees = $db->table('employees')->where('client_id', $clientId)->get()->getResultArray();
+                $employeeIds = array_column($employees, 'id');
+                
+                if (!empty($employeeIds)) {
+                    // Delete existing imported overtime logs for this client and period
+                    $db->table('overtime_logs')
+                        ->whereIn('employee_id', $employeeIds)
+                        ->where('payout_period', $payoutPeriodStr)
+                        ->where('status', 'Approved')
+                        ->delete();
+                }
+            }
         }
 
         $successCount = 0;
@@ -2187,6 +2288,7 @@ class Api extends ResourceController
     {
         $clientId = $this->request->getGet('client_id');
         $this->syncEmployeesToPKWT($clientId);
+        $this->syncOvertimeToPayrollAttendance($periodId, $clientId);
         // Get all PKWT and their attendance for this period
         $query = $this->db->table('pkwt')
                           ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, 
@@ -2371,6 +2473,7 @@ class Api extends ResourceController
     {
         $clientId = $this->request->getGet('client_id');
         $this->syncEmployeesToPKWT($clientId);
+        $this->syncOvertimeToPayrollAttendance($periodId, $clientId);
         $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
         if (!$period) {
             return $this->failNotFound('Periode tidak ditemukan');
@@ -4674,7 +4777,7 @@ class Api extends ResourceController
         $months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         
         if (is_array($row)) {
-            if (!isset($row['nama']) && isset($row['bulan'], $row['tahun'])) {
+            if (empty($row['nama']) && isset($row['bulan'], $row['tahun'])) {
                 $row['nama'] = ($months[intval($row['bulan']) - 1] ?? '') . " " . $row['tahun'];
             }
             if (!isset($row['status']) && isset($row['status_cutoff'])) {
@@ -4682,7 +4785,7 @@ class Api extends ResourceController
             }
             return $row;
         } else if (is_object($row)) {
-            if (!isset($row->nama) && isset($row->bulan, $row->tahun)) {
+            if (empty($row->nama) && isset($row->bulan, $row->tahun)) {
                 $row->nama = ($months[intval($row->bulan) - 1] ?? '') . " " . $row->tahun;
             }
             if (!isset($row->status) && isset($row->status_cutoff)) {
@@ -4871,93 +4974,87 @@ class Api extends ResourceController
         if (!$employee) return;
         $clientId = $employee->client_id;
 
-        $clientConfig = $this->db->table('client_payroll_configs')
-                             ->where('client_id', $clientId)
-                             ->get()->getRow();
-        $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
-        $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
-        if ($cutoffStart <= 0) $cutoffStart = 1;
-
-        $d = strtotime($date);
-        $day = intval(date('d', $d));
-        $month = intval(date('m', $d));
-        $year = intval(date('Y', $d));
-
-        if ($cutoffStart > 1) {
-            if ($day >= $cutoffStart) {
-                $periodMonth = $month + 1;
-                $periodYear = $year;
-                if ($periodMonth > 12) {
-                    $periodMonth = 1;
-                    $periodYear += 1;
-                }
-            } else {
-                $periodMonth = $month;
-                $periodYear = $year;
-            }
-        } else {
-            $periodMonth = $month;
-            $periodYear = $year;
-        }
-
-        $period = $this->db->table('payroll_periods')
+        $periods = $this->db->table('payroll_periods')
                             ->where('client_id', $clientId)
-                            ->where('bulan', $periodMonth)
-                            ->where('tahun', $periodYear)
-                            ->get()->getRow();
-        if (!$period) return;
+                            ->get()->getResult();
 
-        $daysInMonth = date('t', mktime(0, 0, 0, $periodMonth, 1, $periodYear));
-        $cutoffEndVal = $cutoffEnd > $daysInMonth ? $daysInMonth : $cutoffEnd;
-        
-        $bulan_start = $periodMonth;
-        $tahun_start = $periodYear;
-        $bulan_end = $periodMonth;
-        $tahun_end = $periodYear;
-        if ($cutoffStart > 1) {
-            $bulan_start -= 1;
-            if ($bulan_start < 1) {
-                $bulan_start = 12;
-                $tahun_start -= 1;
-            }
-        }
-        $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
-        $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEndVal);
-
-        $lemburSumObj = $this->db->table('overtime_logs')
-                                 ->selectSum('jam_lembur')
-                                 ->where('employee_id', $employeeId)
-                                 ->where('tanggal >=', $startDateStr)
-                                 ->where('tanggal <=', $endDateStr)
-                                 ->where('status', 'Approved')
-                                 ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+        foreach ($periods as $period) {
+            $clientConfig = $this->db->table('client_payroll_configs')
+                                 ->where('client_id', $clientId)
                                  ->get()->getRow();
-        $lemburSum = $lemburSumObj ? floatval($lemburSumObj->jam_lembur) : 0.0;
+            $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
+            $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+            $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
 
-        $pkwt = $this->db->table('pkwt')
-                         ->where('client_id', $clientId)
-                         ->where('employee_name', $employee->nama)
-                         ->where('status', 'Active')
-                         ->get()->getRow();
-        if (!$pkwt) return;
+            if ($cutoffStart <= 0) $cutoffStart = 1;
+            if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
 
-        $existing = $this->db->table('payroll_attendance')
-                             ->where('period_id', $period->id)
-                             ->where('pkwt_id', $pkwt->id)
-                             ->get()->getRow();
-        if ($existing) {
-            $this->db->table('payroll_attendance')
-                     ->where('id', $existing->id)
-                     ->update(['jam_lembur' => $lemburSum]);
-        } else {
-            $this->db->table('payroll_attendance')->insert([
-                'period_id' => $period->id,
-                'pkwt_id' => $pkwt->id,
-                'hari_kerja' => 22,
-                'jam_lembur' => $lemburSum,
-                'potongan_absensi' => 0.0,
-                'bonus_tambahan' => 0.0
-            ]);
+            $bulan_start = intval($period->bulan);
+            $tahun_start = intval($period->tahun);
+            $bulan_end = $bulan_start;
+            $tahun_end = $tahun_start;
+            if ($cutoffStart > 1) {
+                $bulan_start -= 1;
+                if ($bulan_start < 1) {
+                    $bulan_start = 12;
+                    $tahun_start -= 1;
+                }
+            }
+            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+            $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+
+            if ($date >= $startDateStr && $date <= $endDateStr) {
+                $lemburSumObj = $this->db->table('overtime_logs')
+                                         ->selectSum('jam_lembur')
+                                         ->where('employee_id', $employeeId)
+                                         ->where('tanggal >=', $startDateStr)
+                                         ->where('tanggal <=', $endDateStr)
+                                         ->where('status', 'Approved')
+                                         ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                         ->get()->getRow();
+                $lemburSum = $lemburSumObj ? floatval($lemburSumObj['jam_lembur']) : 0.0;
+
+                $pkwt = $this->db->table('pkwt')
+                                 ->where('client_id', $clientId)
+                                 ->where('employee_name', $employee->nama)
+                                 ->where('status', 'Active')
+                                 ->get()->getRow();
+                if (!$pkwt) continue;
+
+                $existing = $this->db->table('payroll_attendance')
+                                     ->where('period_id', $period->id)
+                                     ->where('pkwt_id', $pkwt->id)
+                                     ->get()->getRow();
+
+                if ($existing) {
+                    $this->db->table('payroll_attendance')
+                             ->where('id', $existing->id)
+                             ->update(['jam_lembur' => $lemburSum]);
+                } else {
+                    $stdWorkingDays = 20;
+                    $posHk = 5;
+                    if ($employee->position_id) {
+                        $pos = $this->db->table('positions')->where('id', $employee->position_id)->get()->getRow();
+                        if ($pos && isset($pos->hari_kerja)) {
+                            $posHk = intval($pos->hari_kerja);
+                        }
+                    }
+                    if ($posHk === 6) {
+                        $stdWorkingDays = 25;
+                    } elseif ($posHk === 7) {
+                        $stdWorkingDays = 30;
+                    }
+
+                    $this->db->table('payroll_attendance')->insert([
+                        'period_id' => $period->id,
+                        'pkwt_id' => $pkwt->id,
+                        'hari_kerja' => $stdWorkingDays,
+                        'jam_lembur' => $lemburSum,
+                        'potongan_absensi' => 0.0,
+                        'bonus_tambahan' => 0.0
+                    ]);
+                }
+            }
         }
     }
 
@@ -4966,6 +5063,141 @@ class Api extends ResourceController
         $log = $this->db->table('overtime_logs')->where('id', intval($id))->get()->getRow();
         if ($log) {
             $this->syncPayrollAttendanceOvertime($log->employee_id, $log->tanggal);
+        }
+    }
+
+    private function syncOvertimeToPayrollAttendance($periodId, $clientId = null)
+    {
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        if (!$period) return;
+
+        $pkwtQuery = $this->db->table('pkwt');
+        if ($clientId) {
+            $pkwtQuery->where('client_id', intval($clientId));
+        }
+        $pkwts = $pkwtQuery->get()->getResult();
+
+        foreach ($pkwts as $pkwt) {
+            $emp = $this->db->table('employees')
+                            ->where('client_id', $pkwt->client_id)
+                            ->where('nama', $pkwt->employee_name)
+                            ->get()->getRow();
+            if (!$emp) continue;
+
+            $clientConfig = null;
+            if ($emp && !empty($emp->position_id)) {
+                $clientConfig = $this->db->table('client_payroll_configs')
+                    ->where('client_id', $pkwt->client_id)
+                    ->where('position_id', $emp->position_id)
+                    ->get()->getRow();
+            }
+            if (!$clientConfig && $emp && !empty($emp->department_id)) {
+                $clientConfig = $this->db->table('client_payroll_configs')
+                    ->where('client_id', $pkwt->client_id)
+                    ->where('department_id', $emp->department_id)
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$clientConfig && $emp && !empty($emp->division_id)) {
+                $clientConfig = $this->db->table('client_payroll_configs')
+                    ->where('client_id', $pkwt->client_id)
+                    ->where('division_id', $emp->division_id)
+                    ->where('department_id IS NULL')
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$clientConfig) {
+                $clientConfig = $this->db->table('client_payroll_configs')
+                    ->where('client_id', $pkwt->client_id)
+                    ->where('division_id IS NULL')
+                    ->where('department_id IS NULL')
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+
+            $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
+            $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+            if ($cutoffStart <= 0) $cutoffStart = 21;
+            $cutoffEnd = $cutoffStart === 1 ? $daysInMonth : ($cutoffStart - 1);
+
+            $bulan_start = intval($period->bulan);
+            $tahun_start = intval($period->tahun);
+            $bulan_end = $bulan_start;
+            $tahun_end = $tahun_start;
+            if ($cutoffStart > 1) {
+                $bulan_start -= 1;
+                if ($bulan_start < 1) {
+                    $bulan_start = 12;
+                    $tahun_start -= 1;
+                }
+            }
+            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+            $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+
+            $lemburSumObj = $this->db->table('overtime_logs')
+                                     ->selectSum('jam_lembur')
+                                     ->where('employee_id', $emp->id)
+                                     ->where('tanggal >=', $startDateStr)
+                                     ->where('tanggal <=', $endDateStr)
+                                     ->where('status', 'Approved')
+                                     ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                     ->get()->getRow();
+            $lemburSum = $lemburSumObj ? floatval($lemburSumObj->jam_lembur) : 0.0;
+
+            // Calculate actual present days from attendance_logs
+            $actualHadir = $this->db->table('attendance_logs')
+                                    ->where('employee_id', $emp->id)
+                                    ->where('log_date >=', $startDateStr)
+                                    ->where('log_date <=', $endDateStr)
+                                    ->where('status', 'Hadir')
+                                    ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                    ->countAllResults();
+
+            if ($actualHadir > 0) {
+                $hariKerjaVal = $actualHadir;
+            } else {
+                $stdWorkingDays = 20;
+                $posHk = 5;
+                if ($emp->position_id) {
+                    $pos = $this->db->table('positions')->where('id', $emp->position_id)->get()->getRow();
+                    if ($pos && isset($pos->hari_kerja)) {
+                        $posHk = intval($pos->hari_kerja);
+                    }
+                }
+                if ($posHk === 6) {
+                    $stdWorkingDays = 25;
+                } elseif ($posHk === 7) {
+                    $stdWorkingDays = 30;
+                }
+                
+                if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
+                    $stdWorkingDays = ($emp->hari_kerja === 6) ? 25 : (($emp->hari_kerja === 7) ? 30 : 20);
+                }
+                $hariKerjaVal = $stdWorkingDays;
+            }
+
+            $existing = $this->db->table('payroll_attendance')
+                                 ->where('period_id', $periodId)
+                                 ->where('pkwt_id', $pkwt->id)
+                                 ->get()->getRow();
+
+            if ($existing) {
+                $this->db->table('payroll_attendance')
+                         ->where('id', $existing->id)
+                         ->update([
+                             'jam_lembur' => $lemburSum,
+                             'hari_kerja' => $hariKerjaVal
+                         ]);
+            } else {
+                $this->db->table('payroll_attendance')->insert([
+                    'period_id' => $periodId,
+                    'pkwt_id' => $pkwt->id,
+                    'hari_kerja' => $hariKerjaVal,
+                    'jam_lembur' => $lemburSum,
+                    'potongan_absensi' => 0.0,
+                    'bonus_tambahan' => 0.0
+                ]);
+            }
         }
     }
 }

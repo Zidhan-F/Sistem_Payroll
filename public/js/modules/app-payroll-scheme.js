@@ -99,7 +99,7 @@ async function renderPayrollSchemes() {
                 components: selectedComponents,
                 prorate: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'prorate') ? 1 : 0,
                 absen_tidak_potong: (document.querySelector('input[name="skemaAbsenRule"]:checked')?.value === 'tidak_potong') ? 1 : 0,
-                nominal_potongan: 0,
+                nominal_potongan: parseFormattedNumber(document.getElementById('skemaNominalPotongan').value) || 0,
                 sumber_nilai: document.getElementById('skemaSumber').value,
                 periode: document.getElementById('skemaPeriode').value,
                 nilai: parseFormattedNumber(document.getElementById('skemaNilai').value) || 0,
@@ -167,6 +167,7 @@ async function bukaModalSkema(mode, id = null) {
             } else if (s.nominal_potongan > 0) {
                 if (radioPotongNominal) radioPotongNominal.checked = true;
             }
+            document.getElementById('skemaNominalPotongan').value = s.nominal_potongan ? formatRupiah(Math.round(s.nominal_potongan)) : '';
             handleSkemaAbsenRuleChange();
             
             document.getElementById('skemaGraceLate').value = s.grace_period_late || 0;
@@ -263,6 +264,7 @@ async function bukaModalSkema(mode, id = null) {
         if (radioProrate) radioProrate.checked = false;
         if (radioTidakPotong) radioTidakPotong.checked = false;
         if (radioPotongNominal) radioPotongNominal.checked = false;
+        document.getElementById('skemaNominalPotongan').value = '';
         handleSkemaAbsenRuleChange();
         
         document.getElementById('skemaGraceLate').value = 0;
@@ -447,8 +449,14 @@ window.tutupModalPilihSkema = tutupModalPilihSkema;
 window.terapkanPilihanSkema = terapkanPilihanSkema;
 
 function handleSkemaAbsenRuleChange() {
-    // This function no longer needs to show/hide any fields
-    // All absence rule handling is now through radio buttons only
+    const isNominal = document.querySelector('input[name="skemaAbsenRule"][value="potong_nominal"]')?.checked || false;
+    const inputNominal = document.getElementById('skemaNominalPotongan');
+    if (inputNominal) {
+        inputNominal.disabled = !isNominal;
+        if (!isNominal) {
+            inputNominal.value = '';
+        }
+    }
 }
 window.handleSkemaAbsenRuleChange = handleSkemaAbsenRuleChange;
 
