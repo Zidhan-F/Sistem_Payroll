@@ -1071,34 +1071,19 @@
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <label style="font-weight: 600; margin: 0;">Division</label>
-                            <a href="javascript:void(0)" onclick="tambahDivisiInline()" style="font-size: 11px; color: var(--primary-color); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" style="width: 12px; height: 12px; object-fit: contain;"> Add
-                            </a>
-                        </div>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Division</label>
                         <select id="empDivisionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                             <option value="">-- Select Division --</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <label style="font-weight: 600; margin: 0;">Department</label>
-                            <a href="javascript:void(0)" onclick="tambahDeptInline()" style="font-size: 11px; color: var(--primary-color); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" style="width: 12px; height: 12px; object-fit: contain;"> Add
-                            </a>
-                        </div>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Department</label>
                         <select id="empDepartmentId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                             <option value="">-- Select Department --</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <label style="font-weight: 600; margin: 0;">Position / Role</label>
-                            <a href="javascript:void(0)" onclick="tambahPosisiInline()" style="font-size: 11px; color: var(--primary-color); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/992/992651.png" style="width: 12px; height: 12px; object-fit: contain;"> Add
-                            </a>
-                        </div>
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Position / Role</label>
                         <select id="empPositionId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                             <option value="">-- Select Position --</option>
                         </select>

@@ -551,6 +551,7 @@ async function loadWorkLocationsForSelect(clientId, activeLocationId = null) {
 
 async function bukaModalKaryawan(mode,id=null){
     window.isKaryawanModalInitializing = true;
+    window.isHariKerjaManuallyEdited = false;
     currentSelectedPayrollType = null;
     const m=document.getElementById('modalKaryawan'),cs=document.getElementById('empClientId');
     m.style.display='block';document.getElementById('overlay').style.display='block';
@@ -583,6 +584,9 @@ async function bukaModalKaryawan(mode,id=null){
     if (hariKerjaInput) {
         hariKerjaInput.style.pointerEvents = 'auto';
         hariKerjaInput.style.background = '';
+        hariKerjaInput.onchange = () => {
+            window.isHariKerjaManuallyEdited = true;
+        };
     }
     
     const minWageContainer = document.getElementById('empMinimumWageContainer');
@@ -931,11 +935,14 @@ async function checkSchemaAvailability() {
                 await updateLocationMinimumWage(data.payroll_type, customWage, customInfo);
 
                 // Auto-fill form fields from scheme data (no more manual gaji_pokok)
+                const employeeId = document.getElementById('employeeId').value;
                 const hariKerjaInput = document.getElementById('empHariKerja');
                 const dendaInput = document.getElementById('empDendaAbsen');
 
                 if (hariKerjaInput) {
-                     hariKerjaInput.value = data.hari_kerja || 5;
+                     if (!employeeId && !window.isHariKerjaManuallyEdited) {
+                         hariKerjaInput.value = data.hari_kerja || 5;
+                     }
                      hariKerjaInput.style.pointerEvents = 'auto';
                      hariKerjaInput.style.background = '';
                 }

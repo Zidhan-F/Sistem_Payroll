@@ -230,9 +230,7 @@
                     <button class="btn-add" onclick="downloadMainAbsensiTemplate()" style="background: #2c3e50; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-download"></i> Download Template
                     </button>
-                    <button class="btn-add" onclick="bukaModalPeriode()" style="background: #2980b9; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
-                        <i class="fas fa-calendar-plus"></i> Open New Period
-                    </button>
+
                     <div style="position: relative; display: inline-block;">
                         <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;"></i>
                         <input type="text" id="attendanceSearchInput" onkeyup="filterAttendanceTable()" placeholder="Search name, ID, or shift..." style="padding: 10px 12px 10px 34px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 13px; color: #334155; background: white; font-weight: 600; min-width: 240px; transition: all 0.2s;" onfocus="this.style.borderColor='var(--primary-color)';" onblur="this.style.borderColor='#cbd5e1';">

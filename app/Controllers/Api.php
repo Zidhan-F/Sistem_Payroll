@@ -1023,11 +1023,28 @@ class Api extends ResourceController
                 $holiday = $db->table('holiday_calendar')->where('tanggal', $tanggal)->get()->getRow();
                 if ($holiday) {
                     $isHoliday = 1;
+                } elseif ($dayOfWeek == 6) {
+                    // Check employee's working days config
+                    $emp = $db->table('employees')
+                        ->select('employees.hari_kerja, positions.hari_kerja as position_hari_kerja')
+                        ->join('positions', 'positions.id = employees.position_id', 'left')
+                        ->where('employees.id', intval($employeeId))
+                        ->get()->getRow();
+                    $workDaysPerWeek = 5;
+                    if ($emp) {
+                        $workDaysPerWeek = intval($emp->hari_kerja ?: ($emp->position_hari_kerja ?: 5));
+                    }
+                    $isHoliday = ($workDaysPerWeek < 6) ? 1 : 0;
                 }
             }
 
+            $jamLemburVal = floatval($result['calculated_overtime_hours']);
+            if (!$isHoliday && $jamLemburVal > 4.0) {
+                $jamLemburVal = 4.0;
+            }
+
             $otData = [
-                'jam_lembur'    => $result['calculated_overtime_hours'],
+                'jam_lembur'    => $jamLemburVal,
                 'is_holiday'    => $isHoliday,
                 'keterangan'    => 'Auto: shift ' . $shift->name,
                 'status'        => 'Pending',
@@ -1428,15 +1445,11 @@ class Api extends ResourceController
         $jamLembur = floatval($data['jam_lembur']);
         $isHoliday = intval($data['is_holiday'] ?? 0);
 
-        // Validasi: Lembur hari kerja maksimal 3 jam
-        if (!$isHoliday && $jamLembur > 3) {
-            return $this->failValidationErrors('Lembur hari kerja maksimal 3 jam per hari!');
-        }
         if ($jamLembur <= 0) {
             return $this->failValidationErrors('Jam lembur harus lebih dari 0!');
         }
 
-        // Auto-detect holiday from holiday_calendar
+        // Auto-detect holiday from holiday_calendar and employee's work schedule
         if (!$isHoliday) {
             $holiday = $this->db->table('holiday_calendar')
                 ->where('tanggal', $data['tanggal'])
@@ -1444,12 +1457,29 @@ class Api extends ResourceController
             if ($holiday) {
                 $isHoliday = 1;
             } else {
-                // Check if weekend (Saturday=6, Sunday=0)
                 $dayOfWeek = date('w', strtotime($data['tanggal']));
-                if ($dayOfWeek == 0 || $dayOfWeek == 6) {
+                if ($dayOfWeek == 0) {
                     $isHoliday = 1;
+                } elseif ($dayOfWeek == 6) {
+                    // Check employee's working days config
+                    $emp = $this->db->table('employees')
+                        ->select('employees.hari_kerja, positions.hari_kerja as position_hari_kerja')
+                        ->join('positions', 'positions.id = employees.position_id', 'left')
+                        ->where('employees.id', intval($data['employee_id']))
+                        ->get()->getRow();
+                    $workDaysPerWeek = 5;
+                    if ($emp) {
+                        $workDaysPerWeek = intval($emp->hari_kerja ?: ($emp->position_hari_kerja ?: 5));
+                    }
+                    // Saturday is weekend/holiday only for 5-day work weeks
+                    $isHoliday = ($workDaysPerWeek < 6) ? 1 : 0;
                 }
             }
+        }
+
+        // Cap regular working day overtime to 4 hours
+        if (!$isHoliday && $jamLembur > 4.0) {
+            $jamLembur = 4.0;
         }
 
         // Check duplicate
@@ -1663,9 +1693,16 @@ class Api extends ResourceController
                 $isHoliday = 1;
             } else {
                 $dayOfWeek = date('w', strtotime($tanggal));
-                if ($dayOfWeek == 0 || $dayOfWeek == 6) {
+                if ($dayOfWeek == 0) {
                     $isHoliday = 1;
+                } elseif ($dayOfWeek == 6) {
+                    $isHoliday = ($workDaysConfig < 6) ? 1 : 0;
                 }
+            }
+
+            // Cap regular working day overtime to 4 hours
+            if (!$isHoliday && $jamLembur > 4.0) {
+                $jamLembur = 4.0;
             }
 
             // 7. Detect rapel status based on client's cut-off
@@ -2284,11 +2321,24 @@ class Api extends ResourceController
     public function createPeriod()
     {
         $data = $this->request->getJSON(true);
+        $clientId = $data['client_id'] ?? null;
+        $bulan = intval($data['bulan']);
+        $tahun = intval($data['tahun']);
+
+        $exists = $this->db->table('payroll_periods')
+                           ->where('client_id', $clientId)
+                           ->where('bulan', $bulan)
+                           ->where('tahun', $tahun)
+                           ->get()->getRow();
+
+        if ($exists) {
+            return $this->respond(['message' => 'Periode sudah ada'], 200);
+        }
         
         $insertData = [
-            'client_id' => $data['client_id'] ?? null,
-            'bulan' => intval($data['bulan']),
-            'tahun' => intval($data['tahun']),
+            'client_id' => $clientId,
+            'bulan' => $bulan,
+            'tahun' => $tahun,
             'status_cutoff' => 'Open',
             'pay_date' => null
         ];
@@ -2709,19 +2759,7 @@ class Api extends ResourceController
                 $emp->position_id ?? null
             );
             $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
-
-            $bpjsWageBase = 0;
-            $pphWageBase = 0;
-
-            // Match payroll scheme template for organizational matching
-            $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
-            $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
-                $pkwt->client_id,
-                $emp->division_id ?? null,
-                $emp->department_id ?? null,
-                $emp->position_id ?? null
-            );
-            $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+            $schemeOtRate = ($schemeTemplate && isset($schemeTemplate['rate_lembur_per_jam'])) ? floatval($schemeTemplate['rate_lembur_per_jam']) : 0;
 
             $bpjsWageBase = 0;
             $pphWageBase = 0;
@@ -2898,6 +2936,8 @@ class Api extends ResourceController
                 $upahSejamLembur = 0;
                 if ($clientManualOtRate > 0) {
                     $upahSejamLembur = $clientManualOtRate;
+                } elseif ($schemeOtRate > 0) {
+                    $upahSejamLembur = $schemeOtRate;
                 } else {
                     // Use formula: Gaji Pokok / 173 (PP 35/2021)
                     $gajiPokokForOt = ($unproratedGajiPokok > 0) ? $unproratedGajiPokok : $gajiPokok;
@@ -3344,6 +3384,17 @@ class Api extends ResourceController
             }
         }
         
+        // Resolve Scheme Template and Overtime Rate
+        $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
+        $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
+            $final['client_id'],
+            $emp->division_id ?? null,
+            $emp->department_id ?? null,
+            $emp->position_id ?? null
+        );
+        $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+        $schemeOtRate = ($schemeTemplate && isset($schemeTemplate['rate_lembur_per_jam'])) ? floatval($schemeTemplate['rate_lembur_per_jam']) : 0;
+        
         $minimumWage = 0;
         $mwId = null;
         if ($emp && isset($emp->umr_nominal) && $emp->umr_nominal > 0) {
@@ -3552,7 +3603,7 @@ class Api extends ResourceController
                 // Calculate upah sejam for proportional split
                 $clientManualOtRateSlip = ($client && isset($client->overtime_rate_per_hour)) ? floatval($client->overtime_rate_per_hour) : 0;
                 $unproratedGpSlip = floatval($final['gaji_pokok'] ?? 0);
-                $upahSejamSlip = ($clientManualOtRateSlip > 0) ? $clientManualOtRateSlip : (($unproratedGpSlip > 0) ? ($unproratedGpSlip / 173) : 0);
+                $upahSejamSlip = ($clientManualOtRateSlip > 0) ? $clientManualOtRateSlip : (($schemeOtRate > 0) ? $schemeOtRate : (($unproratedGpSlip > 0) ? ($unproratedGpSlip / 173) : 0));
 
                 if ($jamLemburBiasa > 0) {
                     $konversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $wdPerWeekSlip);
@@ -3606,14 +3657,7 @@ class Api extends ResourceController
         }
 
         // Match payroll scheme template for organizational matching
-        $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
-        $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
-            $final['client_id'],
-            $emp->division_id ?? null,
-            $emp->department_id ?? null,
-            $emp->position_id ?? null
-        );
-        $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+        // Scheme template is already resolved at the beginning of the function
 
         $workingDays = ($att && isset($att['hari_kerja']) && $att['hari_kerja'] !== null) ? intval($att['hari_kerja']) : $stdWorkingDays;
 
@@ -4324,14 +4368,23 @@ class Api extends ResourceController
 
         if (!$isHoliday) {
             // === Lembur di Hari Kerja Biasa ===
-            // Jam pertama x 1.5
+            // Batas lembur maksimal 4 jam sehari (PP 35/2021)
+            $jamLembur = min(4.0, $jamLembur);
+
+            // Jam ke-1 x 1.5
             $jamPertama = min(1.0, $jamLembur);
             $jamKonversi += $jamPertama * 1.5;
 
-            // Jam ke-2 dst x 2.0
+            // Jam ke-2 s.d ke-8 x 2.0
             if ($jamLembur > 1.0) {
-                $jamBerikutnya = $jamLembur - 1.0;
+                $jamBerikutnya = min(7.0, $jamLembur - 1.0);
                 $jamKonversi += $jamBerikutnya * 2.0;
+            }
+
+            // Jam ke-9 dst x 3.0
+            if ($jamLembur > 8.0) {
+                $jamSembilanDst = $jamLembur - 8.0;
+                $jamKonversi += $jamSembilanDst * 3.0;
             }
         } else {
             // === Lembur di Hari Libur / Tanggal Merah ===

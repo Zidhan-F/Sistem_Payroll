@@ -913,16 +913,48 @@ async function onAbsensiClientChanged() {
         return;
     }
 
+    if (window.isCheckingPeriods) {
+        return;
+    }
+    window.isCheckingPeriods = true;
+
     periodSelect.innerHTML = '<option value="" disabled selected hidden>Loading periods...</option>';
     periodSelect.disabled = true;
 
     try {
         const res = await fetch(`${API_URL}/periods?client_id=${clientId}`);
-        const periods = res.ok ? await res.json() : [];
+        let periods = res.ok ? await res.json() : [];
+
+        // Check if the main page's selected month & year exists in the periods
+        const mainMonth = document.getElementById('attendanceMonthSelect')?.value;
+        const mainYear = document.getElementById('attendanceYearSelect')?.value;
+        
+        if (mainMonth && mainYear) {
+            const hasMatchedPeriod = periods.some(p => parseInt(p.bulan) == parseInt(mainMonth) && parseInt(p.tahun) == parseInt(mainYear));
+            if (!hasMatchedPeriod) {
+                // Period does not exist yet. Let's create it automatically!
+                const createRes = await fetch(`${API_URL}/periods`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        client_id: parseInt(clientId),
+                        bulan: parseInt(mainMonth),
+                        tahun: parseInt(mainYear)
+                    })
+                });
+                if (createRes.ok) {
+                    // Refetch the periods list
+                    const refetchRes = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+                    periods = refetchRes.ok ? await refetchRes.json() : [];
+                }
+            }
+        }
+
         window.modalUploadPeriods = periods;
 
         if (periods.length === 0) {
             periodSelect.innerHTML = '<option value="">No periods available</option>';
+            window.isCheckingPeriods = false;
             return;
         }
 
@@ -936,8 +968,6 @@ async function onAbsensiClientChanged() {
             periodSelect.value = currentPeriodId;
             onAbsensiPeriodChanged();
         } else {
-            const mainMonth = document.getElementById('attendanceMonthSelect')?.value;
-            const mainYear = document.getElementById('attendanceYearSelect')?.value;
             if (mainMonth && mainYear) {
                 const matchedPeriod = periods.find(p => parseInt(p.bulan) == parseInt(mainMonth) && parseInt(p.tahun) == parseInt(mainYear));
                 if (matchedPeriod) {
@@ -949,6 +979,8 @@ async function onAbsensiClientChanged() {
     } catch (e) {
         console.error(e);
         periodSelect.innerHTML = '<option value="" disabled selected hidden>Error loading periods</option>';
+    } finally {
+        window.isCheckingPeriods = false;
     }
 }
 
@@ -962,6 +994,9 @@ async function onAbsensiPeriodChanged() {
         return;
     }
 
+    if (logsDiv && logsDiv.parentElement) {
+        logsDiv.parentElement.style.display = 'block';
+    }
     logsDiv.innerHTML = "Fetching active employees for this period...\n";
     try {
         const res = await fetch(`${API_URL}/attendance/${periodId}?client_id=${clientId}`);
@@ -1126,6 +1161,9 @@ function processAbsensiFile(file) {
     if (labelAbs) labelAbs.innerText = file.name;
 
     const logsDiv = document.getElementById('uploadAbsensiLogs');
+    if (logsDiv && logsDiv.parentElement) {
+        logsDiv.parentElement.style.display = 'block';
+    }
     logsDiv.innerHTML = "Reading file...\n";
 
     const reader = new FileReader();
@@ -1165,7 +1203,9 @@ function processParsedAttendance(rows) {
     const logsDiv = document.getElementById('uploadAbsensiLogs');
     const employees = window.currentPeriodAttendance || [];
     if (employees.length === 0) {
-        logsDiv.innerHTML += "Error: No active employees loaded in context.\n";
+        const errMsg = "Gaji/Absensi tidak bisa diproses karena tidak ada data karyawan aktif untuk Client ini di database. Daftarkan karyawan terlebih dahulu di menu Employee Management.";
+        logsDiv.innerHTML += `Error: ${errMsg}\n`;
+        showToast(errMsg, 'warning');
         return;
     }
 
@@ -1243,19 +1283,29 @@ function processParsedAttendance(rows) {
         const status = statusKey ? String(row[statusKey] || '').trim() : '';
         const shift = shiftKey ? String(row[shiftKey] || '').trim() : '';
 
-        const key = empId || empName.toLowerCase();
-        if (!key) return;
+        if (!empId && !empName) return;
 
-        if (!excelByEmp[key]) {
-            excelByEmp[key] = [];
-        }
-        excelByEmp[key].push({
+        const rowData = {
             dateVal: tglVal,
             checkin: checkin,
             checkout: checkout,
             status: status,
             shift: shift
-        });
+        };
+
+        if (empId) {
+            if (!excelByEmp[empId]) {
+                excelByEmp[empId] = [];
+            }
+            excelByEmp[empId].push(rowData);
+        }
+        if (empName) {
+            const nameKey = empName.toLowerCase();
+            if (!excelByEmp[nameKey]) {
+                excelByEmp[nameKey] = [];
+            }
+            excelByEmp[nameKey].push(rowData);
+        }
     });
 
     const finalAttendance = [];
