@@ -2052,8 +2052,6 @@
                     <input type="number" id="shiftSchemeDuration" value="8">
                     <input type="number" id="shiftSchemeGraceLate" value="0">
                     <input type="number" id="shiftSchemeGraceEarly" value="0">
-                    <input type="checkbox" id="shiftSchemeIsHoliday">
-                    <input type="checkbox" id="shiftSchemeIsOvertime">
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
                     <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>

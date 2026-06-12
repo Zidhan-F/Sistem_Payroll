@@ -5021,15 +5021,28 @@ class Api extends ResourceController
             return $this->failValidationErrors('Name, start time, dan end time wajib diisi');
         }
 
+        $duration = 8.0;
+        if (!empty($data['start_time']) && !empty($data['end_time'])) {
+            try {
+                $startTime = new \DateTime($data['start_time']);
+                $endTime = new \DateTime($data['end_time']);
+                if ($endTime < $startTime) {
+                    $endTime->modify('+1 day');
+                }
+                $diff = $startTime->diff($endTime);
+                $duration = floatval(number_format($diff->h + ($diff->i / 60), 1));
+            } catch (\Exception $e) {
+                $duration = isset($data['duration']) ? floatval($data['duration']) : 8.0;
+            }
+        }
+
         $insertData = [
             'name' => $data['name'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
-            'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
+            'duration' => $duration,
             'grace_period_late' => isset($data['grace_period_late']) ? intval($data['grace_period_late']) : 0,
             'grace_period_early' => isset($data['grace_period_early']) ? intval($data['grace_period_early']) : 0,
-            'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
-            'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
@@ -5046,15 +5059,28 @@ class Api extends ResourceController
             return $this->failValidationErrors('Name, start time, dan end time wajib diisi');
         }
 
+        $duration = 8.0;
+        if (!empty($data['start_time']) && !empty($data['end_time'])) {
+            try {
+                $startTime = new \DateTime($data['start_time']);
+                $endTime = new \DateTime($data['end_time']);
+                if ($endTime < $startTime) {
+                    $endTime->modify('+1 day');
+                }
+                $diff = $startTime->diff($endTime);
+                $duration = floatval(number_format($diff->h + ($diff->i / 60), 1));
+            } catch (\Exception $e) {
+                $duration = isset($data['duration']) ? floatval($data['duration']) : 8.0;
+            }
+        }
+
         $updateData = [
             'name' => $data['name'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
-            'duration' => isset($data['duration']) ? floatval($data['duration']) : 8.0,
+            'duration' => $duration,
             'grace_period_late' => isset($data['grace_period_late']) ? intval($data['grace_period_late']) : 0,
             'grace_period_early' => isset($data['grace_period_early']) ? intval($data['grace_period_early']) : 0,
-            'is_holiday_shift' => !empty($data['is_holiday_shift']) ? 1 : 0,
-            'is_overtime_shift' => !empty($data['is_overtime_shift']) ? 1 : 0,
             'updated_at' => date('Y-m-d H:i:s')
         ];
 
