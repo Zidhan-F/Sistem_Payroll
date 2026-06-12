@@ -21,7 +21,7 @@ async function renderTaxSchemes() {
         
         // Filter schemes by tipe
         taxSchemes = allSchemes.filter(s => s.tipe === 'pph21');
-        bpjsSchemes = allSchemes.filter(s => s.tipe === 'bpjs');
+        bpjsSchemes = allSchemes.filter(s => s.tipe === 'bpjs' && !(s.nama && s.nama.startsWith('Custom BPJS -')));
 
         // Render using helper functions
         renderBpjsTable(bpjsSchemes);

@@ -1284,7 +1284,6 @@ function processParsedAttendance(rows) {
         const shift = shiftKey ? String(row[shiftKey] || '').trim() : '';
 
         if (!empId && !empName) return;
-
         const rowData = {
             dateVal: tglVal,
             checkin: checkin,

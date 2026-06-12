@@ -62,13 +62,7 @@ function renderShiftSchemesTable() {
         `;
         return;
     }
-
     allShiftSchemes.forEach((s, idx) => {
-        const jenisList = [];
-        if (parseInt(s.is_holiday_shift) === 1) jenisList.push('<span style="background:#fef08a;color:#854d0e;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Hari Libur</span>');
-        if (parseInt(s.is_overtime_shift) === 1) jenisList.push('<span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Lembur Penuh</span>');
-        if (jenisList.length === 0) jenisList.push('<span style="background:#f1f5f9;color:#475569;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Standar</span>');
-
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0; hover:background:#f8fafc;">
                 <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${idx + 1}</td>
@@ -119,8 +113,6 @@ function bukaModalShiftScheme(mode, id = null) {
             document.getElementById('shiftSchemeDuration').value = s.duration;
             document.getElementById('shiftSchemeGraceLate').value = s.grace_period_late;
             document.getElementById('shiftSchemeGraceEarly').value = s.grace_period_early;
-            document.getElementById('shiftSchemeIsHoliday').checked = parseInt(s.is_holiday_shift) === 1;
-            document.getElementById('shiftSchemeIsOvertime').checked = parseInt(s.is_overtime_shift) === 1;
 
             modal.style.display = 'block';
             document.getElementById('overlay').style.display = 'block';
@@ -142,9 +134,7 @@ function simpanShiftScheme(event) {
         end_time: document.getElementById('shiftSchemeEndTime').value,
         duration: parseFloat(document.getElementById('shiftSchemeDuration').value),
         grace_period_late: parseInt(document.getElementById('shiftSchemeGraceLate').value) || 0,
-        grace_period_early: parseInt(document.getElementById('shiftSchemeGraceEarly').value) || 0,
-        is_holiday_shift: document.getElementById('shiftSchemeIsHoliday').checked ? 1 : 0,
-        is_overtime_shift: document.getElementById('shiftSchemeIsOvertime').checked ? 1 : 0
+        grace_period_early: parseInt(document.getElementById('shiftSchemeGraceEarly').value) || 0
     };
 
     const url = id ? `${API_URL}/shift-schemes/${id}` : `${API_URL}/shift-schemes`;
