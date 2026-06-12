@@ -809,7 +809,35 @@ class Api extends ResourceController
         }
 
         if (empty($jamMasuk)) {
-            $result['is_incomplete'] = 1;
+            // Check if this is a rest day (weekend) — if so, do NOT mark as incomplete
+            $dayOfWeek = intval(date('w', strtotime($tanggal))); // 0=Sunday, 6=Saturday
+            $workDaysConfig = 5; // default
+            if ($emp) {
+                $workDaysConfig = intval($emp->hari_kerja ?? 5);
+                if ($workDaysConfig < 1) {
+                    // Try position hari_kerja
+                    $posId = $emp->position_id ?? null;
+                    if ($posId) {
+                        $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
+                        if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
+                            $workDaysConfig = intval($pos->hari_kerja);
+                        } else {
+                            $workDaysConfig = 5;
+                        }
+                    } else {
+                        $workDaysConfig = 5;
+                    }
+                }
+            }
+            $isRestDay = false;
+            if ($workDaysConfig === 5) {
+                $isRestDay = ($dayOfWeek === 0 || $dayOfWeek === 6);
+            } elseif ($workDaysConfig === 6) {
+                $isRestDay = ($dayOfWeek === 0);
+            }
+            if (!$isRestDay) {
+                $result['is_incomplete'] = 1;
+            }
             return $result;
         }
 
@@ -875,7 +903,27 @@ class Api extends ResourceController
 
         // ── HADIR: hitung keterlambatan ───────────────────────────────────────
         if (empty($jamMasuk)) {
-            $result['is_incomplete'] = 1;
+            // Reuse weekend rest-day check — do NOT mark as incomplete on rest days
+            $dayOfWeek2 = intval(date('w', strtotime($tanggal)));
+            $wdc2 = 5;
+            if ($emp) {
+                $wdc2 = intval($emp->hari_kerja ?? 5);
+                if ($wdc2 < 1) {
+                    $posId2 = $emp->position_id ?? null;
+                    if ($posId2) {
+                        $pos2 = $db->table('positions')->where('id', $posId2)->get()->getRow();
+                        $wdc2 = ($pos2 && isset($pos2->hari_kerja) && intval($pos2->hari_kerja) > 0) ? intval($pos2->hari_kerja) : 5;
+                    } else {
+                        $wdc2 = 5;
+                    }
+                }
+            }
+            $isRestDay2 = false;
+            if ($wdc2 === 5) { $isRestDay2 = ($dayOfWeek2 === 0 || $dayOfWeek2 === 6); }
+            elseif ($wdc2 === 6) { $isRestDay2 = ($dayOfWeek2 === 0); }
+            if (!$isRestDay2) {
+                $result['is_incomplete'] = 1;
+            }
             return $result;
         }
 
@@ -1118,10 +1166,14 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $logs = $data['logs'] ?? [];
+        log_message('error', 'BULK LOGS RECEIVED: ' . json_encode($logs));
         $count = 0;
 
         foreach ($logs as $log) {
-            if (empty($log['employee_id']) || empty($log['tanggal'])) continue;
+            if (empty($log['employee_id']) || empty($log['tanggal'])) {
+                log_message('error', 'SKIPPED LOG DUE TO EMPTY FIELD: ' . json_encode($log));
+                continue;
+            }
 
             $shiftSchemeId = $log['shift_scheme_id'] ?? null;
 

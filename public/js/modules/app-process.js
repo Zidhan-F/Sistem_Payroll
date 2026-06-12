@@ -1001,7 +1001,7 @@ function downloadAbsensiTemplate() {
     showToast('Template downloaded successfully!', 'success');
 }
 
-function parseExcelDate(val) {
+function parseAttendanceExcelDate(val) {
     if (val instanceof Date) return val;
     if (typeof val === 'number') {
         return new Date((val - 25569) * 86400 * 1000);
@@ -1234,7 +1234,7 @@ function processParsedAttendance(rows) {
         let totalAlfa = 0;
         
         matchedRows.forEach(row => {
-            const dateObj = parseExcelDate(row.dateVal);
+            const dateObj = parseAttendanceExcelDate(row.dateVal);
             if (!dateObj) return;
 
             const yyyy = dateObj.getFullYear();
@@ -1242,19 +1242,37 @@ function processParsedAttendance(rows) {
             const dd = String(dateObj.getDate()).padStart(2, '0');
             const formattedDate = `${yyyy}-${mm}-${dd}`;
 
+            // Determine final status - auto-detect Day Off for weekends without data
+            const hasCheckin = row.checkin && row.checkin !== 'null';
+            const hasCheckout = row.checkout && row.checkout !== 'null';
+            let finalStatus = row.status || 'Hadir';
+
+            if (!hasCheckin && !hasCheckout && (!row.status || row.status.toLowerCase().trim() === 'hadir')) {
+                const dayOfWeekCheck = dateObj.getDay();
+                let isRestDayCheck = false;
+                if (workDaysConfig === 5) {
+                    isRestDayCheck = (dayOfWeekCheck === 0 || dayOfWeekCheck === 6);
+                } else if (workDaysConfig === 6) {
+                    isRestDayCheck = (dayOfWeekCheck === 0);
+                }
+                if (isRestDayCheck) {
+                    finalStatus = 'Day Off';
+                }
+            }
+
             dailyLogs.push({
                 employee_id: emp.employee_id,
                 tanggal: formattedDate,
-                jam_masuk: row.checkin && row.checkin !== 'null' ? row.checkin : '',
-                jam_keluar: row.checkout && row.checkout !== 'null' ? row.checkout : '',
-                status: row.status || 'Hadir',
+                jam_masuk: hasCheckin ? row.checkin : '',
+                jam_keluar: hasCheckout ? row.checkout : '',
+                status: finalStatus,
                 keterangan: '',
                 shift_name: row.shift,
                 payout_period: payoutPeriodStr
             });
 
             const dayOfWeek = dateObj.getDay();
-            const statusNorm = row.status.toLowerCase().trim();
+            const statusNorm = finalStatus.toLowerCase().trim();
 
             let isRestDay = false;
             if (workDaysConfig === 5) {
@@ -1363,8 +1381,27 @@ async function saveUploadedAbsensi() {
             showToast('Attendance logs successfully imported!', 'success');
             tutupModalUploadAbsensi();
             
+            const uploadedClientId = document.getElementById('modalUploadAbsensiClient')?.value;
+            const periodId = document.getElementById('modalUploadAbsensiPeriod')?.value;
+            const activePeriod = window.modalUploadPeriods?.find(p => p.id == periodId);
+
+            // Sync main dashboard attendance selectors
+            const mainClientSelect = document.getElementById('attendanceClientSelect');
+            const mainMonthSelect = document.getElementById('attendanceMonthSelect');
+            const mainYearSelect = document.getElementById('attendanceYearSelect');
+
+            if (mainClientSelect && uploadedClientId) {
+                mainClientSelect.value = uploadedClientId;
+                if (typeof window.syncCustomClientDropdown === 'function') {
+                    window.syncCustomClientDropdown();
+                }
+            }
+            if (activePeriod) {
+                if (mainMonthSelect) mainMonthSelect.value = parseInt(activePeriod.bulan);
+                if (mainYearSelect) mainYearSelect.value = parseInt(activePeriod.tahun);
+            }
+
             // Refresh table if we are currently looking at the same period inside workspace
-            const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
             if (typeof currentPeriodId !== 'undefined' && window.currentPeriodId == periodId) {
                 renderCutOffTable();
             }
@@ -1390,7 +1427,7 @@ window.onAbsensiPeriodChanged = onAbsensiPeriodChanged;
 window.downloadAbsensiTemplate = downloadAbsensiTemplate;
 window.handleAbsensiFileSelect = handleAbsensiFileSelect;
 window.saveUploadedAbsensi = saveUploadedAbsensi;
-window.parseExcelDate = parseExcelDate;
+window.parseExcelDate = parseAttendanceExcelDate;
 window.renderCutOffTable = renderCutOffTable;
 
 function handleAbsensiDragOver(event) {

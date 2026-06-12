@@ -390,7 +390,7 @@ async function deleteOvertimeLog(id) {
 // === Overtime Upload Logic ===
 let parsedLemburData = [];
 
-function parseExcelDate(val) {
+function parseOvertimeExcelDate(val) {
     if (!val) return null;
     if (val instanceof Date) return val;
     
@@ -618,7 +618,7 @@ function processParsedLembur(rows) {
             return;
         }
 
-        const dateObj = parseExcelDate(tglVal);
+        const dateObj = parseOvertimeExcelDate(tglVal);
         if (!dateObj) {
             logText += `⚠️ Row ${index + 1}: Invalid date format "${tglVal}".\n`;
             return;

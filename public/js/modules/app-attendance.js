@@ -6,6 +6,7 @@ let editingAttendanceLogId = null;
 async function loadAttendanceClients() {
     const select = document.getElementById('attendanceClientSelect');
     if (!select) return;
+    const currentVal = select.value;
     try {
         const res = await fetch(`${API_URL}/clients`);
         const clients = await res.json();
@@ -13,6 +14,12 @@ async function loadAttendanceClients() {
         clients.forEach(c => {
             select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
         });
+        if (currentVal && Array.from(select.options).some(opt => opt.value == currentVal)) {
+            select.value = currentVal;
+            if (typeof loadAttendanceLogs === 'function') {
+                loadAttendanceLogs();
+            }
+        }
         if (typeof syncCustomClientDropdown === 'function') {
             syncCustomClientDropdown();
         }
@@ -65,7 +72,26 @@ async function loadAttendanceLogs() {
                 shiftBadges += `<span style="background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Rapel (${a.payout_period})</span>`;
             }
 
-            return `<tr data-employee-id="${a.employee_id || ''}" data-employee-name="${(a.employee_name || '').toLowerCase()}" data-shift-name="${(a.shift_name || 'default').toLowerCase()}" style="border-bottom: 1px solid #f1f5f9;">
+            const statusNorm = (a.status || '').toLowerCase().trim();
+            let isLibur = false;
+            if (statusNorm === 'day off' || statusNorm === 'off') {
+                shiftBadges += `<span style="background:#f1f5f9;color:#475569;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Day Off</span>`;
+                isLibur = true;
+            } else if (statusNorm === 'alfa' || statusNorm === 'absent') {
+                shiftBadges += `<span style="background:#fee2e2;color:#b91c1c;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Alfa</span>`;
+            } else if (statusNorm === 'sakit' || statusNorm === 'sick') {
+                shiftBadges += `<span style="background:#fef3c7;color:#b45309;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Sakit</span>`;
+            } else if (statusNorm === 'izin' || statusNorm === 'leave') {
+                shiftBadges += `<span style="background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Izin</span>`;
+            } else if (statusNorm === 'hadir' || statusNorm === 'present') {
+                shiftBadges += `<span style="background:#e8fdf0;color:#15803d;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Hadir</span>`;
+            }
+
+            const rowStyle = isLibur 
+                ? 'border-bottom: 1px solid #f1f5f9; background-color: #f8fafc; color: #94a3b8; opacity: 0.85;'
+                : 'border-bottom: 1px solid #f1f5f9;';
+
+            return `<tr data-employee-id="${a.employee_id || ''}" data-employee-name="${(a.employee_name || '').toLowerCase()}" data-shift-name="${(a.shift_name || 'default').toLowerCase()}" style="${rowStyle}">
                 <td style="text-align:center;padding:12px;color:#64748b;">${i+1}</td>
                 <td style="padding:12px;font-weight:600;color:#1e293b;">${a.employee_name || '-'}</td>
                 <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>

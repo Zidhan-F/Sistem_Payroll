@@ -579,7 +579,7 @@ function renderInlineAttendanceTable(rows, isDbSummary = false) {
                 statusBadge = `<span style="background: #e8fdf0; padding: 2px 8px; border-radius: 4px; color: #2ecc71; font-weight: 600; font-size: 11px;">${status}</span>`;
             } else if (statusNorm === 'alfa' || statusNorm === 'absent') {
                 statusBadge = `<span style="background: #fdeded; padding: 2px 8px; border-radius: 4px; color: #e74c3c; font-weight: 600; font-size: 11px;">${status}</span>`;
-            } else if (statusNorm === 'off') {
+            } else if (statusNorm === 'off' || statusNorm === 'day off') {
                 statusBadge = `<span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; color: #64748b; font-weight: 600; font-size: 11px;">${status}</span>`;
             } else {
                 statusBadge = `<span style="background: #eff6ff; padding: 2px 8px; border-radius: 4px; color: #3b82f6; font-weight: 600; font-size: 11px;">${status || '-'}</span>`;
@@ -887,13 +887,33 @@ function processInlineParsedAttendance(rows) {
         }
 
         if (matchedEmp) {
+            // Determine final status - auto-detect Day Off for weekends without data
+            let finalStatus = status || 'Hadir';
+            const hasCheckin = checkin && checkin !== 'null';
+            const hasCheckout = checkout && checkout !== 'null';
+            const dayOfWeek = dateObj.getDay(); // 0=Sunday, 6=Saturday
+            const workDaysConfig = parseInt(matchedEmp.employee_hari_kerja || matchedEmp.position_hari_kerja || 5);
+
+            // If no times provided and no explicit status, check if it's a rest day
+            if (!hasCheckin && !hasCheckout && (!status || status.toLowerCase() === 'hadir')) {
+                let isRestDay = false;
+                if (workDaysConfig === 5) {
+                    isRestDay = (dayOfWeek === 0 || dayOfWeek === 6); // Sat + Sun off
+                } else if (workDaysConfig === 6) {
+                    isRestDay = (dayOfWeek === 0); // Only Sun off
+                }
+                if (isRestDay) {
+                    finalStatus = 'Day Off';
+                }
+            }
+
             finalAttendance.push({
                 employee_id: matchedEmp.employee_id,
                 tanggal: formattedDate,
-                jam_masuk: (checkin && checkin !== 'null') ? checkin : null,
-                jam_keluar: (checkout && checkout !== 'null') ? checkout : null,
+                jam_masuk: hasCheckin ? checkin : null,
+                jam_keluar: hasCheckout ? checkout : null,
                 shift_name: row[keys.find(k => k.toLowerCase().replace(/\s+/g,'') === 'shift')] || null,
-                status: status || 'Hadir',
+                status: finalStatus,
                 payout_period: payoutPeriodStr
             });
             validCount++;
