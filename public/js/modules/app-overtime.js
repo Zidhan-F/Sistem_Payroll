@@ -477,7 +477,33 @@ async function onLemburClientChanged() {
 
     try {
         const res = await fetch(`${API_URL}/periods?client_id=${clientId}`);
-        const periods = res.ok ? await res.json() : [];
+        let periods = res.ok ? await res.json() : [];
+
+        // Check if the main page's selected month & year exists in the periods
+        const mainMonth = document.getElementById('overtimeMonthSelect')?.value;
+        const mainYear = document.getElementById('overtimeYearSelect')?.value;
+        
+        if (mainMonth && mainYear) {
+            const hasMatchedPeriod = periods.some(p => parseInt(p.bulan) == parseInt(mainMonth) && parseInt(p.tahun) == parseInt(mainYear));
+            if (!hasMatchedPeriod) {
+                // Period does not exist yet. Let's create it automatically!
+                const createRes = await fetch(`${API_URL}/periods`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        client_id: parseInt(clientId),
+                        bulan: parseInt(mainMonth),
+                        tahun: parseInt(mainYear)
+                    })
+                });
+                if (createRes.ok) {
+                    // Refetch the periods list
+                    const refetchRes = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+                    periods = refetchRes.ok ? await refetchRes.json() : [];
+                }
+            }
+        }
+
         window.lemburUploadPeriods = periods;
 
         if (periods.length === 0) {
@@ -491,8 +517,6 @@ async function onLemburClientChanged() {
         periodSelect.disabled = false;
 
         // Auto-select based on main page selection
-        const mainMonth = document.getElementById('overtimeMonthSelect')?.value;
-        const mainYear = document.getElementById('overtimeYearSelect')?.value;
         if (mainMonth && mainYear) {
             const matchedPeriod = periods.find(p => parseInt(p.bulan) == parseInt(mainMonth) && parseInt(p.tahun) == parseInt(mainYear));
             if (matchedPeriod) {
@@ -530,10 +554,13 @@ async function downloadLemburTemplate() {
         const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
         const data = await res.json();
         const rawEmps = data.data || data || [];
-        const emps = rawEmps.filter(e => e.status === 'Aktif');
+        const emps = rawEmps.filter(e => {
+            const s = String(e.status || '').toLowerCase().trim();
+            return s !== 'non-aktif' && s !== 'non aktif' && s !== 'inactive' && s !== 'keluar' && s !== 'resigned';
+        });
 
         if (emps.length === 0) {
-            showToast('No active employees found for this client.', 'warning');
+            showToast('Tidak ada karyawan aktif untuk client ini.', 'warning');
             return;
         }
 
@@ -674,7 +701,10 @@ async function downloadLemburTemplateMain() {
         const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
         const data = await res.json();
         const rawEmps = data.data || data || [];
-        const emps = rawEmps.filter(e => e.status === 'Aktif');
+        const emps = rawEmps.filter(e => {
+            const s = String(e.status || '').toLowerCase().trim();
+            return s !== 'non-aktif' && s !== 'non aktif' && s !== 'inactive' && s !== 'keluar' && s !== 'resigned';
+        });
 
         if (emps.length === 0) {
             showToast('Tidak ada karyawan aktif untuk client ini.', 'warning');
