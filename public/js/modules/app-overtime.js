@@ -536,49 +536,18 @@ async function onLemburPeriodChanged() {
 }
 
 async function downloadLemburTemplate() {
-    const clientId = document.getElementById('modalUploadLemburClient').value;
-    const periodId = document.getElementById('modalUploadLemburPeriod').value;
-    if (!clientId || !periodId) {
-        showToast('Please select Client and Period first.', 'warning');
-        return;
-    }
-
-    const activePeriod = (window.lemburUploadPeriods || []).find(p => p.id == periodId);
-    if (!activePeriod) {
-        showToast('Period details not found.', 'error');
-        return;
-    }
-
-    showToast('Generating template...', 'info');
+    showToast('Downloading template...', 'info');
     try {
-        const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
-        const data = await res.json();
-        const rawEmps = data.data || data || [];
-        const emps = rawEmps.filter(e => {
-            const s = String(e.status || '').toLowerCase().trim();
-            return s !== 'non-aktif' && s !== 'non aktif' && s !== 'inactive' && s !== 'keluar' && s !== 'resigned';
-        });
-
-        if (emps.length === 0) {
-            showToast('Tidak ada karyawan aktif untuk client ini.', 'warning');
-            return;
-        }
-
-        const templateData = emps.map(e => ({
-            'NIK': e.nik || '',
-            'Nama': e.nama || '',
-            'Tanggal': `${activePeriod.tahun}-${String(activePeriod.bulan).padStart(2, '0')}-01`,
-            'Nominal': 100000
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(templateData);
+        const worksheet = XLSX.utils.aoa_to_sheet([
+            ['NIK', 'Nama', 'Tanggal', 'Nominal', 'Keterangan']
+        ]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Overtime Template");
 
-        const max_widths = [15, 25, 15, 15];
+        const max_widths = [15, 25, 15, 15, 20];
         worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
 
-        const filename = `Overtime_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
+        const filename = 'Overtime_Template.xlsx';
         XLSX.writeFile(workbook, filename);
         showToast('Template downloaded successfully!', 'success');
     } catch (e) {
@@ -668,71 +637,7 @@ function handleLemburDrop(event) {
 }
 
 async function downloadLemburTemplateMain() {
-    const clientId = document.getElementById('overtimeClientSelect')?.value;
-    const bulan = document.getElementById('overtimeMonthSelect')?.value;
-    const tahun = document.getElementById('overtimeYearSelect')?.value;
-
-    if (!clientId) {
-        showToast('Pilih client terlebih dahulu!', 'warning');
-        return;
-    }
-
-    showToast('Generating template...', 'info');
-    try {
-        // Fetch periods to resolve payout period
-        const periodRes = await fetch(`${API_URL}/periods?client_id=${clientId}`);
-        const periods = periodRes.ok ? await periodRes.json() : [];
-        
-        let activePeriod = null;
-        if (periods.length > 0) {
-            activePeriod = periods.find(p => parseInt(p.bulan) == parseInt(bulan) && parseInt(p.tahun) == parseInt(tahun));
-        }
-
-        // Fallback activePeriod details if none matched
-        if (!activePeriod) {
-            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-            activePeriod = {
-                tahun: tahun || new Date().getFullYear(),
-                bulan: bulan || (new Date().getMonth() + 1),
-                nama: `${monthNames[(bulan || new Date().getMonth() + 1) - 1]} ${tahun}`
-            };
-        }
-
-        const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
-        const data = await res.json();
-        const rawEmps = data.data || data || [];
-        const emps = rawEmps.filter(e => {
-            const s = String(e.status || '').toLowerCase().trim();
-            return s !== 'non-aktif' && s !== 'non aktif' && s !== 'inactive' && s !== 'keluar' && s !== 'resigned';
-        });
-
-        if (emps.length === 0) {
-            showToast('Tidak ada karyawan aktif untuk client ini.', 'warning');
-            return;
-        }
-
-        const templateData = emps.map(e => ({
-            'NIK': e.nik || '',
-            'Nama': e.nama || '',
-            'Tanggal': `${activePeriod.tahun}-${String(activePeriod.bulan).padStart(2, '0')}-01`,
-            'Nominal': 100000,
-            'Keterangan': 'Lembur'
-        }));
-
-        const worksheet = XLSX.utils.json_to_sheet(templateData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Overtime Template");
-
-        const max_widths = [15, 25, 15, 15, 20];
-        worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
-
-        const filename = `Overtime_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
-        XLSX.writeFile(workbook, filename);
-        showToast('Template berhasil didownload!', 'success');
-    } catch (e) {
-        console.error(e);
-        showToast('Gagal mendownload template: ' + e.message, 'error');
-    }
+    await downloadLemburTemplate();
 }
 
 
