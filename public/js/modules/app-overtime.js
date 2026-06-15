@@ -563,6 +563,11 @@ async function downloadLemburTemplate() {
 function handleLemburFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
+    processLemburFile(file);
+}
+
+function processLemburFile(file) {
+    if (!file) return;
 
     const clientId = document.getElementById('modalUploadLemburClient').value;
     const periodId = document.getElementById('modalUploadLemburPeriod').value;
@@ -598,6 +603,108 @@ function handleLemburFileSelect(event) {
     };
     reader.readAsArrayBuffer(file);
 }
+
+function handleLemburDragOver(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneLemburExcel');
+    if (zone) {
+        zone.style.borderColor = '#0369a1';
+        zone.style.backgroundColor = 'rgba(2, 132, 199, 0.18)';
+    }
+}
+
+function handleLemburDragLeave(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneLemburExcel');
+    if (zone) {
+        zone.style.borderColor = '#0284c7';
+        zone.style.backgroundColor = 'rgba(2, 132, 199, 0.08)';
+    }
+}
+
+function handleLemburDrop(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneLemburExcel');
+    if (zone) {
+        zone.style.borderColor = '#0284c7';
+        zone.style.backgroundColor = 'rgba(2, 132, 199, 0.08)';
+    }
+    
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        const file = event.dataTransfer.files[0];
+        const fileInput = document.getElementById('fileLemburExcel');
+        if (fileInput) {
+            fileInput.files = event.dataTransfer.files;
+        }
+        processLemburFile(file);
+    }
+}
+
+async function downloadLemburTemplateMain() {
+    const clientId = document.getElementById('overtimeClientSelect')?.value;
+    const bulan = document.getElementById('overtimeMonthSelect')?.value;
+    const tahun = document.getElementById('overtimeYearSelect')?.value;
+
+    if (!clientId) {
+        showToast('Pilih client terlebih dahulu!', 'warning');
+        return;
+    }
+
+    showToast('Generating template...', 'info');
+    try {
+        // Fetch periods to resolve payout period
+        const periodRes = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+        const periods = periodRes.ok ? await periodRes.json() : [];
+        
+        let activePeriod = null;
+        if (periods.length > 0) {
+            activePeriod = periods.find(p => parseInt(p.bulan) == parseInt(bulan) && parseInt(p.tahun) == parseInt(tahun));
+        }
+
+        // Fallback activePeriod details if none matched
+        if (!activePeriod) {
+            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            activePeriod = {
+                tahun: tahun || new Date().getFullYear(),
+                bulan: bulan || (new Date().getMonth() + 1),
+                nama: `${monthNames[(bulan || new Date().getMonth() + 1) - 1]} ${tahun}`
+            };
+        }
+
+        const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
+        const data = await res.json();
+        const rawEmps = data.data || data || [];
+        const emps = rawEmps.filter(e => e.status === 'Aktif');
+
+        if (emps.length === 0) {
+            showToast('Tidak ada karyawan aktif untuk client ini.', 'warning');
+            return;
+        }
+
+        const templateData = emps.map(e => ({
+            'NIK': e.nik || '',
+            'Nama': e.nama || '',
+            'Tanggal': `${activePeriod.tahun}-${String(activePeriod.bulan).padStart(2, '0')}-01`,
+            'Nominal': 100000,
+            'Keterangan': 'Lembur'
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(templateData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Overtime Template");
+
+        const max_widths = [15, 25, 15, 15, 20];
+        worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+        const filename = `Overtime_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
+        XLSX.writeFile(workbook, filename);
+        showToast('Template berhasil didownload!', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Gagal mendownload template: ' + e.message, 'error');
+    }
+}
+
 
 function processParsedLembur(rows) {
     const logsDiv = document.getElementById('uploadLemburLogs');
@@ -910,5 +1017,9 @@ Object.assign(window, {
     saveUploadedLembur,
     switchOvertimeSubTab,
     filterOvertimeHistory,
-    filterOvertimePending
+    filterOvertimePending,
+    handleLemburDragOver,
+    handleLemburDragLeave,
+    handleLemburDrop,
+    downloadLemburTemplateMain
 });
