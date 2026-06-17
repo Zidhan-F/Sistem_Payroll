@@ -1039,8 +1039,8 @@ class Api extends ResourceController
             }
 
             $jamLemburVal = floatval($result['calculated_overtime_hours']);
-            if (!$isHoliday && $jamLemburVal > 4.0) {
-                $jamLemburVal = 4.0;
+            if (!$isHoliday && $jamLemburVal > 3.0) {
+                $jamLemburVal = 3.0;
             }
 
             $otData = [
