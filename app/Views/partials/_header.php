@@ -13,11 +13,11 @@
             </div>
             <div class="notifications-dropdown" id="notificationsDropdown">
                 <div class="notifications-header">
-                    <h3>Notifikasi Peringatan</h3>
-                    <span class="notifications-count" id="notificationsCount">0 Baru</span>
+                    <h3>Warning Notifications</h3>
+                    <span class="notifications-count" id="notificationsCount">0 New</span>
                 </div>
                 <div class="notifications-list" id="notificationsList">
-                    <div class="notifications-loading">Memuat...</div>
+                    <div class="notifications-loading">Loading...</div>
                 </div>
             </div>
         </div>

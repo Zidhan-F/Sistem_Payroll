@@ -14,7 +14,7 @@
         </li>
         <li id="menuSto" onclick="switchView('sto')">
             <i class="fas fa-sitemap"></i>
-            <span>STO (Struktur Organisasi)</span>
+            <span>STO (Org Structure)</span>
         </li>
         <li id="menuManajemenKaryawan" class="has-submenu">
             <div class="menu-item-header" onclick="toggleSubmenu(event, 'submenuKaryawan')">
@@ -33,7 +33,7 @@
                 </li>
                 <li id="submenuSkemaShift" onclick="switchKaryawanSubMenu('skema_shift', event)">
                     <i class="fas fa-clock"></i>
-                    <span>Skema Shift</span>
+                    <span>Shift Scheme</span>
                 </li>
             </ul>
         </li>

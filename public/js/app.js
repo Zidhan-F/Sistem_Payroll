@@ -322,6 +322,7 @@ function togglePayrollSubmenu(openOnly = false) {
 
 function switchPayrollSub(sub) {
     currentPayrollSub = sub;
+    localStorage.setItem('activePayrollSub', sub);
 
     // Toggle active classes on submenu elements
     document.querySelectorAll('.sidebar-submenu li').forEach(el => el.classList.remove('active'));
@@ -350,6 +351,7 @@ function switchPayrollSub(sub) {
 }
 
 function switchScheduleSubTab(tab) {
+    localStorage.setItem('activeScheduleTab', tab);
     // Hide all sub-panels under schedule
     document.querySelectorAll('.schedule-subpanel').forEach(p => p.style.display = 'none');
     
@@ -405,6 +407,8 @@ function switchView(view) {
         switchScheduleSubTab('overtime');
         return;
     }
+
+    localStorage.setItem('activeView', view);
 
     // Auto-close any open modals when switching views, but keep sidebar open
     tutupSemuaModal(true);
@@ -640,8 +644,7 @@ Object.assign(window, {
         sidebarToggleBtn.addEventListener('click', toggleSidebar);
     }
 
-// Initialize default view
-switchView('dashboard');
+// Initialize default view - handled on DOMContentLoaded to support persistence
 
 // MutationObserver to automatically toggle 'modal-open' class (overflow: hidden) on body when overlay is active
 document.addEventListener('DOMContentLoaded', () => {
@@ -956,7 +959,52 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchNotifications();
     // Refresh notifications every 60 seconds
     setInterval(fetchNotifications, 60000);
+
+    // Restore App View State on page load/refresh
+    restoreAppState();
 });
+
+function restoreAppState() {
+    const savedClientId = localStorage.getItem('selectedClientId');
+    const savedClientName = localStorage.getItem('selectedClientName');
+    const savedClientSektor = localStorage.getItem('selectedClientSektor');
+    
+    if (savedClientId) {
+        window.selectedClientId = parseInt(savedClientId);
+        window.selectedClientName = savedClientName;
+        window.selectedClientSektor = savedClientSektor;
+        
+        const wsTitle = document.getElementById('clientWorkspaceTitle');
+        const wsSektor = document.getElementById('clientWorkspaceSektor');
+        if (wsTitle) wsTitle.innerText = savedClientName || '-';
+        if (wsSektor) wsSektor.innerText = savedClientSektor || '-';
+    }
+
+    const savedView = localStorage.getItem('activeView') || 'dashboard';
+    
+    if (savedView === 'clientWorkspace' && savedClientId) {
+        switchView('clientWorkspace');
+        const savedWorkspaceTab = localStorage.getItem('activeWorkspaceTab') || 'karyawan';
+        if (typeof switchWorkspaceTab === 'function') {
+            switchWorkspaceTab(savedWorkspaceTab);
+        }
+    } else if (savedView === 'payroll') {
+        const savedPayrollSub = localStorage.getItem('activePayrollSub') || 'setting';
+        if (typeof switchPayrollSub === 'function') {
+            switchPayrollSub(savedPayrollSub);
+        } else {
+            switchView('payroll');
+        }
+    } else if (savedView === 'schedule') {
+        switchView('schedule');
+        const savedScheduleTab = localStorage.getItem('activeScheduleTab') || 'holiday';
+        if (typeof switchScheduleSubTab === 'function') {
+            switchScheduleSubTab(savedScheduleTab);
+        }
+    } else {
+        switchView(savedView);
+    }
+}
 
 window.fetchNotifications = fetchNotifications;
 window.handleNotificationClick = handleNotificationClick;

@@ -1425,8 +1425,14 @@ class Api extends ResourceController
             $builder->where('employees.client_id', intval($clientId));
         }
         if ($bulan && $tahun) {
-            $builder->where('MONTH(overtime_logs.tanggal)', intval($bulan));
-            $builder->where('YEAR(overtime_logs.tanggal)', intval($tahun));
+            $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
+            $builder->groupStart()
+                ->groupStart()
+                    ->where('MONTH(overtime_logs.tanggal)', intval($bulan))
+                    ->where('YEAR(overtime_logs.tanggal)', intval($tahun))
+                ->groupEnd()
+                ->orWhere('overtime_logs.payout_period', $payoutPeriodStr)
+            ->groupEnd();
         }
 
         $builder->orderBy('overtime_logs.tanggal', 'ASC');
@@ -1550,10 +1556,11 @@ class Api extends ResourceController
                 
                 if (!empty($employeeIds)) {
                     // Delete existing imported overtime logs for this client and period
+                    // Only delete records that were clearly from a previous Excel import
                     $db->table('overtime_logs')
                         ->whereIn('employee_id', $employeeIds)
                         ->where('payout_period', $payoutPeriodStr)
-                        ->where('status', 'Approved')
+                        ->like('keterangan', 'Imported from Excel')
                         ->delete();
                 }
             }
@@ -1679,12 +1686,39 @@ class Api extends ResourceController
             $standardHours = ($workDaysConfig === 6) ? 48.0 : 40.0;
             $upahPerJam = $nominalLemburBulanan / $standardHours;
 
-            if ($upahPerJam <= 0) {
-                $errorLogs[] = "Baris " . ($index + 1) . ": Tarif lembur per jam untuk '" . $employee['nama'] . "' bernilai 0.";
-                continue;
+            $keterangan = trim($row['keterangan'] ?? '');
+            $jamLembur = 0;
+
+            if ($upahPerJam > 0) {
+                // Normal path: reverse-calculate hours from nominal and hourly rate
+                $jamLembur = round($nominal / $upahPerJam, 1);
+            } else {
+                // Fallback: try to extract hours from keterangan (e.g., "Lembur 2 jam", "3 hours", "5 jam")
+                if (!empty($keterangan) && preg_match('/(\d+(?:[.,]\d+)?)\s*(?:jam|hour|hours|hr|hrs)/i', $keterangan, $matches)) {
+                    $jamLembur = floatval(str_replace(',', '.', $matches[1]));
+                }
+
+                // If still no hours found, try extracting any number from keterangan
+                if ($jamLembur <= 0 && !empty($keterangan) && preg_match('/(\d+(?:[.,]\d+)?)/', $keterangan, $matches)) {
+                    $jamLembur = floatval(str_replace(',', '.', $matches[1]));
+                }
+
+                // Last resort: use nominal directly as hours (assume nominal = hours if small number)
+                if ($jamLembur <= 0) {
+                    if ($nominal <= 24) {
+                        // If nominal is small enough to be hours directly
+                        $jamLembur = $nominal;
+                    } else {
+                        // Skip this row - can't determine hours
+                        $errorLogs[] = "Row " . ($index + 1) . ": Cannot calculate overtime hours for '" . $employee['nama'] . "' (no salary config and no hours in description).";
+                        continue;
+                    }
+                }
             }
 
-            $jamLembur = round($nominal / $upahPerJam, 1);
+            if (empty($keterangan)) {
+                $keterangan = 'Imported from Excel';
+            }
 
             // 6. Detect holiday
             $isHoliday = 0;
@@ -1785,10 +1819,10 @@ class Api extends ResourceController
                 'tanggal'       => $tanggal,
                 'jam_lembur'    => $jamLembur,
                 'is_holiday'    => $isHoliday,
-                'keterangan'    => $row['keterangan'] ?? 'Imported from Excel',
-                'status'        => 'Approved',
-                'approved_by'   => $approvedBy,
-                'approved_at'   => date('Y-m-d H:i:s'),
+                'keterangan'    => $keterangan,
+                'status'        => 'Pending',
+                'approved_by'   => null,
+                'approved_at'   => null,
                 'is_rapel'      => $isRapel,
                 'payout_period' => $finalPayoutPeriod
             ];

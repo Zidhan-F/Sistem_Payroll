@@ -86,6 +86,10 @@ function selectClient(id, name, sektor) {
     window.selectedClientSektor = sektor;
     window.currentPeriodId = null; // Reset period selection when switching clients
 
+    localStorage.setItem('selectedClientId', id);
+    localStorage.setItem('selectedClientName', name || '');
+    localStorage.setItem('selectedClientSektor', sektor || '');
+
     document.getElementById('clientWorkspaceTitle').innerText = name || '-';
     document.getElementById('clientWorkspaceSektor').innerText = sektor || '-';
 
@@ -97,12 +101,18 @@ function backToClientList() {
     window.selectedClientId = null;
     window.selectedClientName = null;
     window.selectedClientSektor = null;
+    localStorage.removeItem('selectedClientId');
+    localStorage.removeItem('selectedClientName');
+    localStorage.removeItem('selectedClientSektor');
+    localStorage.removeItem('activeWorkspaceTab');
     switchView('klien');
 }
 
 function switchWorkspaceTab(tab) {
     // Auto-close any open modals when switching workspace tabs
     if (typeof tutupSemuaModal === 'function') tutupSemuaModal(true);
+
+    localStorage.setItem('activeWorkspaceTab', tab);
 
     document.querySelectorAll('.ws-tab').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.querySelector(`.ws-tab[data-wtab="${tab}"]`);

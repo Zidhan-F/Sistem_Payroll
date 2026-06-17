@@ -25,10 +25,10 @@
                     <button class="btn-add" onclick="bukaModalOvertime()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-plus"></i> Input Lembur
                     </button>
-                    <button class="btn-add" onclick="bukaModalUploadLembur()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
+                    <button class="btn-add" onclick="bukaModalUploadLembur()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-upload"></i> Upload Lembur
                     </button>
-                    <button class="btn-add" onclick="downloadLemburTemplateMain()" style="background: #10b981; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;" title="Download Template Excel Lembur">
+                    <button class="btn-add" onclick="downloadLemburTemplateMain()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;" title="Download Template Excel Lembur">
                         <i class="fas fa-download"></i> Download Template
                     </button>
                 </div>

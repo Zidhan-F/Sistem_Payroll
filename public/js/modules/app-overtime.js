@@ -423,6 +423,12 @@ async function bukaModalUploadLembur() {
     document.getElementById('uploadLemburLogs').innerHTML = "Select Client and Period to start.";
     document.getElementById('labelLemburFilename').innerText = "No file selected";
     document.getElementById('fileLemburExcel').value = "";
+
+    const text1 = document.getElementById('dropzoneLemburText1');
+    const text2 = document.getElementById('dropzoneLemburText2');
+    if (text1) text1.innerText = 'Drag & Drop file here';
+    if (text2) text2.innerText = 'or click to browse files from your computer';
+
     document.getElementById('btnSaveUploadedLembur').disabled = true;
     document.getElementById('btnSaveUploadedLembur').style.opacity = "0.5";
     document.getElementById('btnSaveUploadedLembur').style.cursor = "not-allowed";
@@ -572,6 +578,11 @@ function processLemburFile(file) {
         return;
     }
 
+    const text1 = document.getElementById('dropzoneLemburText1');
+    const text2 = document.getElementById('dropzoneLemburText2');
+    if (text1) text1.innerText = file.name;
+    if (text2) text2.innerText = 'File selected. Click or drag another file to replace.';
+
     document.getElementById('labelLemburFilename').innerText = file.name;
     const logsDiv = document.getElementById('uploadLemburLogs');
     logsDiv.innerHTML = "Reading file...\n";
@@ -604,8 +615,8 @@ function handleLemburDragOver(event) {
     event.preventDefault();
     const zone = document.getElementById('dropzoneLemburExcel');
     if (zone) {
-        zone.style.borderColor = '#0369a1';
-        zone.style.backgroundColor = 'rgba(2, 132, 199, 0.18)';
+        zone.style.borderColor = 'var(--primary-dark)';
+        zone.style.backgroundColor = 'rgba(243, 156, 18, 0.18)';
     }
 }
 
@@ -613,8 +624,8 @@ function handleLemburDragLeave(event) {
     event.preventDefault();
     const zone = document.getElementById('dropzoneLemburExcel');
     if (zone) {
-        zone.style.borderColor = '#0284c7';
-        zone.style.backgroundColor = 'rgba(2, 132, 199, 0.08)';
+        zone.style.borderColor = 'var(--primary-color)';
+        zone.style.backgroundColor = 'rgba(243, 156, 18, 0.08)';
     }
 }
 
@@ -622,8 +633,8 @@ function handleLemburDrop(event) {
     event.preventDefault();
     const zone = document.getElementById('dropzoneLemburExcel');
     if (zone) {
-        zone.style.borderColor = '#0284c7';
-        zone.style.backgroundColor = 'rgba(2, 132, 199, 0.08)';
+        zone.style.borderColor = 'var(--primary-color)';
+        zone.style.backgroundColor = 'rgba(243, 156, 18, 0.08)';
     }
     
     if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
@@ -653,11 +664,13 @@ function processParsedLembur(rows) {
         const nameKey = keys.find(k => k.toLowerCase() === 'nama' || k.toLowerCase() === 'name');
         const tglKey = keys.find(k => k.toLowerCase() === 'tanggal' || k.toLowerCase() === 'date');
         const nominalKey = keys.find(k => k.toLowerCase() === 'nominal' || k.toLowerCase() === 'amount');
+        const ketKey = keys.find(k => k.toLowerCase() === 'keterangan' || k.toLowerCase() === 'description' || k.toLowerCase() === 'notes');
 
         const nikVal = String(row[nikKey] || '').trim();
         const nameVal = String(row[nameKey] || '').trim();
         const tglVal = row[tglKey];
         const nominalVal = parseFloat(String(row[nominalKey] || '').replace(/[^0-9.-]+/g, '')) || 0;
+        const ketVal = ketKey ? String(row[ketKey] || '').trim() : '';
 
         if (!tglVal || nominalVal <= 0 || (!nikVal && !nameVal)) {
             logText += `⚠️ Row ${index + 1}: Skipped (Missing date/nominal/name).\n`;
@@ -679,7 +692,8 @@ function processParsedLembur(rows) {
             nik: nikVal,
             nama: nameVal,
             tanggal: formattedDate,
-            nominal: nominalVal
+            nominal: nominalVal,
+            keterangan: ketVal
         });
 
         validCount++;
@@ -729,12 +743,8 @@ async function saveUploadedLembur() {
             showToast(`Successfully imported ${result.imported_count} records!`, 'success');
             tutupModalUploadLembur();
 
-            // Refresh table if period matches
-            const mainMonth = document.getElementById('overtimeMonthSelect')?.value;
-            const mainYear = document.getElementById('overtimeYearSelect')?.value;
-            if (activePeriod && parseInt(mainMonth) == parseInt(activePeriod.bulan) && parseInt(mainYear) == parseInt(activePeriod.tahun)) {
-                loadOvertimeLogs();
-            }
+            // Always refresh the table after import
+            loadOvertimeLogs();
         } else {
             showToast(result.message || 'Failed to import overtime logs.', 'error');
             btn.disabled = false;
