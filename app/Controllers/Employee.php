@@ -55,6 +55,13 @@ class Employee extends ResourceController
     public function create()
     {
         $data = $this->request->getJSON(true);
+
+        if (!empty($data['npwp'])) {
+            $digitsOnly = preg_replace('/\D/', '', $data['npwp']);
+            if (strlen($digitsOnly) < 15) {
+                return $this->fail('Format NPWP tidak valid. NPWP minimal harus memiliki 15 digit angka.');
+            }
+        }
         
         if (!empty($data['work_location_id'])) {
             $data['minimum_wage_id'] = $this->resolveMinimumWageId(
@@ -180,6 +187,13 @@ class Employee extends ResourceController
     public function update($id = null)
     {
         $data = $this->request->getJSON(true);
+
+        if (!empty($data['npwp'])) {
+            $digitsOnly = preg_replace('/\D/', '', $data['npwp']);
+            if (strlen($digitsOnly) < 15) {
+                return $this->fail('Format NPWP tidak valid. NPWP minimal harus memiliki 15 digit angka.');
+            }
+        }
         $oldEmp = $this->model->find($id);
         
         if (isset($data['work_location_id'])) {

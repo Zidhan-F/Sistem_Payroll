@@ -1455,6 +1455,17 @@ class Api extends ResourceController
             return $this->failValidationErrors('Jam lembur harus lebih dari 0!');
         }
 
+        $empInfo = $this->db->table('employees')
+            ->select('tgl_masuk, nama')
+            ->where('id', intval($data['employee_id']))
+            ->get()->getRow();
+
+        if ($empInfo && !empty($empInfo->tgl_masuk)) {
+            if (strtotime($data['tanggal']) < strtotime($empInfo->tgl_masuk)) {
+                return $this->failValidationErrors("Karyawan '{$empInfo->nama}' belum bergabung pada tanggal tersebut (Tanggal bergabung: " . date('d-m-Y', strtotime($empInfo->tgl_masuk)) . ").");
+            }
+        }
+
         // Auto-detect holiday from holiday_calendar and employee's work schedule
         if (!$isHoliday) {
             $holiday = $this->db->table('holiday_calendar')
@@ -1595,6 +1606,14 @@ class Api extends ResourceController
             if (!$employee) {
                 $errorLogs[] = "Baris " . ($index + 1) . ": Karyawan '" . ($nik ?: $nama) . "' tidak ditemukan.";
                 continue;
+            }
+
+            // Check join date validation
+            if (!empty($employee['tgl_masuk'])) {
+                if (strtotime($tanggal) < strtotime($employee['tgl_masuk'])) {
+                    $errorLogs[] = "Baris " . ($index + 1) . ": Karyawan '" . $employee['nama'] . "' belum bergabung pada tanggal tersebut (Tanggal bergabung: " . date('d-m-Y', strtotime($employee['tgl_masuk'])) . ").";
+                    continue;
+                }
             }
 
             $empId = $employee['id'];
