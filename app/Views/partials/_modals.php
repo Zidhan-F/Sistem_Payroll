@@ -633,30 +633,64 @@
                     </div>
 
                     <!-- Cut Off & Pay Day Configuration -->
-                    <div style="display: flex; flex-direction: column; gap: 12px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; margin-top: -5px;">
-                        <h4 style="margin: 0 0 2px 0; font-size: 14px; font-weight: 700; color: #1e293b;"><i class="fas fa-calendar-alt" style="color: var(--primary-color); margin-right: 6px;"></i>Cut Off & Pay Day</h4>
-                        <p style="margin: 0; font-size: 12px; color: #64748b;">
-                            Konfigurasi tanggal cut off dan tanggal gajian untuk skema ini. Wajib diisi.
-                        </p>
-
-                        <div style="display: flex; gap: 24px; align-items: flex-start;">
-                            <!-- Cut Off -->
-                            <div style="flex: 1;">
-                                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Tanggal Cut Off</label>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <input type="number" id="modalPilihanSkemaCutoffStart" min="1" max="30" placeholder="-" required style="width: 60px; height: 42px; text-align: center; font-size: 16px; font-weight: 700; border: 1px solid #ddd; border-radius: 8px; outline: none; color: #1e293b; background: white; -moz-appearance: textfield;" oninput="if(this.value>30)this.value=30;if(this.value<1&&this.value!=='')this.value=1;">
-                                    <small style="color: #94a3b8; font-size: 11px; line-height: 1.3;"><i class="fas fa-info-circle" style="margin-right: 3px;"></i>Tanggal mulai perhitungan<br>periode payroll (rapel).</small>
-                                </div>
-                            </div>
-
+                    <div style="display: flex; flex-direction: column; gap: 15px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #f8fafc; margin-top: -5px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #1e293b;"><i class="fas fa-calendar-alt" style="color: var(--primary-color); margin-right: 6px;"></i>Cut Off & Pay Day Configuration</h4>
                             <!-- Pay Day -->
-                            <div style="flex: 1;">
-                                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;"><i class="fas fa-money-check-alt" style="color: #16a34a; margin-right: 4px;"></i>Pay Day / Tanggal Gajian</label>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <input type="number" id="modalPilihanSkemaPayDate" min="1" max="30" placeholder="-" required style="width: 60px; height: 42px; text-align: center; font-size: 16px; font-weight: 700; border: 1px solid #ddd; border-radius: 8px; outline: none; color: #1e293b; background: white; -moz-appearance: textfield;" oninput="if(this.value>30)this.value=30;if(this.value<1&&this.value!=='')this.value=1;">
-                                    <small style="color: #94a3b8; font-size: 11px; line-height: 1.3;"><i class="fas fa-info-circle" style="margin-right: 3px;"></i>Tanggal pembayaran gaji<br>setiap bulan.</small>
-                                </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <label style="font-size: 12px; font-weight: 700; color: #475569;"><i class="fas fa-money-check-alt" style="color: #16a34a; margin-right: 4px;"></i>Tanggal Gajian (Pay Day):</label>
+                                <input type="number" id="modalPilihanSkemaPayDate" min="1" max="31" required style="width: 60px; height: 36px; text-align: center; font-size: 14px; font-weight: 700; border: 1px solid #ddd; border-radius: 8px; outline: none; color: #1e293b; background: white;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
                             </div>
+                        </div>
+
+                        <!-- 3 Cutoff Columns -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                            
+                            <!-- Column 1: Gaji Pokok -->
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                                <h5 style="margin: 0; font-size: 13px; font-weight: 700; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;"><i class="fas fa-wallet" style="color: #3b82f6; margin-right: 4px;"></i>Gaji Pokok</h5>
+                                
+                                <div>
+                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Mulai Tanggal (Start Day)</label>
+                                    <input type="number" id="modalPilihanSkemaCutoffStart" min="1" max="31" required style="width: 100%; height: 34px; padding: 5px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 6px;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
+                                </div>
+                                
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #475569; margin-top: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="modalPilihanSkemaIsRapelGajiPokok" value="1" checked style="width: 15px; height: 15px; accent-color: #3b82f6;">
+                                    Aktifkan Rapel (Arrears)
+                                </label>
+                            </div>
+
+                            <!-- Column 2: Lembur -->
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                                <h5 style="margin: 0; font-size: 13px; font-weight: 700; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;"><i class="fas fa-business-time" style="color: #ef4444; margin-right: 4px;"></i>Lembur (Overtime)</h5>
+                                
+                                <div>
+                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Mulai Tanggal (Start Day)</label>
+                                    <input type="number" id="modalPilihanSkemaCutoffLemburStart" min="1" max="31" required style="width: 100%; height: 34px; padding: 5px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 6px;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
+                                </div>
+                                
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #475569; margin-top: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="modalPilihanSkemaIsRapelLembur" value="1" checked style="width: 15px; height: 15px; accent-color: #ef4444;">
+                                    Aktifkan Rapel (Arrears)
+                                </label>
+                            </div>
+
+                            <!-- Column 3: Insentif -->
+                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                                <h5 style="margin: 0; font-size: 13px; font-weight: 700; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;"><i class="fas fa-coins" style="color: #10b981; margin-right: 4px;"></i>Insentif</h5>
+                                
+                                <div>
+                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Mulai Tanggal (Start Day)</label>
+                                    <input type="number" id="modalPilihanSkemaCutoffInsentifStart" min="1" max="31" required style="width: 100%; height: 34px; padding: 5px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 6px;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
+                                </div>
+                                
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #475569; margin-top: 4px; cursor: pointer;">
+                                    <input type="checkbox" id="modalPilihanSkemaIsRapelInsentif" value="1" checked style="width: 15px; height: 15px; accent-color: #10b981;">
+                                    Aktifkan Rapel (Arrears)
+                                </label>
+                            </div>
+
                         </div>
                     </div>
 

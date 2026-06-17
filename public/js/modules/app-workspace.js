@@ -423,8 +423,25 @@ async function editSchemaMapping(id) {
         if (conf.tax_scheme_id && tsEl && tsEl.tomselect) {
             tsEl.tomselect.setValue(conf.tax_scheme_id);
         }
-        document.getElementById('modalPilihanSkemaCutoffStart').value = conf.cutoff_start !== undefined && conf.cutoff_start !== null ? conf.cutoff_start : '';
         document.getElementById('modalPilihanSkemaPayDate').value = conf.pay_date !== undefined && conf.pay_date !== null ? conf.pay_date : '';
+        
+        // Gaji Pokok
+        document.getElementById('modalPilihanSkemaCutoffStart').value = conf.cutoff_gaji_pokok_start !== undefined && conf.cutoff_gaji_pokok_start !== null ? conf.cutoff_gaji_pokok_start : (conf.cutoff_start !== undefined ? conf.cutoff_start : '');
+        const gpSched = document.getElementById('modalPilihanSkemaCutoffGajiPokokScheduleRef');
+        if (gpSched) gpSched.value = conf.cutoff_gaji_pokok_schedule_ref || '';
+        document.getElementById('modalPilihanSkemaIsRapelGajiPokok').checked = conf.is_rapel_gaji_pokok !== undefined ? (parseInt(conf.is_rapel_gaji_pokok, 10) === 1) : true;
+
+        // Lembur
+        document.getElementById('modalPilihanSkemaCutoffLemburStart').value = conf.cutoff_lembur_start !== undefined && conf.cutoff_lembur_start !== null ? conf.cutoff_lembur_start : (conf.cutoff_start !== undefined ? conf.cutoff_start : '');
+        const otSched = document.getElementById('modalPilihanSkemaCutoffLemburScheduleRef');
+        if (otSched) otSched.value = conf.cutoff_lembur_schedule_ref || '';
+        document.getElementById('modalPilihanSkemaIsRapelLembur').checked = conf.is_rapel_lembur !== undefined ? (parseInt(conf.is_rapel_lembur, 10) === 1) : true;
+
+        // Insentif
+        document.getElementById('modalPilihanSkemaCutoffInsentifStart').value = conf.cutoff_insentif_start !== undefined && conf.cutoff_insentif_start !== null ? conf.cutoff_insentif_start : (conf.cutoff_start !== undefined ? conf.cutoff_start : '');
+        const insSched = document.getElementById('modalPilihanSkemaCutoffInsentifScheduleRef');
+        if (insSched) insSched.value = conf.cutoff_insentif_schedule_ref || '';
+        document.getElementById('modalPilihanSkemaIsRapelInsentif').checked = conf.is_rapel_insentif !== undefined ? (parseInt(conf.is_rapel_insentif, 10) === 1) : true;
     } catch(e) { console.error('Error in editSchemaMapping:', e); }
 }
 
@@ -590,6 +607,38 @@ window.simpanPilihanSkema = async function() {
         return;
     }
 
+    if (isModal) {
+        const payDate = parseInt(document.getElementById('modalPilihanSkemaPayDate').value, 10);
+        if (!payDate || payDate < 1 || payDate > 31) {
+            showToast('Pay date must be between 1 and 31!', 'error');
+            return;
+        }
+
+        const checkCutoff = (name, startVal) => {
+            const start = parseInt(startVal, 10);
+            if (isNaN(start) || start < 1 || start > 31) {
+                showToast(`${name} cut-off start date must be between 1 and 31!`, 'error');
+                return false;
+            }
+            
+            // Cross-check: cutoff ends after or on payday
+            const end = start - 1;
+            if (start > 1 && end >= payDate) {
+                showToast(`Conflict: ${name} cut-off ends on day ${end}, which is after or on payday (day ${payDate})!`, 'error');
+                return false;
+            }
+            if (start === 1 && payDate < 28) {
+                showToast(`Conflict: ${name} cut-off is full month, which ends after payday (day ${payDate})!`, 'error');
+                return false;
+            }
+            return true;
+        };
+
+        if (!checkCutoff('Gaji Pokok', document.getElementById('modalPilihanSkemaCutoffStart').value)) return;
+        if (!checkCutoff('Lembur', document.getElementById('modalPilihanSkemaCutoffLemburStart').value)) return;
+        if (!checkCutoff('Insentif', document.getElementById('modalPilihanSkemaCutoffInsentifStart').value)) return;
+    }
+
     try {
         if (isModal && bpjsSchemeId) {
             // Read active states and fallback to base rates or 0
@@ -707,6 +756,26 @@ window.simpanPilihanSkema = async function() {
             department_id: ((level === 'departemen' || level === 'posisi') && deptId) ? deptId : null,
             position_id: (level === 'posisi' && posId) ? posId : null
         };
+
+        if (isModal) {
+            data.cutoff_gaji_pokok_start = parseInt(document.getElementById('modalPilihanSkemaCutoffStart').value, 10) || null;
+            const gpSched = document.getElementById('modalPilihanSkemaCutoffGajiPokokScheduleRef');
+            data.cutoff_gaji_pokok_schedule_ref = gpSched ? (parseInt(gpSched.value, 10) || null) : null;
+            data.is_rapel_gaji_pokok = document.getElementById('modalPilihanSkemaIsRapelGajiPokok').checked ? 1 : 0;
+
+            data.cutoff_lembur_start = parseInt(document.getElementById('modalPilihanSkemaCutoffLemburStart').value, 10) || null;
+            const otSched = document.getElementById('modalPilihanSkemaCutoffLemburScheduleRef');
+            data.cutoff_lembur_schedule_ref = otSched ? (parseInt(otSched.value, 10) || null) : null;
+            data.is_rapel_lembur = document.getElementById('modalPilihanSkemaIsRapelLembur').checked ? 1 : 0;
+
+            data.cutoff_insentif_start = parseInt(document.getElementById('modalPilihanSkemaCutoffInsentifStart').value, 10) || null;
+            const insSched = document.getElementById('modalPilihanSkemaCutoffInsentifScheduleRef');
+            data.cutoff_insentif_schedule_ref = insSched ? (parseInt(insSched.value, 10) || null) : null;
+            data.is_rapel_insentif = document.getElementById('modalPilihanSkemaIsRapelInsentif').checked ? 1 : 0;
+
+            // Sync legacy cutoff start fallback
+            data.cutoff_start = data.cutoff_gaji_pokok_start;
+        }
         
         if (window.editSchemaMappingId) {
             data.id = window.editSchemaMappingId;
@@ -832,6 +901,16 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     document.getElementById('modalPilihanSkemaCutoffStart').value = '';
     document.getElementById('modalPilihanSkemaPayDate').value = '';
     
+    // Clear new cutoff inputs & reset checkboxes
+    ['modalPilihanSkemaCutoffLemburStart', 'modalPilihanSkemaCutoffInsentifStart'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    ['modalPilihanSkemaIsRapelGajiPokok', 'modalPilihanSkemaIsRapelLembur', 'modalPilihanSkemaIsRapelInsentif'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = true;
+    });
+
     // Set client name
     const titleEl = document.getElementById('clientWorkspaceTitle');
     if (titleEl) {
@@ -864,15 +943,17 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     });
 
     try {
-        // Fetch client-specific org hierarchy and schemes in parallel
-        const [orgRes, psRes, tsRes] = await Promise.all([
+        // Fetch client-specific org hierarchy, schemes, and schedule templates in parallel
+        const [orgRes, psRes, tsRes, schedRes] = await Promise.all([
             fetch(`${API_URL}/org?client_id=${window.selectedClientId}`),
             fetch(`${API_URL}/payroll-schemes`),
-            fetch(`${API_URL}/tax-schemes`)
+            fetch(`${API_URL}/tax-schemes`),
+            fetch(`${API_URL}/schedule-templates`)
         ]);
         wsClientOrgHierarchy = await orgRes.json();
         const payrollSchemes = await psRes.json();
         const taxSchemes = await tsRes.json();
+        const scheduleTemplates = await schedRes.json();
 
         // Populate payroll schemes
         if (psSelect) {
@@ -911,6 +992,8 @@ window.openModalPilihanSkema = async function(isEdit = false) {
         if (posSelect) {
             posSelect.innerHTML = '<option value="">-- Select Position --</option>';
         }
+
+
 
         // Initialize all TomSelects
         [psSelect, tsSelect, divSelect, deptSelect, posSelect].forEach(el => {

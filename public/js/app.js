@@ -435,26 +435,69 @@ function switchView(view) {
     }
 
     const sectionId = 'view' + view.charAt(0).toUpperCase() + view.slice(1);
-    let menuId = 'menu' + view.charAt(0).toUpperCase() + view.slice(1);
-    
-    if (view === 'globalLokasiKerja') {
-        menuId = 'menuManajemenKaryawan';
-        const subItem = document.getElementById('submenuLokasiKerja');
-        if (subItem) subItem.classList.add('active');
+    if (document.getElementById(sectionId)) {
+        document.getElementById(sectionId).classList.add('active');
     }
-    
-    if(document.getElementById(sectionId)) document.getElementById(sectionId).classList.add('active');
-    if(document.getElementById(menuId)) document.getElementById(menuId).classList.add('active');
 
-    // Auto expand/collapse submenu based on active menu
-    const submenu = document.getElementById('submenuKaryawan');
-    const arrow = document.querySelector('#menuManajemenKaryawan .submenu-arrow');
-    if (menuId === 'menuManajemenKaryawan') {
-        if (submenu) submenu.style.display = 'block';
-        if (arrow) arrow.style.transform = 'rotate(180deg)';
-    } else {
-        if (submenu) submenu.style.display = 'none';
-        if (arrow) arrow.style.transform = 'rotate(0deg)';
+    // Submenu collapse/expand states
+    const submenuKaryawan = document.getElementById('submenuKaryawan');
+    const arrowKaryawan = document.querySelector('#menuManajemenKaryawan .submenu-arrow');
+    const submenuPayroll = document.getElementById('submenuPayroll');
+    const arrowPayroll = document.querySelector('#menuPayroll .submenu-arrow');
+
+    // Default: collapse submenus
+    if (submenuKaryawan) submenuKaryawan.style.display = 'none';
+    if (arrowKaryawan) arrowKaryawan.style.transform = 'rotate(0deg)';
+    if (submenuPayroll) submenuPayroll.style.display = 'none';
+    if (arrowPayroll) arrowPayroll.style.transform = 'rotate(0deg)';
+
+    // Highlight menu based on view
+    if (view === 'dashboard') {
+        const item = document.getElementById('menuDashboard');
+        if (item) item.classList.add('active');
+    } else if (view === 'klien') {
+        const item = document.getElementById('menuKlien');
+        if (item) item.classList.add('active');
+    } else if (view === 'sto') {
+        const item = document.getElementById('menuSto');
+        if (item) item.classList.add('active');
+    } else if (view === 'schedule') {
+        const item = document.getElementById('menuSchedule');
+        if (item) item.classList.add('active');
+    } else if (view === 'globalLokasiKerja' || view === 'manajemenKaryawan' || view === 'skemaShift') {
+        const parent = document.getElementById('menuManajemenKaryawan');
+        if (parent) parent.classList.add('active');
+        if (submenuKaryawan) submenuKaryawan.style.display = 'block';
+        if (arrowKaryawan) arrowKaryawan.style.transform = 'rotate(180deg)';
+
+        let subItemId = '';
+        if (view === 'globalLokasiKerja') subItemId = 'submenuLokasiKerja';
+        else if (view === 'manajemenKaryawan') subItemId = 'submenuTambahKaryawan';
+        else if (view === 'skemaShift') subItemId = 'submenuSkemaShift';
+
+        const subItem = document.getElementById(subItemId);
+        if (subItem) subItem.classList.add('active');
+    } else if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
+        const parent = document.getElementById('menuPayroll');
+        if (parent) parent.classList.add('active');
+        if (submenuPayroll) submenuPayroll.style.display = 'block';
+        if (arrowPayroll) arrowPayroll.style.transform = 'rotate(180deg)';
+
+        let subItemId = 'submenu_setting'; // Default
+        if (view === 'payroll') {
+            const sub = localStorage.getItem('activePayrollSub') || 'setting';
+            subItemId = 'submenu_' + sub;
+            currentPayrollSub = sub; // sync global state
+        } else if (view === 'masterKompensasi') {
+            subItemId = 'submenu_kompensasi';
+            currentPayrollSub = 'kompensasi'; // sync global state
+        } else if (view === 'pajak') {
+            subItemId = 'submenu_pajak';
+            currentPayrollSub = 'pajak'; // sync global state
+        }
+
+        const subItem = document.getElementById(subItemId);
+        if (subItem) subItem.classList.add('active');
     }
 
     const titles = {
@@ -471,23 +514,9 @@ function switchView(view) {
         schedule: 'Schedule',
         skemaShift: 'Employee Management'
     };
-    document.getElementById('viewTitle').innerText = titles[view] || 'Employee Management';
-
-    // Highlight and expand parent menu if we are in one of the payroll submenus
-    if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak' || view === 'systemSettings') {
-        const parentMenu = document.getElementById('menuPayroll');
-        if (parentMenu) parentMenu.classList.add('active');
-        togglePayrollSubmenu(true);
-        const subItem = document.getElementById('submenu_' + currentPayrollSub);
-        if (subItem) subItem.classList.add('active');
-    } else {
-        // Collapse submenu if switching to another section
-        const submenu = document.getElementById('submenuPayroll');
-        const arrow = document.querySelector('#menuPayroll .submenu-arrow');
-        if (submenu) {
-            submenu.style.display = 'none';
-            if (arrow) arrow.style.transform = 'rotate(0deg)';
-        }
+    const titleEl = document.getElementById('viewTitle');
+    if (titleEl) {
+        titleEl.innerText = titles[view] || 'Employee Management';
     }
 
     // Auto load data based on view
@@ -496,8 +525,10 @@ function switchView(view) {
     if (view === 'sto') { if (typeof switchStoTab === 'function') switchStoTab('divisi'); }
     if (view === 'manajemenKaryawan') renderManajemenKaryawan();
     if (view === 'globalLokasiKerja') { if (typeof loadGlobalWorkLocations === 'function') loadGlobalWorkLocations(); }
+    if (view === 'skemaShift') { if (typeof loadShiftSchemes === 'function') loadShiftSchemes(); }
     if (view === 'payroll') {
-        if (currentPayrollSub === 'uploadUmr') {
+        const sub = localStorage.getItem('activePayrollSub') || 'setting';
+        if (sub === 'uploadUmr') {
             switchPayrollSubTab('umr');
         } else {
             switchPayrollSubTab('skema');

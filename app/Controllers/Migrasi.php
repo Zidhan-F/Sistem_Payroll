@@ -83,6 +83,39 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = 'custom_nominal')
             ALTER TABLE client_payroll_configs ADD custom_nominal DECIMAL(15,2) NULL");
 
+        // Multi Cut-off columns
+        $newCutoffCols = [
+            'cutoff_gaji_pokok_start'        => 'INT DEFAULT 21',
+            'cutoff_gaji_pokok_end'          => 'INT DEFAULT 20',
+            'cutoff_gaji_pokok_val'          => 'NVARCHAR(255) NULL',
+            'cutoff_gaji_pokok_schedule_ref' => 'INT NULL',
+            'cutoff_lembur_start'            => 'INT DEFAULT 21',
+            'cutoff_lembur_end'              => 'INT DEFAULT 20',
+            'cutoff_lembur_val'              => 'NVARCHAR(255) NULL',
+            'cutoff_lembur_schedule_ref'     => 'INT NULL',
+            'cutoff_insentif_start'          => 'INT DEFAULT 21',
+            'cutoff_insentif_end'            => 'INT DEFAULT 20',
+            'cutoff_insentif_val'            => 'NVARCHAR(255) NULL',
+            'cutoff_insentif_schedule_ref'   => 'INT NULL',
+            'is_rapel_gaji_pokok'            => 'TINYINT DEFAULT 1',
+            'is_rapel_lembur'                => 'TINYINT DEFAULT 1',
+            'is_rapel_insentif'              => 'TINYINT DEFAULT 1'
+        ];
+        foreach ($newCutoffCols as $col => $definition) {
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = '$col')
+                ALTER TABLE client_payroll_configs ADD $col $definition");
+        }
+
+        // Populate defaults from existing cutoff_start / cutoff_end
+        $db->query("UPDATE client_payroll_configs SET 
+            cutoff_gaji_pokok_start = COALESCE(cutoff_gaji_pokok_start, cutoff_start, 21),
+            cutoff_gaji_pokok_end = COALESCE(cutoff_gaji_pokok_end, cutoff_end, 20),
+            cutoff_lembur_start = COALESCE(cutoff_lembur_start, cutoff_start, 21),
+            cutoff_lembur_end = COALESCE(cutoff_lembur_end, cutoff_end, 20),
+            cutoff_insentif_start = COALESCE(cutoff_insentif_start, cutoff_start, 21),
+            cutoff_insentif_end = COALESCE(cutoff_insentif_end, cutoff_end, 20)
+            WHERE cutoff_gaji_pokok_start IS NULL");
+
         // 3. Tabel PKWT (Kontrak Kerja)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'pkwt')
             CREATE TABLE pkwt (

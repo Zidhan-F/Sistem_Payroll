@@ -703,79 +703,110 @@ class Api extends ResourceController
         $emp = $db->table('employees')->where('id', intval($employeeId))->get()->getRow();
         $clientId = $emp ? $emp->client_id : null;
 
-        $cutoffStart = 21;
-        $cutoffEnd = 20;
+        $cutoffGajiPokokStart = 21;
+        $cutoffGajiPokokEnd = 20;
+        $cutoffLemburStart = 21;
+        $cutoffLemburEnd = 20;
+
+        $clientConfig = null;
         if ($clientId && $emp) {
             $clientConfig = $this->resolveClientConfigForEmployee($employeeId);
-            if ($clientConfig) {
-                if (isset($clientConfig->cutoff_start) && $clientConfig->cutoff_start !== null && $clientConfig->cutoff_start !== '') {
-                    $cutoffStart = intval($clientConfig->cutoff_start);
-                }
-                if (isset($clientConfig->cutoff_end) && $clientConfig->cutoff_end !== null && $clientConfig->cutoff_end !== '') {
-                    $cutoffEnd = intval($clientConfig->cutoff_end);
-                } else {
-                    $cutoffEnd = $cutoffStart - 1;
-                    if ($cutoffEnd < 1) {
-                        $cutoffEnd = 31;
-                    }
-                }
-            }
         }
 
-        // Determine which payroll period this date naturally belongs to
+        // Helper function to resolve dynamic cutoff dates from schedule or direct configs
+        $resolveCutoffDates = function($config, $component) use ($db) {
+            $startField = "cutoff_{$component}_start";
+            $endField = "cutoff_{$component}_end";
+            $refField = "cutoff_{$component}_schedule_ref";
+            
+            $start = ($config && isset($config->$startField)) ? intval($config->$startField) : null;
+            $end = ($config && isset($config->$endField)) ? intval($config->$endField) : null;
+            $refId = ($config && isset($config->$refField)) ? intval($config->$refField) : null;
+            
+            if ($refId) {
+                $sched = $db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
+                if ($sched) {
+                    $start = intval($sched->cutoff_start);
+                    $end = intval($sched->cutoff_end);
+                }
+            }
+            
+            if ($start === null) {
+                if ($component === 'gaji_pokok' && $config && isset($config->cutoff_start)) {
+                    $start = intval($config->cutoff_start);
+                } else {
+                    $start = 21;
+                }
+            }
+            if ($end === null) {
+                if ($component === 'gaji_pokok' && $config && isset($config->cutoff_end)) {
+                    $end = intval($config->cutoff_end);
+                } else {
+                    $end = $start - 1;
+                    if ($end < 1) $end = 31;
+                }
+            }
+            return [$start, $end];
+        };
+
+        if ($clientConfig) {
+            list($cutoffGajiPokokStart, $cutoffGajiPokokEnd) = $resolveCutoffDates($clientConfig, 'gaji_pokok');
+            list($cutoffLemburStart, $cutoffLemburEnd) = $resolveCutoffDates($clientConfig, 'lembur');
+        }
+
         $ts = strtotime($tanggal);
         $tYear = intval(date('Y', $ts));
         $tMonth = intval(date('n', $ts));
         $tDay = intval(date('j', $ts));
-        
-        if ($cutoffEnd <= 0) {
-            $cutoffEnd = date('t', $ts);
-        }
 
-        if ($tDay > $cutoffEnd) {
-            $natMonth = $tMonth + 1;
-            $natYear = $tYear;
-            if ($natMonth > 12) {
-                $natMonth = 1;
-                $natYear++;
+        $resolvePeriodAndRapel = function($startDay, $endDay) use ($tanggal, $tYear, $tMonth, $tDay, $payoutPeriod) {
+            $actualEndDay = $endDay;
+            if ($actualEndDay <= 0) {
+                $actualEndDay = date('t', strtotime($tanggal));
             }
-        } else {
-            $natMonth = $tMonth;
-            $natYear = $tYear;
-        }
-        $naturalPeriod = $natMonth . '-' . $natYear;
-
-        $result['payout_period'] = $naturalPeriod;
-        $result['is_rapel'] = 0;
-
-        if (!empty($payoutPeriod)) {
-            $naturalVal = $natYear * 12 + $natMonth;
-            
-            $payoutMonth = null;
-            $payoutYear = null;
-            $parts = explode('-', $payoutPeriod);
-            if (count($parts) === 2) {
-                $payoutMonth = intval($parts[0]);
-                $payoutYear = intval($parts[1]);
+            if ($tDay > $actualEndDay) {
+                $natMonth = $tMonth + 1;
+                $natYear = $tYear;
+                if ($natMonth > 12) {
+                    $natMonth = 1;
+                    $natYear++;
+                }
+            } else {
+                $natMonth = $tMonth;
+                $natYear = $tYear;
             }
-            
-            if ($payoutMonth && $payoutYear) {
-                $payoutVal = $payoutYear * 12 + $payoutMonth;
-                if ($naturalVal > $payoutVal) {
-                    // Future natural period relative to the upload period: not a rapel, just natural future payroll period
-                    $result['is_rapel'] = 0;
-                    $result['payout_period'] = $naturalPeriod;
-                } elseif ($naturalVal < $payoutVal) {
-                    // Past natural period: paid in a later period, so it is a Rapel
-                    $result['is_rapel'] = 1;
-                    $result['payout_period'] = $payoutPeriod;
-                } else {
-                    // Matches perfectly
-                    $result['is_rapel'] = 0;
-                    $result['payout_period'] = $naturalPeriod;
+            $naturalPeriod = $natMonth . '-' . $natYear;
+            $isRapel = 0;
+            $finalPayoutPeriod = $naturalPeriod;
+
+            if (!empty($payoutPeriod)) {
+                $naturalVal = $natYear * 12 + $natMonth;
+                $parts = explode('-', $payoutPeriod);
+                if (count($parts) === 2) {
+                    $payoutMonth = intval($parts[0]);
+                    $payoutYear = intval($parts[1]);
+                    $payoutVal = $payoutYear * 12 + $payoutMonth;
+                    if ($naturalVal > $payoutVal) {
+                        $isRapel = 0;
+                        $finalPayoutPeriod = $naturalPeriod;
+                    } elseif ($naturalVal < $payoutVal) {
+                        $isRapel = 1;
+                        $finalPayoutPeriod = $payoutPeriod;
+                    } else {
+                        $isRapel = 0;
+                        $finalPayoutPeriod = $naturalPeriod;
+                    }
                 }
             }
-        }
+            return [$isRapel, $finalPayoutPeriod];
+        };
+
+        list($gpIsRapel, $gpPayoutPeriod) = $resolvePeriodAndRapel($cutoffGajiPokokStart, $cutoffGajiPokokEnd);
+        $result['is_rapel'] = $gpIsRapel;
+        $result['payout_period'] = $gpPayoutPeriod;
+        
+        // Also pre-resolve Overtime period and rapel for later sync
+        list($otIsRapel, $otPayoutPeriod) = $resolvePeriodAndRapel($cutoffLemburStart, $cutoffLemburEnd);
 
         // Auto-detect shift jika tidak ada assignment di employee_shifts
         if (!$shiftSchemeId && !empty($jamMasuk)) {
@@ -1050,8 +1081,8 @@ class Api extends ResourceController
                 'status'        => 'Pending',
                 'approved_by'   => null,
                 'approved_at'   => null,
-                'is_rapel'      => $result['is_rapel'],
-                'payout_period' => $result['payout_period']
+                'is_rapel'      => $otIsRapel,
+                'payout_period' => $otPayoutPeriod
             ];
 
             if ($existingOt) {
@@ -2195,13 +2226,38 @@ class Api extends ResourceController
         }
         unset($data['hari_kerja']);
         
-        if (isset($data['cutoff_start'])) {
-            $cutoffStartVal = intval($data['cutoff_start']);
-            $cutoffEndVal = $cutoffStartVal - 1;
-            if ($cutoffEndVal < 1) {
-                $cutoffEndVal = 0;
-            }
-            $data['cutoff_end'] = $cutoffEndVal;
+        // Handle multi cut-off dates and legacy fallback
+        if (isset($data['cutoff_gaji_pokok_start'])) {
+            $data['cutoff_gaji_pokok_start'] = intval($data['cutoff_gaji_pokok_start']);
+            $cutoffEnd = $data['cutoff_gaji_pokok_start'] - 1;
+            $data['cutoff_gaji_pokok_end'] = $cutoffEnd < 1 ? 0 : $cutoffEnd;
+            
+            // Sync legacy fields for backward compatibility
+            $data['cutoff_start'] = $data['cutoff_gaji_pokok_start'];
+            $data['cutoff_end'] = $data['cutoff_gaji_pokok_end'];
+        }
+
+        if (isset($data['cutoff_lembur_start'])) {
+            $data['cutoff_lembur_start'] = intval($data['cutoff_lembur_start']);
+            $cutoffEnd = $data['cutoff_lembur_start'] - 1;
+            $data['cutoff_lembur_end'] = $cutoffEnd < 1 ? 0 : $cutoffEnd;
+        }
+
+        if (isset($data['cutoff_insentif_start'])) {
+            $data['cutoff_insentif_start'] = intval($data['cutoff_insentif_start']);
+            $cutoffEnd = $data['cutoff_insentif_start'] - 1;
+            $data['cutoff_insentif_end'] = $cutoffEnd < 1 ? 0 : $cutoffEnd;
+        }
+
+        // Explicitly cast rapel flags
+        if (isset($data['is_rapel_gaji_pokok'])) {
+            $data['is_rapel_gaji_pokok'] = $data['is_rapel_gaji_pokok'] ? 1 : 0;
+        }
+        if (isset($data['is_rapel_lembur'])) {
+            $data['is_rapel_lembur'] = $data['is_rapel_lembur'] ? 1 : 0;
+        }
+        if (isset($data['is_rapel_insentif'])) {
+            $data['is_rapel_insentif'] = $data['is_rapel_insentif'] ? 1 : 0;
         }
 
         

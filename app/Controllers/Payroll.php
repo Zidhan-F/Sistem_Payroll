@@ -129,23 +129,58 @@ class Payroll extends ResourceController
             }
 
             $daysInMonth = date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun)));
-            $empCutoffStart = $empConfig ? intval($empConfig->cutoff_start) : 21;
-            if ($empCutoffStart <= 0) $empCutoffStart = 21;
-            $empCutoffEnd = $empCutoffStart === 1 ? $daysInMonth : ($empCutoffStart - 1);
-
-            if ($empCutoffStart <= 1) {
-                $empStartDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
-                $empEndDateStr = date('Y-m-t', strtotime($empStartDateStr));
-            } else {
-                $prevMonth = intval($bulan) - 1;
-                $prevYear = intval($tahun);
-                if ($prevMonth == 0) {
-                    $prevMonth = 12;
-                    $prevYear--;
+            
+            $resolveComponentDates = function($config, $component) use ($db, $bulan, $tahun, $daysInMonth) {
+                $startField = "cutoff_{$component}_start";
+                $endField = "cutoff_{$component}_end";
+                $refField = "cutoff_{$component}_schedule_ref";
+                
+                $start = ($config && isset($config->$startField)) ? intval($config->$startField) : null;
+                $end = ($config && isset($config->$endField)) ? intval($config->$endField) : null;
+                $refId = ($config && isset($config->$refField)) ? intval($config->$refField) : null;
+                
+                if ($refId) {
+                    $sched = $db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
+                    if ($sched) {
+                        $start = intval($sched->cutoff_start);
+                        $end = intval($sched->cutoff_end);
+                    }
                 }
-                $empStartDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $empCutoffStart);
-                $empEndDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $empCutoffEnd);
-            }
+                
+                if ($start === null) {
+                    if ($component === 'gaji_pokok' && $config && isset($config->cutoff_start)) {
+                        $start = intval($config->cutoff_start);
+                    } else {
+                        $start = 21;
+                    }
+                }
+                if ($end === null) {
+                    if ($component === 'gaji_pokok' && $config && isset($config->cutoff_end)) {
+                        $end = intval($config->cutoff_end);
+                    } else {
+                        $end = $start - 1;
+                        if ($end < 1) $end = 31;
+                    }
+                }
+                
+                if ($start <= 1) {
+                    $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
+                    $endDateStr = date('Y-m-t', strtotime($startDateStr));
+                } else {
+                    $prevMonth = intval($bulan) - 1;
+                    $prevYear = intval($tahun);
+                    if ($prevMonth == 0) {
+                        $prevMonth = 12;
+                        $prevYear--;
+                    }
+                    $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $start);
+                    $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $end);
+                }
+                return [$startDateStr, $endDateStr];
+            };
+
+            list($empStartDateStr, $empEndDateStr) = $resolveComponentDates($empConfig, 'gaji_pokok');
+            list($empLemburStartDateStr, $empLemburEndDateStr) = $resolveComponentDates($empConfig, 'lembur');
 
             $hasAttendanceRecord = false;
             $hariKerjaVal = 0;
@@ -245,8 +280,8 @@ class Payroll extends ResourceController
             // Lembur (hours sum) - ONLY APPROVED
             $lemburStdSum = $db->table('overtime_logs')
                              ->where('overtime_logs.employee_id', $emp['id'])
-                             ->where('overtime_logs.tanggal >=', $empStartDateStr)
-                             ->where('overtime_logs.tanggal <=', $empEndDateStr)
+                             ->where('overtime_logs.tanggal >=', $empLemburStartDateStr)
+                             ->where('overtime_logs.tanggal <=', $empLemburEndDateStr)
                              ->where('overtime_logs.status', 'Approved')
                              ->selectSum('overtime_logs.jam_lembur')
                              ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.log_date = overtime_logs.tanggal', 'left')
@@ -343,6 +378,55 @@ class Payroll extends ResourceController
             }
         }
 
+        $resolveComponentDates = function($config, $component) use ($db, $bulan, $tahun, $daysInMonth) {
+            $startField = "cutoff_{$component}_start";
+            $endField = "cutoff_{$component}_end";
+            $refField = "cutoff_{$component}_schedule_ref";
+            
+            $start = ($config && isset($config->$startField)) ? intval($config->$startField) : null;
+            $end = ($config && isset($config->$endField)) ? intval($config->$endField) : null;
+            $refId = ($config && isset($config->$refField)) ? intval($config->$refField) : null;
+            
+            if ($refId) {
+                $sched = $db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
+                if ($sched) {
+                    $start = intval($sched->cutoff_start);
+                    $end = intval($sched->cutoff_end);
+                }
+            }
+            
+            if ($start === null) {
+                if ($component === 'gaji_pokok' && $config && isset($config->cutoff_start)) {
+                    $start = intval($config->cutoff_start);
+                } else {
+                    $start = 21;
+                }
+            }
+            if ($end === null) {
+                if ($component === 'gaji_pokok' && $config && isset($config->cutoff_end)) {
+                    $end = intval($config->cutoff_end);
+                } else {
+                    $end = $start - 1;
+                    if ($end < 1) $end = 31;
+                }
+            }
+            
+            if ($start <= 1) {
+                $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
+                $endDateStr = date('Y-m-t', strtotime($startDateStr));
+            } else {
+                $prevMonth = intval($bulan) - 1;
+                $prevYear = intval($tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
+                }
+                $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $start);
+                $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $end);
+            }
+            return [$startDateStr, $endDateStr];
+        };
+
         // 2. Ambil Komponen Payroll Custom (Global Master Skema Kompensasi or Legacy)
         $components = [];
         if ($payrollConfig && !empty($payrollConfig->compensation_scheme_id)) {
@@ -408,28 +492,12 @@ class Payroll extends ResourceController
                 $empConfig = $payrollConfig;
             }
 
-            $empCutoffStart = $empConfig ? intval($empConfig->cutoff_start) : 21;
-            if ($empCutoffStart <= 0) $empCutoffStart = 21;
-            $empCutoffEnd = $empCutoffStart === 1 ? $daysInMonth : ($empCutoffStart - 1);
-
-            if ($empCutoffStart <= 1) {
-                $empStartDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
-                $empEndDateStr = date('Y-m-t', strtotime($empStartDateStr));
-            } else {
-                $prevMonth = intval($bulan) - 1;
-                $prevYear = intval($tahun);
-                if ($prevMonth == 0) {
-                    $prevMonth = 12;
-                    $prevYear--;
-                }
-                $empStartDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $empCutoffStart);
-                $empEndDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $empCutoffEnd);
-            }
+            list($empLemburStartDateStr, $empLemburEndDateStr) = $resolveComponentDates($empConfig, 'lembur');
 
             $empPendingCount = $db->table('overtime_logs')
                 ->where('employee_id', $activeEmp['id'])
-                ->where('tanggal >=', $empStartDateStr)
-                ->where('tanggal <=', $empEndDateStr)
+                ->where('tanggal >=', $empLemburStartDateStr)
+                ->where('tanggal <=', $empLemburEndDateStr)
                 ->where('status', 'Pending')
                 ->countAllResults();
             if ($empPendingCount > 0) {
@@ -491,22 +559,76 @@ class Payroll extends ResourceController
                 $empConfig = $payrollConfig;
             }
 
-            $empCutoffStart = $empConfig ? intval($empConfig->cutoff_start) : 21;
-            if ($empCutoffStart <= 0) $empCutoffStart = 21;
-            $empCutoffEnd = $empCutoffStart === 1 ? $daysInMonth : ($empCutoffStart - 1);
+            list($empStartDateStr, $empEndDateStr) = $resolveComponentDates($empConfig, 'gaji_pokok');
+            list($empLemburStartDateStr, $empLemburEndDateStr) = $resolveComponentDates($empConfig, 'lembur');
+            list($empInsentifStartDateStr, $empInsentifEndDateStr) = $resolveComponentDates($empConfig, 'insentif');
 
-            if ($empCutoffStart <= 1) {
-                $empStartDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
-                $empEndDateStr = date('Y-m-t', strtotime($empStartDateStr));
-            } else {
-                $prevMonth = intval($bulan) - 1;
-                $prevYear = intval($tahun);
-                if ($prevMonth == 0) {
-                    $prevMonth = 12;
-                    $prevYear--;
+            // Logika Rapel Karyawan Baru
+            $isNewHireRapel = false;
+            $nextPeriodStr = '';
+            if (!empty($emp['tgl_masuk'])) {
+                $joinTs = strtotime($emp['tgl_masuk']);
+                $joinYear = intval(date('Y', $joinTs));
+                $joinMonth = intval(date('n', $joinTs));
+                $joinDay = intval(date('j', $joinTs));
+
+                if ($joinYear === intval($tahun) && $joinMonth === intval($bulan)) {
+                    $isRapelGP = ($empConfig && isset($empConfig->is_rapel_gaji_pokok)) ? intval($empConfig->is_rapel_gaji_pokok) : 1;
+                    
+                    // Gaji pokok cutoff start
+                    $gpStartField = "cutoff_gaji_pokok_start";
+                    $gpRefField = "cutoff_gaji_pokok_schedule_ref";
+                    $gpStartVal = ($empConfig && isset($empConfig->$gpStartField)) ? intval($empConfig->$gpStartField) : null;
+                    $gpRefId = ($empConfig && isset($empConfig->$gpRefField)) ? intval($empConfig->$gpRefField) : null;
+                    if ($gpRefId) {
+                        $sched = $db->table('payroll_schedules')->where('id', $gpRefId)->get()->getRow();
+                        if ($sched) $gpStartVal = intval($sched->cutoff_start);
+                    }
+                    if ($gpStartVal === null) {
+                        $gpStartVal = ($empConfig && isset($empConfig->cutoff_start)) ? intval($empConfig->cutoff_start) : 21;
+                    }
+                    
+                    // If Gaji Pokok cutoff is full month (start day <= 1) and they join on/after the 16th, and rapel flag is active:
+                    if ($gpStartVal <= 1 && $joinDay >= 16 && $isRapelGP === 1) {
+                        $isNewHireRapel = true;
+                        
+                        $nextMonth = intval($bulan) + 1;
+                        $nextYear = intval($tahun);
+                        if ($nextMonth > 12) {
+                            $nextMonth = 1;
+                            $nextYear++;
+                        }
+                        $nextPeriodStr = $nextMonth . '-' . $nextYear;
+                    }
                 }
-                $empStartDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $empCutoffStart);
-                $empEndDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $empCutoffEnd);
+            }
+
+            if ($isNewHireRapel) {
+                // Update all attendance logs of this employee within this month to is_rapel = 1 and payout_period = $nextPeriodStr
+                $db->table('attendance_logs')
+                    ->where('employee_id', $emp['id'])
+                    ->where('log_date >=', $empStartDateStr)
+                    ->where('log_date <=', $empEndDateStr)
+                    ->update([
+                        'is_rapel' => 1,
+                        'payout_period' => $nextPeriodStr
+                    ]);
+
+                // Update all overtime logs of this employee within this month to is_rapel = 1 and payout_period = $nextPeriodStr
+                $db->table('overtime_logs')
+                    ->where('employee_id', $emp['id'])
+                    ->where('tanggal >=', $empLemburStartDateStr)
+                    ->where('tanggal <=', $empLemburEndDateStr)
+                    ->update([
+                        'is_rapel' => 1,
+                        'payout_period' => $nextPeriodStr
+                    ]);
+                
+                // Clear $dk counts for the current run so they get 0 pay
+                $dk['hadir'] = 0;
+                $dk['sakit'] = 0;
+                $dk['alpa'] = 0;
+                $dk['lembur'] = 0;
             }
 
             // Resolve employee-specific minimum wage and UMP/UMK values
@@ -675,6 +797,32 @@ class Payroll extends ResourceController
                     $isAdhoc = isset($comp['allowance_type']) && $comp['allowance_type'] === 'Ad-hoc';
                     if ($isAdhoc) {
                         $payoutPeriod = trim($comp['payout_period'] ?? '');
+                        
+                        // Check if outside current insentif cutoff
+                        list($insStartDate, $insEndDate) = $resolveComponentDates($empConfig, 'insentif');
+                        $createdDate = date('Y-m-d', strtotime($comp['created_at']));
+                        
+                        if ($createdDate > $insEndDate) {
+                            $isRapelIns = ($empConfig && isset($empConfig->is_rapel_insentif)) ? intval($empConfig->is_rapel_insentif) : 1;
+                            if ($isRapelIns === 1) {
+                                // Defer to next month
+                                $nextMonth = intval($bulan) + 1;
+                                $nextYear = intval($tahun);
+                                if ($nextMonth > 12) {
+                                    $nextMonth = 1;
+                                    $nextYear++;
+                                }
+                                $nextPeriod = $nextMonth . '-' . $nextYear;
+                                
+                                // Update database so it is paid next month
+                                $db->table('pkwt_components')
+                                   ->where('id', $comp['id'])
+                                   ->update(['payout_period' => $nextPeriod]);
+                                
+                                continue; // Skip in the current month's calculation
+                            }
+                        }
+                        
                         $currentPeriod1 = intval($bulan) . '-' . intval($tahun);
                         $currentPeriod2 = sprintf('%02d-%d', intval($bulan), intval($tahun));
                         if ($payoutPeriod !== $currentPeriod1 && $payoutPeriod !== $currentPeriod2) {
@@ -811,8 +959,8 @@ class Payroll extends ResourceController
             // Langkah 2: Hitung Lembur dari overtime_logs berdasarkan cutoff period (hanya yang APPROVED)
             $overtimeLogs = $db->table('overtime_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $empStartDateStr)
-                ->where('tanggal <=', $empEndDateStr)
+                ->where('tanggal >=', $empLemburStartDateStr)
+                ->where('tanggal <=', $empLemburEndDateStr)
                 ->where('status', 'Approved')
                 ->get()->getResultArray();
 
