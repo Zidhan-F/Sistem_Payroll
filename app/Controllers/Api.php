@@ -1483,9 +1483,9 @@ class Api extends ResourceController
             }
         }
 
-        // Cap regular working day overtime to 4 hours
-        if (!$isHoliday && $jamLembur > 4.0) {
-            $jamLembur = 4.0;
+        // Cap regular working day overtime to 3 hours
+        if (!$isHoliday && $jamLembur > 3.0) {
+            $jamLembur = 3.0;
         }
 
         // Check duplicate
@@ -1734,9 +1734,9 @@ class Api extends ResourceController
                 }
             }
 
-            // Cap regular working day overtime to 4 hours
-            if (!$isHoliday && $jamLembur > 4.0) {
-                $jamLembur = 4.0;
+            // Cap regular working day overtime to 3 hours
+            if (!$isHoliday && $jamLembur > 3.0) {
+                $jamLembur = 3.0;
             }
 
             // 7. Detect rapel status based on client's cut-off
@@ -4384,8 +4384,8 @@ class Api extends ResourceController
 
         if (!$isHoliday) {
             // === Lembur di Hari Kerja Biasa ===
-            // Batas lembur maksimal 4 jam sehari (PP 35/2021)
-            $jamLembur = min(4.0, $jamLembur);
+            // Batas lembur maksimal 3 jam sehari (Kepmen 102/2004)
+            $jamLembur = min(3.0, $jamLembur);
 
             // Jam ke-1 x 1.5
             $jamPertama = min(1.0, $jamLembur);
