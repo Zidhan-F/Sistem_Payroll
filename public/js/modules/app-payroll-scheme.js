@@ -91,6 +91,10 @@ async function renderPayrollSchemes() {
                 }
             });
 
+            const overtimeType = document.querySelector('input[name="skemaOvertimeType"]:checked')?.value || 'standard';
+            const lumpsumSubtype = document.querySelector('input[name="skemaLumpsumSubtype"]:checked')?.value || 'per_jam';
+            const lumpsumNominal = parseFormattedNumber(document.getElementById('skemaLumpsumNominal').value) || 0;
+
             const data = {
                 nama: document.getElementById('skemaNama').value,
                 deskripsi: document.getElementById('skemaDeskripsi').value,
@@ -109,6 +113,9 @@ async function renderPayrollSchemes() {
                 min_overtime: parseInt(document.getElementById('skemaMinOvertime').value) || 30,
                 denda_terlambat_per_jam: parseFormattedNumber(document.getElementById('skemaDendaTerlambatPerJam').value) || 0,
                 denda_alfa_per_hari: parseFormattedNumber(document.getElementById('skemaDendaAlfaPerHari').value) || 0,
+                overtime_type: overtimeType,
+                lumpsum_subtype: overtimeType === 'lumpsum' ? lumpsumSubtype : null,
+                lumpsum_nominal: overtimeType === 'lumpsum' ? lumpsumNominal : 0,
             };
             const url = id ? `${API_URL}/payroll-schemes/${id}` : `${API_URL}/payroll-schemes`;
             const res = await fetch(url, {
@@ -175,6 +182,18 @@ async function bukaModalSkema(mode, id = null) {
             document.getElementById('skemaMinOvertime').value = s.min_overtime || 30;
             document.getElementById('skemaDendaTerlambatPerJam').value = formatRupiah(s.denda_terlambat_per_jam || 0);
             document.getElementById('skemaDendaAlfaPerHari').value = formatRupiah(s.denda_alfa_per_hari || 0);
+
+            // Load overtime configuration
+            const savedOvertimeType = s.overtime_type || 'standard';
+            setOvertimeType(savedOvertimeType);
+            if (savedOvertimeType === 'lumpsum') {
+                const savedSubtype = s.lumpsum_subtype || 'per_jam';
+                setLumpsumSubtype(savedSubtype);
+                const nomEl = document.getElementById('skemaLumpsumNominal');
+                if (nomEl) {
+                    nomEl.value = s.lumpsum_nominal ? formatRupiah(Math.round(s.lumpsum_nominal)) : '';
+                }
+            }
 
             // Find basic salary component
             const basic = s.components ? s.components.find(c => c.jenis_komponen === 'basic_salary' || c.nama.includes('Gaji Pokok') || c.nama.includes('Basic Salary')) : null;
@@ -277,6 +296,11 @@ async function bukaModalSkema(mode, id = null) {
         document.getElementById('skemaNilai').value = '';
         document.getElementById('skemaIsPersentase').value = '0';
         handlePayrollSchemeSumberNilaiChange();
+
+        // Reset overtime configuration
+        setOvertimeType('standard');
+        setLumpsumSubtype('per_jam');
+        document.getElementById('skemaLumpsumNominal').value = '';
     }
 }
 
@@ -481,3 +505,96 @@ async function hapusSkema(id) {
 }
 window.hapusSkema = hapusSkema;
 window.renderPayrollSchemes = renderPayrollSchemes;
+
+// ===== OVERTIME CONFIGURATION FUNCTIONS =====
+function setOvertimeType(type) {
+    const radioStandard = document.querySelector('input[name="skemaOvertimeType"][value="standard"]');
+    const radioLumpsum = document.querySelector('input[name="skemaOvertimeType"][value="lumpsum"]');
+    const standardPanel = document.getElementById('overtimeStandardPanel');
+    const lumpsumPanel = document.getElementById('overtimeLumpsumPanel');
+    const labelStandard = document.getElementById('labelOvertimeStandard');
+    const labelLumpsum = document.getElementById('labelOvertimeLumpsum');
+
+    if (type === 'standard') {
+        if (radioStandard) radioStandard.checked = true;
+        if (radioLumpsum) radioLumpsum.checked = false;
+        if (standardPanel) standardPanel.style.display = 'block';
+        if (lumpsumPanel) lumpsumPanel.style.display = 'none';
+        if (labelStandard) {
+            labelStandard.style.borderColor = '#3b82f6';
+            labelStandard.style.background = '#eff6ff';
+            labelStandard.style.color = '#1e40af';
+        }
+        if (labelLumpsum) {
+            labelLumpsum.style.borderColor = '#e2e8f0';
+            labelLumpsum.style.background = 'white';
+            labelLumpsum.style.color = '#475569';
+        }
+    } else {
+        if (radioStandard) radioStandard.checked = false;
+        if (radioLumpsum) radioLumpsum.checked = true;
+        if (standardPanel) standardPanel.style.display = 'none';
+        if (lumpsumPanel) lumpsumPanel.style.display = 'flex';
+        if (labelLumpsum) {
+            labelLumpsum.style.borderColor = '#3b82f6';
+            labelLumpsum.style.background = '#eff6ff';
+            labelLumpsum.style.color = '#1e40af';
+        }
+        if (labelStandard) {
+            labelStandard.style.borderColor = '#e2e8f0';
+            labelStandard.style.background = 'white';
+            labelStandard.style.color = '#475569';
+        }
+        handleLumpsumSubtypeChange();
+    }
+}
+window.setOvertimeType = setOvertimeType;
+
+function handleOvertimeTypeChange() {
+    const val = document.querySelector('input[name="skemaOvertimeType"]:checked')?.value || 'standard';
+    setOvertimeType(val);
+}
+window.handleOvertimeTypeChange = handleOvertimeTypeChange;
+
+function setLumpsumSubtype(subtype) {
+    const radios = document.querySelectorAll('input[name="skemaLumpsumSubtype"]');
+    radios.forEach(r => {
+        r.checked = (r.value === subtype);
+    });
+
+    // Update label styles
+    const labels = {
+        'per_jam': document.getElementById('labelLumpsumPerJam'),
+        'harian': document.getElementById('labelLumpsumHarian'),
+        'bulanan': document.getElementById('labelLumpsumBulanan')
+    };
+    Object.keys(labels).forEach(key => {
+        const el = labels[key];
+        if (!el) return;
+        if (key === subtype) {
+            el.style.borderColor = '#3b82f6';
+            el.style.background = '#eff6ff';
+        } else {
+            el.style.borderColor = '#e2e8f0';
+            el.style.background = 'white';
+        }
+    });
+
+    // Update nominal label
+    const nomLabel = document.getElementById('labelLumpsumNominal');
+    if (nomLabel) {
+        const subtypeLabels = {
+            'per_jam': 'Nominal Upah Lembur Per Jam (Rp)',
+            'harian': 'Nominal Upah Lembur Per Hari (Rp)',
+            'bulanan': 'Nominal Upah Lembur Per Bulan (Rp)'
+        };
+        nomLabel.textContent = subtypeLabels[subtype] || subtypeLabels['per_jam'];
+    }
+}
+window.setLumpsumSubtype = setLumpsumSubtype;
+
+function handleLumpsumSubtypeChange() {
+    const val = document.querySelector('input[name="skemaLumpsumSubtype"]:checked')?.value || 'per_jam';
+    setLumpsumSubtype(val);
+}
+window.handleLumpsumSubtypeChange = handleLumpsumSubtypeChange;

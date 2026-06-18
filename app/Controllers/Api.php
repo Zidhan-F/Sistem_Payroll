@@ -285,6 +285,9 @@ class Api extends ResourceController
             'denda_terlambat_per_jam' => isset($requestData['denda_terlambat_per_jam']) ? floatval($requestData['denda_terlambat_per_jam']) : 0,
             'denda_alfa_per_hari' => isset($requestData['denda_alfa_per_hari']) ? floatval($requestData['denda_alfa_per_hari']) : 0,
             'early_leave_threshold' => isset($requestData['early_leave_threshold']) ? intval($requestData['early_leave_threshold']) : 0,
+            'overtime_type' => $requestData['overtime_type'] ?? 'standard',
+            'lumpsum_subtype' => $requestData['lumpsum_subtype'] ?? null,
+            'lumpsum_nominal' => isset($requestData['lumpsum_nominal']) ? floatval($requestData['lumpsum_nominal']) : 0,
         ];
         
         $this->db->table('payroll_schemes')->insert($schemeData);
@@ -348,6 +351,9 @@ class Api extends ResourceController
             'denda_terlambat_per_jam' => isset($requestData['denda_terlambat_per_jam']) ? floatval($requestData['denda_terlambat_per_jam']) : 0,
             'denda_alfa_per_hari' => isset($requestData['denda_alfa_per_hari']) ? floatval($requestData['denda_alfa_per_hari']) : 0,
             'early_leave_threshold' => isset($requestData['early_leave_threshold']) ? intval($requestData['early_leave_threshold']) : 0,
+            'overtime_type' => $requestData['overtime_type'] ?? 'standard',
+            'lumpsum_subtype' => $requestData['lumpsum_subtype'] ?? null,
+            'lumpsum_nominal' => isset($requestData['lumpsum_nominal']) ? floatval($requestData['lumpsum_nominal']) : 0,
         ];
         
         $this->db->table('payroll_schemes')->where('id', $id)->update($schemeData);
@@ -3284,23 +3290,50 @@ class Api extends ResourceController
                 }
 
                 // Calculate upah sejam (hourly rate for overtime)
-                // Priority: manual client rate > scheme template rate > formula (salary/173)
-                $upahSejamLembur = 0;
-                if ($clientManualOtRate > 0) {
-                    $upahSejamLembur = $clientManualOtRate;
-                } elseif ($schemeOtRate > 0) {
-                    $upahSejamLembur = $schemeOtRate;
+                $overtimeType = ($schemeTemplate && !empty($schemeTemplate['overtime_type'])) ? $schemeTemplate['overtime_type'] : 'standard';
+                $overtimePay = 0;
+
+                if ($overtimeType === 'lumpsum') {
+                    $lumpsumSubtype = $schemeTemplate['lumpsum_subtype'] ?? 'per_jam';
+                    $lumpsumNominal = floatval($schemeTemplate['lumpsum_nominal'] ?? 0);
+                    
+                    if ($lumpsumSubtype === 'per_jam') {
+                        $overtimePay = ($jamLemburBiasa + $jamLemburLibur) * $lumpsumNominal;
+                    } elseif ($lumpsumSubtype === 'harian') {
+                        // Count the number of approved overtime logs in the period for this employee
+                        $numDaysLembur = 0;
+                        if ($emp && isset($emp->id)) {
+                            $numDaysLembur = $this->db->table('overtime_logs')
+                                ->where('employee_id', $emp->id)
+                                ->where('tanggal >=', $startDateStr)
+                                ->where('tanggal <=', $endDateStr)
+                                ->where('status', 'Approved')
+                                ->countAllResults();
+                        }
+                        $overtimePay = $numDaysLembur * $lumpsumNominal;
+                    } elseif ($lumpsumSubtype === 'bulanan') {
+                        $overtimePay = (($jamLemburBiasa + $jamLemburLibur) > 0) ? $lumpsumNominal : 0.0;
+                    }
                 } else {
-                    // Use formula: Gaji Pokok / 173 (PP 35/2021)
-                    $gajiPokokForOt = ($unproratedGajiPokok > 0) ? $unproratedGajiPokok : $gajiPokok;
-                    $upahSejamLembur = ($gajiPokokForOt > 0) ? ($gajiPokokForOt / 173) : 0;
+                    // Priority: manual client rate > scheme template rate > formula (salary/173)
+                    $upahSejamLembur = 0;
+                    if ($clientManualOtRate > 0) {
+                        $upahSejamLembur = $clientManualOtRate;
+                    } elseif ($schemeOtRate > 0) {
+                        $upahSejamLembur = $schemeOtRate;
+                    } else {
+                        // Use formula: Gaji Pokok / 173 (PP 35/2021)
+                        $gajiPokokForOt = ($unproratedGajiPokok > 0) ? $unproratedGajiPokok : $gajiPokok;
+                        $upahSejamLembur = ($gajiPokokForOt > 0) ? ($gajiPokokForOt / 173) : 0;
+                    }
+
+                    // Calculate converted hours with progressive multiplier
+                    $jamKonversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $workDaysPerWeek);
+                    $jamKonversiLibur = $this->hitungJamLemburKonversi($jamLemburLibur, true, $workDaysPerWeek);
+
+                    $overtimePay = ($jamKonversiBiasa + $jamKonversiLibur) * $upahSejamLembur;
                 }
-
-                // Calculate converted hours with progressive multiplier
-                $jamKonversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $workDaysPerWeek);
-                $jamKonversiLibur = $this->hitungJamLemburKonversi($jamLemburLibur, true, $workDaysPerWeek);
-
-                $overtimePay = ($jamKonversiBiasa + $jamKonversiLibur) * $upahSejamLembur;
+                
                 $totalPendapatan += $overtimePay;
             }
 
@@ -3936,7 +3969,37 @@ class Api extends ResourceController
             $jamLemburLibur = floatval($final['jam_lembur_libur'] ?? 0);
             $lemburPayTotal = floatval($final['lembur_pay'] ?? 0);
 
-            if ($lemburPayTotal > 0 && ($jamLemburBiasa > 0 || $jamLemburLibur > 0)) {
+            $overtimeType = ($schemeTemplate && !empty($schemeTemplate['overtime_type'])) ? $schemeTemplate['overtime_type'] : 'standard';
+
+            if ($overtimeType === 'lumpsum' && $lemburPayTotal > 0) {
+                $lumpsumSubtype = $schemeTemplate['lumpsum_subtype'] ?? 'per_jam';
+                if ($lumpsumSubtype === 'per_jam') {
+                    $totalJam = $jamLemburBiasa + $jamLemburLibur;
+                    $earnings[] = [
+                        'nama' => 'Lembur Lumpsum Per Jam (' . $totalJam . ' jam)',
+                        'nilai' => $lemburPayTotal
+                    ];
+                } elseif ($lumpsumSubtype === 'harian') {
+                    $numDaysLembur = 0;
+                    if ($emp && isset($emp->id)) {
+                        $numDaysLembur = $this->db->table('overtime_logs')
+                            ->where('employee_id', $emp->id)
+                            ->where('tanggal >=', $startDateStr)
+                            ->where('tanggal <=', $endDateStr)
+                            ->where('status', 'Approved')
+                            ->countAllResults();
+                    }
+                    $earnings[] = [
+                        'nama' => 'Lembur Lumpsum Harian (' . $numDaysLembur . ' hari)',
+                        'nilai' => $lemburPayTotal
+                    ];
+                } elseif ($lumpsumSubtype === 'bulanan') {
+                    $earnings[] = [
+                        'nama' => 'Lembur Lumpsum Bulanan',
+                        'nilai' => $lemburPayTotal
+                    ];
+                }
+            } else if ($lemburPayTotal > 0 && ($jamLemburBiasa > 0 || $jamLemburLibur > 0)) {
                 // We have breakdown data — show separate lines
                 // Determine working days per week for conversion calc
                 $wdPerWeekSlip = 5;
@@ -3953,7 +4016,7 @@ class Api extends ResourceController
                     $konversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $wdPerWeekSlip);
                     $payBiasa = $konversiBiasa * $upahSejamSlip;
                     $earnings[] = [
-                        'nama' => 'Lembur Hari Biasa (' . $jamLemburBiasa . ' jam → ' . $konversiBiasa . ' jam konversi)',
+                        'nama' => 'Lembur Hari Kerja (' . $jamLemburBiasa . ' jam → ' . $konversiBiasa . ' jam konversi)',
                         'nilai' => $payBiasa
                     ];
                 }
