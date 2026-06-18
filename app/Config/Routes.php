@@ -121,6 +121,14 @@ $routes->group('api', function($routes) {
     $routes->post('overtime-logs/bulk-reject', 'Api::bulkRejectOvertimeLogs');
     $routes->post('overtime-logs/import', 'Api::importOvertimeLogs');
 
+    // Early Arrival Logs
+    $routes->get('early-arrival', 'Api::getEarlyArrivalLogs');
+    $routes->post('early-arrival/approve/(:num)', 'Api::approveEarlyArrivalLog/$1');
+    $routes->post('early-arrival/reject/(:num)', 'Api::rejectEarlyArrivalLog/$1');
+    $routes->post('early-arrival/reset/(:num)', 'Api::resetEarlyArrivalLog/$1');
+    $routes->post('early-arrival/bulk-approve', 'Api::bulkApproveEarlyArrivalLogs');
+    $routes->post('early-arrival/bulk-reject', 'Api::bulkRejectEarlyArrivalLogs');
+
     // Holiday Calendar
     $routes->get('holidays', 'Api::getHolidays');
     $routes->post('holidays', 'Api::createHoliday');

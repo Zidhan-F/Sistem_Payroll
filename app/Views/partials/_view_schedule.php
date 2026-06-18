@@ -6,6 +6,7 @@
         <button class="sub-tab-btn active" id="subTabScheduleHoliday" onclick="switchScheduleSubTab('holiday')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Holiday Calendar</button>
         <button class="sub-tab-btn" id="subTabScheduleAttendance" onclick="switchScheduleSubTab('attendance')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Attendance</button>
         <button class="sub-tab-btn" id="subTabScheduleOvertime" onclick="switchScheduleSubTab('overtime')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Overtime</button>
+        <button class="sub-tab-btn" id="subTabScheduleEarlyArrival" onclick="switchScheduleSubTab('earlyArrival')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Early Arrival</button>
     </div>
 
     <!-- Panel 1: Master Schedule -->
@@ -444,6 +445,190 @@
                                 <td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
                                     <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
                                     Please select a client first to display overtime data.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel 5: Early Arrival -->
+    <div id="panelScheduleEarlyArrival" class="schedule-subpanel" style="display: none;">
+        <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
+            <!-- Header -->
+            <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                <div>
+                    <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Early Arrival Monitoring</h3>
+                    <p style="color: #64748b; font-size: 13px; margin: 0;">Manage, verify, approve, or reject employee early arrival logs before they are processed in payroll.</p>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-bottom: 25px; align-items: end;">
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Client</label>
+                    <select id="eaClientFilter" onchange="onEaClientChanged()" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-size: 13px; outline: none;">
+                        <!-- Injected by JS -->
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Month</label>
+                    <select id="eaMonthFilter" onchange="loadEarlyArrivalLogs()" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-size: 13px; outline: none;">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Year</label>
+                    <select id="eaYearFilter" onchange="loadEarlyArrivalLogs()" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-size: 13px; outline: none;">
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Department</label>
+                    <select id="eaDeptFilter" onchange="loadEarlyArrivalLogs()" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-size: 13px; outline: none;">
+                        <option value="">-- All Departments --</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Employee</label>
+                    <select id="eaEmployeeFilter" onchange="loadEarlyArrivalLogs()" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-size: 13px; outline: none;">
+                        <option value="">-- All Employees --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Summary metrics -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 25px;">
+                <div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid #e2e8f0; padding: 16px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 4px;">Total Pending Approval</div>
+                    <div id="eaSummaryPending" style="font-size: 16px; font-weight: 700; color: #d97706;">0 Requests (0 min)</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 12px; color: #166534; font-weight: 600; margin-bottom: 4px;">Total Approved</div>
+                    <div id="eaSummaryApproved" style="font-size: 16px; font-weight: 700; color: #15803d;">0 Logs (0 min)</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 1px solid #fecaca; padding: 16px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 12px; color: #991b1b; font-weight: 600; margin-bottom: 4px;">Total Rejected</div>
+                    <div id="eaSummaryRejected" style="font-size: 16px; font-weight: 700; color: #b91c1c;">0 Logs (0 min)</div>
+                </div>
+                <div style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 1px solid #bfdbfe; padding: 16px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 12px; color: #1e40af; font-weight: 600; margin-bottom: 4px;">Processed in Payroll</div>
+                    <div id="eaSummaryProcessed" style="font-size: 16px; font-weight: 700; color: #1d4ed8;">0 Logs (0 min)</div>
+                </div>
+            </div>
+
+            <!-- Sub Navigation within EA panel -->
+            <div style="display: flex; gap: 12px; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px; padding-bottom: 2px;">
+                <button id="btnEaSubPanelPending" onclick="switchEaSubPanel('pending')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -1px; transition: all 0.2s;">
+                    Pending Requests
+                </button>
+                <button id="btnEaSubPanelHistory" onclick="switchEaSubPanel('history')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s;">
+                    Approval History
+                </button>
+            </div>
+
+            <!-- Sub Panel 1: Pending Approval -->
+            <div id="eaSubPanelPending" class="ea-subpanel">
+                <!-- Bulk Actions -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; font-weight: 600;">
+                        <input type="checkbox" id="chkEaSelectAll" onchange="toggleEaSelectAll(this)" style="cursor: pointer; width: 16px; height: 16px;">
+                        <label for="chkEaSelectAll" style="cursor: pointer;">Select All Pending</label>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="bulkApproveEarlyArrival()" style="background: #22c55e; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; transition: all 0.2s;">
+                            <i class="fas fa-check"></i> Bulk Approve
+                        </button>
+                        <button onclick="bulkRejectEarlyArrival()" style="background: #ef4444; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 13px; transition: all 0.2s;">
+                            <i class="fas fa-times"></i> Bulk Reject
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                                <th style="width: 50px; text-align: center; padding: 12px;"></th>
+                                <th style="text-align: left; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Employee</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">NIK</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Date</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Shift Start</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Check In</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Detected Early</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Eligible Minutes</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
+                                <th style="width: 150px; text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eaPendingTableBody">
+                            <tr>
+                                <td colspan="10" style="text-align:center;padding:40px;color:#94a3b8;">
+                                    <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
+                                    Please select a client first to display early arrival requests.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sub Panel 2: History -->
+            <div id="eaSubPanelHistory" class="ea-subpanel" style="display: none;">
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 15px;">
+                    <div style="position: relative; width: 260px;">
+                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="eaHistorySearchInput" onkeyup="filterEaHistory()" placeholder="Search employee name..." 
+                               style="width: 100%; padding: 8px 12px 8px 32px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 13px; color: #334155; box-sizing: border-box;">
+                    </div>
+                    <select id="eaHistoryStatusFilter" onchange="filterEaHistory()" 
+                            style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 13px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
+                        <option value="">-- All Statuses --</option>
+                        <option value="APPROVED">Approved</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="PROCESSED">Processed</option>
+                    </select>
+                </div>
+
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                                <th style="width: 50px; text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">No</th>
+                                <th style="text-align: left; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Employee</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">NIK</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Date</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Shift Start</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Check In</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Early Minutes</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Eligible Minutes</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
+                                <th style="text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Payroll Period</th>
+                                <th style="text-align: left; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Verifier</th>
+                                <th style="width: 120px; text-align: center; padding: 12px; color: #475569; font-weight: 600; font-size: 13px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eaHistoryTableBody">
+                            <tr>
+                                <td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
+                                    <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
+                                    Please select a client first to display history.
                                 </td>
                             </tr>
                         </tbody>

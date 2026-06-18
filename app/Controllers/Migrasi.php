@@ -636,7 +636,43 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('overtime_logs') AND name = 'payout_period')
             ALTER TABLE overtime_logs ADD payout_period NVARCHAR(20) NULL");
 
-        return "Migrasi Berhasil! (termasuk kolom absensi lembur)";
+        // 30. Tabel Company Payroll Setting (Early Arrival Rules)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'company_payroll_setting')
+            CREATE TABLE company_payroll_setting (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                early_arrival_enabled BIT DEFAULT 1,
+                max_early_arrival_minutes INT DEFAULT 180,
+                created_at DATETIME DEFAULT GETDATE(),
+                updated_at DATETIME DEFAULT GETDATE()
+            )");
+
+        $settingExists = $db->query("SELECT COUNT(*) as [count] FROM company_payroll_setting")->getRow();
+        if ($settingExists && intval($settingExists->count) === 0) {
+            $db->query("INSERT INTO company_payroll_setting (early_arrival_enabled, max_early_arrival_minutes) VALUES (1, 180)");
+        }
+
+        // 31. Tabel Early Arrival Logs
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'early_arrival')
+            CREATE TABLE early_arrival (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                attendance_id INT NOT NULL,
+                employee_id INT NOT NULL,
+                date DATE NOT NULL,
+                shift_id INT NULL,
+                shift_start_time NVARCHAR(10) NULL,
+                check_in_time NVARCHAR(10) NULL,
+                early_minutes INT NOT NULL,
+                eligible_minutes INT NOT NULL,
+                status NVARCHAR(20) DEFAULT 'PENDING',
+                approved_by NVARCHAR(100) NULL,
+                approved_at DATETIME NULL,
+                payroll_status NVARCHAR(20) DEFAULT 'NOT_PROCESSED',
+                payroll_period NVARCHAR(20) NULL,
+                created_at DATETIME DEFAULT GETDATE(),
+                updated_at DATETIME DEFAULT GETDATE()
+            )");
+
+        return "Migrasi Berhasil! (termasuk kolom absensi lembur dan tabel early arrival)";
     }
 
     /**

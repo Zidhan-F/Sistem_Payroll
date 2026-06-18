@@ -13,6 +13,22 @@ async function fetchSystemSettings() {
             divisorInput.value = divisorObj ? divisorObj.setting_value : '160';
         }
 
+        // Find early_arrival_enabled
+        const earlyArrivalEnabledObj = settings.find(s => s.setting_key === 'early_arrival_enabled');
+        const earlyArrivalEnabledInput = document.getElementById('settingEarlyArrivalEnabled');
+        if (earlyArrivalEnabledInput) {
+            earlyArrivalEnabledInput.value = earlyArrivalEnabledObj 
+                ? (earlyArrivalEnabledObj.setting_value === '1' || earlyArrivalEnabledObj.setting_value === 'true' ? 'true' : 'false') 
+                : 'true';
+        }
+
+        // Find max_early_arrival_minutes
+        const maxEarlyArrivalMinutesObj = settings.find(s => s.setting_key === 'max_early_arrival_minutes');
+        const maxEarlyArrivalMinutesInput = document.getElementById('settingMaxEarlyArrivalMinutes');
+        if (maxEarlyArrivalMinutesInput) {
+            maxEarlyArrivalMinutesInput.value = maxEarlyArrivalMinutesObj ? maxEarlyArrivalMinutesObj.setting_value : '180';
+        }
+
         // Render settings list table
         const tbody = document.getElementById('systemSettingsTableBody');
         if (tbody) {
@@ -25,6 +41,12 @@ async function fetchSystemSettings() {
                     if (s.setting_key === 'overtime_divisor') {
                         keyLabel = 'Overtime Divisor';
                         desc = 'Default hours divisor used to calculate employee hourly rate for overtime payments.';
+                    } else if (s.setting_key === 'early_arrival_enabled') {
+                        keyLabel = 'Early Arrival System Enabled';
+                        desc = 'Controls whether check-in earlier than shift start time triggers an early arrival request.';
+                    } else if (s.setting_key === 'max_early_arrival_minutes') {
+                        keyLabel = 'Max Early Arrival Limit (Minutes)';
+                        desc = 'Maximum minutes of early arrival that can be compensated per shift.';
                     }
                     
                     const updatedAt = s.updated_at 
@@ -53,11 +75,20 @@ async function saveSystemSettings(event) {
     if (event) event.preventDefault();
     
     const divisorInput = document.getElementById('settingOvertimeDivisor');
-    if (!divisorInput) return;
+    const earlyArrivalEnabledInput = document.getElementById('settingEarlyArrivalEnabled');
+    const maxEarlyArrivalMinutesInput = document.getElementById('settingMaxEarlyArrivalMinutes');
+    
+    if (!divisorInput || !earlyArrivalEnabledInput || !maxEarlyArrivalMinutesInput) return;
     
     const divisorValue = divisorInput.value.trim();
     if (!divisorValue || isNaN(divisorValue) || parseFloat(divisorValue) <= 0) {
         showToast('Please enter a valid overtime divisor greater than 0', 'error');
+        return;
+    }
+
+    const maxEarlyArrivalMinutesValue = maxEarlyArrivalMinutesInput.value.trim();
+    if (!maxEarlyArrivalMinutesValue || isNaN(maxEarlyArrivalMinutesValue) || parseInt(maxEarlyArrivalMinutesValue) < 0) {
+        showToast('Please enter a valid maximum early arrival minutes limit', 'error');
         return;
     }
     
@@ -68,7 +99,9 @@ async function saveSystemSettings(event) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                overtime_divisor: divisorValue
+                overtime_divisor: divisorValue,
+                early_arrival_enabled: earlyArrivalEnabledInput.value,
+                max_early_arrival_minutes: maxEarlyArrivalMinutesValue
             })
         });
         

@@ -1185,6 +1185,14 @@ class Api extends ResourceController
                 'absent_penalty'             => $calc['absent_penalty'],
                 'is_incomplete'              => $calc['is_incomplete'],
             ]);
+            $this->syncEarlyArrival(
+                $existing->id,
+                intval($data['employee_id']),
+                $data['tanggal'],
+                $data['jam_masuk'] ?? null,
+                $calc['shift_scheme_id'],
+                $calc['payout_period']
+            );
             return $this->respond(['message' => 'Attendance log berhasil diupdate']);
         }
 
@@ -1213,6 +1221,15 @@ class Api extends ResourceController
         ];
 
         $this->db->table('attendance_logs')->insert($insertData);
+        $attendanceId = $this->db->insertID();
+        $this->syncEarlyArrival(
+            $attendanceId,
+            intval($data['employee_id']),
+            $data['tanggal'],
+            $data['jam_masuk'] ?? null,
+            $calc['shift_scheme_id'],
+            $calc['payout_period']
+        );
         return $this->respondCreated(['message' => 'Attendance log berhasil ditambahkan']);
     }
 
@@ -1240,6 +1257,12 @@ class Api extends ResourceController
                         $this->db->table('attendance_logs')
                             ->whereIn('employee_id', $employeeIds)
                             ->where('payout_period', $payoutPeriod)
+                            ->delete();
+
+                        // Delete existing early arrival logs for this client and payout period
+                        $this->db->table('early_arrival')
+                            ->whereIn('employee_id', $employeeIds)
+                            ->where('payroll_period', $payoutPeriod)
                             ->delete();
                             
                         // Collect all unique dates from uploaded logs to clean up overtime
@@ -1367,10 +1390,27 @@ class Api extends ResourceController
 
             if ($existing) {
                 $this->db->table('attendance_logs')->where('id', $existing->id)->update($logData);
+                $this->syncEarlyArrival(
+                    $existing->id,
+                    intval($log['employee_id']),
+                    $log['tanggal'],
+                    $log['jam_masuk'] ?? null,
+                    $calc['shift_scheme_id'],
+                    $calc['payout_period']
+                );
             } else {
                 $logData['employee_id'] = intval($log['employee_id']);
                 $logData['log_date'] = $log['tanggal'];
                 $this->db->table('attendance_logs')->insert($logData);
+                $attendanceId = $this->db->insertID();
+                $this->syncEarlyArrival(
+                    $attendanceId,
+                    intval($log['employee_id']),
+                    $log['tanggal'],
+                    $log['jam_masuk'] ?? null,
+                    $calc['shift_scheme_id'],
+                    $calc['payout_period']
+                );
             }
             $count++;
         }
@@ -1419,6 +1459,14 @@ class Api extends ResourceController
         ];
 
         $this->db->table('attendance_logs')->where('id', $id)->update($updateData);
+        $this->syncEarlyArrival(
+            $id,
+            $old->employee_id,
+            $old->log_date,
+            $data['jam_masuk'] ?? $old->check_in,
+            $calc['shift_scheme_id'],
+            $calc['payout_period']
+        );
         return $this->respond(['message' => 'Attendance log berhasil diupdate']);
     }
 
@@ -1432,6 +1480,8 @@ class Api extends ResourceController
                 ->where('tanggal', $old->log_date)
                 ->delete();
         }
+        // Clean up early arrival log
+        $this->db->table('early_arrival')->where('attendance_id', $id)->delete();
         $this->db->table('attendance_logs')->where('id', $id)->delete();
         return $this->respondDeleted(['message' => 'Attendance log berhasil dihapus']);
     }
@@ -2002,6 +2052,209 @@ class Api extends ResourceController
         }
         
         return $this->respond(['message' => count($ids) . ' data lembur berhasil ditolak.']);
+    }
+
+    // --- EARLY ARRIVAL LOGS ---
+    public function getEarlyArrivalLogs()
+    {
+        $employeeId = $this->request->getGet('employee_id');
+        $clientId = $this->request->getGet('client_id');
+        $departmentId = $this->request->getGet('department_id');
+        $status = $this->request->getGet('status');
+        $bulan = $this->request->getGet('bulan');
+        $tahun = $this->request->getGet('tahun');
+
+        $builder = $this->db->table('early_arrival');
+        $builder->select('early_arrival.*, employees.nama as employee_name, employees.nik as employee_nik, shift_schemes.name as shift_name');
+        $builder->join('employees', 'employees.id = early_arrival.employee_id', 'left');
+        $builder->join('shift_schemes', 'shift_schemes.id = early_arrival.shift_id', 'left');
+
+        if ($employeeId) {
+            $builder->where('early_arrival.employee_id', intval($employeeId));
+        }
+        if ($clientId) {
+            $builder->where('employees.client_id', intval($clientId));
+        }
+        if ($departmentId) {
+            $builder->where('employees.department_id', intval($departmentId));
+        }
+        if ($status) {
+            $builder->where('early_arrival.status', $status);
+        }
+        if ($bulan && $tahun) {
+            $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
+            $builder->groupStart()
+                ->groupStart()
+                    ->where('MONTH(early_arrival.date)', intval($bulan))
+                    ->where('YEAR(early_arrival.date)', intval($tahun))
+                ->groupEnd()
+                ->orWhere('early_arrival.payroll_period', $payoutPeriodStr)
+            ->groupEnd();
+        }
+
+        $builder->orderBy('early_arrival.date', 'ASC');
+        $logs = $builder->get()->getResultArray();
+        return $this->respond($logs);
+    }
+
+    public function approveEarlyArrivalLog($id)
+    {
+        $approvedBy = session()->get('username') ?: 'Admin';
+        $this->db->table('early_arrival')->where('id', $id)->update([
+            'status' => 'APPROVED',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => 'Early arrival log berhasil disetujui.']);
+    }
+
+    public function rejectEarlyArrivalLog($id)
+    {
+        $approvedBy = session()->get('username') ?: 'Admin';
+        $this->db->table('early_arrival')->where('id', $id)->update([
+            'status' => 'REJECTED',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => 'Early arrival log berhasil ditolak.']);
+    }
+
+    public function bulkApproveEarlyArrivalLogs()
+    {
+        $json = $this->request->getJSON(true);
+        $ids = $json['ids'] ?? [];
+        if (empty($ids)) {
+            return $this->failValidationErrors('Tidak ada ID early arrival yang dipilih.');
+        }
+        $approvedBy = session()->get('username') ?: 'Admin';
+        
+        $this->db->table('early_arrival')->whereIn('id', $ids)->update([
+            'status' => 'APPROVED',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        return $this->respond(['message' => count($ids) . ' data early arrival berhasil disetujui.']);
+    }
+
+    public function bulkRejectEarlyArrivalLogs()
+    {
+        $json = $this->request->getJSON(true);
+        $ids = $json['ids'] ?? [];
+        if (empty($ids)) {
+            return $this->failValidationErrors('Tidak ada ID early arrival yang dipilih.');
+        }
+        $approvedBy = session()->get('username') ?: 'Admin';
+        
+        $this->db->table('early_arrival')->whereIn('id', $ids)->update([
+            'status' => 'REJECTED',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        return $this->respond(['message' => count($ids) . ' data early arrival berhasil ditolak.']);
+    }
+
+    public function resetEarlyArrivalLog($id)
+    {
+        $this->db->table('early_arrival')->where('id', $id)->update([
+            'status' => 'PENDING',
+            'approved_by' => null,
+            'approved_at' => null,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => 'Early arrival log berhasil dikembalikan ke pending.']);
+    }
+
+    private function syncEarlyArrival($attendanceId, $employeeId, $tanggal, $checkIn, $shiftSchemeId = null, $payoutPeriod = null)
+    {
+        $db = \Config\Database::connect();
+
+        // 1. Get global settings
+        $companySetting = $db->table('company_payroll_setting')->get()->getRowArray();
+        $enabled = $companySetting ? intval($companySetting['early_arrival_enabled']) : 1;
+        $maxMinutes = $companySetting ? intval($companySetting['max_early_arrival_minutes']) : 180;
+
+        // If disabled, delete any existing early arrival log for this attendance
+        if (!$enabled) {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+            return;
+        }
+
+        // 2. Resolve shift scheme and get shift start time
+        if (!$shiftSchemeId) {
+            $att = $db->table('attendance_logs')->where('id', $attendanceId)->get()->getRow();
+            if ($att) {
+                $shiftSchemeId = $att->shift_scheme_id;
+            }
+        }
+
+        if (!$shiftSchemeId) {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+            return;
+        }
+
+        $shift = $db->table('shift_schemes')->where('id', $shiftSchemeId)->get()->getRow();
+        if (!$shift || empty($shift->start_time) || empty($checkIn)) {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+            return;
+        }
+
+        // 3. Compare check-in and shift start
+        $shiftStart = $shift->start_time; // e.g. "08:00"
+        
+        $shiftStartSecs = strtotime($tanggal . ' ' . $shiftStart);
+        $checkInSecs = strtotime($tanggal . ' ' . $checkIn);
+
+        if ($checkInSecs === false || $shiftStartSecs === false) {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+            return;
+        }
+
+        // Check if Check-in < Shift Start
+        if ($checkInSecs < $shiftStartSecs) {
+            $earlyMinutes = intval(($shiftStartSecs - $checkInSecs) / 60);
+            
+            $eligibleMinutes = $earlyMinutes;
+            if ($eligibleMinutes > $maxMinutes) {
+                $eligibleMinutes = $maxMinutes;
+            }
+
+            $existing = $db->table('early_arrival')->where('attendance_id', $attendanceId)->get()->getRow();
+
+            $data = [
+                'attendance_id' => $attendanceId,
+                'employee_id' => $employeeId,
+                'date' => $tanggal,
+                'shift_id' => $shiftSchemeId,
+                'shift_start_time' => $shiftStart,
+                'check_in_time' => $checkIn,
+                'early_minutes' => $earlyMinutes,
+                'eligible_minutes' => $eligibleMinutes,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($existing) {
+                if ($existing->payroll_status !== 'PROCESSED') {
+                    if ($existing->check_in_time !== $checkIn || $existing->early_minutes !== $earlyMinutes) {
+                        $data['status'] = 'PENDING';
+                    }
+                    $db->table('early_arrival')->where('id', $existing->id)->update($data);
+                }
+            } else {
+                $data['status'] = 'PENDING';
+                $data['payroll_status'] = 'NOT_PROCESSED';
+                $data['payroll_period'] = $payoutPeriod;
+                $data['created_at'] = date('Y-m-d H:i:s');
+                $db->table('early_arrival')->insert($data);
+            }
+        } else {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+        }
     }
 
     // --- HOLIDAY CALENDAR ---
@@ -5143,6 +5396,22 @@ class Api extends ResourceController
     public function getSettings()
     {
         $settings = $this->db->table('system_settings')->get()->getResultArray();
+
+        // Get company payroll settings for early arrival
+        $companySetting = $this->db->table('company_payroll_setting')->get()->getRowArray();
+        if ($companySetting) {
+            $settings[] = [
+                'setting_key' => 'early_arrival_enabled',
+                'setting_value' => strval($companySetting['early_arrival_enabled']),
+                'updated_at' => $companySetting['updated_at'] ?? null
+            ];
+            $settings[] = [
+                'setting_key' => 'max_early_arrival_minutes',
+                'setting_value' => strval($companySetting['max_early_arrival_minutes']),
+                'updated_at' => $companySetting['updated_at'] ?? null
+            ];
+        }
+
         return $this->respond($settings);
     }
 
@@ -5153,7 +5422,30 @@ class Api extends ResourceController
             return $this->fail('Invalid JSON data format');
         }
 
+        $companySettingsUpdate = [];
+        $systemSettingsData = [];
+
         foreach ($data as $key => $val) {
+            if ($key === 'early_arrival_enabled') {
+                $companySettingsUpdate['early_arrival_enabled'] = ($val === 'true' || $val === '1' || $val === true || $val === 1) ? 1 : 0;
+            } elseif ($key === 'max_early_arrival_minutes') {
+                $companySettingsUpdate['max_early_arrival_minutes'] = intval($val);
+            } else {
+                $systemSettingsData[$key] = $val;
+            }
+        }
+
+        if (!empty($companySettingsUpdate)) {
+            $companySettingsUpdate['updated_at'] = date('Y-m-d H:i:s');
+            $exists = $this->db->table('company_payroll_setting')->get()->getRow();
+            if ($exists) {
+                $this->db->table('company_payroll_setting')->update($companySettingsUpdate);
+            } else {
+                $this->db->table('company_payroll_setting')->insert($companySettingsUpdate);
+            }
+        }
+
+        foreach ($systemSettingsData as $key => $val) {
             $exists = $this->db->table('system_settings')->where('setting_key', $key)->get()->getRow();
             if ($exists) {
                 $this->db->table('system_settings')->where('setting_key', $key)->update([

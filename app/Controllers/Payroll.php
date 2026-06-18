@@ -332,6 +332,7 @@ class Payroll extends ResourceController
         $clientId = $json['client_id'];
         $bulan = $json['bulan'];
         $tahun = $json['tahun'];
+        $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
         $dataKaryawan = $json['data']; // Array of {employee_id, hadir, alpa, sakit, lembur}
 
         // Synchronize employees to PKWT first to make sure contracts/components are up-to-date
@@ -460,6 +461,7 @@ class Payroll extends ResourceController
 
         // Check for any Pending overtime logs for this client's employees in their respective cutoff periods
         $pendingOvertimeCount = 0;
+        $pendingEarlyArrivalCount = 0;
         $activeEmployees = $db->table('employees')
             ->where('client_id', $clientId)
             ->where('status', 'Aktif')
@@ -503,10 +505,26 @@ class Payroll extends ResourceController
             if ($empPendingCount > 0) {
                 $pendingOvertimeCount += $empPendingCount;
             }
+
+            // Check pending early arrivals
+            list($empAttStartDateStr, $empAttEndDateStr) = $resolveComponentDates($empConfig, 'gaji_pokok');
+            $empPendingEACount = $db->table('early_arrival')
+                ->where('employee_id', $activeEmp['id'])
+                ->where('date >=', $empAttStartDateStr)
+                ->where('date <=', $empAttEndDateStr)
+                ->where('status', 'PENDING')
+                ->countAllResults();
+            if ($empPendingEACount > 0) {
+                $pendingEarlyArrivalCount += $empPendingEACount;
+            }
         }
 
         if ($pendingOvertimeCount > 0) {
             return $this->failValidationErrors("Terdapat $pendingOvertimeCount data lembur yang masih berstatus 'Pending' pada periode cut-off ini. Harap setujui (Approve) atau tolak (Reject) terlebih dahulu di tab Overtime.");
+        }
+
+        if ($pendingEarlyArrivalCount > 0) {
+            return $this->failValidationErrors("Terdapat $pendingEarlyArrivalCount data Early Arrival yang masih berstatus 'Pending' pada periode cut-off ini. Harap setujui (Approve) atau tolak (Reject) terlebih dahulu di tab Early Arrival.");
         }
 
         // Tandai Periode Cut Off
@@ -1534,6 +1552,42 @@ class Payroll extends ResourceController
                 $rapelDeduction += $rapelLateHours * $upahPerJam;
             }
 
+            // Calculate Early Arrival Pay
+            $approvedEarlyArrivals = $db->table('early_arrival')
+                ->where('employee_id', $emp['id'])
+                ->where('date >=', $empStartDateStr)
+                ->where('date <=', $empEndDateStr)
+                ->where('status', 'APPROVED')
+                ->where('payroll_status', 'NOT_PROCESSED')
+                ->get()->getResultArray();
+
+            $totalEarlyArrivalMinutes = 0;
+            $earlyArrivalIdsToProcess = [];
+            foreach ($approvedEarlyArrivals as $eaLog) {
+                $totalEarlyArrivalMinutes += intval($eaLog['eligible_minutes']);
+                $earlyArrivalIdsToProcess[] = $eaLog['id'];
+            }
+
+            $earlyArrivalPay = 0.0;
+            if ($totalEarlyArrivalMinutes > 0) {
+                $earlyArrivalPay = ($totalEarlyArrivalMinutes / 60) * $upahPerJam;
+                $customTunjangan += $earlyArrivalPay;
+                $customDetails[] = [
+                    'nama_komponen' => 'Early Arrival',
+                    'tipe' => 'Tunjangan',
+                    'jumlah' => $earlyArrivalPay
+                ];
+
+                // Update early arrival records to PROCESSED
+                $db->table('early_arrival')
+                    ->whereIn('id', $earlyArrivalIdsToProcess)
+                    ->update([
+                        'payroll_status' => 'PROCESSED',
+                        'payroll_period' => $payoutPeriodStr,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+            }
+
             // 4. Combined Net Rapel
             $netRapel = $prevUnpaidSalary + $rapelOvertimePay - $rapelDeduction;
 
@@ -1609,6 +1663,16 @@ class Payroll extends ResourceController
             if ($existingPayroll) {
                 $detailModel->where('payroll_id', $existingPayroll['id'])->delete();
                 $this->model->delete($existingPayroll['id']);
+
+                // Reset early arrivals back to NOT_PROCESSED
+                $db->table('early_arrival')
+                    ->where('employee_id', $emp['id'])
+                    ->where('payroll_period', $bulan . '-' . $tahun)
+                    ->update([
+                        'payroll_status' => 'NOT_PROCESSED',
+                        'payroll_period' => null,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
             }
 
             // Simpan Payroll Utama
@@ -1848,6 +1912,18 @@ class Payroll extends ResourceController
      */
     public function reject($id)
     {
+        $payroll = $this->model->find($id);
+        if ($payroll) {
+            $db = \Config\Database::connect();
+            $db->table('early_arrival')
+                ->where('employee_id', $payroll['employee_id'])
+                ->where('payroll_period', $payroll['bulan'] . '-' . $payroll['tahun'])
+                ->update([
+                    'payroll_status' => 'NOT_PROCESSED',
+                    'payroll_period' => null,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+        }
         $detailModel = new PayrollDetailModel();
         $detailModel->where('payroll_id', $id)->delete();
         if ($this->model->delete($id)) {
