@@ -458,7 +458,7 @@ class Ai extends ResourceController
                     'description' => 'Menjalankan proses generate gaji/kalkulasi payroll untuk perusahaan klien yang aktif.',
                     'parameters' => [
                         'type' => 'OBJECT',
-                        'properties' => []
+                        'properties' => (object)[]
                     ]
                 ],
                 [
@@ -466,7 +466,7 @@ class Ai extends ResourceController
                     'description' => 'Membuka modal pop-up formulir untuk menambahkan data mitra klien baru.',
                     'parameters' => [
                         'type' => 'OBJECT',
-                        'properties' => []
+                        'properties' => (object)[]
                     ]
                 ],
                 [
@@ -474,7 +474,7 @@ class Ai extends ResourceController
                     'description' => 'Membuka modal pop-up formulir untuk menambahkan data karyawan baru.',
                     'parameters' => [
                         'type' => 'OBJECT',
-                        'properties' => []
+                        'properties' => (object)[]
                     ]
                 ]
             ];
