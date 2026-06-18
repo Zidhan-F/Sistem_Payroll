@@ -1142,7 +1142,33 @@ class Api extends ResourceController
 
         $builder->orderBy('attendance_logs.log_date', 'ASC');
         $logs = $builder->get()->getResultArray();
-        return $this->respond($logs);
+
+        $cutoffDay = 21;
+        if ($clientId) {
+            $config = $this->db->table('client_payroll_configs')
+                ->where('client_id', intval($clientId))
+                ->get()->getRow();
+            if ($config && isset($config->cutoff_start)) {
+                $cutoffDay = intval($config->cutoff_start);
+            }
+        }
+
+        $isLateUpload = false;
+        $cutoffDateStr = null;
+        if ($bulan && $tahun) {
+            $daysInMonth = intval(date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun))));
+            $dayVal = min($cutoffDay, $daysInMonth);
+            $cutoffDateStr = sprintf('%04d-%02d-%02d', intval($tahun), intval($bulan), $dayVal);
+            if (date('Y-m-d') > $cutoffDateStr) {
+                $isLateUpload = true;
+            }
+        }
+
+        return $this->respond([
+            'data' => $logs,
+            'is_late_upload' => $isLateUpload,
+            'cutoff_date' => $cutoffDateStr
+        ]);
     }
 
     public function createAttendanceLog()
@@ -1151,6 +1177,18 @@ class Api extends ResourceController
 
         if (empty($data['employee_id']) || empty($data['tanggal'])) {
             return $this->failValidationErrors('employee_id dan tanggal wajib diisi');
+        }
+
+        $empInfo = $this->db->table('employees')
+            ->select('tgl_masuk, start_contract, nama')
+            ->where('id', intval($data['employee_id']))
+            ->get()->getRow();
+
+        if ($empInfo) {
+            $joinDate = !empty($empInfo->tgl_masuk) ? $empInfo->tgl_masuk : ($empInfo->start_contract ?? null);
+            if (!empty($joinDate) && strtotime($data['tanggal']) < strtotime($joinDate)) {
+                return $this->failValidationErrors("Karyawan '{$empInfo->nama}' belum bergabung pada tanggal tersebut (Tanggal bergabung: " . date('d-m-Y', strtotime($joinDate)) . ").");
+            }
         }
 
         $calc = $this->calculateShiftAttendance(
@@ -1228,6 +1266,8 @@ class Api extends ResourceController
         $logs = $data['logs'] ?? [];
         log_message('error', 'BULK LOGS RECEIVED: ' . json_encode($logs));
         $count = 0;
+        $skippedCount = 0;
+        $employeesById = [];
 
         if (!empty($logs)) {
             $firstLog = $logs[0];
@@ -1239,6 +1279,9 @@ class Api extends ResourceController
                 if ($emp) {
                     $clientId = $emp->client_id;
                     $employees = $this->db->table('employees')->where('client_id', $clientId)->get()->getResultArray();
+                    foreach ($employees as $e) {
+                        $employeesById[intval($e['id'])] = $e;
+                    }
                     $employeeIds = array_column($employees, 'id');
                     
                     if (!empty($employeeIds)) {
@@ -1299,6 +1342,27 @@ class Api extends ResourceController
             if (empty($log['employee_id']) || empty($log['tanggal'])) {
                 log_message('error', 'SKIPPED LOG DUE TO EMPTY FIELD: ' . json_encode($log));
                 continue;
+            }
+
+            $currentEmpId = intval($log['employee_id']);
+            $empInfo = null;
+            if (isset($employeesById[$currentEmpId])) {
+                $empInfo = $employeesById[$currentEmpId];
+            } else {
+                $empRow = $this->db->table('employees')->where('id', $currentEmpId)->get()->getRowArray();
+                if ($empRow) {
+                    $employeesById[$currentEmpId] = $empRow;
+                    $empInfo = $empRow;
+                }
+            }
+
+            if ($empInfo) {
+                $joinDate = !empty($empInfo['tgl_masuk']) ? $empInfo['tgl_masuk'] : ($empInfo['start_contract'] ?? null);
+                if (!empty($joinDate) && strtotime($log['tanggal']) < strtotime($joinDate)) {
+                    log_message('info', "SKIPPED LOG: Employee {$empInfo['nama']} has not joined yet on {$log['tanggal']} (joined {$joinDate})");
+                    $skippedCount++;
+                    continue;
+                }
             }
 
             $shiftSchemeId = $log['shift_scheme_id'] ?? null;
@@ -1381,7 +1445,11 @@ class Api extends ResourceController
             $count++;
         }
 
-        return $this->respondCreated(['message' => "Berhasil menyimpan {$count} attendance logs"]);
+        $msg = "Berhasil menyimpan {$count} attendance logs.";
+        if ($skippedCount > 0) {
+            $msg .= " {$skippedCount} logs dilewati karena tanggal absensi mendahului tanggal bergabung karyawan.";
+        }
+        return $this->respondCreated(['message' => $msg]);
     }
 
     public function updateAttendanceLog($id)
@@ -1390,6 +1458,21 @@ class Api extends ResourceController
         $old = $this->db->table('attendance_logs')->where('id', $id)->get()->getRow();
         if (!$old) {
             return $this->fail('Attendance log tidak ditemukan');
+        }
+
+        $empInfo = $this->db->table('employees')
+            ->select('tgl_masuk, start_contract, nama')
+            ->where('id', intval($old->employee_id))
+            ->get()->getRow();
+
+        if ($empInfo) {
+            $joinDate = !empty($empInfo->tgl_masuk) ? $empInfo->tgl_masuk : ($empInfo->start_contract ?? null);
+            if (!empty($joinDate)) {
+                $tanggal = $data['tanggal'] ?? $old->log_date;
+                if (strtotime($tanggal) < strtotime($joinDate)) {
+                    return $this->failValidationErrors("Karyawan '{$empInfo->nama}' belum bergabung pada tanggal tersebut (Tanggal bergabung: " . date('d-m-Y', strtotime($joinDate)) . ").");
+                }
+            }
         }
 
         $calc = $this->calculateShiftAttendance(
@@ -1493,13 +1576,14 @@ class Api extends ResourceController
         }
 
         $empInfo = $this->db->table('employees')
-            ->select('tgl_masuk, nama')
+            ->select('tgl_masuk, start_contract, nama')
             ->where('id', intval($data['employee_id']))
             ->get()->getRow();
 
-        if ($empInfo && !empty($empInfo->tgl_masuk)) {
-            if (strtotime($data['tanggal']) < strtotime($empInfo->tgl_masuk)) {
-                return $this->failValidationErrors("Karyawan '{$empInfo->nama}' belum bergabung pada tanggal tersebut (Tanggal bergabung: " . date('d-m-Y', strtotime($empInfo->tgl_masuk)) . ").");
+        if ($empInfo) {
+            $joinDate = !empty($empInfo->tgl_masuk) ? $empInfo->tgl_masuk : ($empInfo->start_contract ?? null);
+            if (!empty($joinDate) && strtotime($data['tanggal']) < strtotime($joinDate)) {
+                return $this->failValidationErrors("Karyawan '{$empInfo->nama}' belum bergabung pada tanggal tersebut (Tanggal bergabung: " . date('d-m-Y', strtotime($joinDate)) . ").");
             }
         }
 
@@ -1646,9 +1730,10 @@ class Api extends ResourceController
             }
 
             // Check join date validation
-            if (!empty($employee['tgl_masuk'])) {
-                if (strtotime($tanggal) < strtotime($employee['tgl_masuk'])) {
-                    $errorLogs[] = "Baris " . ($index + 1) . ": Karyawan '" . $employee['nama'] . "' belum bergabung pada tanggal tersebut (Tanggal bergabung: " . date('d-m-Y', strtotime($employee['tgl_masuk'])) . ").";
+            $joinDate = !empty($employee['tgl_masuk']) ? $employee['tgl_masuk'] : ($employee['start_contract'] ?? null);
+            if (!empty($joinDate)) {
+                if (strtotime($tanggal) < strtotime($joinDate)) {
+                    $errorLogs[] = "Baris " . ($index + 1) . ": Karyawan '" . $employee['nama'] . "' belum bergabung pada tanggal tersebut (Tanggal bergabung: " . date('d-m-Y', strtotime($joinDate)) . ").";
                     continue;
                 }
             }

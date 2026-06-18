@@ -326,6 +326,13 @@ function bukaModalOvertime() {
     if (!clientId) { showToast('Pilih client terlebih dahulu!', 'error'); return; }
     document.getElementById('overtimeForm')?.reset();
     document.getElementById('overtimeModalTitle').innerText = 'Input Lembur';
+    
+    const tanggalInput = document.getElementById('overtimeTanggal');
+    if (tanggalInput && !tanggalInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        tanggalInput.value = today;
+    }
+    
     loadOvertimeEmployees();
     openModal('overtimeModal');
 }

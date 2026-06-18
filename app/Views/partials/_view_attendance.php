@@ -3,7 +3,12 @@
     <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
         <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
             <div>
-                <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Attendance Log</h3>
+                <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0; display: inline-flex; align-items: center; gap: 8px;">
+                    Attendance Log
+                    <button onclick="bukaModalAttendance()" style="background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.transform='scale(1.15)'; this.style.background='var(--primary-dark)';" onmouseout="this.style.transform='scale(1)'; this.style.background='var(--primary-color)';" title="Tambah Kehadiran Manual">
+                        <i class="fas fa-plus" style="font-size: 11px;"></i>
+                    </button>
+                </h3>
                 <p style="color: #64748b; font-size: 13px; margin: 0;">Input dan kelola kehadiran harian karyawan.</p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
@@ -25,6 +30,12 @@
                     <i class="fas fa-file-excel"></i> Upload Attendance Excel
                 </button>
             </div>
+        </div>
+
+        <!-- Late Upload Alert Banner -->
+        <div id="attendanceLateUploadRemark" style="display: none; background: #fff2e8; border: 1px solid #ffbb96; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; color: #d4380d; font-weight: 600; font-size: 13.5px; align-items: center; gap: 8px;">
+            <i class="fas fa-exclamation-circle" style="font-size: 16px;"></i>
+            <span>Late Upload: Upload absensi untuk periode ini telah melewati tanggal cut-off (<strong id="attendanceCutoffDateLabel">-</strong>).</span>
         </div>
 
         <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">

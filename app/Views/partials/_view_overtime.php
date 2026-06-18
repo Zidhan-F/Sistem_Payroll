@@ -4,7 +4,12 @@
         <div class="section-header" style="margin-bottom: 25px; display: flex; flex-direction: column; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; width: 100%;">
                 <div>
-                    <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Persetujuan & Log Lembur</h3>
+                    <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0; display: inline-flex; align-items: center; gap: 8px;">
+                        Persetujuan & Log Lembur
+                        <button onclick="bukaModalOvertime()" style="background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.transform='scale(1.15)'; this.style.background='var(--primary-dark)';" onmouseout="this.style.transform='scale(1)'; this.style.background='var(--primary-color)';" title="Input Lembur Manual">
+                            <i class="fas fa-plus" style="font-size: 11px;"></i>
+                        </button>
+                    </h3>
                     <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola, verifikasi, setujui (Approve), atau tolak (Reject) jam lembur harian karyawan.</p>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
@@ -22,9 +27,6 @@
                         <option value="2026" selected>2026</option>
                         <option value="2027">2027</option>
                     </select>
-                    <button class="btn-add" onclick="bukaModalOvertime()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
-                        <i class="fas fa-plus"></i> Input Lembur
-                    </button>
                     <button class="btn-add" onclick="bukaModalUploadLembur()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-upload"></i> Upload Lembur
                     </button>

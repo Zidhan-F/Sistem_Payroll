@@ -36,6 +36,9 @@ async function loadAttendanceLogs() {
     const searchInput = document.getElementById('attendanceSearchInput');
     if (searchInput) searchInput.value = '';
 
+    // Hide late upload banners by default
+    document.querySelectorAll('#attendanceLateUploadRemark').forEach(banner => banner.style.display = 'none');
+
     if (!clientId) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
@@ -53,6 +56,40 @@ async function loadAttendanceLogs() {
         const res = await fetch(`${API_URL}/attendance-logs?client_id=${clientId}&bulan=${bulan}&tahun=${tahun}`);
         const data = await res.json();
         currentAttendanceLogs = Array.isArray(data) ? data : (data.data || []);
+
+        // Handle late upload banner
+        const lateUploadBanners = document.querySelectorAll('#attendanceLateUploadRemark');
+        const cutoffLabels = document.querySelectorAll('#attendanceCutoffDateLabel');
+        
+        if (data && data.is_late_upload) {
+            let formattedDate = data.cutoff_date || '';
+            if (data.cutoff_date) {
+                const dateParts = data.cutoff_date.split('-');
+                if (dateParts.length === 3) {
+                    const months = [
+                        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                    ];
+                    const day = parseInt(dateParts[2]);
+                    const monthIdx = parseInt(dateParts[1]) - 1;
+                    const year = dateParts[0];
+                    if (monthIdx >= 0 && monthIdx < 12) {
+                        formattedDate = `${day} ${months[monthIdx]} ${year}`;
+                    }
+                }
+            }
+            
+            lateUploadBanners.forEach(banner => {
+                banner.style.display = 'flex';
+            });
+            cutoffLabels.forEach(label => {
+                label.innerText = formattedDate;
+            });
+        } else {
+            lateUploadBanners.forEach(banner => {
+                banner.style.display = 'none';
+            });
+        }
 
         if (!currentAttendanceLogs || currentAttendanceLogs.length === 0) {
             tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
@@ -153,6 +190,10 @@ function bukaModalAttendance() {
     const tanggalInput = document.getElementById('attendanceTanggal');
     if (tanggalInput) {
         tanggalInput.disabled = false;
+        if (!tanggalInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            tanggalInput.value = today;
+        }
     }
     loadAttendanceEmployees();
     openModal('attendanceModal');
@@ -240,6 +281,16 @@ async function simpanAttendance(e) {
             body: JSON.stringify({ employee_id: employeeId, tanggal, status, jam_masuk: jamMasuk, jam_keluar: jamKeluar, keterangan })
         });
         const data = await res.json();
+        if (!res.ok) {
+            let errorMsg = data.messages?.error || data.message || data.error;
+            if (data.messages && typeof data.messages === 'object') {
+                errorMsg = Object.values(data.messages).join(', ');
+            } else if (data.messages && typeof data.messages === 'string') {
+                errorMsg = data.messages;
+            }
+            showToast(errorMsg || 'Gagal menyimpan kehadiran!', 'error');
+            return;
+        }
         showToast(data.message || 'Kehadiran berhasil disimpan!', 'success');
         closeModal('attendanceModal');
 
@@ -474,3 +525,8 @@ window.toggleAttendanceClientDropdown = toggleAttendanceClientDropdown;
 window.closeAttendanceClientDropdown = closeAttendanceClientDropdown;
 window.filterClientDropdownOptions = filterClientDropdownOptions;
 window.editAttendanceLog = editAttendanceLog;
+window.bukaModalAttendance = bukaModalAttendance;
+window.simpanAttendance = simpanAttendance;
+window.loadAttendanceLogs = loadAttendanceLogs;
+window.loadAttendanceClients = loadAttendanceClients;
+
