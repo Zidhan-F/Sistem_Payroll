@@ -30,6 +30,7 @@
     <script src="<?= base_url('js/modules/app-holiday.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-attendance.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-overtime.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-early-arrival.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-settings.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-shift.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-ai-assistant.js?v=' . time()) ?>"></script>

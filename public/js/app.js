@@ -343,6 +343,8 @@ function switchPayrollSub(sub) {
     } else if (sub === 'setting') {
         switchView('payroll');
         switchPayrollSubTab('skema');
+    } else if (sub === 'system_setting') {
+        switchView('systemSettings');
     } else if (sub === 'pajak') {
         switchView('pajak');
     } else if (sub === 'schedule') {
@@ -388,6 +390,8 @@ function switchScheduleSubTab(tab) {
         if (typeof loadAttendanceClients === 'function') loadAttendanceClients();
     } else if (tab === 'overtime') {
         if (typeof loadOvertimeClients === 'function') loadOvertimeClients();
+    } else if (tab === 'earlyArrival') {
+        if (typeof loadEarlyArrivalClients === 'function') loadEarlyArrivalClients();
     }
 }
 

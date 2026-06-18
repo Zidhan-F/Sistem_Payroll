@@ -49,6 +49,73 @@ class Api extends ResourceController
                     'client_name' => $client['nama'],
                     'client_sektor' => $client['sektor']
                 ];
+            } else {
+                // Period exists, check if attendance is uploaded H-3 before cutoff
+                $config = $this->db->table('client_payroll_configs')
+                                   ->where('client_id', $client['id'])
+                                   ->get()
+                                   ->getRow();
+                if ($config) {
+                    $daysInMonth = date('t', mktime(0, 0, 0, $currentMonth, 1, $currentYear));
+                    $cutoffStart = $config->cutoff_start ? intval($config->cutoff_start) : 21;
+                    if ($cutoffStart <= 1) {
+                        $cutoffDay = $daysInMonth;
+                    } else {
+                        $cutoffDay = min($cutoffStart, $daysInMonth);
+                    }
+                    $cutoffEndDateStr = sprintf('%d-%02d-%02d', $currentYear, $currentMonth, $cutoffDay);
+                    
+                    $todayStr = date('Y-m-d');
+                    $todayTime = strtotime($todayStr);
+                    $cutoffTime = strtotime($cutoffEndDateStr);
+                    $diffDays = intval(round(($cutoffTime - $todayTime) / 86400));
+
+                    if ($diffDays <= 3) {
+                        // Check if client has uploaded attendance
+                        $employees = $this->db->table('employees')->where('client_id', $client['id'])->get()->getResultArray();
+                        $employeeIds = array_column($employees, 'id');
+                        
+                        $hasUploaded = false;
+                        if (!empty($employeeIds)) {
+                            $payoutPeriodStr = $currentMonth . '-' . $currentYear;
+                            $attendanceCount = $this->db->table('attendance_logs')
+                                                        ->whereIn('employee_id', $employeeIds)
+                                                        ->where('payout_period', $payoutPeriodStr)
+                                                        ->countAllResults();
+                            if ($attendanceCount > 0) {
+                                    $hasUploaded = true;
+                            }
+                        }
+                        
+                        if (!$hasUploaded && !empty($employeeIds)) {
+                            if ($diffDays >= 0) {
+                                $daysText = $diffDays == 0 ? "hari ini adalah hari terakhir" : "tinggal " . $diffDays . " hari lagi";
+                                $notifications[] = [
+                                    'id' => 'attendance_cutoff_warning_' . $client['id'],
+                                    'type' => 'warning',
+                                    'title' => 'Absensi Belum Diunggah (H-' . $diffDays . ')',
+                                    'message' => "Klien <strong>" . esc($client['nama']) . "</strong> belum mengunggah data absensi. Batas akhir cut-off adalah tanggal " . esc($cutoffDay) . " " . esc($monthName) . " " . esc($currentYear) . " (" . $daysText . ")!",
+                                    'link' => 'klien',
+                                    'client_id' => intval($client['id']),
+                                    'client_name' => $client['nama'],
+                                    'client_sektor' => $client['sektor']
+                                ];
+                            } else {
+                                $lateDays = abs($diffDays);
+                                $notifications[] = [
+                                    'id' => 'attendance_cutoff_late_' . $client['id'],
+                                    'type' => 'error',
+                                    'title' => 'Terlambat Mengunggah Absensi (Telat ' . $lateDays . ' Hari)',
+                                    'message' => "Klien <strong>" . esc($client['nama']) . "</strong> terlambat mengunggah data absensi. Batas akhir cut-off adalah tanggal " . esc($cutoffDay) . " " . esc($monthName) . " " . esc($currentYear) . " (terlewat " . $lateDays . " hari)!",
+                                    'link' => 'klien',
+                                    'client_id' => intval($client['id']),
+                                    'client_name' => $client['nama'],
+                                    'client_sektor' => $client['sektor']
+                                ];
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1229,6 +1296,14 @@ class Api extends ResourceController
                 'absent_penalty'             => $calc['absent_penalty'],
                 'is_incomplete'              => $calc['is_incomplete'],
             ]);
+            $this->syncEarlyArrival(
+                $existing->id,
+                intval($data['employee_id']),
+                $data['tanggal'],
+                $data['jam_masuk'] ?? null,
+                $calc['shift_scheme_id'],
+                $calc['payout_period']
+            );
             return $this->respond(['message' => 'Attendance log berhasil diupdate']);
         }
 
@@ -1257,6 +1332,15 @@ class Api extends ResourceController
         ];
 
         $this->db->table('attendance_logs')->insert($insertData);
+        $attendanceId = $this->db->insertID();
+        $this->syncEarlyArrival(
+            $attendanceId,
+            intval($data['employee_id']),
+            $data['tanggal'],
+            $data['jam_masuk'] ?? null,
+            $calc['shift_scheme_id'],
+            $calc['payout_period']
+        );
         return $this->respondCreated(['message' => 'Attendance log berhasil ditambahkan']);
     }
 
@@ -1289,6 +1373,12 @@ class Api extends ResourceController
                         $this->db->table('attendance_logs')
                             ->whereIn('employee_id', $employeeIds)
                             ->where('payout_period', $payoutPeriod)
+                            ->delete();
+
+                        // Delete existing early arrival logs for this client and payout period
+                        $this->db->table('early_arrival')
+                            ->whereIn('employee_id', $employeeIds)
+                            ->where('payroll_period', $payoutPeriod)
                             ->delete();
                             
                         // Collect all unique dates from uploaded logs to clean up overtime
@@ -1437,10 +1527,27 @@ class Api extends ResourceController
 
             if ($existing) {
                 $this->db->table('attendance_logs')->where('id', $existing->id)->update($logData);
+                $this->syncEarlyArrival(
+                    $existing->id,
+                    intval($log['employee_id']),
+                    $log['tanggal'],
+                    $log['jam_masuk'] ?? null,
+                    $calc['shift_scheme_id'],
+                    $calc['payout_period']
+                );
             } else {
                 $logData['employee_id'] = intval($log['employee_id']);
                 $logData['log_date'] = $log['tanggal'];
                 $this->db->table('attendance_logs')->insert($logData);
+                $attendanceId = $this->db->insertID();
+                $this->syncEarlyArrival(
+                    $attendanceId,
+                    intval($log['employee_id']),
+                    $log['tanggal'],
+                    $log['jam_masuk'] ?? null,
+                    $calc['shift_scheme_id'],
+                    $calc['payout_period']
+                );
             }
             $count++;
         }
@@ -1508,6 +1615,14 @@ class Api extends ResourceController
         ];
 
         $this->db->table('attendance_logs')->where('id', $id)->update($updateData);
+        $this->syncEarlyArrival(
+            $id,
+            $old->employee_id,
+            $old->log_date,
+            $data['jam_masuk'] ?? $old->check_in,
+            $calc['shift_scheme_id'],
+            $calc['payout_period']
+        );
         return $this->respond(['message' => 'Attendance log berhasil diupdate']);
     }
 
@@ -1521,6 +1636,8 @@ class Api extends ResourceController
                 ->where('tanggal', $old->log_date)
                 ->delete();
         }
+        // Clean up early arrival log
+        $this->db->table('early_arrival')->where('attendance_id', $id)->delete();
         $this->db->table('attendance_logs')->where('id', $id)->delete();
         return $this->respondDeleted(['message' => 'Attendance log berhasil dihapus']);
     }
@@ -2095,6 +2212,209 @@ class Api extends ResourceController
         return $this->respond(['message' => count($ids) . ' data lembur berhasil ditolak.']);
     }
 
+    // --- EARLY ARRIVAL LOGS ---
+    public function getEarlyArrivalLogs()
+    {
+        $employeeId = $this->request->getGet('employee_id');
+        $clientId = $this->request->getGet('client_id');
+        $departmentId = $this->request->getGet('department_id');
+        $status = $this->request->getGet('status');
+        $bulan = $this->request->getGet('bulan');
+        $tahun = $this->request->getGet('tahun');
+
+        $builder = $this->db->table('early_arrival');
+        $builder->select('early_arrival.*, employees.nama as employee_name, employees.nik as employee_nik, shift_schemes.name as shift_name');
+        $builder->join('employees', 'employees.id = early_arrival.employee_id', 'left');
+        $builder->join('shift_schemes', 'shift_schemes.id = early_arrival.shift_id', 'left');
+
+        if ($employeeId) {
+            $builder->where('early_arrival.employee_id', intval($employeeId));
+        }
+        if ($clientId) {
+            $builder->where('employees.client_id', intval($clientId));
+        }
+        if ($departmentId) {
+            $builder->where('employees.department_id', intval($departmentId));
+        }
+        if ($status) {
+            $builder->where('early_arrival.status', $status);
+        }
+        if ($bulan && $tahun) {
+            $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
+            $builder->groupStart()
+                ->groupStart()
+                    ->where('MONTH(early_arrival.date)', intval($bulan))
+                    ->where('YEAR(early_arrival.date)', intval($tahun))
+                ->groupEnd()
+                ->orWhere('early_arrival.payroll_period', $payoutPeriodStr)
+            ->groupEnd();
+        }
+
+        $builder->orderBy('early_arrival.date', 'ASC');
+        $logs = $builder->get()->getResultArray();
+        return $this->respond($logs);
+    }
+
+    public function approveEarlyArrivalLog($id)
+    {
+        $approvedBy = session()->get('username') ?: 'Admin';
+        $this->db->table('early_arrival')->where('id', $id)->update([
+            'status' => 'APPROVED',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => 'Early arrival log berhasil disetujui.']);
+    }
+
+    public function rejectEarlyArrivalLog($id)
+    {
+        $approvedBy = session()->get('username') ?: 'Admin';
+        $this->db->table('early_arrival')->where('id', $id)->update([
+            'status' => 'REJECTED',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => 'Early arrival log berhasil ditolak.']);
+    }
+
+    public function bulkApproveEarlyArrivalLogs()
+    {
+        $json = $this->request->getJSON(true);
+        $ids = $json['ids'] ?? [];
+        if (empty($ids)) {
+            return $this->failValidationErrors('Tidak ada ID early arrival yang dipilih.');
+        }
+        $approvedBy = session()->get('username') ?: 'Admin';
+        
+        $this->db->table('early_arrival')->whereIn('id', $ids)->update([
+            'status' => 'APPROVED',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        return $this->respond(['message' => count($ids) . ' data early arrival berhasil disetujui.']);
+    }
+
+    public function bulkRejectEarlyArrivalLogs()
+    {
+        $json = $this->request->getJSON(true);
+        $ids = $json['ids'] ?? [];
+        if (empty($ids)) {
+            return $this->failValidationErrors('Tidak ada ID early arrival yang dipilih.');
+        }
+        $approvedBy = session()->get('username') ?: 'Admin';
+        
+        $this->db->table('early_arrival')->whereIn('id', $ids)->update([
+            'status' => 'REJECTED',
+            'approved_by' => $approvedBy,
+            'approved_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        
+        return $this->respond(['message' => count($ids) . ' data early arrival berhasil ditolak.']);
+    }
+
+    public function resetEarlyArrivalLog($id)
+    {
+        $this->db->table('early_arrival')->where('id', $id)->update([
+            'status' => 'PENDING',
+            'approved_by' => null,
+            'approved_at' => null,
+            'updated_at' => date('Y-m-d H:i:s')
+        ]);
+        return $this->respond(['message' => 'Early arrival log berhasil dikembalikan ke pending.']);
+    }
+
+    private function syncEarlyArrival($attendanceId, $employeeId, $tanggal, $checkIn, $shiftSchemeId = null, $payoutPeriod = null)
+    {
+        $db = \Config\Database::connect();
+
+        // 1. Get global settings
+        $companySetting = $db->table('company_payroll_setting')->get()->getRowArray();
+        $enabled = $companySetting ? intval($companySetting['early_arrival_enabled']) : 1;
+        $maxMinutes = $companySetting ? intval($companySetting['max_early_arrival_minutes']) : 180;
+
+        // If disabled, delete any existing early arrival log for this attendance
+        if (!$enabled) {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+            return;
+        }
+
+        // 2. Resolve shift scheme and get shift start time
+        if (!$shiftSchemeId) {
+            $att = $db->table('attendance_logs')->where('id', $attendanceId)->get()->getRow();
+            if ($att) {
+                $shiftSchemeId = $att->shift_scheme_id;
+            }
+        }
+
+        if (!$shiftSchemeId) {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+            return;
+        }
+
+        $shift = $db->table('shift_schemes')->where('id', $shiftSchemeId)->get()->getRow();
+        if (!$shift || empty($shift->start_time) || empty($checkIn)) {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+            return;
+        }
+
+        // 3. Compare check-in and shift start
+        $shiftStart = $shift->start_time; // e.g. "08:00"
+        
+        $shiftStartSecs = strtotime($tanggal . ' ' . $shiftStart);
+        $checkInSecs = strtotime($tanggal . ' ' . $checkIn);
+
+        if ($checkInSecs === false || $shiftStartSecs === false) {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+            return;
+        }
+
+        // Check if Check-in < Shift Start
+        if ($checkInSecs < $shiftStartSecs) {
+            $earlyMinutes = intval(($shiftStartSecs - $checkInSecs) / 60);
+            
+            $eligibleMinutes = $earlyMinutes;
+            if ($eligibleMinutes > $maxMinutes) {
+                $eligibleMinutes = $maxMinutes;
+            }
+
+            $existing = $db->table('early_arrival')->where('attendance_id', $attendanceId)->get()->getRow();
+
+            $data = [
+                'attendance_id' => $attendanceId,
+                'employee_id' => $employeeId,
+                'date' => $tanggal,
+                'shift_id' => $shiftSchemeId,
+                'shift_start_time' => $shiftStart,
+                'check_in_time' => $checkIn,
+                'early_minutes' => $earlyMinutes,
+                'eligible_minutes' => $eligibleMinutes,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($existing) {
+                if ($existing->payroll_status !== 'PROCESSED') {
+                    if ($existing->check_in_time !== $checkIn || $existing->early_minutes !== $earlyMinutes) {
+                        $data['status'] = 'PENDING';
+                    }
+                    $db->table('early_arrival')->where('id', $existing->id)->update($data);
+                }
+            } else {
+                $data['status'] = 'PENDING';
+                $data['payroll_status'] = 'NOT_PROCESSED';
+                $data['payroll_period'] = $payoutPeriod;
+                $data['created_at'] = date('Y-m-d H:i:s');
+                $db->table('early_arrival')->insert($data);
+            }
+        } else {
+            $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
+        }
+    }
+
     // --- HOLIDAY CALENDAR ---
     public function getHolidays()
     {
@@ -2553,12 +2873,14 @@ class Api extends ResourceController
         $clientId = $this->request->getGet('client_id');
         $this->syncEmployeesToPKWT($clientId);
         $this->syncOvertimeToPayrollAttendance($periodId, $clientId);
+        $this->syncEarlyArrivalToPayrollAttendance($periodId, $clientId);
         // Get all PKWT and their attendance for this period
         $query = $this->db->table('pkwt')
                           ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, 
                                     payroll_attendance.hari_kerja, payroll_attendance.jam_lembur, 
                                     payroll_attendance.jam_lembur_hari_biasa, payroll_attendance.jam_lembur_hari_libur,
                                     payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan,
+                                    payroll_attendance.early_arrival_minutes,
                                     employees.id as employee_id, employees.employ_id, employees.nik, employees.gaji_pokok,
                                     employees.hari_kerja as employee_hari_kerja, positions.hari_kerja as position_hari_kerja')
                           ->join('payroll_attendance', "payroll_attendance.pkwt_id = pkwt.id AND payroll_attendance.period_id = $periodId", 'left')
@@ -2765,6 +3087,18 @@ class Api extends ResourceController
         if (!$period) {
             return $this->failNotFound('Periode tidak ditemukan');
         }
+
+        // Reset early arrival records for this period back to NOT_PROCESSED
+        $payoutPeriodStr = ($period->bulan < 10 ? '0' : '') . $period->bulan . '/' . $period->tahun;
+        $this->db->table('early_arrival')
+                 ->where('payroll_period', $payoutPeriodStr)
+                 ->update([
+                     'payroll_status' => 'NOT_PROCESSED',
+                     'payroll_period' => null,
+                     'updated_at' => date('Y-m-d H:i:s')
+                 ]);
+
+        $this->syncEarlyArrivalToPayrollAttendance($periodId, $clientId);
         $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
 
         // 1. Get all PKWTs
@@ -2823,6 +3157,7 @@ class Api extends ResourceController
                             ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
                             ->join('positions', 'positions.id = employees.position_id', 'left')
                             ->where('employees.nama', $pkwt->employee_name)
+                            ->where('employees.client_id', $pkwt->client_id)
                             ->get()
                             ->getRow();
 
@@ -3040,6 +3375,8 @@ class Api extends ResourceController
             // 7. Add Variable Data from Attendance
             $potonganAbsenVal = 0;
             $overtimePay = 0;
+            $earlyArrivalMinutes = 0;
+            $earlyArrivalPay = 0.0;
             if ($att) {
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
@@ -3101,6 +3438,40 @@ class Api extends ResourceController
                 $potonganEarly = $earlyHours * $upahPerJam;
                 
                 $totalPotongan += $potonganLate + $potonganEarly;
+                
+                // === Early Arrival Calculation ===
+                $earlyArrivalMinutes = isset($att->early_arrival_minutes) ? intval($att->early_arrival_minutes) : 0;
+                if ($earlyArrivalMinutes > 0) {
+                    $earlyArrivalPay = ($earlyArrivalMinutes / 60.0) * $upahPerJam;
+                    $totalPendapatan += $earlyArrivalPay;
+
+                    // Update early arrival logs in the DB to PROCESSED
+                    $payoutPeriodStr = ($period->bulan < 10 ? '0' : '') . $period->bulan . '/' . $period->tahun;
+                    if ($emp && isset($emp->id)) {
+                        $approvedEarlyArrivals = $this->db->table('early_arrival')
+                            ->where('employee_id', $emp->id)
+                            ->where('date >=', $startDateStr)
+                            ->where('date <=', $endDateStr)
+                            ->where('status', 'APPROVED')
+                            ->where('payroll_status', 'NOT_PROCESSED')
+                            ->get()->getResultArray();
+
+                        $eaIds = [];
+                        foreach ($approvedEarlyArrivals as $eaLog) {
+                            $eaIds[] = $eaLog['id'];
+                        }
+
+                        if (!empty($eaIds)) {
+                            $this->db->table('early_arrival')
+                                ->whereIn('id', $eaIds)
+                                ->update([
+                                    'payroll_status' => 'PROCESSED',
+                                    'payroll_period' => $payoutPeriodStr,
+                                    'updated_at' => date('Y-m-d H:i:s')
+                                ]);
+                        }
+                    }
+                }
                 
                 $totalPendapatan += $att->bonus_tambahan;
                 
@@ -3270,7 +3641,7 @@ class Api extends ResourceController
             // Adjust PPh wage base for attendance variations
             $pphWageBaseFinal = $pphWageBase;
             if ($att) {
-                $pphWageBaseFinal += $overtimePay + floatval($att->bonus_tambahan) - $potonganAbsenVal;
+                $pphWageBaseFinal += $overtimePay + floatval($att->bonus_tambahan) + $earlyArrivalPay - $potonganAbsenVal;
             }
 
             // Fallback for BPJS wage base to minimumWage if lower
@@ -3350,6 +3721,8 @@ class Api extends ResourceController
                 'jam_lembur_libur' => ($att) ? floatval($att->jam_lembur_hari_libur ?? 0) : 0,
                 'lembur_pay' => ($att) ? $overtimePay : 0,
                 'bonus_tambahan' => ($att) ? floatval($att->bonus_tambahan) : 0,
+                'early_arrival_minutes' => $earlyArrivalMinutes,
+                'early_arrival_pay' => $earlyArrivalPay,
                 'raw_components' => json_encode($components)
             ];
 
@@ -3588,6 +3961,7 @@ class Api extends ResourceController
                         ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
                         ->join('positions', 'positions.id = employees.position_id', 'left')
                         ->where('employees.nama', $final['employee_name'])
+                        ->where('employees.client_id', $final['client_id'])
                         ->get()
                         ->getRow();
 
@@ -3872,6 +4246,13 @@ class Api extends ResourceController
                 $earnings[] = ['nama' => 'Bonus/Lainnya', 'nilai' => floatval($final['bonus_tambahan'])];
             } else if ($att['bonus_tambahan'] > 0) {
                 $earnings[] = ['nama' => 'Bonus/Lainnya', 'nilai' => $att['bonus_tambahan']];
+            }
+
+            if (isset($final['early_arrival_pay']) && floatval($final['early_arrival_pay']) > 0) {
+                $earnings[] = [
+                    'nama' => 'Early Arrival (' . intval($final['early_arrival_minutes']) . ' mnt)',
+                    'nilai' => floatval($final['early_arrival_pay'])
+                ];
             }
             
             if (isset($final['potongan_absen']) && floatval($final['potongan_absen']) > 0) {
@@ -5291,6 +5672,22 @@ class Api extends ResourceController
     public function getSettings()
     {
         $settings = $this->db->table('system_settings')->get()->getResultArray();
+
+        // Get company payroll settings for early arrival
+        $companySetting = $this->db->table('company_payroll_setting')->get()->getRowArray();
+        if ($companySetting) {
+            $settings[] = [
+                'setting_key' => 'early_arrival_enabled',
+                'setting_value' => strval($companySetting['early_arrival_enabled']),
+                'updated_at' => $companySetting['updated_at'] ?? null
+            ];
+            $settings[] = [
+                'setting_key' => 'max_early_arrival_minutes',
+                'setting_value' => strval($companySetting['max_early_arrival_minutes']),
+                'updated_at' => $companySetting['updated_at'] ?? null
+            ];
+        }
+
         return $this->respond($settings);
     }
 
@@ -5301,7 +5698,30 @@ class Api extends ResourceController
             return $this->fail('Invalid JSON data format');
         }
 
+        $companySettingsUpdate = [];
+        $systemSettingsData = [];
+
         foreach ($data as $key => $val) {
+            if ($key === 'early_arrival_enabled') {
+                $companySettingsUpdate['early_arrival_enabled'] = ($val === 'true' || $val === '1' || $val === true || $val === 1) ? 1 : 0;
+            } elseif ($key === 'max_early_arrival_minutes') {
+                $companySettingsUpdate['max_early_arrival_minutes'] = intval($val);
+            } else {
+                $systemSettingsData[$key] = $val;
+            }
+        }
+
+        if (!empty($companySettingsUpdate)) {
+            $companySettingsUpdate['updated_at'] = date('Y-m-d H:i:s');
+            $exists = $this->db->table('company_payroll_setting')->get()->getRow();
+            if ($exists) {
+                $this->db->table('company_payroll_setting')->update($companySettingsUpdate);
+            } else {
+                $this->db->table('company_payroll_setting')->insert($companySettingsUpdate);
+            }
+        }
+
+        foreach ($systemSettingsData as $key => $val) {
             $exists = $this->db->table('system_settings')->where('setting_key', $key)->get()->getRow();
             if ($exists) {
                 $this->db->table('system_settings')->where('setting_key', $key)->update([
@@ -5733,6 +6153,108 @@ class Api extends ResourceController
                     'pkwt_id' => $pkwt->id,
                     'hari_kerja' => $hariKerjaVal,
                     'jam_lembur' => $lemburSum,
+                    'potongan_absensi' => 0.0,
+                    'bonus_tambahan' => 0.0
+                ]);
+            }
+        }
+    }
+
+    private function syncEarlyArrivalToPayrollAttendance($periodId, $clientId = null)
+    {
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        if (!$period) return;
+
+        $pkwtQuery = $this->db->table('pkwt');
+        if ($clientId) {
+            $pkwtQuery->where('client_id', intval($clientId));
+        }
+        $pkwts = $pkwtQuery->get()->getResult();
+
+        foreach ($pkwts as $pkwt) {
+            $emp = $this->db->table('employees')
+                            ->where('client_id', $pkwt->client_id)
+                            ->where('nama', $pkwt->employee_name)
+                            ->get()->getRow();
+            if (!$emp) continue;
+
+            $clientConfig = null;
+            if ($emp && !empty($emp->position_id)) {
+                $clientConfig = $this->db->table('client_payroll_configs')
+                    ->where('client_id', $pkwt->client_id)
+                    ->where('position_id', $emp->position_id)
+                    ->get()->getRow();
+            }
+            if (!$clientConfig && $emp && !empty($emp->department_id)) {
+                $clientConfig = $this->db->table('client_payroll_configs')
+                    ->where('client_id', $pkwt->client_id)
+                    ->where('department_id', $emp->department_id)
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$clientConfig && $emp && !empty($emp->division_id)) {
+                $clientConfig = $this->db->table('client_payroll_configs')
+                    ->where('client_id', $pkwt->client_id)
+                    ->where('division_id', $emp->division_id)
+                    ->where('department_id IS NULL')
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+            if (!$clientConfig) {
+                $clientConfig = $this->db->table('client_payroll_configs')
+                    ->where('client_id', $pkwt->client_id)
+                    ->where('division_id IS NULL')
+                    ->where('department_id IS NULL')
+                    ->where('position_id IS NULL')
+                    ->get()->getRow();
+            }
+
+            $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
+            $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+            if ($cutoffStart <= 0) $cutoffStart = 21;
+            $cutoffEnd = $cutoffStart === 1 ? $daysInMonth : ($cutoffStart - 1);
+
+            $bulan_start = intval($period->bulan);
+            $tahun_start = intval($period->tahun);
+            $bulan_end = $bulan_start;
+            $tahun_end = $tahun_start;
+            if ($cutoffStart > 1) {
+                $bulan_start -= 1;
+                if ($bulan_start < 1) {
+                    $bulan_start = 12;
+                    $tahun_start -= 1;
+                }
+            }
+            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+            $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+
+            $eaSumObj = $this->db->table('early_arrival')
+                                 ->selectSum('eligible_minutes')
+                                 ->where('employee_id', $emp->id)
+                                 ->where('date >=', $startDateStr)
+                                 ->where('date <=', $endDateStr)
+                                 ->where('status', 'APPROVED')
+                                 ->get()->getRow();
+            $eaSum = $eaSumObj ? intval($eaSumObj->eligible_minutes) : 0;
+
+            $existing = $this->db->table('payroll_attendance')
+                                 ->where('period_id', $periodId)
+                                 ->where('pkwt_id', $pkwt->id)
+                                 ->get()->getRow();
+
+            if ($existing) {
+                $this->db->table('payroll_attendance')
+                         ->where('id', $existing->id)
+                         ->update([
+                             'early_arrival_minutes' => $eaSum
+                         ]);
+            } else {
+                $this->db->table('payroll_attendance')->insert([
+                    'period_id' => $periodId,
+                    'pkwt_id' => $pkwt->id,
+                    'hari_kerja' => 20,
+                    'jam_lembur' => 0.0,
+                    'early_arrival_minutes' => $eaSum,
                     'potongan_absensi' => 0.0,
                     'bonus_tambahan' => 0.0
                 ]);
