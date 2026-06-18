@@ -18,13 +18,16 @@ class Ai extends ResourceController
     /**
      * Helper to send request to Google Gemini API
      */
-    private function callGemini($prompt, $systemInstruction = '', $enableSearch = false)
+    private function callGemini($prompt, $systemInstruction = '', $enableSearch = false, $tools = [])
     {
         $apiKeysString = env('GEMINI_API_KEY') ?: getenv('GEMINI_API_KEY');
         
         // Fallback jika API Key tidak diset
         if (empty($apiKeysString)) {
-            return $this->getMockResponse($prompt);
+            return [
+                'type' => 'text',
+                'content' => $this->getMockResponse($prompt)
+            ];
         }
 
         // Split keys by comma if multiple are provided
@@ -32,7 +35,10 @@ class Ai extends ResourceController
         $apiKeys = array_filter($apiKeys); // remove empty keys
 
         if (empty($apiKeys)) {
-            return $this->getMockResponse($prompt);
+            return [
+                'type' => 'text',
+                'content' => $this->getMockResponse($prompt)
+            ];
         }
 
         // Tipe model: gunakan gemini-2.5-flash sebagai default tercepat dan termurah
@@ -50,13 +56,20 @@ class Ai extends ResourceController
             'contents' => $contents
         ];
 
-        // Tambahkan tools (Google Search grounding) jika diaktifkan
-        if ($enableSearch) {
-            $payload['tools'] = [
-                [
-                    'googleSearch' => (object)[]
-                ]
+        // Tambahkan tools (Google Search grounding / Function declarations) jika diaktifkan
+        $toolsArray = [];
+        if (!empty($tools)) {
+            $toolsArray[] = [
+                'functionDeclarations' => $tools
             ];
+        }
+        if ($enableSearch) {
+            $toolsArray[] = [
+                'googleSearch' => (object)[]
+            ];
+        }
+        if (!empty($toolsArray)) {
+            $payload['tools'] = $toolsArray;
         }
 
         // Tambahkan systemInstruction jika diset
@@ -88,15 +101,28 @@ class Ai extends ResourceController
 
                 if ($statusCode === 200) {
                     $result = json_decode($body, true);
-                    if (isset($result['candidates'][0]['content']['parts'][0]['text'])) {
-                        return $result['candidates'][0]['content']['parts'][0]['text'];
+                    $firstPart = $result['candidates'][0]['content']['parts'][0] ?? null;
+                    
+                    if ($firstPart) {
+                        if (isset($firstPart['functionCall'])) {
+                            return [
+                                'type' => 'function_call',
+                                'function_call' => [
+                                    'name' => $firstPart['functionCall']['name'],
+                                    'args' => $firstPart['functionCall']['args'] ?? []
+                                ]
+                            ];
+                        } elseif (isset($firstPart['text'])) {
+                            return [
+                                'type' => 'text',
+                                'content' => $firstPart['text']
+                            ];
+                        }
                     }
                     $lastError = "Maaf, AI tidak mengembalikan respon yang valid.";
                 } else {
                     log_message('error', "Gemini API Error with Key #" . ($index + 1) . " (status {$statusCode}): " . $body);
                     $lastError = "Maaf, terjadi kesalahan saat menghubungi server AI (HTTP Status {$statusCode}). Silakan periksa konfigurasi API Key Anda.";
-                    
-                    // Jika error bukan 429 atau Server Error, tetap coba key berikutnya
                 }
             } catch (\Exception $e) {
                 log_message('error', "Gemini Connection Exception with Key #" . ($index + 1) . ": " . $e->getMessage());
@@ -104,7 +130,10 @@ class Ai extends ResourceController
             }
         }
 
-        return $lastError;
+        return [
+            'type' => 'text',
+            'content' => $lastError
+        ];
     }
 
     /**
@@ -175,7 +204,8 @@ class Ai extends ResourceController
 
             $systemInstruction = "Anda adalah Chief HR Officer virtual. Berikan rangkuman analisis yang profesional, formal, padat, dan optimis dalam Bahasa Indonesia. Gunakan Markdown formatting.";
 
-            $summary = $this->callGemini($prompt, $systemInstruction);
+            $geminiRes = $this->callGemini($prompt, $systemInstruction);
+            $summary = $geminiRes['content'] ?? 'Gagal membuat rangkuman dashboard.';
 
             return $this->respond([
                 'status' => 200,
@@ -284,7 +314,8 @@ class Ai extends ResourceController
 
             $systemInstruction = "Anda adalah auditor keuangan dan analis kompensasi senior. Berikan analisis laporan payroll yang logis, tajam, profesional, dengan saran optimasi yang taktis. Gunakan format Markdown yang sangat rapi.";
 
-            $summary = $this->callGemini($prompt, $systemInstruction);
+            $geminiRes = $this->callGemini($prompt, $systemInstruction);
+            $summary = $geminiRes['content'] ?? 'Gagal merangkum payroll.';
 
             return $this->respond([
                 'status' => 200,
@@ -316,7 +347,7 @@ class Ai extends ResourceController
             $totalDivisions = $this->db->table('divisions')->countAllResults();
             
             // Get Client Names
-            $clients = $this->db->table('clients')->select('id, nama, sektor')->limit(10)->get()->getResultArray();
+            $clients = $this->db->table('clients')->select('id, nama, sektor')->limit(20)->get()->getResultArray();
             $clientsStr = "";
             foreach ($clients as $c) {
                 $clientsStr .= "- [ID: {$c['id']}] {$c['nama']} ({$c['sektor']})\n";
@@ -351,10 +382,10 @@ class Ai extends ResourceController
             }
 
             // Prepare prompt instructions
-            $systemInstruction = "Anda adalah 'AI Assistant', asisten AI internal Sistem Payroll yang ramah, profesional, cerdas, dan membantu. " .
-                                 "Tugas Anda adalah membantu user (HR Manager/Admin) memahami data, fitur, dan operasional sistem.\n" .
-                                 "Jawab pertanyaan user menggunakan data konteks sistem di bawah ini. Jika ada pertanyaan spesifik tentang data di luar ini, sarankan user untuk mengecek menu terkait atau minta data tambahan.\n" .
-                                 "Format jawaban Anda menggunakan Markdown yang rapi (bold, list, tabel jika relevan). Jangan terlalu panjang, berikan poin penting secara to-the-point.\n\n" .
+            $systemInstruction = "Anda adalah 'AI Assistant', asisten AI internal Sistem Payroll yang ramah, profesional, cerdas, dan dapat bertindak mengeksekusi perintah.\n" .
+                                 "Tugas Anda adalah membantu user (HR Manager/Admin) memahami data, fitur, serta menjalankan aksi/perintah di aplikasi.\n" .
+                                 "Jika user meminta Anda untuk membuka menu, melihat klien, pindah tab, atau menjalankan payroll, pilih dan panggil tool/fungsi yang sesuai secara langsung.\n" .
+                                 "Jawab pertanyaan user menggunakan data konteks sistem di bawah ini. Jika ada pertanyaan spesifik tentang data di luar ini, sarankan user untuk mengecek menu terkait.\n\n" .
                                  "INFORMASI SISTEM AKTIF:\n" .
                                  "- Total Perusahaan Mitra (Klien): {$totalClients}\n" .
                                  "- Total Karyawan Aktif: {$totalEmployees}\n" .
@@ -378,11 +409,92 @@ class Ai extends ResourceController
 
             $chatPrompt .= "Pertanyaan User: {$userMessage}\nAsisten:";
 
-            $reply = $this->callGemini($chatPrompt, $systemInstruction, true);
+            // Definisikan tools yang bisa dieksekusi oleh AI di frontend/aplikasi
+            $tools = [
+                [
+                    'name' => 'navigasi_menu',
+                    'description' => 'Berpindah halaman ke menu utama tertentu di dalam aplikasi payroll.',
+                    'parameters' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'menu' => [
+                                'type' => 'STRING',
+                                'description' => 'Nama menu tujuan: dashboard, klien, manajemenKaryawan, globalLokasiKerja, payroll, masterKompensasi, sto, pajak, atau schedule.'
+                            ]
+                        ],
+                        'required' => ['menu']
+                    ]
+                ],
+                [
+                    'name' => 'buka_workspace_klien',
+                    'description' => 'Membuka workspace atau detail dashboard data mitra klien tertentu berdasarkan ID klien.',
+                    'parameters' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'client_id' => [
+                                'type' => 'INTEGER',
+                                'description' => 'ID unik dari perusahaan klien.'
+                            ]
+                        ],
+                        'required' => ['client_id']
+                    ]
+                ],
+                [
+                    'name' => 'pindah_tab_workspace',
+                    'description' => 'Berpindah ke tab panel tertentu di dalam workspace klien yang aktif (tab: karyawan, struktur, kompensasi, pkwt, proses).',
+                    'parameters' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'tab' => [
+                                'type' => 'STRING',
+                                'description' => 'Nama tab tujuan: karyawan, struktur, kompensasi, pkwt, atau proses.'
+                            ]
+                        ],
+                        'required' => ['tab']
+                    ]
+                ],
+                [
+                    'name' => 'jalankan_generate_payroll',
+                    'description' => 'Menjalankan proses generate gaji/kalkulasi payroll untuk perusahaan klien yang aktif.',
+                    'parameters' => [
+                        'type' => 'OBJECT',
+                        'properties' => []
+                    ]
+                ],
+                [
+                    'name' => 'buka_modal_tambah_klien',
+                    'description' => 'Membuka modal pop-up formulir untuk menambahkan data mitra klien baru.',
+                    'parameters' => [
+                        'type' => 'OBJECT',
+                        'properties' => []
+                    ]
+                ],
+                [
+                    'name' => 'buka_modal_tambah_karyawan',
+                    'description' => 'Membuka modal pop-up formulir untuk menambahkan data karyawan baru.',
+                    'parameters' => [
+                        'type' => 'OBJECT',
+                        'properties' => []
+                    ]
+                ]
+            ];
+
+            $chatResult = $this->callGemini($chatPrompt, $systemInstruction, false, $tools);
+
+            if (isset($chatResult['type']) && $chatResult['type'] === 'function_call') {
+                return $this->respond([
+                    'status' => 200,
+                    'type' => 'action',
+                    'action' => $chatResult['function_call']['name'],
+                    'args' => $chatResult['function_call']['args'],
+                    'message' => 'AI sedang menjalankan perintah: ' . str_replace('_', ' ', $chatResult['function_call']['name'])
+                ]);
+            }
 
             return $this->respond([
                 'status' => 200,
-                'reply' => $reply
+                'type' => 'text',
+                'reply' => $chatResult['content'] ?? 'Maaf, saya tidak mengerti maksud Anda.'
             ]);
         } catch (\Exception $e) {
             return $this->fail("Gagal memproses percakapan AI: " . $e->getMessage());
