@@ -956,71 +956,117 @@ class Payroll extends ResourceController
                 $gajiProrata = ($actualDaysWorked / $standardDays) * $baseSalary;
             }
 
-            // Langkah 2: Hitung Lembur dari overtime_logs berdasarkan cutoff period (hanya yang APPROVED)
-            $overtimeLogs = $db->table('overtime_logs')
-                ->where('employee_id', $emp['id'])
-                ->where('tanggal >=', $empLemburStartDateStr)
-                ->where('tanggal <=', $empLemburEndDateStr)
-                ->where('status', 'Approved')
-                ->get()->getResultArray();
-
-            // Langkah 3A: Lembur Reguler (Hari Kerja) — Dual Bucket
-            $totalEmber1 = 0; // Jam pertama tiap hari → 1.5x
-            $totalEmber2 = 0; // Jam 2-3 tiap hari → 2.0x
-            // Langkah 3B: Lembur Hari Libur/Weekend
-            $lemburLibur = 0;
-
-            if (count($overtimeLogs) > 0) {
-                $totalJamLemburLog = 0;
-                foreach ($overtimeLogs as $otLog) {
-                    $jam = floatval($otLog['jam_lembur']);
-                    $totalJamLemburLog += $jam;
-                    
-                    // Check if date is holiday or sunday
-                    $isHoliday = intval($otLog['is_holiday'] ?? 0);
-                    if (!$isHoliday) {
-                        $dayOfWeek = date('w', strtotime($otLog['tanggal']));
-                        if ($dayOfWeek == 0) {
-                            $isHoliday = 1;
-                        } else {
-                            $holiday = $db->table('holiday_calendar')->where('tanggal', $otLog['tanggal'])->get()->getRow();
-                            if ($holiday) {
-                                $isHoliday = 1;
-                            }
-                        }
-                    }
-
-                    if ($isHoliday) {
-                        // Lembur Hari Libur: tiered calculation
-                        if ($jam <= 6) {
-                            $lemburLibur += $jam * 2 * $upahPerJam;
-                        } elseif ($jam == 7) {
-                            $lemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam);
-                        } else {
-                            $lemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam) + (($jam - 7) * 4 * $upahPerJam);
-                        }
-                    } else {
-                        // Lembur Reguler: dual bucket (max 3 jam/hari)
-                        $jam = min($jam, 3);
-                        $ember1 = min($jam, 1);         // Jam pertama → 1.5x
-                        $ember2 = max($jam - 1, 0);     // Jam 2-3 → 2.0x
-                        $totalEmber1 += $ember1;
-                        $totalEmber2 += $ember2;
-                    }
-                }
-                $dk['lembur'] = $totalJamLemburLog;
-            } else {
-                // Backward compatible: jika tidak ada overtime_logs, gunakan data form lama
-                if (isset($dk['lembur']) && floatval($dk['lembur']) > 0) {
-                    $totalJamLembur = floatval($dk['lembur']);
-                    // Treat semua sebagai lembur reguler dengan dual bucket simplified
-                    $totalEmber1 = min($totalJamLembur, 1);
-                    $totalEmber2 = max($totalJamLembur - 1, 0);
-                }
+            // Resolve payroll scheme if available for overtime type settings
+            $ps = null;
+            if ($payrollConfig && !empty($payrollConfig->payroll_scheme_id)) {
+                $ps = $db->table('payroll_schemes')->where('id', $payrollConfig->payroll_scheme_id)->get()->getRow();
             }
 
-            $lemburReguler = ($totalEmber1 * 1.5 * $upahPerJam) + ($totalEmber2 * 2.0 * $upahPerJam);
-            $overtimePay = $lemburReguler + $lemburLibur;
+            $overtimeType = ($ps && !empty($ps->overtime_type)) ? $ps->overtime_type : 'standard';
+            $overtimePay = 0.0;
+            $lemburReguler = 0.0;
+            $lemburLibur = 0.0;
+
+            if ($overtimeType === 'lumpsum') {
+                $lumpsumSubtype = $ps->lumpsum_subtype ?? 'per_jam';
+                $lumpsumNominal = floatval($ps->lumpsum_nominal ?? 0);
+                
+                if (count($overtimeLogs) > 0) {
+                    $totalJamLemburLog = 0;
+                    foreach ($overtimeLogs as $otLog) {
+                        $totalJamLemburLog += floatval($otLog['jam_lembur']);
+                    }
+                    $dk['lembur'] = $totalJamLemburLog;
+                    
+                    if ($lumpsumSubtype === 'per_jam') {
+                        $overtimePay = $totalJamLemburLog * $lumpsumNominal;
+                    } elseif ($lumpsumSubtype === 'harian') {
+                        $overtimePay = count($overtimeLogs) * $lumpsumNominal;
+                    } elseif ($lumpsumSubtype === 'bulanan') {
+                        $overtimePay = $lumpsumNominal;
+                    }
+                } else {
+                    // Backward compatible: jika tidak ada overtime_logs, gunakan data form lama
+                    if (isset($dk['lembur']) && floatval($dk['lembur']) > 0) {
+                        $totalJamLembur = floatval($dk['lembur']);
+                        if ($lumpsumSubtype === 'per_jam') {
+                            $overtimePay = $totalJamLembur * $lumpsumNominal;
+                        } elseif ($lumpsumSubtype === 'harian') {
+                            $overtimePay = ceil($totalJamLembur / 3) * $lumpsumNominal; // Treat max 3 hours as 1 day
+                        } elseif ($lumpsumSubtype === 'bulanan') {
+                            $overtimePay = $lumpsumNominal;
+                        }
+                    }
+                }
+            } else {
+                // Standard progressive multiplier
+                $totalEmber1 = 0; // Jam pertama tiap hari → 1.5x
+                $totalEmber2 = 0; // Jam 2-3 tiap hari → 2.0x
+
+                if (count($overtimeLogs) > 0) {
+                    $totalJamLemburLog = 0;
+                    foreach ($overtimeLogs as $otLog) {
+                        $jam = floatval($otLog['jam_lembur']);
+                        $totalJamLemburLog += $jam;
+                        
+                        // Check if date is holiday or sunday/saturday
+                        $isHoliday = intval($otLog['is_holiday'] ?? 0);
+                        if (!$isHoliday) {
+                            $dayOfWeek = date('w', strtotime($otLog['tanggal']));
+                            if ($dayOfWeek == 0) {
+                                $isHoliday = 1;
+                            } else {
+                                $holiday = $db->table('holiday_calendar')->where('tanggal', $otLog['tanggal'])->get()->getRow();
+                                if ($holiday) {
+                                    $isHoliday = 1;
+                                } elseif ($dayOfWeek == 6) {
+                                    // Saturday is weekend/holiday only for 5-day work weeks
+                                    $empWork = $db->table('employees')
+                                        ->select('employees.hari_kerja, positions.hari_kerja as position_hari_kerja')
+                                        ->join('positions', 'positions.id = employees.position_id', 'left')
+                                        ->where('employees.id', intval($emp['id']))
+                                        ->get()->getRow();
+                                    $workDaysPerWeek = 5;
+                                    if ($empWork) {
+                                        $workDaysPerWeek = intval($empWork->hari_kerja ?: ($empWork->position_hari_kerja ?: 5));
+                                    }
+                                    $isHoliday = ($workDaysPerWeek < 6) ? 1 : 0;
+                                }
+                            }
+                        }
+
+                        if ($isHoliday) {
+                            // Lembur Hari Libur: tiered calculation
+                            if ($jam <= 6) {
+                                $lemburLibur += $jam * 2 * $upahPerJam;
+                            } elseif ($jam == 7) {
+                                $lemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam);
+                            } else {
+                                $lemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam) + (($jam - 7) * 4 * $upahPerJam);
+                            }
+                        } else {
+                            // Lembur Reguler: dual bucket (max 3 jam/hari)
+                            $jam = min($jam, 3);
+                            $ember1 = min($jam, 1);         // Jam pertama → 1.5x
+                            $ember2 = max($jam - 1, 0);     // Jam 2-3 → 2.0x
+                            $totalEmber1 += $ember1;
+                            $totalEmber2 += $ember2;
+                        }
+                    }
+                    $dk['lembur'] = $totalJamLemburLog;
+                } else {
+                    // Backward compatible: jika tidak ada overtime_logs, gunakan data form lama
+                    if (isset($dk['lembur']) && floatval($dk['lembur']) > 0) {
+                        $totalJamLembur = floatval($dk['lembur']);
+                        // Treat semua sebagai lembur reguler dengan dual bucket simplified
+                        $totalEmber1 = min($totalJamLembur, 1);
+                        $totalEmber2 = max($totalJamLembur - 1, 0);
+                    }
+                }
+
+                $lemburReguler = ($totalEmber1 * 1.5 * $upahPerJam) + ($totalEmber2 * 2.0 * $upahPerJam);
+                $overtimePay = $lemburReguler + $lemburLibur;
+            }
 
             // Potongan Absen — berdasarkan attendance_logs berdasarkan cutoff period
             $absenCount = 0;
@@ -1466,42 +1512,73 @@ class Payroll extends ResourceController
             $totalRapelEmber1 = 0;
             $totalRapelEmber2 = 0;
             $rapelLemburLibur = 0;
+            $rapelOvertimePay = 0.0;
             
-            foreach ($overtimeRapelLogs as $otLog) {
-                $jam = floatval($otLog['jam_lembur']);
+            if ($overtimeType === 'lumpsum') {
+                $lumpsumSubtype = $ps->lumpsum_subtype ?? 'per_jam';
+                $lumpsumNominal = floatval($ps->lumpsum_nominal ?? 0);
                 
-                $isHoliday = intval($otLog['is_holiday'] ?? 0);
-                if (!$isHoliday) {
-                    $dayOfWeek = date('w', strtotime($otLog['tanggal']));
-                    if ($dayOfWeek == 0) {
-                        $isHoliday = 1;
-                    } else {
-                        $holiday = $db->table('holiday_calendar')->where('tanggal', $otLog['tanggal'])->get()->getRow();
-                        if ($holiday) {
+                if (count($overtimeRapelLogs) > 0) {
+                    if ($lumpsumSubtype === 'per_jam') {
+                        $totalRapelJam = 0;
+                        foreach ($overtimeRapelLogs as $otLog) {
+                            $totalRapelJam += floatval($otLog['jam_lembur']);
+                        }
+                        $rapelOvertimePay = $totalRapelJam * $lumpsumNominal;
+                    } elseif ($lumpsumSubtype === 'harian') {
+                        $rapelOvertimePay = count($overtimeRapelLogs) * $lumpsumNominal;
+                    } elseif ($lumpsumSubtype === 'bulanan') {
+                        $rapelOvertimePay = $lumpsumNominal;
+                    }
+                }
+            } else {
+                foreach ($overtimeRapelLogs as $otLog) {
+                    $jam = floatval($otLog['jam_lembur']);
+                    
+                    $isHoliday = intval($otLog['is_holiday'] ?? 0);
+                    if (!$isHoliday) {
+                        $dayOfWeek = date('w', strtotime($otLog['tanggal']));
+                        if ($dayOfWeek == 0) {
                             $isHoliday = 1;
+                        } else {
+                            $holiday = $db->table('holiday_calendar')->where('tanggal', $otLog['tanggal'])->get()->getRow();
+                            if ($holiday) {
+                                $isHoliday = 1;
+                            } elseif ($dayOfWeek == 6) {
+                                // Saturday check
+                                $empWork = $db->table('employees')
+                                    ->select('employees.hari_kerja, positions.hari_kerja as position_hari_kerja')
+                                    ->join('positions', 'positions.id = employees.position_id', 'left')
+                                    ->where('employees.id', intval($emp['id']))
+                                    ->get()->getRow();
+                                $workDaysPerWeek = 5;
+                                if ($empWork) {
+                                    $workDaysPerWeek = intval($empWork->hari_kerja ?: ($empWork->position_hari_kerja ?: 5));
+                                }
+                                $isHoliday = ($workDaysPerWeek < 6) ? 1 : 0;
+                            }
                         }
                     }
-                }
 
-                if ($isHoliday) {
-                    if ($jam <= 6) {
-                        $rapelLemburLibur += $jam * 2 * $upahPerJam;
-                    } elseif ($jam == 7) {
-                        $rapelLemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam);
+                    if ($isHoliday) {
+                        if ($jam <= 6) {
+                            $rapelLemburLibur += $jam * 2 * $upahPerJam;
+                        } elseif ($jam == 7) {
+                            $rapelLemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam);
+                        } else {
+                            $rapelLemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam) + (($jam - 7) * 4 * $upahPerJam);
+                        }
                     } else {
-                        $rapelLemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam) + (($jam - 7) * 4 * $upahPerJam);
+                        $jam = min($jam, 3);
+                        $ember1 = min($jam, 1);
+                        $ember2 = max($jam - 1, 0);
+                        $totalRapelEmber1 += $ember1;
+                        $totalRapelEmber2 += $ember2;
                     }
-                } else {
-                    $jam = min($jam, 3);
-                    $ember1 = min($jam, 1);
-                    $ember2 = max($jam - 1, 0);
-                    $totalRapelEmber1 += $ember1;
-                    $totalRapelEmber2 += $ember2;
                 }
+                $rapelLemburReguler = ($totalRapelEmber1 * 1.5 * $upahPerJam) + ($totalRapelEmber2 * 2.0 * $upahPerJam);
+                $rapelOvertimePay = $rapelLemburReguler + $rapelLemburLibur;
             }
-            
-            $rapelLemburReguler = ($totalRapelEmber1 * 1.5 * $upahPerJam) + ($totalRapelEmber2 * 2.0 * $upahPerJam);
-            $rapelOvertimePay = $rapelLemburReguler + $rapelLemburLibur;
 
             // 3. Subtract unpaid leave/absence deductions from previous month(s) marked as rapel
             $attendanceRapelLogs = $db->table('attendance_logs')

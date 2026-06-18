@@ -263,10 +263,114 @@
                             </div>
                         </div>
 
-                        <!-- Description -->
-                        <div class="form-group" style="margin: 0; flex-grow: 1; display: flex; flex-direction: column;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Description / Notes</label>
-                            <textarea id="skemaDeskripsi" rows="8" placeholder="Enter a brief description of the payroll scheme or additional notes here..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: none; font-family: inherit; flex-grow: 1; min-height: 180px;"></textarea>
+                        <!-- Overtime Configuration -->
+                        <div style="margin: 0; flex-grow: 1; display: flex; flex-direction: column;">
+                            <label style="font-weight: 700; font-size: 13px; color: #1e293b; display: flex; align-items: center; gap: 6px; margin: 0 0 10px 0;">
+                                <i class="fas fa-clock" style="color: #3b82f6;"></i> Overtime Configuration
+                            </label>
+                            <input type="hidden" id="skemaDeskripsi" value="">
+                            
+                            <!-- Type Selector -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer; font-size: 13px; font-weight: 600; color: #475569; transition: all 0.2s; background: white;" id="labelOvertimeStandard" onclick="setOvertimeType('standard')">
+                                    <input type="radio" name="skemaOvertimeType" value="standard" checked onchange="handleOvertimeTypeChange()" style="display: none;">
+                                    <i class="fas fa-balance-scale" style="font-size: 14px;"></i> Standard
+                                </label>
+                                <label style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px; border-radius: 8px; border: 2px solid #e2e8f0; cursor: pointer; font-size: 13px; font-weight: 600; color: #475569; transition: all 0.2s; background: white;" id="labelOvertimeLumpsum" onclick="setOvertimeType('lumpsum')">
+                                    <input type="radio" name="skemaOvertimeType" value="lumpsum" onchange="handleOvertimeTypeChange()" style="display: none;">
+                                    <i class="fas fa-hand-holding-usd" style="font-size: 14px;"></i> Lumpsum
+                                </label>
+                            </div>
+
+                            <!-- Standard Mode Info -->
+                            <div id="overtimeStandardPanel" style="background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px; flex-grow: 1; display: flex; flex-direction: column; gap: 12px;">
+                                <!-- Hari Kerja Section -->
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <i class="fas fa-briefcase" style="color: #3b82f6; font-size: 13px;"></i>
+                                        <span style="font-weight: 700; font-size: 12px; color: #1e40af;">Hari Kerja (Reguler)</span>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #dbeafe;">
+                                            <span style="background: #3b82f6; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 1</span>
+                                            <span style="font-size: 12px; color: #334155; font-weight: 500;">1.5× Upah / Jam</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #dbeafe;">
+                                            <span style="background: #2563eb; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 2-3</span>
+                                            <span style="font-size: 12px; color: #334155; font-weight: 500;">2.0× Upah / Jam</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #fffbeb; border-radius: 8px; border: 1px solid #fef3c7;">
+                                            <i class="fas fa-exclamation-circle" style="color: #d97706; font-size: 11px;"></i>
+                                            <span style="font-size: 11px; color: #92400e; font-weight: 500;">Maks. 3 Jam Lembur / Hari</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Divider line -->
+                                <div style="border-top: 1px dashed #bfdbfe; margin: 2px 0;"></div>
+
+                                <!-- Hari Libur Section -->
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                        <i class="fas fa-calendar-minus" style="color: #ef4444; font-size: 13px;"></i>
+                                        <span style="font-weight: 700; font-size: 12px; color: #b91c1c;">Hari Libur (Sabtu, Minggu & Tanggal Merah)</span>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #fee2e2;">
+                                            <span style="background: #ef4444; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 1-6</span>
+                                            <span style="font-size: 12px; color: #334155; font-weight: 500;">2.0× Upah / Jam</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #fee2e2;">
+                                            <span style="background: #dc2626; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 7</span>
+                                            <span style="font-size: 12px; color: #334155; font-weight: 500;">3.0× Upah / Jam</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #fee2e2;">
+                                            <span style="background: #991b1b; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 8+</span>
+                                            <span style="font-size: 12px; color: #334155; font-weight: 500;">4.0× Upah / Jam</span>
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 11px; color: #64748b;">
+                                            <i class="fas fa-info-circle" style="color: #64748b;"></i>
+                                            <span>Sabtu (jika 5 hari kerja), Minggu, & Libur Nasional</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Divisor Info -->
+                                <div style="margin-top: 2px; font-size: 11px; color: #64748b; line-height: 1.4; display: flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-calculator"></i>
+                                    <span>Upah/Jam = Gaji Pokok / 173 (PP 35/2021)</span>
+                                </div>
+                            </div>
+
+                            <!-- Lumpsum Mode Options -->
+                            <div id="overtimeLumpsumPanel" style="display: none; flex-direction: column; gap: 10px; flex-grow: 1;">
+                                <!-- Lumpsum Sub-type Radio Options -->
+                                <div style="display: flex; flex-direction: column; gap: 6px;">
+                                    <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 13px; font-weight: 500; color: #334155; background: white; transition: all 0.2s;" onclick="setLumpsumSubtype('per_jam')" id="labelLumpsumPerJam">
+                                        <input type="radio" name="skemaLumpsumSubtype" value="per_jam" checked onchange="handleLumpsumSubtypeChange()" style="cursor: pointer; width: 16px; height: 16px; accent-color: #3b82f6;">
+                                        <i class="fas fa-clock" style="color: #3b82f6; width: 16px; text-align: center;"></i> Per Jam
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 13px; font-weight: 500; color: #334155; background: white; transition: all 0.2s;" onclick="setLumpsumSubtype('harian')" id="labelLumpsumHarian">
+                                        <input type="radio" name="skemaLumpsumSubtype" value="harian" onchange="handleLumpsumSubtypeChange()" style="cursor: pointer; width: 16px; height: 16px; accent-color: #3b82f6;">
+                                        <i class="fas fa-calendar-day" style="color: #10b981; width: 16px; text-align: center;"></i> Harian
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 13px; font-weight: 500; color: #334155; background: white; transition: all 0.2s;" onclick="setLumpsumSubtype('bulanan')" id="labelLumpsumBulanan">
+                                        <input type="radio" name="skemaLumpsumSubtype" value="bulanan" onchange="handleLumpsumSubtypeChange()" style="cursor: pointer; width: 16px; height: 16px; accent-color: #3b82f6;">
+                                        <i class="fas fa-calendar-alt" style="color: #8b5cf6; width: 16px; text-align: center;"></i> Bulanan
+                                    </label>
+                                </div>
+
+                                <!-- Nominal Input -->
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                                    <label id="labelLumpsumNominal" style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 6px;">
+                                        Nominal Upah Lembur Per Jam (Rp)
+                                    </label>
+                                    <div style="position: relative;">
+                                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 600; color: #94a3b8;">Rp</span>
+                                        <input type="text" id="skemaLumpsumNominal" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px 10px 10px 36px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px; font-weight: 600;">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -634,63 +738,26 @@
 
                     <!-- Cut Off & Pay Day Configuration -->
                     <div style="display: flex; flex-direction: column; gap: 15px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #f8fafc; margin-top: -5px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-                            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #1e293b;"><i class="fas fa-calendar-alt" style="color: var(--primary-color); margin-right: 6px;"></i>Cut Off & Pay Day Configuration</h4>
+                        <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #1e293b;"><i class="fas fa-calendar-alt" style="color: var(--primary-color); margin-right: 6px;"></i>Cut Off & Pay Day Configuration</h4>
+                        
+                        <div style="display: flex; gap: 24px; align-items: flex-start;">
+                            <!-- Cut Off -->
+                            <div style="flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
+                                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;">Tanggal Cut Off</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="number" id="modalPilihanSkemaCutoffStart" min="1" max="31" placeholder="-" required style="width: 60px; height: 42px; text-align: center; font-size: 16px; font-weight: 700; border: 1px solid #ddd; border-radius: 8px; outline: none; color: #1e293b; background: white; -moz-appearance: textfield;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
+                                    <small style="color: #94a3b8; font-size: 11px; line-height: 1.3;"><i class="fas fa-info-circle" style="margin-right: 3px;"></i>Tanggal mulai perhitungan<br>periode payroll.</small>
+                                </div>
+                            </div>
+
                             <!-- Pay Day -->
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <label style="font-size: 12px; font-weight: 700; color: #475569;"><i class="fas fa-money-check-alt" style="color: #16a34a; margin-right: 4px;"></i>Tanggal Gajian (Pay Day):</label>
-                                <input type="number" id="modalPilihanSkemaPayDate" min="1" max="31" required style="width: 60px; height: 36px; text-align: center; font-size: 14px; font-weight: 700; border: 1px solid #ddd; border-radius: 8px; outline: none; color: #1e293b; background: white;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
-                            </div>
-                        </div>
-
-                        <!-- 3 Cutoff Columns -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
-                            
-                            <!-- Column 1: Gaji Pokok -->
-                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
-                                <h5 style="margin: 0; font-size: 13px; font-weight: 700; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;"><i class="fas fa-wallet" style="color: #3b82f6; margin-right: 4px;"></i>Gaji Pokok</h5>
-                                
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Mulai Tanggal (Start Day)</label>
-                                    <input type="number" id="modalPilihanSkemaCutoffStart" min="1" max="31" required style="width: 100%; height: 34px; padding: 5px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 6px;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
+                            <div style="flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
+                                <label style="font-size: 12px; font-weight: 600; color: #475569; display: block; margin-bottom: 6px;"><i class="fas fa-money-check-alt" style="color: #16a34a; margin-right: 4px;"></i>Pay Day / Tanggal Gajian</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="number" id="modalPilihanSkemaPayDate" min="1" max="31" placeholder="-" required style="width: 60px; height: 42px; text-align: center; font-size: 16px; font-weight: 700; border: 1px solid #ddd; border-radius: 8px; outline: none; color: #1e293b; background: white; -moz-appearance: textfield;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
+                                    <small style="color: #94a3b8; font-size: 11px; line-height: 1.3;"><i class="fas fa-info-circle" style="margin-right: 3px;"></i>Tanggal pembayaran gaji<br>setiap bulan.</small>
                                 </div>
-                                
-                                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #475569; margin-top: 4px; cursor: pointer;">
-                                    <input type="checkbox" id="modalPilihanSkemaIsRapelGajiPokok" value="1" checked style="width: 15px; height: 15px; accent-color: #3b82f6;">
-                                    Aktifkan Rapel (Arrears)
-                                </label>
                             </div>
-
-                            <!-- Column 2: Lembur -->
-                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
-                                <h5 style="margin: 0; font-size: 13px; font-weight: 700; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;"><i class="fas fa-business-time" style="color: #ef4444; margin-right: 4px;"></i>Lembur (Overtime)</h5>
-                                
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Mulai Tanggal (Start Day)</label>
-                                    <input type="number" id="modalPilihanSkemaCutoffLemburStart" min="1" max="31" required style="width: 100%; height: 34px; padding: 5px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 6px;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
-                                </div>
-                                
-                                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #475569; margin-top: 4px; cursor: pointer;">
-                                    <input type="checkbox" id="modalPilihanSkemaIsRapelLembur" value="1" checked style="width: 15px; height: 15px; accent-color: #ef4444;">
-                                    Aktifkan Rapel (Arrears)
-                                </label>
-                            </div>
-
-                            <!-- Column 3: Insentif -->
-                            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
-                                <h5 style="margin: 0; font-size: 13px; font-weight: 700; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;"><i class="fas fa-coins" style="color: #10b981; margin-right: 4px;"></i>Insentif</h5>
-                                
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">Mulai Tanggal (Start Day)</label>
-                                    <input type="number" id="modalPilihanSkemaCutoffInsentifStart" min="1" max="31" required style="width: 100%; height: 34px; padding: 5px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 6px;" oninput="if(this.value>31)this.value=31;if(this.value<1&&this.value!=='')this.value=1;">
-                                </div>
-                                
-                                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #475569; margin-top: 4px; cursor: pointer;">
-                                    <input type="checkbox" id="modalPilihanSkemaIsRapelInsentif" value="1" checked style="width: 15px; height: 15px; accent-color: #10b981;">
-                                    Aktifkan Rapel (Arrears)
-                                </label>
-                            </div>
-
                         </div>
                     </div>
 

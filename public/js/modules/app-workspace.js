@@ -424,24 +424,7 @@ async function editSchemaMapping(id) {
             tsEl.tomselect.setValue(conf.tax_scheme_id);
         }
         document.getElementById('modalPilihanSkemaPayDate').value = conf.pay_date !== undefined && conf.pay_date !== null ? conf.pay_date : '';
-        
-        // Gaji Pokok
-        document.getElementById('modalPilihanSkemaCutoffStart').value = conf.cutoff_gaji_pokok_start !== undefined && conf.cutoff_gaji_pokok_start !== null ? conf.cutoff_gaji_pokok_start : (conf.cutoff_start !== undefined ? conf.cutoff_start : '');
-        const gpSched = document.getElementById('modalPilihanSkemaCutoffGajiPokokScheduleRef');
-        if (gpSched) gpSched.value = conf.cutoff_gaji_pokok_schedule_ref || '';
-        document.getElementById('modalPilihanSkemaIsRapelGajiPokok').checked = conf.is_rapel_gaji_pokok !== undefined ? (parseInt(conf.is_rapel_gaji_pokok, 10) === 1) : true;
-
-        // Lembur
-        document.getElementById('modalPilihanSkemaCutoffLemburStart').value = conf.cutoff_lembur_start !== undefined && conf.cutoff_lembur_start !== null ? conf.cutoff_lembur_start : (conf.cutoff_start !== undefined ? conf.cutoff_start : '');
-        const otSched = document.getElementById('modalPilihanSkemaCutoffLemburScheduleRef');
-        if (otSched) otSched.value = conf.cutoff_lembur_schedule_ref || '';
-        document.getElementById('modalPilihanSkemaIsRapelLembur').checked = conf.is_rapel_lembur !== undefined ? (parseInt(conf.is_rapel_lembur, 10) === 1) : true;
-
-        // Insentif
-        document.getElementById('modalPilihanSkemaCutoffInsentifStart').value = conf.cutoff_insentif_start !== undefined && conf.cutoff_insentif_start !== null ? conf.cutoff_insentif_start : (conf.cutoff_start !== undefined ? conf.cutoff_start : '');
-        const insSched = document.getElementById('modalPilihanSkemaCutoffInsentifScheduleRef');
-        if (insSched) insSched.value = conf.cutoff_insentif_schedule_ref || '';
-        document.getElementById('modalPilihanSkemaIsRapelInsentif').checked = conf.is_rapel_insentif !== undefined ? (parseInt(conf.is_rapel_insentif, 10) === 1) : true;
+        document.getElementById('modalPilihanSkemaCutoffStart').value = conf.cutoff_start !== undefined && conf.cutoff_start !== null ? conf.cutoff_start : (conf.cutoff_gaji_pokok_start !== undefined ? conf.cutoff_gaji_pokok_start : '');
     } catch(e) { console.error('Error in editSchemaMapping:', e); }
 }
 
@@ -634,9 +617,7 @@ window.simpanPilihanSkema = async function() {
             return true;
         };
 
-        if (!checkCutoff('Gaji Pokok', document.getElementById('modalPilihanSkemaCutoffStart').value)) return;
-        if (!checkCutoff('Lembur', document.getElementById('modalPilihanSkemaCutoffLemburStart').value)) return;
-        if (!checkCutoff('Insentif', document.getElementById('modalPilihanSkemaCutoffInsentifStart').value)) return;
+        if (!checkCutoff('Cutoff', document.getElementById('modalPilihanSkemaCutoffStart').value)) return;
     }
 
     try {
@@ -758,23 +739,14 @@ window.simpanPilihanSkema = async function() {
         };
 
         if (isModal) {
-            data.cutoff_gaji_pokok_start = parseInt(document.getElementById('modalPilihanSkemaCutoffStart').value, 10) || null;
-            const gpSched = document.getElementById('modalPilihanSkemaCutoffGajiPokokScheduleRef');
-            data.cutoff_gaji_pokok_schedule_ref = gpSched ? (parseInt(gpSched.value, 10) || null) : null;
-            data.is_rapel_gaji_pokok = document.getElementById('modalPilihanSkemaIsRapelGajiPokok').checked ? 1 : 0;
-
-            data.cutoff_lembur_start = parseInt(document.getElementById('modalPilihanSkemaCutoffLemburStart').value, 10) || null;
-            const otSched = document.getElementById('modalPilihanSkemaCutoffLemburScheduleRef');
-            data.cutoff_lembur_schedule_ref = otSched ? (parseInt(otSched.value, 10) || null) : null;
-            data.is_rapel_lembur = document.getElementById('modalPilihanSkemaIsRapelLembur').checked ? 1 : 0;
-
-            data.cutoff_insentif_start = parseInt(document.getElementById('modalPilihanSkemaCutoffInsentifStart').value, 10) || null;
-            const insSched = document.getElementById('modalPilihanSkemaCutoffInsentifScheduleRef');
-            data.cutoff_insentif_schedule_ref = insSched ? (parseInt(insSched.value, 10) || null) : null;
-            data.is_rapel_insentif = document.getElementById('modalPilihanSkemaIsRapelInsentif').checked ? 1 : 0;
-
-            // Sync legacy cutoff start fallback
-            data.cutoff_start = data.cutoff_gaji_pokok_start;
+            const cutoffVal = parseInt(document.getElementById('modalPilihanSkemaCutoffStart').value, 10) || null;
+            data.cutoff_start = cutoffVal;
+            data.cutoff_gaji_pokok_start = cutoffVal;
+            data.cutoff_lembur_start = cutoffVal;
+            data.cutoff_insentif_start = cutoffVal;
+            data.is_rapel_gaji_pokok = 1;
+            data.is_rapel_lembur = 1;
+            data.is_rapel_insentif = 1;
         }
         
         if (window.editSchemaMappingId) {
@@ -901,15 +873,7 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     document.getElementById('modalPilihanSkemaCutoffStart').value = '';
     document.getElementById('modalPilihanSkemaPayDate').value = '';
     
-    // Clear new cutoff inputs & reset checkboxes
-    ['modalPilihanSkemaCutoffLemburStart', 'modalPilihanSkemaCutoffInsentifStart'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    });
-    ['modalPilihanSkemaIsRapelGajiPokok', 'modalPilihanSkemaIsRapelLembur', 'modalPilihanSkemaIsRapelInsentif'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.checked = true;
-    });
+    // No extra cutoff inputs to reset
 
     // Set client name
     const titleEl = document.getElementById('clientWorkspaceTitle');
