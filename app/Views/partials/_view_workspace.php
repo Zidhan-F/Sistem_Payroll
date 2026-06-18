@@ -81,6 +81,8 @@
                                                     <th>Department</th>
                                                     <th>Position / Role</th>
                                                     <th>Work Location</th>
+                                                    <th>City/Regency</th>
+                                                    <th>Province</th>
                                                     <th>Shift</th>
                                                     <th>Min. Wage (UMP/UMK)</th>
                                                     <th>Contract</th>
@@ -189,14 +191,15 @@
                                         <div class="table-container">
                                             <table id="tabelCutOff">
                                                 <thead>
-                                                    <tr>
-                                                         <th>Employee Name</th>
-                                                         <th>Working Days</th>
-                                                         <th>Overtime</th>
-                                                         <th>Deductions</th>
-                                                         <th>Bonus</th>
-                                                         <th>Action</th>
-                                                    </tr>
+                                                     <tr>
+                                                          <th>Employee Name</th>
+                                                          <th>Working Days</th>
+                                                          <th>Overtime</th>
+                                                          <th>Early Arrival</th>
+                                                          <th>Deductions</th>
+                                                          <th>Bonus</th>
+                                                          <th>Action</th>
+                                                     </tr>
                                                 </thead>
                                                 <tbody id="tabelCutOffBody"></tbody>
                                             </table>

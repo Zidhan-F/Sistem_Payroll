@@ -22,6 +22,8 @@ function rowHtmlForEmployee(emp) {
                     <i class="fas fa-map-marker-alt" style="margin-right: 4px; opacity: 0.7;"></i>${emp.nama_lokasi || '-'}
                 </div>
             </td>
+            <td>${emp.kota_kabupaten || '-'}</td>
+            <td>${emp.provinsi || '-'}</td>
             <td>
                 <div style="font-weight: 600; color: #f39c12; background: rgba(243, 156, 18, 0.1); padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; gap: 4px;">
                     <i class="fas fa-clock" style="opacity: 0.8;"></i> ${emp.shift_name || 'No Shift'}

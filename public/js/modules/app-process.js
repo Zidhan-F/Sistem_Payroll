@@ -150,7 +150,7 @@ async function renderCutOffTable() {
     try {
         const tbody = document.getElementById('tabelCutOffBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/attendance/${currentPeriodId}`;
         const res = await fetch(url);
@@ -161,12 +161,13 @@ async function renderCutOffTable() {
         window.currentPeriodAttendance = data;
         if (!tbody) return;
         if (!data || data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #64748b;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Tidak ada data karyawan aktif untuk periode ini.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #64748b;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Tidak ada data karyawan aktif untuk periode ini.</td></tr>`;
             return;
         }
         tbody.innerHTML = data.map(row => {
             const hariKerja = parseFloat(row.hari_kerja) || 0;
             const jamLembur = parseFloat(row.jam_lembur) || 0;
+            const earlyArrival = parseInt(row.early_arrival_minutes) || 0;
             const potongan = parseFloat(row.potongan_absensi) || 0;
             const bonus = parseFloat(row.bonus_tambahan) || 0;
             return `
@@ -174,6 +175,7 @@ async function renderCutOffTable() {
                 <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
                 <td>${hariKerja} Days</td>
                 <td>${jamLembur > 0 ? jamLembur + ' Hours' : '-'}</td>
+                <td>${earlyArrival > 0 ? earlyArrival + ' mnt' : '-'}</td>
                 <td>${formatRupiah(potongan)}</td>
                 <td>${formatRupiah(bonus)}</td>
                 <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja || 22}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
@@ -183,7 +185,7 @@ async function renderCutOffTable() {
         console.error(err); 
         const tbody = document.getElementById('tabelCutOffBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat data cut-off: ${err.message || err}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat data cut-off: ${err.message || err}</td></tr>`;
         }
     }
 }

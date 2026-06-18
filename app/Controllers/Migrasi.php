@@ -229,7 +229,9 @@ class Migrasi extends BaseController
             'jam_lembur' => 'DECIMAL(10,2) DEFAULT 0',
             'lembur_pay' => 'DECIMAL(15,2) DEFAULT 0',
             'bonus_tambahan' => 'DECIMAL(15,2) DEFAULT 0',
-            'raw_components' => 'NVARCHAR(MAX)'
+            'raw_components' => 'NVARCHAR(MAX)',
+            'early_arrival_minutes' => 'INT DEFAULT 0',
+            'early_arrival_pay' => 'DECIMAL(15,2) DEFAULT 0'
         ];
         foreach ($finalCols as $col => $definition) {
             $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_final') AND name = '$col')
@@ -671,6 +673,10 @@ class Migrasi extends BaseController
                 created_at DATETIME DEFAULT GETDATE(),
                 updated_at DATETIME DEFAULT GETDATE()
             )");
+
+        // Ensure early_arrival_minutes column exists in payroll_attendance
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_attendance') AND name = 'early_arrival_minutes')
+            ALTER TABLE payroll_attendance ADD early_arrival_minutes INT DEFAULT 0");
 
         return "Migrasi Berhasil! (termasuk kolom absensi lembur dan tabel early arrival)";
     }
