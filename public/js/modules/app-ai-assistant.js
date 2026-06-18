@@ -347,12 +347,17 @@
             removeTypingIndicator();
 
             if (res.ok && data.status === 200) {
-                const reply = data.reply;
-                // Save to history state
-                STATE.chatHistory.push({ role: 'user', text: message });
-                STATE.chatHistory.push({ role: 'model', text: reply });
+                if (data.type === 'action') {
+                    addMessage('model', `⏳ *${data.message || 'AI sedang menjalankan perintah...'}*`);
+                    executeFrontendCommand(data.action, data.args);
+                } else {
+                    const reply = data.reply || 'Maaf, respon tidak tersedia.';
+                    // Save to history state
+                    STATE.chatHistory.push({ role: 'user', text: message });
+                    STATE.chatHistory.push({ role: 'model', text: reply });
 
-                addMessage('model', reply);
+                    addMessage('model', reply);
+                }
             } else {
                 addMessage('model', 'Maaf, saya kesulitan memproses pertanyaan Anda saat ini. Silakan coba kembali.');
             }
@@ -362,6 +367,105 @@
             addMessage('model', 'Terjadi kesalahan koneksi jaringan. Pastikan server Spark berjalan.');
         } finally {
             STATE.isLoading = false;
+        }
+    }
+
+    // Helper to execute actions requested by AI
+    function executeFrontendCommand(action, args) {
+        try {
+            if (action === 'navigasi_menu') {
+                const menu = args.menu;
+                if (typeof window.switchView === 'function') {
+                    window.switchView(menu);
+                    addMessage('model', `✅ Berhasil berpindah ke menu **${menu}**.`);
+                } else {
+                    addMessage('model', `❌ Gagal berpindah menu: Fungsi navigasi tidak ditemukan.`);
+                }
+            } 
+            else if (action === 'buka_workspace_klien') {
+                const clientId = args.client_id;
+                // Find client name from select dropdown or let it fall back
+                let clientName = `ID ${clientId}`;
+                
+                // Attempt to retrieve the client name from the global scope/DOM if available
+                const clientsList = window.clients || [];
+                const clientObj = clientsList.find(c => c.id == clientId);
+                if (clientObj) {
+                    clientName = clientObj.nama;
+                }
+                
+                if (typeof window.selectClient === 'function') {
+                    window.selectClient(clientId);
+                    addMessage('model', `✅ Berhasil membuka workspace untuk klien **${clientName}**.`);
+                } else if (typeof selectClient === 'function') {
+                    selectClient(clientId);
+                    addMessage('model', `✅ Berhasil membuka workspace untuk klien **${clientName}**.`);
+                } else {
+                    addMessage('model', `❌ Gagal membuka workspace: Fungsi selectClient tidak ditemukan.`);
+                }
+            }
+            else if (action === 'pindah_tab_workspace') {
+                const tab = args.tab;
+                if (window.selectedClientId) {
+                    if (typeof window.switchWorkspaceTab === 'function') {
+                        window.switchWorkspaceTab(tab);
+                        addMessage('model', `✅ Berhasil berpindah ke tab **${tab}**.`);
+                    } else if (typeof switchWorkspaceTab === 'function') {
+                        switchWorkspaceTab(tab);
+                        addMessage('model', `✅ Berhasil berpindah ke tab **${tab}**.`);
+                    } else {
+                        addMessage('model', `❌ Gagal berpindah tab: Fungsi switchWorkspaceTab tidak ditemukan.`);
+                    }
+                } else {
+                    addMessage('model', `⚠️ Workspace klien belum dibuka. Silakan buka salah satu perusahaan klien terlebih dahulu.`);
+                }
+            }
+            else if (action === 'jalankan_generate_payroll') {
+                if (window.selectedClientId) {
+                    if (typeof window.generateGaji === 'function') {
+                        window.generateGaji();
+                        addMessage('model', `✅ Proses kalkulasi payroll/gaji berhasil dipicu.`);
+                    } else if (typeof generateGaji === 'function') {
+                        generateGaji();
+                        addMessage('model', `✅ Proses kalkulasi payroll/gaji berhasil dipicu.`);
+                    } else {
+                        addMessage('model', `❌ Gagal memproses: Fungsi generateGaji tidak ditemukan.`);
+                    }
+                } else {
+                    addMessage('model', `⚠️ Workspace klien belum aktif. Silakan buka workspace klien terlebih dahulu di menu Client Management sebelum menjalankan payroll.`);
+                }
+            }
+            else if (action === 'buka_modal_tambah_klien') {
+                if (typeof window.bukaModal === 'function') {
+                    window.bukaModal('tambah');
+                    addMessage('model', `✅ Formulir tambah klien berhasil dibuka.`);
+                } else if (typeof bukaModal === 'function') {
+                    bukaModal('tambah');
+                    addMessage('model', `✅ Formulir tambah klien berhasil dibuka.`);
+                } else {
+                    addMessage('model', `❌ Gagal: Fungsi bukaModal tidak ditemukan.`);
+                }
+            }
+            else if (action === 'buka_modal_tambah_karyawan') {
+                // Check if current view is manajemenKaryawan
+                if (typeof window.switchView === 'function') {
+                    window.switchView('manajemenKaryawan');
+                }
+                setTimeout(() => {
+                    if (typeof window.bukaModalKaryawanGlobal === 'function') {
+                        window.bukaModalKaryawanGlobal();
+                        addMessage('model', `✅ Formulir tambah karyawan berhasil dibuka.`);
+                    } else if (typeof bukaModalKaryawanGlobal === 'function') {
+                        bukaModalKaryawanGlobal();
+                        addMessage('model', `✅ Formulir tambah karyawan berhasil dibuka.`);
+                    } else {
+                        addMessage('model', `❌ Gagal: Fungsi bukaModalKaryawanGlobal tidak ditemukan.`);
+                    }
+                }, 200);
+            }
+        } catch (err) {
+            console.error("Gagal menjalankan perintah AI:", err);
+            addMessage('model', `❌ Terjadi kesalahan saat mencoba menjalankan perintah tersebut.`);
         }
     }
 
