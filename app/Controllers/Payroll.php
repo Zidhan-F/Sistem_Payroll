@@ -615,8 +615,10 @@ class Payroll extends ResourceController
                         $gpStartVal = ($empConfig && isset($empConfig->cutoff_start)) ? intval($empConfig->cutoff_start) : 21;
                     }
                     
-                    // If Gaji Pokok cutoff is full month (start day <= 1) and they join on/after the 16th, and rapel flag is active:
-                    if ($gpStartVal <= 1 && $joinDay >= 16 && $isRapelGP === 1) {
+                    // Jika karyawan masuk pada/setelah tanggal cutoff, gajinya masuk ke bulan depan (rapel + prorate)
+                    // Contoh: cutoff = 5, join tanggal 5/6/7... → rapel ke bulan depan
+                    //         cutoff = 5, join tanggal 1/2/3/4 → masuk gaji bulan ini
+                    if ($joinDay >= $gpStartVal && $isRapelGP === 1) {
                         $isNewHireRapel = true;
                         
                         $nextMonth = intval($bulan) + 1;
@@ -915,7 +917,14 @@ class Payroll extends ResourceController
 
             // === ENGINE PERHITUNGAN BARU ===
             $workDaysConfig = isset($emp['hari_kerja']) ? intval($emp['hari_kerja']) : 5;
-            $defaultDays = ($workDaysConfig === 6) ? 26 : 22;
+            if ($workDaysConfig === 7) {
+                // 7 hari kerja: gunakan jumlah hari aktual di bulan tersebut (28/29/30/31)
+                $defaultDays = intval(date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun))));
+            } elseif ($workDaysConfig === 6) {
+                $defaultDays = 26;
+            } else {
+                $defaultDays = 22;
+            }
 
             // Standar hari kerja per bulan (default dari system_settings, fallback 22, or override per employee)
             $standardDaysRow = $db->table('system_settings')->where('setting_key', 'standard_work_days')->get()->getRow();
@@ -927,8 +936,14 @@ class Payroll extends ResourceController
                 $standardDays = $defaultDays;
             }
 
-            // Overtime divisor (5 days = 40 hours, 6 days = 48 hours)
-            $standardHours = ($workDaysConfig === 6) ? 48.0 : 40.0;
+            // Overtime divisor (5 days = 40 hours, 6 days = 48 hours, 7 days = 56 hours)
+            if ($workDaysConfig === 7) {
+                $standardHours = 56.0;
+            } elseif ($workDaysConfig === 6) {
+                $standardHours = 48.0;
+            } else {
+                $standardHours = 40.0;
+            }
 
             // Resolve Nominal Lembur Bulanan (contains "Lembur" or "Overtime" in name)
             $nominalLemburBulanan = 0.0;
@@ -1168,14 +1183,31 @@ class Payroll extends ResourceController
             // Early leave yang dihitung alfa sudah masuk ke absent_penalty di atas
             $potonganEarly = 0.0;
 
-            // Langkah 5: Rapel Otomatis untuk Karyawan Baru
+            // Langkah 5: Rapel Otomatis untuk Karyawan Baru (berdasarkan cutoff date)
             if (!empty($emp['tgl_masuk'])) {
                 $joinDate = strtotime($emp['tgl_masuk']);
-                $periodeStart = strtotime("$tahun-$bulan-01");
-                $periodeEnd = strtotime(date('Y-m-t', $periodeStart));
+                $joinDay5 = intval(date('j', $joinDate));
+                $joinMonth5 = intval(date('n', $joinDate));
+                $joinYear5 = intval(date('Y', $joinDate));
                 
-                // Jika join_date berada di pertengahan periode payroll saat ini
-                if ($joinDate > $periodeStart && $joinDate <= $periodeEnd) {
+                // Resolve cutoff start untuk penentuan rapel
+                $gpStartField5 = "cutoff_gaji_pokok_start";
+                $gpRefField5 = "cutoff_gaji_pokok_schedule_ref";
+                $gpStartVal5 = ($empConfig && isset($empConfig->$gpStartField5)) ? intval($empConfig->$gpStartField5) : null;
+                $gpRefId5 = ($empConfig && isset($empConfig->$gpRefField5)) ? intval($empConfig->$gpRefField5) : null;
+                if ($gpRefId5) {
+                    $sched5 = $db->table('payroll_schedules')->where('id', $gpRefId5)->get()->getRow();
+                    if ($sched5) $gpStartVal5 = intval($sched5->cutoff_start);
+                }
+                if ($gpStartVal5 === null) {
+                    $gpStartVal5 = ($empConfig && isset($empConfig->cutoff_start)) ? intval($empConfig->cutoff_start) : 1;
+                }
+                
+                // Jika join_date pada bulan ini dan joinDay >= cutoff start → rapel ke bulan depan
+                $periodeEnd = strtotime(date('Y-m-t', strtotime("$tahun-$bulan-01")));
+                $isInCurrentMonth = ($joinYear5 === intval($tahun) && $joinMonth5 === intval($bulan));
+                
+                if ($isInCurrentMonth && $joinDay5 >= $gpStartVal5 && $joinDate <= $periodeEnd) {
                     $rapelAmount = $baseSalary - $gajiProrata;
                     if ($rapelAmount > 0) {
                         // Hitung bulan depan
@@ -1506,7 +1538,14 @@ class Payroll extends ResourceController
                 if (!$prevPayroll && strtotime($emp['tgl_masuk']) < strtotime($startDateStr)) {
                     // Resolve previous period standard days
                     $prevWorkDaysConfig = isset($emp['hari_kerja']) ? intval($emp['hari_kerja']) : 5;
-                    $prevDefaultDays = ($prevWorkDaysConfig === 6) ? 26 : 22;
+                    if ($prevWorkDaysConfig === 7) {
+                        // 7 hari kerja: gunakan jumlah hari aktual di bulan sebelumnya
+                        $prevDefaultDays = intval(date('t', mktime(0, 0, 0, $prevMonth, 1, $prevYear)));
+                    } elseif ($prevWorkDaysConfig === 6) {
+                        $prevDefaultDays = 26;
+                    } else {
+                        $prevDefaultDays = 22;
+                    }
                     $prevStandardDays = isset($emp['custom_standard_days']) && intval($emp['custom_standard_days']) > 0 
                         ? intval($emp['custom_standard_days']) 
                         : $prevDefaultDays;
