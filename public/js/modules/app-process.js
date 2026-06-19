@@ -997,7 +997,7 @@ async function onAbsensiPeriodChanged() {
     }
 
     if (logsDiv && logsDiv.parentElement) {
-        logsDiv.parentElement.style.display = 'block';
+        logsDiv.parentElement.style.display = 'none';
     }
     logsDiv.innerHTML = "Fetching active employees for this period...\n";
     try {
@@ -1164,7 +1164,7 @@ function processAbsensiFile(file) {
 
     const logsDiv = document.getElementById('uploadAbsensiLogs');
     if (logsDiv && logsDiv.parentElement) {
-        logsDiv.parentElement.style.display = 'block';
+        logsDiv.parentElement.style.display = 'none';
     }
     logsDiv.innerHTML = "Reading file...\n";
 
