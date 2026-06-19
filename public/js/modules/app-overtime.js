@@ -129,8 +129,8 @@ async function loadOvertimeLogs() {
                     <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_masuk || '-'}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_keluar || '-'}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_masuk)}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_keluar)}</td>
                     <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
                     <td style="text-align:center;padding:12px;">
                         <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
@@ -168,8 +168,8 @@ async function loadOvertimeLogs() {
                     <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_masuk || '-'}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_keluar || '-'}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_masuk)}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_keluar)}</td>
                     <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
                     <td style="text-align:center;padding:12px;">
                         <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
@@ -864,8 +864,8 @@ function filterOvertimeHistory() {
             <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
             <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
             <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
-            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_masuk || '-'}</td>
-            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_keluar || '-'}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_masuk)}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_keluar)}</td>
             <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
             <td style="text-align:center;padding:12px;">
                 <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
@@ -931,8 +931,8 @@ function filterOvertimePending() {
             <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
             <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
             <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
-            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_masuk || '-'}</td>
-            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.jam_keluar || '-'}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_masuk)}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_keluar)}</td>
             <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
             <td style="text-align:center;padding:12px;">
                 <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>

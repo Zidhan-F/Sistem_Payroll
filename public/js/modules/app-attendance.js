@@ -139,8 +139,8 @@ async function loadAttendanceLogs() {
                     ${a.shift_name || '<span style="color:#94a3b8;font-style:italic;">Default</span>'}
                     ${shiftBadges}
                 </td>
-                <td style="text-align:center;padding:12px;color:#475569;">${a.jam_masuk || '-'}</td>
-                <td style="text-align:center;padding:12px;color:#475569;">${a.jam_keluar || '-'}</td>
+                <td style="text-align:center;padding:12px;color:#475569;">${formatTimeHM(a.jam_masuk)}</td>
+                <td style="text-align:center;padding:12px;color:#475569;">${formatTimeHM(a.jam_keluar)}</td>
                 <td style="text-align:center;padding:12px;color:#475569;font-weight:700;">
                     ${parseFloat(a.calculated_work_hours || 0).toFixed(1)}j<br>
                     <small style="color:var(--success);">OT: ${parseFloat(a.calculated_overtime_hours || 0).toFixed(1)}j</small>

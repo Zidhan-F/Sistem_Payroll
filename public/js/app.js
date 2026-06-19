@@ -62,6 +62,17 @@ function formatRupiah(val) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val || 0);
 }
 
+function formatTimeHM(timeStr) {
+    if (!timeStr || timeStr === '-') return '-';
+    const parts = timeStr.split(':');
+    if (parts.length >= 2) {
+        const hour = parts[0].padStart(2, '0');
+        const minute = parts[1].padStart(2, '0');
+        return `${hour}:${minute}`;
+    }
+    return timeStr;
+}
+
 function formatRupiahInput(element) {
     let value = element.value.replace(/[^,\d]/g, '').toString();
     let split = value.split(',');
@@ -668,7 +679,7 @@ function closeModal(id) {
 
 // Expose defined local core functions to window if needed
 Object.assign(window, {
-    switchView, logout, tutupSemuaModal, toggleSidebar, formatRupiah, formatRupiahInput, parseFormattedNumber, handleKomponenKompensasiNilaiInput, handleKomponenNilaiInput, switchScheduleSubTab, openModal, closeModal
+    switchView, logout, tutupSemuaModal, toggleSidebar, formatRupiah, formatRupiahInput, parseFormattedNumber, handleKomponenKompensasiNilaiInput, handleKomponenNilaiInput, switchScheduleSubTab, openModal, closeModal, formatTimeHM
 });
 
 
