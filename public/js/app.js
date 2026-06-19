@@ -941,6 +941,47 @@ function handleNotificationClick(link, clientId = null, clientName = '', clientS
     const dropdown = document.getElementById('notificationsDropdown');
     if (dropdown) dropdown.classList.remove('show');
 
+    // If it is an attendance warning / upload notification, direct to attendance and open upload modal
+    if (itemId && (itemId.startsWith('attendance_') || link === 'attendance')) {
+        if (clientId) {
+            // Switch view first to avoid resetting window.selectedClientId
+            switchView('attendance');
+
+            window.selectedClientId = clientId;
+            window.selectedClientName = clientName;
+            window.selectedClientSektor = clientSektor;
+            localStorage.setItem('selectedClientId', clientId);
+            localStorage.setItem('selectedClientName', clientName);
+            localStorage.setItem('selectedClientSektor', clientSektor);
+
+            // Select in the main page dropdown
+            const selectEl = document.getElementById('attendanceClientSelect');
+            if (selectEl) {
+                const optionExists = Array.from(selectEl.options).some(opt => opt.value == clientId);
+                if (optionExists) {
+                    selectEl.value = clientId;
+                    if (typeof syncCustomClientDropdown === 'function') {
+                        syncCustomClientDropdown();
+                    }
+                } else {
+                    selectEl.innerHTML = `<option value="${clientId}" selected>Loading...</option>`;
+                }
+            }
+
+            // Automatically open upload attendance modal
+            setTimeout(() => {
+                if (typeof window.bukaModalUploadAbsensi === 'function') {
+                    window.bukaModalUploadAbsensi();
+                } else if (typeof bukaModalUploadAbsensi === 'function') {
+                    bukaModalUploadAbsensi();
+                }
+            }, 300);
+        } else {
+            switchView('attendance');
+        }
+        return;
+    }
+
     // Switch view
     if (link === 'klien') {
         if (clientId && typeof selectClient === 'function') {

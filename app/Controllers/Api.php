@@ -95,7 +95,7 @@ class Api extends ResourceController
                                     'type' => 'warning',
                                     'title' => 'Absensi Belum Diunggah (H-' . $diffDays . ')',
                                     'message' => "Klien <strong>" . esc($client['nama']) . "</strong> belum mengunggah data absensi. Batas akhir cut-off adalah tanggal " . esc($cutoffDay) . " " . esc($monthName) . " " . esc($currentYear) . " (" . $daysText . ")!",
-                                    'link' => 'klien',
+                                    'link' => 'attendance',
                                     'client_id' => intval($client['id']),
                                     'client_name' => $client['nama'],
                                     'client_sektor' => $client['sektor']
@@ -107,7 +107,7 @@ class Api extends ResourceController
                                     'type' => 'error',
                                     'title' => 'Terlambat Mengunggah Absensi (Telat ' . $lateDays . ' Hari)',
                                     'message' => "Klien <strong>" . esc($client['nama']) . "</strong> terlambat mengunggah data absensi. Batas akhir cut-off adalah tanggal " . esc($cutoffDay) . " " . esc($monthName) . " " . esc($currentYear) . " (terlewat " . $lateDays . " hari)!",
-                                    'link' => 'klien',
+                                    'link' => 'attendance',
                                     'client_id' => intval($client['id']),
                                     'client_name' => $client['nama'],
                                     'client_sektor' => $client['sektor']
@@ -3109,8 +3109,90 @@ class Api extends ResourceController
         $pkwts = $query->get()->getResult();
 
         foreach ($pkwts as $pkwt) {
+            // 4. Resolve Employee / Client UMR (Minimum Wage)
+            $emp = $this->db->table('employees')
+                            ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id, positions.hari_kerja as position_hari_kerja')
+                            ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                            ->join('positions', 'positions.id = employees.position_id', 'left')
+                            ->where('employees.nama', $pkwt->employee_name)
+                            ->where('employees.client_id', $pkwt->client_id)
+                            ->get()
+                            ->getRow();
+
+            if (!$emp) {
+                continue;
+            }
+
             // Get client config to find payroll scheme ID
             $clientConfig = $this->resolveClientConfig($pkwt->client_id, $pkwt->position_name);
+
+            // Verify if join date (tgl_masuk) is after the cutoff date
+            $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+            $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
+
+            if ($clientConfig) {
+                $startField = "cutoff_gaji_pokok_start";
+                $endField = "cutoff_gaji_pokok_end";
+                $refField = "cutoff_gaji_pokok_schedule_ref";
+                
+                $start = isset($clientConfig->$startField) ? intval($clientConfig->$startField) : null;
+                $end = isset($clientConfig->$endField) ? intval($clientConfig->$endField) : null;
+                $refId = isset($clientConfig->$refField) ? intval($clientConfig->$refField) : null;
+                
+                if ($refId) {
+                    $sched = $this->db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
+                    if ($sched) {
+                        $start = intval($sched->cutoff_start);
+                        $end = intval($sched->cutoff_end);
+                    }
+                }
+                
+                if ($start === null) {
+                    if (isset($clientConfig->cutoff_start)) {
+                        $start = intval($clientConfig->cutoff_start);
+                    } else {
+                        $start = 21;
+                    }
+                }
+                if ($end === null) {
+                    if (isset($clientConfig->cutoff_end)) {
+                        $end = intval($clientConfig->cutoff_end);
+                    } else {
+                        $end = $start - 1;
+                        if ($end < 1) $end = 31;
+                    }
+                }
+                
+                $cutoffStart = $start;
+                $cutoffEnd = $end;
+            }
+
+            if ($cutoffStart <= 0) $cutoffStart = 1;
+            if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
+
+            $tYear = intval($period->tahun);
+            $tMonth = intval($period->bulan);
+            $daysInThisPeriodMonth = date('t', mktime(0, 0, 0, $tMonth, 1, $tYear));
+            
+            if ($cutoffStart <= 1) {
+                $cutoffEndDay = $daysInThisPeriodMonth;
+            } else {
+                $cutoffEndDay = min($cutoffEnd, $daysInThisPeriodMonth);
+            }
+
+            $cutoffEndDateStr = sprintf('%04d-%02d-%02d', $tYear, $tMonth, $cutoffEndDay);
+
+            if (!empty($emp->tgl_masuk)) {
+                $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
+                if ($joinDateStr > $cutoffEndDateStr) {
+                    // Skip employee because join date is after cutoff date!
+                    $this->db->table('payroll_final')
+                             ->where('period_id', $periodId)
+                             ->where('pkwt_id', $pkwt->id)
+                             ->delete();
+                    continue;
+                }
+            }
             
             $isProrate = false;
             $isAbsenTidakPotong = false;
@@ -3150,16 +3232,6 @@ class Api extends ResourceController
                             ->where('period_id', $periodId)
                             ->where('pkwt_id', $pkwt->id)
                             ->get()->getRow();
-            
-            // 4. Resolve Employee / Client UMR (Minimum Wage)
-            $emp = $this->db->table('employees')
-                            ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id, positions.hari_kerja as position_hari_kerja')
-                            ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
-                            ->join('positions', 'positions.id = employees.position_id', 'left')
-                            ->where('employees.nama', $pkwt->employee_name)
-                            ->where('employees.client_id', $pkwt->client_id)
-                            ->get()
-                            ->getRow();
 
             $workDaysConfig = 5;
             if ($emp) {

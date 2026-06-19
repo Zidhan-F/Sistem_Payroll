@@ -97,6 +97,9 @@
                         <button type="button" onclick="navigateHolidayMonth(1)" style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 14px; cursor: pointer; color: #475569; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
                             <i class="fas fa-chevron-right"></i>
                         </button>
+                        <button type="button" onclick="goToTodayHoliday()" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 14px; cursor: pointer; color: #1e40af; font-weight: 600; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                            <i class="far fa-calendar-check"></i> Today
+                        </button>
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 12px;">

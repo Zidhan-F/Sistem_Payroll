@@ -360,6 +360,23 @@ function onHolidayMonthYearChange() {
     }
 }
 
+function goToTodayHoliday() {
+    const today = new Date();
+    const newMonth = today.getMonth();
+    const newYear = today.getFullYear();
+    
+    const yearChanged = (newYear !== currentHolidayYear);
+    
+    currentHolidayMonth = newMonth;
+    currentHolidayYear = newYear;
+    
+    if (yearChanged) {
+        loadHolidays();
+    } else {
+        renderHolidayView();
+    }
+}
+
 function bukaModalHoliday() {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -472,5 +489,6 @@ Object.assign(window, {
     switchHolidayView,
     navigateHolidayMonth,
     onHolidayMonthYearChange,
-    syncGoogleCalendar
+    syncGoogleCalendar,
+    goToTodayHoliday
 });
