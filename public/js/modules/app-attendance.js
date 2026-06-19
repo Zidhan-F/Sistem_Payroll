@@ -123,7 +123,7 @@ async function loadAttendanceLogs() {
                 shiftBadges += `<span style="background:#fef3c7;color:#b45309;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Sakit</span>`;
             } else if (statusNorm === 'izin' || statusNorm === 'leave') {
                 shiftBadges += `<span style="background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Izin</span>`;
-            } else if (statusNorm === 'hadir' || statusNorm === 'present') {
+            } else if ((statusNorm === 'hadir' || statusNorm === 'present') && parseInt(a.is_incomplete) !== 1) {
                 shiftBadges += `<span style="background:#e8fdf0;color:#15803d;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Hadir</span>`;
             }
 

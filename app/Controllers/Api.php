@@ -58,10 +58,11 @@ class Api extends ResourceController
                 if ($config) {
                     $daysInMonth = date('t', mktime(0, 0, 0, $currentMonth, 1, $currentYear));
                     $cutoffStart = $config->cutoff_start ? intval($config->cutoff_start) : 21;
+                    $cutoffEnd = $config->cutoff_end ? intval($config->cutoff_end) : 20;
                     if ($cutoffStart <= 1) {
                         $cutoffDay = $daysInMonth;
                     } else {
-                        $cutoffDay = min($cutoffStart, $daysInMonth);
+                        $cutoffDay = min($cutoffEnd, $daysInMonth);
                     }
                     $cutoffEndDateStr = sprintf('%d-%02d-%02d', $currentYear, $currentMonth, $cutoffDay);
                     
@@ -2958,7 +2959,7 @@ class Api extends ResourceController
                 $tahun_start = intval($period->tahun);
                 $bulan_end = $bulan_start;
                 $tahun_end = $tahun_start;
-                if ($cutoffStart > 1) {
+                if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
                     $bulan_start -= 1;
                     if ($bulan_start < 1) {
                         $bulan_start = 12;
@@ -3479,7 +3480,7 @@ class Api extends ResourceController
                 $tahun_start = intval($period->tahun);
                 $bulan_end = $bulan_start;
                 $tahun_end = $tahun_start;
-                if ($cutoffStart > 1) {
+                if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
                     $bulan_start -= 1;
                     if ($bulan_start < 1) {
                         $bulan_start = 12;
@@ -6003,7 +6004,7 @@ class Api extends ResourceController
             $tahun_start = intval($period->tahun);
             $bulan_end = $bulan_start;
             $tahun_end = $tahun_start;
-            if ($cutoffStart > 1) {
+            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
                 $bulan_start -= 1;
                 if ($bulan_start < 1) {
                     $bulan_start = 12;
@@ -6035,23 +6036,7 @@ class Api extends ResourceController
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                                          ->where('is_holiday', 1)
                                          ->get()->getRow();
-                $lemburLibur = $lemburLiburObj ? floatval($lemburLiburObj->jam_lembur) : 0.0;
-
-                $lemburSum = $lemburBiasa + $lemburLibur;
-
-                $pkwt = $this->db->table('pkwt')
-                                 ->where('client_id', $clientId)
-                                 ->where('employee_name', $employee->nama)
-                                 ->where('status', 'Active')
-                                 ->get()->getRow();
-                if (!$pkwt) continue;
-
-                $existing = $this->db->table('payroll_attendance')
-                                     ->where('period_id', $period->id)
-                                     ->where('pkwt_id', $pkwt->id)
-                                     ->get()->getRow();
-
-                if ($existing) {
+                           if ($existing) {
                     $this->db->table('payroll_attendance')
                              ->where('id', $existing->id)
                              ->update([
@@ -6060,18 +6045,33 @@ class Api extends ResourceController
                                  'jam_lembur_hari_libur' => $lemburLibur,
                              ]);
                 } else {
-                    $stdWorkingDays = 20;
-                    $posHk = 5;
-                    if ($employee->position_id) {
-                        $pos = $this->db->table('positions')->where('id', $employee->position_id)->get()->getRow();
-                        if ($pos && isset($pos->hari_kerja)) {
-                            $posHk = intval($pos->hari_kerja);
+                    $hasAnyClientLogs = $this->db->table('attendance_logs')
+                                                 ->join('employees', 'employees.id = attendance_logs.employee_id')
+                                                 ->where('employees.client_id', $clientId)
+                                                 ->where('attendance_logs.log_date >=', $startDateStr)
+                                                 ->where('attendance_logs.log_date <=', $endDateStr)
+                                                 ->countAllResults();
+
+                    if ($hasAnyClientLogs > 0) {
+                        $stdWorkingDays = 0;
+                    } else {
+                        $stdWorkingDays = 20;
+                        $posHk = 5;
+                        if ($employee->position_id) {
+                            $pos = $this->db->table('positions')->where('id', $employee->position_id)->get()->getRow();
+                            if ($pos && isset($pos->hari_kerja)) {
+                                $posHk = intval($pos->hari_kerja);
+                            }
                         }
-                    }
-                    if ($posHk === 6) {
-                        $stdWorkingDays = 25;
-                    } elseif ($posHk === 7) {
-                        $stdWorkingDays = 30;
+                        if ($posHk === 6) {
+                            $stdWorkingDays = 25;
+                        } elseif ($posHk === 7) {
+                            $stdWorkingDays = 30;
+                        }
+                        
+                        if (isset($employee->hari_kerja) && intval($employee->hari_kerja) > 0) {
+                            $stdWorkingDays = ($employee->hari_kerja === 6) ? 25 : (($employee->hari_kerja === 7) ? 30 : 20);
+                        }
                     }
 
                     $this->db->table('payroll_attendance')->insert([
@@ -6148,14 +6148,15 @@ class Api extends ResourceController
 
             $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
             $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+            $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
             if ($cutoffStart <= 0) $cutoffStart = 21;
-            $cutoffEnd = $cutoffStart === 1 ? $daysInMonth : ($cutoffStart - 1);
+            if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
 
             $bulan_start = intval($period->bulan);
             $tahun_start = intval($period->tahun);
             $bulan_end = $bulan_start;
             $tahun_end = $tahun_start;
-            if ($cutoffStart > 1) {
+            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
                 $bulan_start -= 1;
                 if ($bulan_start < 1) {
                     $bulan_start = 12;
@@ -6184,27 +6185,41 @@ class Api extends ResourceController
                                     ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                                     ->countAllResults();
 
+            // Check if there are any logs uploaded for this client in this period range
+            $hasAnyClientLogs = $this->db->table('attendance_logs')
+                                         ->join('employees', 'employees.id = attendance_logs.employee_id')
+                                         ->where('employees.client_id', $pkwt->client_id)
+                                         ->where('attendance_logs.log_date >=', $startDateStr)
+                                         ->where('attendance_logs.log_date <=', $endDateStr)
+                                         ->countAllResults();
+
             if ($actualHadir > 0) {
                 $hariKerjaVal = $actualHadir;
             } else {
-                $stdWorkingDays = 20;
-                $posHk = 5;
-                if ($emp->position_id) {
-                    $pos = $this->db->table('positions')->where('id', $emp->position_id)->get()->getRow();
-                    if ($pos && isset($pos->hari_kerja)) {
-                        $posHk = intval($pos->hari_kerja);
+                if ($hasAnyClientLogs > 0) {
+                    // Logs were uploaded, but this employee had 0 present days (e.g. not present or not in Excel)
+                    $hariKerjaVal = 0;
+                } else {
+                    // No logs uploaded yet for this client, fall back to standard working days
+                    $stdWorkingDays = 20;
+                    $posHk = 5;
+                    if ($emp->position_id) {
+                        $pos = $this->db->table('positions')->where('id', $emp->position_id)->get()->getRow();
+                        if ($pos && isset($pos->hari_kerja)) {
+                            $posHk = intval($pos->hari_kerja);
+                        }
                     }
+                    if ($posHk === 6) {
+                        $stdWorkingDays = 25;
+                    } elseif ($posHk === 7) {
+                        $stdWorkingDays = 30;
+                    }
+                    
+                    if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
+                        $stdWorkingDays = ($emp->hari_kerja === 6) ? 25 : (($emp->hari_kerja === 7) ? 30 : 20);
+                    }
+                    $hariKerjaVal = $stdWorkingDays;
                 }
-                if ($posHk === 6) {
-                    $stdWorkingDays = 25;
-                } elseif ($posHk === 7) {
-                    $stdWorkingDays = 30;
-                }
-                
-                if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
-                    $stdWorkingDays = ($emp->hari_kerja === 6) ? 25 : (($emp->hari_kerja === 7) ? 30 : 20);
-                }
-                $hariKerjaVal = $stdWorkingDays;
             }
 
             $existing = $this->db->table('payroll_attendance')
@@ -6283,14 +6298,15 @@ class Api extends ResourceController
 
             $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
             $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+            $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
             if ($cutoffStart <= 0) $cutoffStart = 21;
-            $cutoffEnd = $cutoffStart === 1 ? $daysInMonth : ($cutoffStart - 1);
+            if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
 
             $bulan_start = intval($period->bulan);
             $tahun_start = intval($period->tahun);
             $bulan_end = $bulan_start;
             $tahun_end = $tahun_start;
-            if ($cutoffStart > 1) {
+            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
                 $bulan_start -= 1;
                 if ($bulan_start < 1) {
                     $bulan_start = 12;

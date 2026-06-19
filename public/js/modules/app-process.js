@@ -173,7 +173,7 @@ async function renderCutOffTable() {
             return `
             <tr>
                 <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
-                <td>${hariKerja} Days</td>
+                <td>${hariKerja > 0 ? hariKerja + ' Days' : '-'}</td>
                 <td>${jamLembur > 0 ? jamLembur + ' Hours' : '-'}</td>
                 <td>${earlyArrival > 0 ? earlyArrival + ' mnt' : '-'}</td>
                 <td>${formatRupiah(potongan)}</td>

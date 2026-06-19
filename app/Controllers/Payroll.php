@@ -69,13 +69,16 @@ class Payroll extends ResourceController
             $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
             $endDateStr = date('Y-m-t', strtotime($startDateStr));
         } else {
-            $prevMonth = intval($bulan) - 1;
-            $prevYear = intval($tahun);
-            if ($prevMonth == 0) {
-                $prevMonth = 12;
-                $prevYear--;
+            $bulan_start = intval($bulan);
+            $tahun_start = intval($tahun);
+            if ($cutoffStartDay > $cutoffEndDay) {
+                $bulan_start--;
+                if ($bulan_start == 0) {
+                    $bulan_start = 12;
+                    $tahun_start--;
+                }
             }
-            $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $cutoffStartDay);
+            $startDateStr = sprintf('%d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStartDay);
             $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $cutoffEndDay);
         }
 
@@ -167,13 +170,16 @@ class Payroll extends ResourceController
                     $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
                     $endDateStr = date('Y-m-t', strtotime($startDateStr));
                 } else {
-                    $prevMonth = intval($bulan) - 1;
-                    $prevYear = intval($tahun);
-                    if ($prevMonth == 0) {
-                        $prevMonth = 12;
-                        $prevYear--;
+                    $bulan_start = intval($bulan);
+                    $tahun_start = intval($tahun);
+                    if ($start > $end) {
+                        $bulan_start--;
+                        if ($bulan_start == 0) {
+                            $bulan_start = 12;
+                            $tahun_start--;
+                        }
                     }
-                    $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $start);
+                    $startDateStr = sprintf('%d-%02d-%02d', $tahun_start, $bulan_start, $start);
                     $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $end);
                 }
                 return [$startDateStr, $endDateStr];
@@ -416,13 +422,16 @@ class Payroll extends ResourceController
                 $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
                 $endDateStr = date('Y-m-t', strtotime($startDateStr));
             } else {
-                $prevMonth = intval($bulan) - 1;
-                $prevYear = intval($tahun);
-                if ($prevMonth == 0) {
-                    $prevMonth = 12;
-                    $prevYear--;
+                $bulan_start = intval($bulan);
+                $tahun_start = intval($tahun);
+                if ($start > $end) {
+                    $bulan_start--;
+                    if ($bulan_start == 0) {
+                        $bulan_start = 12;
+                        $tahun_start--;
+                    }
                 }
-                $startDateStr = sprintf('%d-%02d-%02d', $prevYear, $prevMonth, $start);
+                $startDateStr = sprintf('%d-%02d-%02d', $tahun_start, $bulan_start, $start);
                 $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $end);
             }
             return [$startDateStr, $endDateStr];
