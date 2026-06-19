@@ -3183,6 +3183,63 @@ class Api extends ResourceController
 
             $cutoffEndDateStr = sprintf('%04d-%02d-%02d', $tYear, $tMonth, $cutoffEndDay);
 
+            $bulan_start = $tMonth;
+            $tahun_start = $tYear;
+            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
+                $bulan_start -= 1;
+                if ($bulan_start < 1) {
+                    $bulan_start = 12;
+                    $tahun_start -= 1;
+                }
+            }
+            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+            $endDateStr = $cutoffEndDateStr;
+
+            // Reset old rapel flags for this employee in the current period range
+            if ($emp) {
+                $this->db->table('attendance_logs')
+                    ->where('employee_id', $emp->id)
+                    ->where('log_date >=', $startDateStr)
+                    ->where('log_date <=', $endDateStr)
+                    ->update([
+                        'is_rapel' => 0,
+                        'payout_period' => null
+                    ]);
+
+                $this->db->table('overtime_logs')
+                    ->where('employee_id', $emp->id)
+                    ->where('tanggal >=', $startDateStr)
+                    ->where('tanggal <=', $endDateStr)
+                    ->update([
+                        'is_rapel' => 0,
+                        'payout_period' => null
+                    ]);
+            }
+
+            $isNewHireRapel = false;
+            $nextPeriodStr = '';
+            if ($emp && !empty($emp->tgl_masuk)) {
+                $joinTs = strtotime($emp->tgl_masuk);
+                $joinYear = intval(date('Y', $joinTs));
+                $joinMonth = intval(date('n', $joinTs));
+                $joinDay = intval(date('j', $joinTs));
+
+                if ($joinYear === $tYear && $joinMonth === $tMonth) {
+                    $isRapelGP = ($clientConfig && isset($clientConfig->is_rapel_gaji_pokok)) ? intval($clientConfig->is_rapel_gaji_pokok) : 1;
+                    if ($joinDay >= $cutoffStart && $isRapelGP === 1) {
+                        $isNewHireRapel = true;
+                        
+                        $nextMonth = $tMonth + 1;
+                        $nextYear = $tYear;
+                        if ($nextMonth > 12) {
+                            $nextMonth = 1;
+                            $nextYear++;
+                        }
+                        $nextPeriodStr = $nextMonth . '-' . $nextYear;
+                    }
+                }
+            }
+
             if (!empty($emp->tgl_masuk)) {
                 $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
                 if ($joinDateStr > $cutoffEndDateStr) {
@@ -3226,7 +3283,21 @@ class Api extends ResourceController
             $schemeOtRate = 0; // will be resolved after scheme template is loaded
 
             // 2. Get Fixed Components from PKWT
-            $components = $this->db->table('pkwt_components')->where('pkwt_id', $pkwt->id)->get()->getResult();
+            $rawComponents = $this->db->table('pkwt_components')->where('pkwt_id', $pkwt->id)->get()->getResult();
+            $components = [];
+            foreach ($rawComponents as $comp) {
+                // Check if Ad-hoc and verify period matching current month/year
+                $isAdhoc = isset($comp->allowance_type) && $comp->allowance_type === 'Ad-hoc';
+                if ($isAdhoc) {
+                    $payoutPeriod = trim($comp->payout_period ?? '');
+                    $currentPeriod1 = intval($period->bulan) . '-' . intval($period->tahun);
+                    $currentPeriod2 = sprintf('%02d-%d', intval($period->bulan), intval($period->tahun));
+                    if ($payoutPeriod !== $currentPeriod1 && $payoutPeriod !== $currentPeriod2) {
+                        continue; // Skip this component
+                    }
+                }
+                $components[] = $comp;
+            }
             
             // 3. Get Attendance Data
             $att = $this->db->table('payroll_attendance')
@@ -3343,6 +3414,120 @@ class Api extends ResourceController
                 $unproratedGajiPokok = floatval($emp->gaji_pokok);
                 $gajiPokok = $unproratedGajiPokok;
             }
+
+            if ($isNewHireRapel) {
+                // Calculate rapel amount (prorated basic salary they earned)
+                $actualDaysWorked = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                $rapelAmount = ($stdWorkingDays > 0) ? (($actualDaysWorked / $stdWorkingDays) * $gajiPokok) : 0.0;
+
+                if ($rapelAmount > 0) {
+                    $existingRapel = $this->db->table('pkwt_components')
+                        ->where('pkwt_id', $pkwt->id)
+                        ->where('allowance_type', 'Ad-hoc')
+                        ->where('payout_period', $nextPeriodStr)
+                        ->like('nama', 'Rapel')
+                        ->get()->getRow();
+                    
+                    if (!$existingRapel) {
+                        $this->db->table('pkwt_components')->insert([
+                            'pkwt_id' => $pkwt->id,
+                            'nama' => 'Rapel Gaji (Prorata Bulan Pertama)',
+                            'tipe' => 'pendapatan',
+                            'nilai' => $rapelAmount,
+                            'is_persentase' => 0,
+                            'jenis_komponen' => 'kompensasi',
+                            'sifat_kompensasi' => 'tidak_tetap',
+                            'sumber_nilai' => 'nominal',
+                            'periode' => 'bulan',
+                            'allowance_type' => 'Ad-hoc',
+                            'payout_period' => $nextPeriodStr
+                        ]);
+                    } else {
+                        $this->db->table('pkwt_components')
+                            ->where('id', $existingRapel->id)
+                            ->update([
+                                'nilai' => $rapelAmount
+                            ]);
+                    }
+                }
+
+                // Update logs
+                $this->db->table('attendance_logs')
+                    ->where('employee_id', $emp->id)
+                    ->where('log_date >=', $startDateStr)
+                    ->where('log_date <=', $endDateStr)
+                    ->where('status', 'Hadir')
+                    ->update([
+                        'is_rapel' => 1,
+                        'payout_period' => $nextPeriodStr
+                    ]);
+
+                $this->db->table('overtime_logs')
+                    ->where('employee_id', $emp->id)
+                    ->where('tanggal >=', $startDateStr)
+                    ->where('tanggal <=', $endDateStr)
+                    ->update([
+                        'is_rapel' => 1,
+                        'payout_period' => $nextPeriodStr
+                    ]);
+
+                $this->db->table('payroll_attendance')
+                    ->where('period_id', $periodId)
+                    ->where('pkwt_id', $pkwt->id)
+                    ->update([
+                        'hari_kerja' => 0,
+                        'jam_lembur' => 0.0,
+                        'early_arrival_minutes' => 0,
+                        'potongan_absensi' => 0.0,
+                        'bonus_tambahan' => 0.0
+                    ]);
+
+                // Save draft to payroll_final with 0 values
+                $existingFinal = $this->db->table('payroll_final')
+                                          ->where('period_id', $periodId)
+                                          ->where('pkwt_id', $pkwt->id)
+                                          ->get()->getRow();
+                
+                $finalData = [
+                    'period_id' => $periodId,
+                    'pkwt_id' => $pkwt->id,
+                    'total_pendapatan' => 0.0,
+                    'total_potongan' => 0.0,
+                    'take_home_pay' => 0.0,
+                    'status_approval' => 'Pending',
+                    'bpjs_kes_karyawan' => 0.0,
+                    'bpjs_kes_perusahaan' => 0.0,
+                    'bpjs_jht_karyawan' => 0.0,
+                    'bpjs_jht_perusahaan' => 0.0,
+                    'bpjs_jp_karyawan' => 0.0,
+                    'bpjs_jp_perusahaan' => 0.0,
+                    'bpjs_jkk_perusahaan' => 0.0,
+                    'bpjs_jkm_perusahaan' => 0.0,
+                    'pph21' => 0.0,
+                    'tax_allowance' => 0.0,
+                    'tax_method' => ($client && isset($client->tax_method)) ? $client->tax_method : 'Gross',
+                    'ptkp_status' => 'TK/0',
+                    'gaji_pokok' => 0.0,
+                    'potongan_absen' => 0.0,
+                    'jam_lembur' => 0.0,
+                    'jam_lembur_biasa' => 0.0,
+                    'jam_lembur_libur' => 0.0,
+                    'lembur_pay' => 0.0,
+                    'bonus_tambahan' => 0.0,
+                    'early_arrival_minutes' => 0,
+                    'early_arrival_pay' => 0.0,
+                    'raw_components' => json_encode($components)
+                ];
+
+                if ($existingFinal) {
+                    $this->db->table('payroll_final')->where('id', $existingFinal->id)->update($finalData);
+                } else {
+                    $this->db->table('payroll_final')->insert($finalData);
+                }
+
+                continue; // Skip the rest of the loop!
+            }
+
             // 6. Second pass: Calculate all components
             $totalPendapatan = 0;
             $totalPotongan = 0;
@@ -3402,7 +3587,8 @@ class Api extends ResourceController
                         } else {
                             // bulanan
                             // Tunjangan tetap: Nilai tunjangan tetap bersifat konstan setiap periode (TIDAK terprorate)
-                            if ($isProrate && isset($comp->sifat_kompensasi) && $comp->sifat_kompensasi === 'tidak_tetap') {
+                            $isCompAdhoc = isset($comp->allowance_type) && $comp->allowance_type === 'Ad-hoc';
+                            if ($isProrate && isset($comp->sifat_kompensasi) && $comp->sifat_kompensasi === 'tidak_tetap' && !$isCompAdhoc) {
                                 $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                                 $nilai = $base_nilai * ($days / $stdWorkingDays);
                             } else {
@@ -4217,7 +4403,8 @@ class Api extends ResourceController
                     } else {
                         // bulanan
                         // Tunjangan tetap: Nilai tunjangan tetap bersifat konstan setiap periode (TIDAK terprorate)
-                        if ($isProrate && isset($comp['sifat_kompensasi']) && $comp['sifat_kompensasi'] === 'tidak_tetap') {
+                        $isCompAdhoc = isset($comp['allowance_type']) && $comp['allowance_type'] === 'Ad-hoc';
+                        if ($isProrate && isset($comp['sifat_kompensasi']) && $comp['sifat_kompensasi'] === 'tidak_tetap' && !$isCompAdhoc) {
                             $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
                             $nilai = $base_nilai * ($days / 21);
                         } else {
@@ -5455,8 +5642,11 @@ class Api extends ResourceController
             }
         }
 
-        // Clear existing pkwt components
-        $this->db->table('pkwt_components')->where('pkwt_id', $pkwtId)->delete();
+        // Clear existing pkwt components (except Ad-hoc components, e.g. rapel)
+        $this->db->table('pkwt_components')
+                 ->where('pkwt_id', $pkwtId)
+                 ->where('(allowance_type != \'Ad-hoc\' OR allowance_type IS NULL)')
+                 ->delete();
 
         // Get current active Client Scheme Config
         $config = $this->resolveClientConfig($pkwt->client_id, $pkwt->position_name);

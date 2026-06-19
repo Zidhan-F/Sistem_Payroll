@@ -590,6 +590,25 @@ class Payroll extends ResourceController
             list($empLemburStartDateStr, $empLemburEndDateStr) = $resolveComponentDates($empConfig, 'lembur');
             list($empInsentifStartDateStr, $empInsentifEndDateStr) = $resolveComponentDates($empConfig, 'insentif');
 
+            // Reset old rapel flags for this employee in the current period range
+            $db->table('attendance_logs')
+                ->where('employee_id', $emp['id'])
+                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date <=', $empEndDateStr)
+                ->update([
+                    'is_rapel' => 0,
+                    'payout_period' => null
+                ]);
+
+            $db->table('overtime_logs')
+                ->where('employee_id', $emp['id'])
+                ->where('tanggal >=', $empLemburStartDateStr)
+                ->where('tanggal <=', $empLemburEndDateStr)
+                ->update([
+                    'is_rapel' => 0,
+                    'payout_period' => null
+                ]);
+
             // Logika Rapel Karyawan Baru
             $isNewHireRapel = false;
             $nextPeriodStr = '';
@@ -630,35 +649,7 @@ class Payroll extends ResourceController
                         $nextPeriodStr = $nextMonth . '-' . $nextYear;
                     }
                 }
-            }
-
-            if ($isNewHireRapel) {
-                // Update all attendance logs of this employee within this month to is_rapel = 1 and payout_period = $nextPeriodStr
-                $db->table('attendance_logs')
-                    ->where('employee_id', $emp['id'])
-                    ->where('log_date >=', $empStartDateStr)
-                    ->where('log_date <=', $empEndDateStr)
-                    ->update([
-                        'is_rapel' => 1,
-                        'payout_period' => $nextPeriodStr
-                    ]);
-
-                // Update all overtime logs of this employee within this month to is_rapel = 1 and payout_period = $nextPeriodStr
-                $db->table('overtime_logs')
-                    ->where('employee_id', $emp['id'])
-                    ->where('tanggal >=', $empLemburStartDateStr)
-                    ->where('tanggal <=', $empLemburEndDateStr)
-                    ->update([
-                        'is_rapel' => 1,
-                        'payout_period' => $nextPeriodStr
-                    ]);
-                
-                // Clear $dk counts for the current run so they get 0 pay
-                $dk['hadir'] = 0;
-                $dk['sakit'] = 0;
-                $dk['alpa'] = 0;
-                $dk['lembur'] = 0;
-            }
+                }
 
             // Resolve employee-specific minimum wage and UMP/UMK values
             $empMinimumWage = $minimumWage;
@@ -894,7 +885,8 @@ class Payroll extends ResourceController
                             'jenis_komponen' => $comp['jenis_komponen'] ?? '',
                             'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? '',
                             'sumber_nilai' => $comp['sumber_nilai'] ?? '',
-                            'periode' => $comp['periode'] ?? ''
+                            'periode' => $comp['periode'] ?? '',
+                            'allowance_type' => $comp['allowance_type'] ?? ''
                         ];
                     }
                 }
@@ -910,7 +902,8 @@ class Payroll extends ResourceController
                         'jenis_komponen' => $comp['jenis_komponen'] ?? '',
                         'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? '',
                         'sumber_nilai' => $comp['sumber_nilai'] ?? '',
-                        'periode' => $comp['periode'] ?? ''
+                        'periode' => $comp['periode'] ?? '',
+                        'allowance_type' => $comp['allowance_type'] ?? ''
                     ];
                 }
             }
@@ -934,6 +927,105 @@ class Payroll extends ResourceController
                 : $defaultDays;
             if ($standardDays <= 0) {
                 $standardDays = $defaultDays;
+            }
+
+            if ($isNewHireRapel) {
+                // Calculate actual present days from attendance_logs
+                $actualDaysWorked = $db->table('attendance_logs')
+                    ->where('employee_id', $emp['id'])
+                    ->where('log_date >=', $empStartDateStr)
+                    ->where('log_date <=', $empEndDateStr)
+                    ->where('status', 'Hadir')
+                    ->countAllResults();
+
+                $rapelAmount = ($standardDays > 0) ? (($actualDaysWorked / $standardDays) * $baseSalary) : 0.0;
+
+                if ($rapelAmount > 0) {
+                    $existingRapel = $db->table('pkwt_components')
+                        ->where('pkwt_id', $pkwt ? $pkwt->id : 0)
+                        ->where('allowance_type', 'Ad-hoc')
+                        ->where('payout_period', $nextPeriodStr)
+                        ->like('nama', 'Rapel')
+                        ->get()->getRow();
+                    
+                    if (!$existingRapel && $pkwt) {
+                        $db->table('pkwt_components')->insert([
+                            'pkwt_id' => $pkwt->id,
+                            'nama' => 'Rapel Gaji (Prorata Bulan Pertama)',
+                            'tipe' => 'pendapatan',
+                            'nilai' => $rapelAmount,
+                            'is_persentase' => 0,
+                            'jenis_komponen' => 'kompensasi',
+                            'sifat_kompensasi' => 'tidak_tetap',
+                            'sumber_nilai' => 'nominal',
+                            'periode' => 'bulan',
+                            'allowance_type' => 'Ad-hoc',
+                            'payout_period' => $nextPeriodStr
+                        ]);
+                    } else if ($existingRapel) {
+                        $db->table('pkwt_components')
+                            ->where('id', $existingRapel->id)
+                            ->update([
+                                'nilai' => $rapelAmount
+                            ]);
+                    }
+                }
+
+                // Update logs
+                $db->table('attendance_logs')
+                    ->where('employee_id', $emp['id'])
+                    ->where('log_date >=', $empStartDateStr)
+                    ->where('log_date <=', $empEndDateStr)
+                    ->where('status', 'Hadir')
+                    ->update([
+                        'is_rapel' => 1,
+                        'payout_period' => $nextPeriodStr
+                    ]);
+
+                $db->table('overtime_logs')
+                    ->where('employee_id', $emp['id'])
+                    ->where('tanggal >=', $empLemburStartDateStr)
+                    ->where('tanggal <=', $empLemburEndDateStr)
+                    ->update([
+                        'is_rapel' => 1,
+                        'payout_period' => $nextPeriodStr
+                    ]);
+
+                // Reset early arrival logs to NOT_PROCESSED for the period
+                $db->table('early_arrival')
+                    ->where('employee_id', $emp['id'])
+                    ->where('date >=', $empStartDateStr)
+                    ->where('date <=', $empEndDateStr)
+                    ->update([
+                        'status' => 'NOT_PROCESSED'
+                    ]);
+
+                // Delete existing payroll for the period
+                $existingPayroll = $db->table('payrolls')
+                    ->where('employee_id', $emp['id'])
+                    ->where('bulan', $bulan)
+                    ->where('tahun', $tahun)
+                    ->get()->getRow();
+
+                if ($existingPayroll) {
+                    $db->table('payroll_details')->where('payroll_id', $existingPayroll->id)->delete();
+                    $db->table('payrolls')->where('id', $existingPayroll->id)->delete();
+                }
+
+                // Insert a record in the payrolls table with 0.0 values
+                $payrollData = [
+                    'employee_id' => $emp['id'],
+                    'bulan' => $bulan,
+                    'tahun' => $tahun,
+                    'gaji_pokok' => 0.0,
+                    'total_tunjangan' => 0.0,
+                    'total_potongan' => 0.0,
+                    'take_home_pay' => 0.0,
+                    'status_pembayaran' => 'Pending'
+                ];
+                $this->model->insert($payrollData);
+
+                continue; // Skip the rest of the loop!
             }
 
             // Overtime divisor (5 days = 40 hours, 6 days = 48 hours, 7 days = 56 hours)
@@ -984,6 +1076,17 @@ class Payroll extends ResourceController
                 ->where('status', 'Hadir')
                 ->get()->getResultArray();
             $actualDaysWorked = count($attendanceLogs);
+
+            // Query approved overtime logs for this employee in the cutoff range (excluding rapel)
+            $overtimeLogs = $db->table('overtime_logs')
+                ->where('overtime_logs.employee_id', $emp['id'])
+                ->where('overtime_logs.tanggal >=', $empLemburStartDateStr)
+                ->where('overtime_logs.tanggal <=', $empLemburEndDateStr)
+                ->where('overtime_logs.status', 'Approved')
+                ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.log_date = overtime_logs.tanggal', 'left')
+                ->where('(attendance_logs.is_rapel = 0 OR attendance_logs.is_rapel IS NULL)')
+                ->select('overtime_logs.*')
+                ->get()->getResultArray();
 
             // Jika tidak ada attendance_logs, gunakan data dari form input (backward compatible)
             if ($actualDaysWorked === 0 && isset($dk['hadir']) && intval($dk['hadir']) > 0) {
@@ -1376,10 +1479,11 @@ class Payroll extends ResourceController
                     } else {
                         // bulanan
                         $isProrateAbs = false;
-                        if ($payrollConfig && ($payrollConfig->prorate == 1)) {
+                        if ($ps && ($ps->prorate == 1)) {
                             $isProrateAbs = true;
                         }
-                        if ($isProrateAbs && isset($comp['sifat_kompensasi']) && $comp['sifat_kompensasi'] === 'tidak_tetap') {
+                        $isCompAdhoc = isset($comp['allowance_type']) && $comp['allowance_type'] === 'Ad-hoc';
+                        if ($isProrateAbs && isset($comp['sifat_kompensasi']) && $comp['sifat_kompensasi'] === 'tidak_tetap' && !$isCompAdhoc) {
                             $nilaiKomponen = $base_nilai * (intval($dk['hadir']) / $daysInMonth);
                         } else {
                             $nilaiKomponen = $base_nilai;
@@ -1535,7 +1639,7 @@ class Payroll extends ResourceController
                     ->get()->getRow();
                 
                 // If they joined before the current period start date and have no payroll record for last month
-                if (!$prevPayroll && strtotime($emp['tgl_masuk']) < strtotime($startDateStr)) {
+                if (!$prevPayroll && strtotime($emp['tgl_masuk']) < strtotime($empStartDateStr)) {
                     // Resolve previous period standard days
                     $prevWorkDaysConfig = isset($emp['hari_kerja']) ? intval($emp['hari_kerja']) : 5;
                     if ($prevWorkDaysConfig === 7) {
@@ -1556,7 +1660,7 @@ class Payroll extends ResourceController
                     // Get their actual attendance logs from last month (before current period start)
                     $prevPeriodLogs = $db->table('attendance_logs')
                         ->where('employee_id', $emp['id'])
-                        ->where('log_date <', $startDateStr)
+                        ->where('log_date <', $empStartDateStr)
                         ->where('status', 'Hadir')
                         ->get()->getResultArray();
                     
