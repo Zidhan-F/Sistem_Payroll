@@ -354,8 +354,6 @@ function switchPayrollSub(sub) {
     } else if (sub === 'setting') {
         switchView('payroll');
         switchPayrollSubTab('skema');
-    } else if (sub === 'system_setting') {
-        switchView('systemSettings');
     } else if (sub === 'pajak') {
         switchView('pajak');
     } else if (sub === 'schedule') {
@@ -525,7 +523,6 @@ function switchView(view) {
         payroll: 'Master Payroll Scheme',
         pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme',
-        systemSettings: 'System Settings',
         schedule: 'Schedule',
         skemaShift: 'Employee Management'
     };

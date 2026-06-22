@@ -59,10 +59,7 @@
                 <i class="fas fa-percent"></i>
                 <span>BPJS & Tax Scheme</span>
             </li>
-            <li id="submenu_system_setting" onclick="switchPayrollSub('system_setting')">
-                <i class="fas fa-sliders-h"></i>
-                <span>System Settings</span>
-            </li>
+
     </ul>
     <li id="menuSchedule" onclick="switchView('schedule')">
         <i class="fas fa-calendar-alt"></i>

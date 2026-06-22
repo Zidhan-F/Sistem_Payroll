@@ -231,20 +231,13 @@
                                 <input type="text" id="skemaNominalPotongan" placeholder="Example: 100000" onkeyup="formatRupiahInput(this)" onfocus="document.querySelector('input[name=\'skemaAbsenRule\'][value=\'potong_nominal\']').checked = true; handleSkemaAbsenRuleChange();" style="flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                             </div>
                             
-                            <!-- Grace Periods & Min Overtime -->
+                            <!-- Grace Periods -->
                             <div style="display: flex; gap: 12px; margin-top: 5px;">
                                 <div style="flex: 1;">
                                     <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Terlambat (Menit)</label>
                                     <input type="number" id="skemaGraceLate" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                                 </div>
-                                <div style="flex: 1; display: none;">
-                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Toleransi Early Leave (Menit)</label>
-                                    <input type="number" id="skemaGraceEarly" min="0" value="0" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                                </div>
-                                <div style="flex: 1;">
-                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Lembur (Menit)</label>
-                                    <input type="number" id="skemaMinOvertime" min="0" value="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
-                                </div>
+                                <input type="hidden" id="skemaGraceEarly" value="0">
                             </div>
 
                             <!-- Denda -->
@@ -369,6 +362,18 @@
                                         <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 600; color: #94a3b8;">Rp</span>
                                         <input type="text" id="skemaLumpsumNominal" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px 10px 10px 36px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px; font-weight: 600;">
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Overtime Limits (Min Overtime & Early Arrival) -->
+                            <div style="margin-top: 15px; border-top: 1px dashed #bfdbfe; padding-top: 15px; display: flex; gap: 12px;">
+                                <div style="flex: 1;">
+                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Min. Overtime (Minutes)</label>
+                                    <input type="number" id="skemaMinOvertime" min="0" value="30" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Max Early Arrival Limit (Minutes)</label>
+                                    <input type="number" id="skemaMaxEarlyArrivalMinutes" min="0" value="180" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                                 </div>
                             </div>
                         </div>
@@ -767,6 +772,7 @@
                             <option value="tambah_skema">Tambah Skema</option>
                         </select>
                     </div>
+
 
                     <!-- BPJS Configuration Inputs (cloned/copied from modalBpjs details) -->
                     <div id="modalClientBpjsOverrideFields" style="display: flex; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #f8fafc; flex-direction: column; gap: 12px; margin-top: 10px; margin-bottom: 10px;">

@@ -852,7 +852,6 @@
             <?= view('partials/_view_pajak') ?>
             <?= view('partials/_view_schedule') ?>
             <?= view('partials/_view_skema_shift') ?>
-            <?= view('partials/_view_system_settings') ?>
 
             <!-- Section: Simulasi Gaji -->
             <div id="viewSimulasi" class="view-section">

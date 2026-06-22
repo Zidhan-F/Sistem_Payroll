@@ -731,7 +731,6 @@ window.simpanPilihanSkema = async function() {
             compensation_scheme_id: compSchemeId || (generalExisting ? generalExisting.compensation_scheme_id : null),
             pay_date: isModal ? (parseInt(document.getElementById('modalPilihanSkemaPayDate').value, 10) || null) : (generalExisting ? generalExisting.pay_date : null),
             cutoff_start: isModal ? (parseInt(document.getElementById('modalPilihanSkemaCutoffStart').value, 10) || null) : (generalExisting ? generalExisting.cutoff_start : null),
-            
             // Add org hierarchy based on selected level
             division_id: (level !== 'general' && divId) ? divId : null,
             department_id: ((level === 'departemen' || level === 'posisi') && deptId) ? deptId : null,
@@ -872,6 +871,8 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     // Set default values for cutoff and payday to empty
     document.getElementById('modalPilihanSkemaCutoffStart').value = '';
     document.getElementById('modalPilihanSkemaPayDate').value = '';
+
+
     
     // No extra cutoff inputs to reset
 
