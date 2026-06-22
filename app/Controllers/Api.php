@@ -120,7 +120,56 @@ class Api extends ResourceController
             }
         }
 
+        // 2. Check if there are any payrolls on hold (PKWT)
+        $holdPayrolls = $this->db->table('payroll_final')
+                                 ->select('payroll_final.*, pkwt.employee_name, clients.nama as client_name, clients.sektor as client_sektor, payroll_periods.nama as period_name')
+                                 ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
+                                 ->join('clients', 'clients.id = pkwt.client_id')
+                                 ->join('payroll_periods', 'payroll_periods.id = payroll_final.period_id')
+                                 ->where('payroll_final.status_approval', 'Hold')
+                                 ->get()
+                                 ->getResultArray();
+                                 
+        foreach ($holdPayrolls as $hp) {
+            $notifications[] = [
+                'id' => 'payroll_hold_' . $hp['id'],
+                'type' => 'error',
+                'title' => 'Gaji Ditunda (Hold)',
+                'message' => "Gaji karyawan <strong>" . esc($hp['employee_name']) . "</strong> (Klien: " . esc($hp['client_name']) . ") pada periode " . esc($hp['period_name']) . " ditunda karena terdapat ketidakhadiran (absen) di hari kerja sebelum cut-off.",
+                'link' => 'process',
+                'client_id' => intval($hp['client_id']),
+                'client_name' => $hp['client_name'],
+                'client_sektor' => $hp['client_sektor']
+            ];
+        }
 
+        // 3. Check if there are any payrolls on hold (Legacy / Regular)
+        $holdPayrollsLegacy = $this->db->table('payrolls')
+                                       ->select('payrolls.*, employees.nama as employee_name, clients.nama as client_name, clients.sektor as client_sektor, clients.id as client_id')
+                                       ->join('employees', 'employees.id = payrolls.employee_id')
+                                       ->join('clients', 'clients.id = employees.client_id')
+                                       ->where('payrolls.status_pembayaran', 'Hold')
+                                       ->get()
+                                       ->getResultArray();
+                                       
+        foreach ($holdPayrollsLegacy as $hp) {
+            $monthsWord = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+                7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+            ];
+            $pName = ($monthsWord[intval($hp['bulan'])] ?? '') . ' ' . $hp['tahun'];
+            
+            $notifications[] = [
+                'id' => 'payroll_hold_legacy_' . $hp['id'],
+                'type' => 'error',
+                'title' => 'Gaji Ditunda (Hold)',
+                'message' => "Gaji karyawan <strong>" . esc($hp['employee_name']) . "</strong> (Klien: " . esc($hp['client_name']) . ") pada periode " . esc($pName) . " ditunda karena terdapat ketidakhadiran (absen) di hari kerja sebelum cut-off.",
+                'link' => 'process',
+                'client_id' => intval($hp['client_id']),
+                'client_name' => $hp['client_name'],
+                'client_sektor' => $hp['client_sektor']
+            ];
+        }
 
         return $this->respond([
             'status' => 200,
@@ -2965,19 +3014,14 @@ class Api extends ResourceController
                     if ($cutoffEnd < 1) $cutoffEnd = 31;
                 }
 
-                $bulan_start = intval($period->bulan);
-                $tahun_start = intval($period->tahun);
-                $bulan_end = $bulan_start;
-                $tahun_end = $tahun_start;
-                if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
-                    $bulan_start -= 1;
-                    if ($bulan_start < 1) {
-                        $bulan_start = 12;
-                        $tahun_start -= 1;
-                    }
+                $prevMonth = intval($period->bulan) - 1;
+                $prevYear = intval($period->tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
                 }
-                $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
-                $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+                $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+                $endDateStr = date('Y-m-t', strtotime($startDateStr));
 
                 $effectiveStartDateStr = !empty($employee->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($employee->tgl_masuk))) : $startDateStr;
 
@@ -3244,29 +3288,33 @@ class Api extends ResourceController
                 if ($cutoffEnd < 1) $cutoffEnd = 31;
             }
 
+            // Check if employee is on hold due to absence in days before cutoff
+            $holdPayroll = false;
             $tYear = intval($period->tahun);
             $tMonth = intval($period->bulan);
-            $daysInThisPeriodMonth = date('t', mktime(0, 0, 0, $tMonth, 1, $tYear));
-            
-            if ($cutoffStart <= 1) {
-                $cutoffEndDay = $daysInThisPeriodMonth;
-            } else {
-                $cutoffEndDay = min($cutoffEnd, $daysInThisPeriodMonth);
-            }
-
-            $cutoffEndDateStr = sprintf('%04d-%02d-%02d', $tYear, $tMonth, $cutoffEndDay);
-
-            $bulan_start = $tMonth;
-            $tahun_start = $tYear;
-            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
-                $bulan_start -= 1;
-                if ($bulan_start < 1) {
-                    $bulan_start = 12;
-                    $tahun_start -= 1;
+            if ($cutoffStart > 1) {
+                $remainingStartDate = sprintf('%04d-%02d-01', $tYear, $tMonth);
+                $remainingEndDate = sprintf('%04d-%02d-%02d', $tYear, $tMonth, $cutoffStart - 1);
+                
+                $absentCountRemaining = $this->db->table('attendance_logs')
+                    ->where('employee_id', $emp->id)
+                    ->where('tanggal >=', $remainingStartDate)
+                    ->where('tanggal <=', $remainingEndDate)
+                    ->where('status', 'Absen')
+                    ->countAllResults();
+                if ($absentCountRemaining > 0) {
+                    $holdPayroll = true;
                 }
             }
-            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
-            $endDateStr = $cutoffEndDateStr;
+
+            $prevMonth = $tMonth - 1;
+            $prevYear = $tYear;
+            if ($prevMonth == 0) {
+                $prevMonth = 12;
+                $prevYear--;
+            }
+            $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+            $endDateStr = date('Y-m-t', strtotime($startDateStr));
 
             // Reset old rapel flags for this employee in the current period range
             if ($emp) {
@@ -3608,7 +3656,7 @@ class Api extends ResourceController
                     'total_pendapatan' => 0.0,
                     'total_potongan' => 0.0,
                     'take_home_pay' => 0.0,
-                    'status_approval' => 'Pending',
+                    'status_approval' => $holdPayroll ? 'Hold' : 'Pending',
                     'bpjs_kes_karyawan' => 0.0,
                     'bpjs_kes_perusahaan' => 0.0,
                     'bpjs_jht_karyawan' => 0.0,
@@ -4079,7 +4127,7 @@ class Api extends ResourceController
                 'total_pendapatan' => $totalPendapatan,
                 'total_potongan' => $totalPotongan,
                 'take_home_pay' => $thp,
-                'status_approval' => 'Pending',
+                'status_approval' => $holdPayroll ? 'Hold' : 'Pending',
                 'bpjs_kes_karyawan' => $calc['bpjs_kes_karyawan'],
                 'bpjs_kes_perusahaan' => $calc['bpjs_kes_perusahaan'],
                 'bpjs_jht_karyawan' => $calc['bpjs_jht_karyawan'],
@@ -6521,19 +6569,14 @@ class Api extends ResourceController
                 if ($cutoffEnd < 1) $cutoffEnd = 31;
             }
 
-            $bulan_start = intval($period->bulan);
-            $tahun_start = intval($period->tahun);
-            $bulan_end = $bulan_start;
-            $tahun_end = $tahun_start;
-            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
-                $bulan_start -= 1;
-                if ($bulan_start < 1) {
-                    $bulan_start = 12;
-                    $tahun_start -= 1;
-                }
+            $prevMonth = intval($period->bulan) - 1;
+            $prevYear = intval($period->tahun);
+            if ($prevMonth == 0) {
+                $prevMonth = 12;
+                $prevYear--;
             }
-            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
-            $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+            $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+            $endDateStr = date('Y-m-t', strtotime($startDateStr));
 
             $effectiveStartDateStr = !empty($emp->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $startDateStr;
 
@@ -6676,19 +6719,14 @@ class Api extends ResourceController
                 if ($cutoffEnd < 1) $cutoffEnd = 31;
             }
 
-            $bulan_start = intval($period->bulan);
-            $tahun_start = intval($period->tahun);
-            $bulan_end = $bulan_start;
-            $tahun_end = $tahun_start;
-            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
-                $bulan_start -= 1;
-                if ($bulan_start < 1) {
-                    $bulan_start = 12;
-                    $tahun_start -= 1;
-                }
+            $prevMonth = intval($period->bulan) - 1;
+            $prevYear = intval($period->tahun);
+            if ($prevMonth == 0) {
+                $prevMonth = 12;
+                $prevYear--;
             }
-            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
-            $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+            $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+            $endDateStr = date('Y-m-t', strtotime($startDateStr));
 
             $effectiveStartDateStr = !empty($emp->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $startDateStr;
 

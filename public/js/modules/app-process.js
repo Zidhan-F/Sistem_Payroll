@@ -225,9 +225,9 @@ async function renderReviewGajiTable() {
             tbody.innerHTML = data.map(row => `
                 <tr>
                     <td style="text-align: center; vertical-align: middle;">
-                        <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" ${row.status_approval === 'Approved' ? 'disabled checked' : ''} style="transform: scale(1.2); cursor: pointer;">
+                        <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" ${(row.status_approval === 'Approved' || row.status_approval === 'Hold') ? 'disabled' : ''} ${row.status_approval === 'Approved' ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
                     </td>
-                    <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
+                    <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen sebelum cut-off)</span>' : ''}</td>
                     <td>${row.division_name || '-'}</td>
                     <td>${row.department_name || '-'}</td>
                     <td>${row.position_name || '-'}</td>
@@ -235,7 +235,7 @@ async function renderReviewGajiTable() {
                     <td>${formatRupiah(row.total_pendapatan)}</td>
                     <td>${formatRupiah(row.total_potongan)}</td>
                     <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
-                    <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : 'warning'}">${row.status_approval}</span></td>
+                    <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : (row.status_approval === 'Hold' ? 'danger' : 'warning')}">${row.status_approval}</span></td>
                     <td>
                         <div style="display:flex; gap:6px; align-items:center;">
                             <button class="btn-icon btn-neutral" onclick="bukaSlipGaji(${row.id})" title="View Salary Slip / Details" style="width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>

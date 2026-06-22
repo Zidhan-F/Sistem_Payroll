@@ -65,22 +65,14 @@ class Payroll extends ResourceController
         $cutoffStartDay = $payrollConfig ? intval($payrollConfig->cutoff_start) : 21;
         $cutoffEndDay = $payrollConfig ? intval($payrollConfig->cutoff_end) : 20;
 
-        if ($cutoffStartDay <= 1) {
-            $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
-            $endDateStr = date('Y-m-t', strtotime($startDateStr));
-        } else {
-            $bulan_start = intval($bulan);
-            $tahun_start = intval($tahun);
-            if ($cutoffStartDay > $cutoffEndDay) {
-                $bulan_start--;
-                if ($bulan_start == 0) {
-                    $bulan_start = 12;
-                    $tahun_start--;
-                }
-            }
-            $startDateStr = sprintf('%d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStartDay);
-            $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $cutoffEndDay);
+        $prevMonth = intval($bulan) - 1;
+        $prevYear = intval($tahun);
+        if ($prevMonth == 0) {
+            $prevMonth = 12;
+            $prevYear--;
         }
+        $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+        $endDateStr = date('Y-m-t', strtotime($startDateStr));
 
         $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
 
@@ -134,54 +126,14 @@ class Payroll extends ResourceController
             $daysInMonth = date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun)));
             
             $resolveComponentDates = function($config, $component) use ($db, $bulan, $tahun, $daysInMonth) {
-                $startField = "cutoff_{$component}_start";
-                $endField = "cutoff_{$component}_end";
-                $refField = "cutoff_{$component}_schedule_ref";
-                
-                $start = ($config && isset($config->$startField)) ? intval($config->$startField) : null;
-                $end = ($config && isset($config->$endField)) ? intval($config->$endField) : null;
-                $refId = ($config && isset($config->$refField)) ? intval($config->$refField) : null;
-                
-                if ($refId) {
-                    $sched = $db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
-                    if ($sched) {
-                        $start = intval($sched->cutoff_start);
-                        $end = intval($sched->cutoff_end);
-                    }
+                $prevMonth = intval($bulan) - 1;
+                $prevYear = intval($tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
                 }
-                
-                if ($start === null) {
-                    if ($component === 'gaji_pokok' && $config && isset($config->cutoff_start)) {
-                        $start = intval($config->cutoff_start);
-                    } else {
-                        $start = 21;
-                    }
-                }
-                if ($end === null) {
-                    if ($component === 'gaji_pokok' && $config && isset($config->cutoff_end)) {
-                        $end = intval($config->cutoff_end);
-                    } else {
-                        $end = $start - 1;
-                        if ($end < 1) $end = 31;
-                    }
-                }
-                
-                if ($start <= 1) {
-                    $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
-                    $endDateStr = date('Y-m-t', strtotime($startDateStr));
-                } else {
-                    $bulan_start = intval($bulan);
-                    $tahun_start = intval($tahun);
-                    if ($start > $end) {
-                        $bulan_start--;
-                        if ($bulan_start == 0) {
-                            $bulan_start = 12;
-                            $tahun_start--;
-                        }
-                    }
-                    $startDateStr = sprintf('%d-%02d-%02d', $tahun_start, $bulan_start, $start);
-                    $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $end);
-                }
+                $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+                $endDateStr = date('Y-m-t', strtotime($startDateStr));
                 return [$startDateStr, $endDateStr];
             };
 
@@ -389,54 +341,14 @@ class Payroll extends ResourceController
         }
 
         $resolveComponentDates = function($config, $component) use ($db, $bulan, $tahun, $daysInMonth) {
-            $startField = "cutoff_{$component}_start";
-            $endField = "cutoff_{$component}_end";
-            $refField = "cutoff_{$component}_schedule_ref";
-            
-            $start = ($config && isset($config->$startField)) ? intval($config->$startField) : null;
-            $end = ($config && isset($config->$endField)) ? intval($config->$endField) : null;
-            $refId = ($config && isset($config->$refField)) ? intval($config->$refField) : null;
-            
-            if ($refId) {
-                $sched = $db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
-                if ($sched) {
-                    $start = intval($sched->cutoff_start);
-                    $end = intval($sched->cutoff_end);
-                }
+            $prevMonth = intval($bulan) - 1;
+            $prevYear = intval($tahun);
+            if ($prevMonth == 0) {
+                $prevMonth = 12;
+                $prevYear--;
             }
-            
-            if ($start === null) {
-                if ($component === 'gaji_pokok' && $config && isset($config->cutoff_start)) {
-                    $start = intval($config->cutoff_start);
-                } else {
-                    $start = 21;
-                }
-            }
-            if ($end === null) {
-                if ($component === 'gaji_pokok' && $config && isset($config->cutoff_end)) {
-                    $end = intval($config->cutoff_end);
-                } else {
-                    $end = $start - 1;
-                    if ($end < 1) $end = 31;
-                }
-            }
-            
-            if ($start <= 1) {
-                $startDateStr = sprintf('%d-%02d-01', $tahun, $bulan);
-                $endDateStr = date('Y-m-t', strtotime($startDateStr));
-            } else {
-                $bulan_start = intval($bulan);
-                $tahun_start = intval($tahun);
-                if ($start > $end) {
-                    $bulan_start--;
-                    if ($bulan_start == 0) {
-                        $bulan_start = 12;
-                        $tahun_start--;
-                    }
-                }
-                $startDateStr = sprintf('%d-%02d-%02d', $tahun_start, $bulan_start, $start);
-                $endDateStr = sprintf('%d-%02d-%02d', $tahun, $bulan, $end);
-            }
+            $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+            $endDateStr = date('Y-m-t', strtotime($startDateStr));
             return [$startDateStr, $endDateStr];
         };
 
@@ -1022,6 +934,27 @@ class Payroll extends ResourceController
                     $db->table('payrolls')->where('id', $existingPayroll->id)->delete();
                 }
 
+                // Check if employee is on hold due to absence in days before cutoff
+                $holdPayroll = false;
+                $gpStartVal = 21; // default
+                if ($empConfig && isset($empConfig->cutoff_start)) {
+                    $gpStartVal = intval($empConfig->cutoff_start);
+                }
+                if ($gpStartVal > 1) {
+                    $remainingStartDate = sprintf('%04d-%02d-01', $tahun, $bulan);
+                    $remainingEndDate = sprintf('%04d-%02d-%02d', $tahun, $bulan, $gpStartVal - 1);
+                    
+                    $absentCountRemaining = $db->table('attendance_logs')
+                        ->where('employee_id', $emp['id'])
+                        ->where('tanggal >=', $remainingStartDate)
+                        ->where('tanggal <=', $remainingEndDate)
+                        ->where('status', 'Absen')
+                        ->countAllResults();
+                    if ($absentCountRemaining > 0) {
+                        $holdPayroll = true;
+                    }
+                }
+
                 // Insert a record in the payrolls table with 0.0 values
                 $payrollData = [
                     'employee_id' => $emp['id'],
@@ -1031,7 +964,7 @@ class Payroll extends ResourceController
                     'total_tunjangan' => 0.0,
                     'total_potongan' => 0.0,
                     'take_home_pay' => 0.0,
-                    'status_pembayaran' => 'Pending'
+                    'status_pembayaran' => $holdPayroll ? 'Hold' : 'Pending'
                 ];
                 $this->model->insert($payrollData);
 
@@ -2017,6 +1950,27 @@ class Payroll extends ResourceController
                     ]);
             }
 
+            // Check if employee is on hold due to absence in days before cutoff
+            $holdPayroll = false;
+            $gpStartVal = 21; // default
+            if ($empConfig && isset($empConfig->cutoff_start)) {
+                $gpStartVal = intval($empConfig->cutoff_start);
+            }
+            if ($gpStartVal > 1) {
+                $remainingStartDate = sprintf('%04d-%02d-01', $tahun, $bulan);
+                $remainingEndDate = sprintf('%04d-%02d-%02d', $tahun, $bulan, $gpStartVal - 1);
+                
+                $absentCountRemaining = $db->table('attendance_logs')
+                    ->where('employee_id', $emp['id'])
+                    ->where('tanggal >=', $remainingStartDate)
+                    ->where('tanggal <=', $remainingEndDate)
+                    ->where('status', 'Absen')
+                    ->countAllResults();
+                if ($absentCountRemaining > 0) {
+                    $holdPayroll = true;
+                }
+            }
+
             // Simpan Payroll Utama
             $payrollData = [
                 'employee_id' => $emp['id'],
@@ -2026,7 +1980,7 @@ class Payroll extends ResourceController
                 'total_tunjangan' => $totalTunjangan,
                 'total_potongan' => $totalPotongan,
                 'take_home_pay' => $thp,
-                'status_pembayaran' => 'Waiting Approval',
+                'status_pembayaran' => $holdPayroll ? 'Hold' : 'Waiting Approval',
                 'potongan_absen' => $potonganAlpa,
                 'jam_lembur' => isset($dk['lembur']) ? $dk['lembur'] : 0,
                 'lembur_pay' => $overtimePay,
