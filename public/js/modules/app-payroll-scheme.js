@@ -111,6 +111,7 @@ async function renderPayrollSchemes() {
                 grace_period_late: parseInt(document.getElementById('skemaGraceLate').value) || 0,
                 grace_period_early: parseInt(document.getElementById('skemaGraceEarly').value) || 0,
                 min_overtime: parseInt(document.getElementById('skemaMinOvertime').value) || 30,
+                max_early_arrival_minutes: parseInt(document.getElementById('skemaMaxEarlyArrivalMinutes').value) || 180,
                 denda_terlambat_per_jam: parseFormattedNumber(document.getElementById('skemaDendaTerlambatPerJam').value) || 0,
                 denda_alfa_per_hari: parseFormattedNumber(document.getElementById('skemaDendaAlfaPerHari').value) || 0,
                 overtime_type: overtimeType,
@@ -180,6 +181,7 @@ async function bukaModalSkema(mode, id = null) {
             document.getElementById('skemaGraceLate').value = s.grace_period_late || 0;
             document.getElementById('skemaGraceEarly').value = s.grace_period_early || 0;
             document.getElementById('skemaMinOvertime').value = s.min_overtime || 30;
+            document.getElementById('skemaMaxEarlyArrivalMinutes').value = s.max_early_arrival_minutes !== undefined && s.max_early_arrival_minutes !== null ? s.max_early_arrival_minutes : 180;
             document.getElementById('skemaDendaTerlambatPerJam').value = formatRupiah(s.denda_terlambat_per_jam || 0);
             document.getElementById('skemaDendaAlfaPerHari').value = formatRupiah(s.denda_alfa_per_hari || 0);
 
@@ -289,6 +291,7 @@ async function bukaModalSkema(mode, id = null) {
         document.getElementById('skemaGraceLate').value = 0;
         document.getElementById('skemaGraceEarly').value = 0;
         document.getElementById('skemaMinOvertime').value = 30;
+        document.getElementById('skemaMaxEarlyArrivalMinutes').value = 180;
         document.getElementById('skemaDendaTerlambatPerJam').value = '0';
         document.getElementById('skemaDendaAlfaPerHari').value = '0';
         document.getElementById('skemaSumber').value = 'nominal';

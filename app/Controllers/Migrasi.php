@@ -106,6 +106,27 @@ class Migrasi extends BaseController
                 ALTER TABLE client_payroll_configs ADD $col $definition");
         }
 
+        // Client specific payroll parameters
+        $clientParamCols = [
+            'overtime_divisor'             => 'INT DEFAULT 173 NULL',
+            'standard_work_days'           => 'INT DEFAULT 22 NULL',
+            'standard_work_hours'          => 'INT DEFAULT 8 NULL',
+            'max_overtime_regular'         => 'INT DEFAULT 3 NULL',
+            'overtime_multiplier_workday'  => 'DECIMAL(5,2) DEFAULT 1.50 NULL',
+            'overtime_multiplier_holiday'  => 'DECIMAL(5,2) DEFAULT 2.00 NULL',
+            'minimum_overtime_minutes'     => 'INT DEFAULT 30 NULL',
+            'early_arrival_enabled'        => 'TINYINT DEFAULT 1 NULL',
+            'max_early_arrival_minutes'    => 'INT DEFAULT 180 NULL'
+        ];
+        foreach ($clientParamCols as $col => $definition) {
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('client_payroll_configs') AND name = '$col')
+                ALTER TABLE client_payroll_configs ADD $col $definition");
+        }
+
+        // Add max_early_arrival_minutes to payroll_schemes if not exists
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = 'max_early_arrival_minutes')
+            ALTER TABLE payroll_schemes ADD max_early_arrival_minutes INT DEFAULT 180 NULL");
+
         // Populate defaults from existing cutoff_start / cutoff_end
         $db->query("UPDATE client_payroll_configs SET 
             cutoff_gaji_pokok_start = COALESCE(cutoff_gaji_pokok_start, cutoff_start, 21),

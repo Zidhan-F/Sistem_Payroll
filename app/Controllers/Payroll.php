@@ -462,11 +462,7 @@ class Payroll extends ResourceController
 
         // Fetch overtime divisor setting
         $db = \Config\Database::connect();
-        $otDivisorRow = $db->table('system_settings')->where('setting_key', 'overtime_divisor')->get()->getRow();
-        $overtimeDivisor = $otDivisorRow ? floatval($otDivisorRow->setting_value) : 160.0;
-        if ($overtimeDivisor <= 0) {
-            $overtimeDivisor = 160.0;
-        }
+        $overtimeDivisor = ($payrollConfig && isset($payrollConfig->overtime_divisor) && intval($payrollConfig->overtime_divisor) > 0) ? intval($payrollConfig->overtime_divisor) : 173.0;
 
         // Check for any Pending overtime logs for this client's employees in their respective cutoff periods
         $pendingOvertimeCount = 0;
@@ -919,14 +915,13 @@ class Payroll extends ResourceController
                 $defaultDays = 22;
             }
 
-            // Standar hari kerja per bulan (default dari system_settings, fallback 22, or override per employee)
-            $standardDaysRow = $db->table('system_settings')->where('setting_key', 'standard_work_days')->get()->getRow();
-            $systemStandardDays = $standardDaysRow ? intval($standardDaysRow->setting_value) : $defaultDays;
+            // Standar hari kerja per bulan (default dari client config, fallback 22/26, or override per employee)
+            $systemStandardDays = ($empConfig && isset($empConfig->standard_work_days) && intval($empConfig->standard_work_days) > 0) ? intval($empConfig->standard_work_days) : $defaultDays;
             $standardDays = isset($emp['custom_standard_days']) && intval($emp['custom_standard_days']) > 0 
                 ? intval($emp['custom_standard_days']) 
-                : $defaultDays;
+                : $systemStandardDays;
             if ($standardDays <= 0) {
-                $standardDays = $defaultDays;
+                $standardDays = $systemStandardDays;
             }
 
             if ($isNewHireRapel) {
@@ -1028,14 +1023,8 @@ class Payroll extends ResourceController
                 continue; // Skip the rest of the loop!
             }
 
-            // Overtime divisor (5 days = 40 hours, 6 days = 48 hours, 7 days = 56 hours)
-            if ($workDaysConfig === 7) {
-                $standardHours = 56.0;
-            } elseif ($workDaysConfig === 6) {
-                $standardHours = 48.0;
-            } else {
-                $standardHours = 40.0;
-            }
+            // Overtime divisor (use client config if set, otherwise fallback to 173)
+            $standardHours = ($empConfig && isset($empConfig->overtime_divisor) && intval($empConfig->overtime_divisor) > 0) ? intval($empConfig->overtime_divisor) : 173;
 
             // Resolve Nominal Lembur Bulanan (contains "Lembur" or "Overtime" in name)
             $nominalLemburBulanan = 0.0;
@@ -1181,14 +1170,46 @@ class Payroll extends ResourceController
                         }
 
                         if ($isHoliday) {
-                            // Lembur Hari Libur: tiered calculation
-                            if ($jam <= 6) {
-                                $lemburLibur += $jam * 2 * $upahPerJam;
-                            } elseif ($jam == 7) {
-                                $lemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam);
-                            } else {
-                                $lemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam) + (($jam - 7) * 4 * $upahPerJam);
+                            // Determine working days per week for holiday multiplier bracket
+                            $workDaysPerWeek = 5;
+                            if ($emp) {
+                                $posHkOt = intval($emp['hari_kerja'] ?? 5);
+                                if ($posHkOt < 1) {
+                                    $posId = $emp['position_id'] ?? null;
+                                    if ($posId) {
+                                        $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
+                                        if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
+                                            $posHkOt = intval($pos->hari_kerja);
+                                        }
+                                    }
+                                }
+                                if ($posHkOt == 6) {
+                                    $workDaysPerWeek = 6;
+                                }
                             }
+
+                            if ($workDaysPerWeek == 6) {
+                                // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4
+                                $batasAwal = 7.0;
+                            } else {
+                                // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10+ x4
+                                $batasAwal = 8.0;
+                            }
+
+                            $jamKonversi = 0.0;
+                            if ($jam <= $batasAwal) {
+                                $jamKonversi += $jam * 2.0;
+                            } else {
+                                $jamKonversi += $batasAwal * 2.0;
+                                $sisa = $jam - $batasAwal;
+                                if ($sisa <= 1.0) {
+                                    $jamKonversi += $sisa * 3.0;
+                                } else {
+                                    $jamKonversi += 1.0 * 3.0;
+                                    $jamKonversi += ($sisa - 1.0) * 4.0;
+                                }
+                            }
+                            $lemburLibur += $jamKonversi * $upahPerJam;
                         } else {
                             // Lembur Reguler: dual bucket (max 3 jam/hari)
                             $jam = min($jam, 3);
@@ -1213,18 +1234,81 @@ class Payroll extends ResourceController
                 $overtimePay = $lemburReguler + $lemburLibur;
             }
 
-            // Potongan Absen — berdasarkan attendance_logs berdasarkan cutoff period
+            // Potongan Absen — berdasarkan looping harian untuk mendeteksi alpa otomatis
+            $currTime = strtotime($empStartDateStr);
+            $endTime = strtotime($empEndDateStr);
             $absenCount = 0;
-            $absenLogs = $db->table('attendance_logs')
-                ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $empStartDateStr)
-                ->where('log_date <=', $empEndDateStr)
-                ->where('status', 'Absen')
-                ->get()->getResultArray();
-            $absenCount = count($absenLogs);
 
-            // Backward compatible: gunakan data alpa dari form jika attendance_logs kosong
-            if ($absenCount === 0 && isset($dk['alpa']) && intval($dk['alpa']) > 0) {
+            // Fetch all attendance logs for this employee in the period to optimize
+            $attLogs = $db->table('attendance_logs')
+                           ->where('employee_id', $emp['id'])
+                           ->where('log_date >=', $empStartDateStr)
+                           ->where('log_date <=', $empEndDateStr)
+                           ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                           ->get()->getResultArray();
+                           
+            $logsByDate = [];
+            foreach ($attLogs as $alog) {
+                $logsByDate[$alog['log_date']] = $alog;
+            }
+
+            // Determine workDaysConfig
+            $workDaysConfig = 5; // default
+            if ($emp) {
+                $workDaysConfig = intval($emp['hari_kerja'] ?? 5);
+                if ($workDaysConfig < 1) {
+                    $posId = $emp['position_id'] ?? null;
+                    if ($posId) {
+                        $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
+                        if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
+                            $workDaysConfig = intval($pos->hari_kerja);
+                        }
+                    }
+                }
+            }
+
+            while ($currTime <= $endTime) {
+                $currDateStr = date('Y-m-d', $currTime);
+                $dayOfWeek = intval(date('w', $currTime)); // 0 = Sunday, 6 = Saturday
+                
+                // Skip dates before employee's join date
+                $joinDate = !empty($emp['tgl_masuk']) ? $emp['tgl_masuk'] : ($emp['start_contract'] ?? null);
+                if (!empty($joinDate) && strtotime($currDateStr) < strtotime($joinDate)) {
+                    $currTime = strtotime('+1 day', $currTime);
+                    continue;
+                }
+
+                // Determine if it is a working day
+                $isWorkingDay = false;
+                if ($workDaysConfig === 5) {
+                    $isWorkingDay = ($dayOfWeek !== 0 && $dayOfWeek !== 6);
+                } elseif ($workDaysConfig === 6) {
+                    $isWorkingDay = ($dayOfWeek !== 0);
+                } else {
+                    $isWorkingDay = true;
+                }
+                
+                if ($isWorkingDay) {
+                    if (!isset($logsByDate[$currDateStr])) {
+                        $absenCount++;
+                    } else {
+                        $logStatus = $logsByDate[$currDateStr]['status'] ?? 'Hadir';
+                        if ($logStatus === 'Absen') {
+                            $absenCount++;
+                        }
+                    }
+                }
+                
+                $currTime = strtotime('+1 day', $currTime);
+            }
+
+            // Backward compatible: gunakan data alpa dari form jika data absensi kosong sama sekali dan user menginput alpa manual
+            $hasAnyLogsDb = $db->table('attendance_logs')
+                               ->where('employee_id', $emp['id'])
+                               ->where('log_date >=', $empStartDateStr)
+                               ->where('log_date <=', $empEndDateStr)
+                               ->countAllResults();
+            if ($hasAnyLogsDb === 0 && $absenCount === 0 && isset($dk['alpa']) && intval($dk['alpa']) > 0) {
                 $absenCount = intval($dk['alpa']);
             }
             $dk['alpa'] = $absenCount;

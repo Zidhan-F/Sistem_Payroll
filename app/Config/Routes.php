@@ -135,11 +135,6 @@ $routes->group('api', function($routes) {
     $routes->post('holidays/sync', 'Api::syncGoogleHolidays');
     $routes->put('holidays/(:num)', 'Api::updateHoliday/$1');
     $routes->delete('holidays/(:num)', 'Api::deleteHoliday/$1');
-
-    // System Settings
-    $routes->get('settings', 'Api::getSettings');
-    $routes->post('settings', 'Api::saveSettings');
-
     // Employees
 });
 $routes->get('login', 'Home::login');

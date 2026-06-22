@@ -350,6 +350,7 @@ class Api extends ResourceController
             'grace_period_late' => isset($requestData['grace_period_late']) ? intval($requestData['grace_period_late']) : 0,
             'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0,
             'min_overtime' => isset($requestData['min_overtime']) ? intval($requestData['min_overtime']) : 30,
+            'max_early_arrival_minutes' => isset($requestData['max_early_arrival_minutes']) ? intval($requestData['max_early_arrival_minutes']) : 180,
             'denda_terlambat_per_jam' => isset($requestData['denda_terlambat_per_jam']) ? floatval($requestData['denda_terlambat_per_jam']) : 0,
             'denda_alfa_per_hari' => isset($requestData['denda_alfa_per_hari']) ? floatval($requestData['denda_alfa_per_hari']) : 0,
             'early_leave_threshold' => isset($requestData['early_leave_threshold']) ? intval($requestData['early_leave_threshold']) : 0,
@@ -416,6 +417,7 @@ class Api extends ResourceController
             'grace_period_late' => isset($requestData['grace_period_late']) ? intval($requestData['grace_period_late']) : 0,
             'grace_period_early' => isset($requestData['grace_period_early']) ? intval($requestData['grace_period_early']) : 0,
             'min_overtime' => isset($requestData['min_overtime']) ? intval($requestData['min_overtime']) : 30,
+            'max_early_arrival_minutes' => isset($requestData['max_early_arrival_minutes']) ? intval($requestData['max_early_arrival_minutes']) : 180,
             'denda_terlambat_per_jam' => isset($requestData['denda_terlambat_per_jam']) ? floatval($requestData['denda_terlambat_per_jam']) : 0,
             'denda_alfa_per_hari' => isset($requestData['denda_alfa_per_hari']) ? floatval($requestData['denda_alfa_per_hari']) : 0,
             'early_leave_threshold' => isset($requestData['early_leave_threshold']) ? intval($requestData['early_leave_threshold']) : 0,
@@ -2333,13 +2335,18 @@ class Api extends ResourceController
     {
         $db = \Config\Database::connect();
 
-        // 1. Get global settings
-        $companySetting = $db->table('company_payroll_setting')->get()->getRowArray();
-        $enabled = $companySetting ? intval($companySetting['early_arrival_enabled']) : 1;
-        $maxMinutes = $companySetting ? intval($companySetting['max_early_arrival_minutes']) : 180;
+        // 1. Resolve employee's payroll scheme and get max early arrival limit
+        $clientConfig = $this->resolveClientConfigForEmployee($employeeId);
+        $maxMinutes = 180; // Default fallback
+        if ($clientConfig && !empty($clientConfig->payroll_scheme_id)) {
+            $payrollScheme = $db->table('payroll_schemes')->where('id', $clientConfig->payroll_scheme_id)->get()->getRow();
+            if ($payrollScheme && isset($payrollScheme->max_early_arrival_minutes)) {
+                $maxMinutes = intval($payrollScheme->max_early_arrival_minutes);
+            }
+        }
 
-        // If disabled, delete any existing early arrival log for this attendance
-        if (!$enabled) {
+        // If early arrival is disabled (maxMinutes <= 0), delete any existing early arrival log for this attendance
+        if ($maxMinutes <= 0) {
             $db->table('early_arrival')->where('attendance_id', $attendanceId)->delete();
             return;
         }
@@ -3006,14 +3013,73 @@ class Api extends ResourceController
                 $lemburSum = $lemburBiasa + $lemburLibur;
 
 
-                // 3. Query total alpa (Absen)
-                $alpaCount = $this->db->table('attendance_logs')
-                                      ->where('employee_id', $employee->id)
-                                      ->where('log_date >=', $startDateStr)
-                                      ->where('log_date <=', $endDateStr)
-                                      ->where('status', 'Absen')
-                                      ->where('(is_rapel = 0 OR is_rapel IS NULL)')
-                                      ->countAllResults();
+                // 3. Loop daily logs to determine alpaCount automatically
+                $currTime = strtotime($startDateStr);
+                $endTime = strtotime($endDateStr);
+                $alpaCount = 0;
+                
+                // Fetch all attendance logs for this employee in the period to optimize
+                $attLogs = $this->db->table('attendance_logs')
+                                    ->where('employee_id', $employee->id)
+                                    ->where('log_date >=', $startDateStr)
+                                    ->where('log_date <=', $endDateStr)
+                                    ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                    ->get()->getResultArray();
+                                    
+                $logsByDate = [];
+                foreach ($attLogs as $log) {
+                    $logsByDate[$log['log_date']] = $log;
+                }
+
+                // Determine workDaysConfig
+                $workDaysConfig = 5; // default
+                if ($employee) {
+                    $workDaysConfig = intval($employee->hari_kerja ?? 5);
+                    if ($workDaysConfig < 1) {
+                        $posId = $employee->position_id ?? null;
+                        if ($posId) {
+                            $pos = $this->db->table('positions')->where('id', $posId)->get()->getRow();
+                            if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
+                                $workDaysConfig = intval($pos->hari_kerja);
+                            }
+                        }
+                    }
+                }
+
+                while ($currTime <= $endTime) {
+                    $currDateStr = date('Y-m-d', $currTime);
+                    $dayOfWeek = intval(date('w', $currTime)); // 0 = Sunday, 6 = Saturday
+                    
+                    // Skip dates before employee's join date
+                    $joinDate = !empty($employee->tgl_masuk) ? $employee->tgl_masuk : ($employee->start_contract ?? null);
+                    if (!empty($joinDate) && strtotime($currDateStr) < strtotime($joinDate)) {
+                        $currTime = strtotime('+1 day', $currTime);
+                        continue;
+                    }
+
+                    // Determine if it is a working day
+                    $isWorkingDay = false;
+                    if ($workDaysConfig === 5) {
+                        $isWorkingDay = ($dayOfWeek !== 0 && $dayOfWeek !== 6);
+                    } elseif ($workDaysConfig === 6) {
+                        $isWorkingDay = ($dayOfWeek !== 0);
+                    } else {
+                        $isWorkingDay = true;
+                    }
+                    
+                    if ($isWorkingDay) {
+                        if (!isset($logsByDate[$currDateStr])) {
+                            $alpaCount++;
+                        } else {
+                            $logStatus = $logsByDate[$currDateStr]['status'] ?? 'Hadir';
+                            if ($logStatus === 'Absen') {
+                                $alpaCount++;
+                            }
+                        }
+                    }
+                    
+                    $currTime = strtotime('+1 day', $currTime);
+                }
 
                 // 4. Hitung potongan_absensi berdasarkan gaji pokok & hari_kerja config
                 $workDaysConfig = isset($employee->hari_kerja) ? intval($employee->hari_kerja) : 5;
@@ -3784,9 +3850,10 @@ class Api extends ResourceController
                     } elseif ($schemeOtRate > 0) {
                         $upahSejamLembur = $schemeOtRate;
                     } else {
-                        // Use formula: Gaji Pokok / 173 (PP 35/2021)
+                        // Use formula: Gaji Pokok / divisor (PP 35/2021)
+                        $otDivisor = ($clientConfig && isset($clientConfig->overtime_divisor) && intval($clientConfig->overtime_divisor) > 0) ? intval($clientConfig->overtime_divisor) : 173;
                         $gajiPokokForOt = ($unproratedGajiPokok > 0) ? $unproratedGajiPokok : $gajiPokok;
-                        $upahSejamLembur = ($gajiPokokForOt > 0) ? ($gajiPokokForOt / 173) : 0;
+                        $upahSejamLembur = ($gajiPokokForOt > 0) ? ($gajiPokokForOt / $otDivisor) : 0;
                     }
 
                     // Calculate converted hours with progressive multiplier
@@ -4476,7 +4543,8 @@ class Api extends ResourceController
                 // Calculate upah sejam for proportional split
                 $clientManualOtRateSlip = ($client && isset($client->overtime_rate_per_hour)) ? floatval($client->overtime_rate_per_hour) : 0;
                 $unproratedGpSlip = floatval($final['gaji_pokok'] ?? 0);
-                $upahSejamSlip = ($clientManualOtRateSlip > 0) ? $clientManualOtRateSlip : (($schemeOtRate > 0) ? $schemeOtRate : (($unproratedGpSlip > 0) ? ($unproratedGpSlip / 173) : 0));
+                $otDivisorSlip = ($clientConfig && isset($clientConfig->overtime_divisor) && intval($clientConfig->overtime_divisor) > 0) ? intval($clientConfig->overtime_divisor) : 173;
+                $upahSejamSlip = ($clientManualOtRateSlip > 0) ? $clientManualOtRateSlip : (($schemeOtRate > 0) ? $schemeOtRate : (($unproratedGpSlip > 0) ? ($unproratedGpSlip / $otDivisorSlip) : 0));
 
                 if ($jamLemburBiasa > 0) {
                     $konversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $wdPerWeekSlip);
@@ -5931,78 +5999,6 @@ class Api extends ResourceController
         }
         return $row;
     }
-
-    public function getSettings()
-    {
-        $settings = $this->db->table('system_settings')->get()->getResultArray();
-
-        // Get company payroll settings for early arrival
-        $companySetting = $this->db->table('company_payroll_setting')->get()->getRowArray();
-        if ($companySetting) {
-            $settings[] = [
-                'setting_key' => 'early_arrival_enabled',
-                'setting_value' => strval($companySetting['early_arrival_enabled']),
-                'updated_at' => $companySetting['updated_at'] ?? null
-            ];
-            $settings[] = [
-                'setting_key' => 'max_early_arrival_minutes',
-                'setting_value' => strval($companySetting['max_early_arrival_minutes']),
-                'updated_at' => $companySetting['updated_at'] ?? null
-            ];
-        }
-
-        return $this->respond($settings);
-    }
-
-    public function saveSettings()
-    {
-        $data = $this->request->getJSON(true);
-        if (!is_array($data)) {
-            return $this->fail('Invalid JSON data format');
-        }
-
-        $companySettingsUpdate = [];
-        $systemSettingsData = [];
-
-        foreach ($data as $key => $val) {
-            if ($key === 'early_arrival_enabled') {
-                $companySettingsUpdate['early_arrival_enabled'] = ($val === 'true' || $val === '1' || $val === true || $val === 1) ? 1 : 0;
-            } elseif ($key === 'max_early_arrival_minutes') {
-                $companySettingsUpdate['max_early_arrival_minutes'] = intval($val);
-            } else {
-                $systemSettingsData[$key] = $val;
-            }
-        }
-
-        if (!empty($companySettingsUpdate)) {
-            $companySettingsUpdate['updated_at'] = date('Y-m-d H:i:s');
-            $exists = $this->db->table('company_payroll_setting')->get()->getRow();
-            if ($exists) {
-                $this->db->table('company_payroll_setting')->update($companySettingsUpdate);
-            } else {
-                $this->db->table('company_payroll_setting')->insert($companySettingsUpdate);
-            }
-        }
-
-        foreach ($systemSettingsData as $key => $val) {
-            $exists = $this->db->table('system_settings')->where('setting_key', $key)->get()->getRow();
-            if ($exists) {
-                $this->db->table('system_settings')->where('setting_key', $key)->update([
-                    'setting_value' => strval($val),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
-            } else {
-                $this->db->table('system_settings')->insert([
-                    'setting_key' => $key,
-                    'setting_value' => strval($val)
-                ]);
-            }
-        }
-
-        $this->logActivity("Memperbarui konfigurasi sistem");
-        return $this->respond(['message' => 'Settings saved successfully']);
-    }
-
     // --- SHIFT SCHEMES ---
     public function getShiftSchemes()
     {
