@@ -4683,8 +4683,11 @@ class Api extends ResourceController
                 ];
             }
             
-            if (isset($final['potongan_absen']) && floatval($final['potongan_absen']) > 0) {
-                $deductions[] = ['nama' => 'Potongan Absen', 'nilai' => floatval($final['potongan_absen'])];
+            if (array_key_exists('potongan_absen', $final) && $final['potongan_absen'] !== null) {
+                $potonganAbsenDb = floatval($final['potongan_absen']);
+                if ($potonganAbsenDb > 0) {
+                    $deductions[] = ['nama' => 'Potongan Absen', 'nilai' => $potonganAbsenDb];
+                }
             } else if (!$isAbsenTidakPotong) {
                 $potongan_absen = floatval($att['potongan_absensi']);
                 if ($potongan_absen == 0) {
