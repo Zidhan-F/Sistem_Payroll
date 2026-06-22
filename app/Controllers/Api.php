@@ -2953,7 +2953,10 @@ class Api extends ResourceController
                 $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
                 
                 if ($cutoffStart <= 0) $cutoffStart = 1;
-                if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
+                if ($cutoffEnd <= 0) {
+                    $cutoffEnd = $cutoffStart - 1;
+                    if ($cutoffEnd < 1) $cutoffEnd = 31;
+                }
 
                 $bulan_start = intval($period->bulan);
                 $tahun_start = intval($period->tahun);
@@ -3169,7 +3172,10 @@ class Api extends ResourceController
             }
 
             if ($cutoffStart <= 0) $cutoffStart = 1;
-            if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
+            if ($cutoffEnd <= 0) {
+                $cutoffEnd = $cutoffStart - 1;
+                if ($cutoffEnd < 1) $cutoffEnd = 31;
+            }
 
             $tYear = intval($period->tahun);
             $tMonth = intval($period->bulan);
@@ -3224,9 +3230,11 @@ class Api extends ResourceController
                 $joinMonth = intval(date('n', $joinTs));
                 $joinDay = intval(date('j', $joinTs));
 
-                if ($joinYear === $tYear && $joinMonth === $tMonth) {
+                // Check if join date falls within the current period boundaries (startDateStr to endDateStr)
+                $joinDateStr2 = date('Y-m-d', $joinTs);
+                if ($joinDateStr2 >= $startDateStr && $joinDateStr2 <= $endDateStr) {
                     $isRapelGP = ($clientConfig && isset($clientConfig->is_rapel_gaji_pokok)) ? intval($clientConfig->is_rapel_gaji_pokok) : 1;
-                    if ($joinDay >= $cutoffStart && $isRapelGP === 1) {
+                    if ($joinYear === $tYear && $joinMonth === $tMonth && $joinDay >= $cutoffStart && $isRapelGP === 1) {
                         $isNewHireRapel = true;
                         
                         $nextMonth = $tMonth + 1;
@@ -3413,6 +3421,18 @@ class Api extends ResourceController
             if ($gajiPokok <= 0 && $emp && isset($emp->gaji_pokok)) {
                 $unproratedGajiPokok = floatval($emp->gaji_pokok);
                 $gajiPokok = $unproratedGajiPokok;
+            }
+
+            // Prorate basic salary if the employee is a new hire joining within this period
+            if (!$isNewHireRapel && $emp && !empty($emp->tgl_masuk)) {
+                $joinTs = strtotime($emp->tgl_masuk);
+                $joinDateStr = date('Y-m-d', $joinTs);
+                if ($joinDateStr >= $startDateStr && $joinDateStr <= $endDateStr) {
+                    $actualDaysWorked = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
+                    if ($actualDaysWorked < $stdWorkingDays && $stdWorkingDays > 0) {
+                        $gajiPokok = ($actualDaysWorked / $stdWorkingDays) * $gajiPokok;
+                    }
+                }
             }
 
             if ($isNewHireRapel) {
@@ -3658,9 +3678,12 @@ class Api extends ResourceController
                 
                 // Potongan Late dan Early Leave based on attendance_logs
                 $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 1;
-                $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : $daysInMonth;
+                $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : ($cutoffStart - 1 > 0 ? $cutoffStart - 1 : 31);
                 if ($cutoffStart === 0) $cutoffStart = 1;
-                if ($cutoffEnd === 0) $cutoffEnd = $daysInMonth;
+                if ($cutoffEnd === 0) {
+                    $cutoffEnd = $cutoffStart - 1;
+                    if ($cutoffEnd < 1) $cutoffEnd = 31;
+                }
 
                 $bulan_start = intval($period->bulan);
                 $tahun_start = intval($period->tahun);
@@ -5919,6 +5942,12 @@ class Api extends ResourceController
             if (!isset($row['status']) && isset($row['status_cutoff'])) {
                 $row['status'] = $row['status_cutoff'];
             }
+            // Calculate dynamic start_date and end_date from client cutoff config
+            if (isset($row['client_id'])) {
+                $dates = $this->calculatePeriodDates(intval($row['bulan']), intval($row['tahun']), $row['client_id']);
+                $row['start_date'] = $dates[0];
+                $row['end_date'] = $dates[1];
+            }
             return $row;
         } else if (is_object($row)) {
             if (empty($row->nama) && isset($row->bulan, $row->tahun)) {
@@ -5927,9 +5956,57 @@ class Api extends ResourceController
             if (!isset($row->status) && isset($row->status_cutoff)) {
                 $row->status = $row->status_cutoff;
             }
+            // Calculate dynamic start_date and end_date from client cutoff config
+            if (isset($row->client_id)) {
+                $dates = $this->calculatePeriodDates(intval($row->bulan), intval($row->tahun), $row->client_id);
+                $row->start_date = $dates[0];
+                $row->end_date = $dates[1];
+            }
             return $row;
         }
         return $row;
+    }
+
+    /**
+     * Calculate dynamic period start/end dates from client cutoff configuration.
+     * For cutoff_start=5 cutoff_end=4, period June 2026 = May 5 to June 4.
+     */
+    private function calculatePeriodDates($bulan, $tahun, $clientId)
+    {
+        $config = $this->db->table('client_payroll_configs')
+                           ->where('client_id', $clientId)
+                           ->where('division_id IS NULL')
+                           ->where('department_id IS NULL')
+                           ->where('position_id IS NULL')
+                           ->get()->getRow();
+        
+        $cutoffStart = ($config && isset($config->cutoff_start)) ? intval($config->cutoff_start) : 21;
+        $cutoffEnd = ($config && isset($config->cutoff_end)) ? intval($config->cutoff_end) : 20;
+        
+        if ($cutoffStart <= 0) $cutoffStart = 1;
+        if ($cutoffEnd <= 0) {
+            $cutoffEnd = $cutoffStart - 1;
+            if ($cutoffEnd < 1) $cutoffEnd = 31;
+        }
+
+        $tMonth = intval($bulan);
+        $tYear = intval($tahun);
+
+        $endDay = min($cutoffEnd, date('t', mktime(0, 0, 0, $tMonth, 1, $tYear)));
+        $endDateStr = sprintf('%04d-%02d-%02d', $tYear, $tMonth, $endDay);
+
+        $bulan_start = $tMonth;
+        $tahun_start = $tYear;
+        if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
+            $bulan_start--;
+            if ($bulan_start < 1) {
+                $bulan_start = 12;
+                $tahun_start--;
+            }
+        }
+        $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+        
+        return [$startDateStr, $endDateStr];
     }
 
     public function getSettings()
@@ -6188,7 +6265,10 @@ class Api extends ResourceController
             $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
 
             if ($cutoffStart <= 0) $cutoffStart = 1;
-            if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
+            if ($cutoffEnd <= 0) {
+                $cutoffEnd = $cutoffStart - 1;
+                if ($cutoffEnd < 1) $cutoffEnd = 31;
+            }
 
             $bulan_start = intval($period->bulan);
             $tahun_start = intval($period->tahun);
@@ -6340,7 +6420,10 @@ class Api extends ResourceController
             $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
             $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
             if ($cutoffStart <= 0) $cutoffStart = 21;
-            if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
+            if ($cutoffEnd <= 0) {
+                $cutoffEnd = $cutoffStart - 1;
+                if ($cutoffEnd < 1) $cutoffEnd = 31;
+            }
 
             $bulan_start = intval($period->bulan);
             $tahun_start = intval($period->tahun);
@@ -6490,7 +6573,10 @@ class Api extends ResourceController
             $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
             $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
             if ($cutoffStart <= 0) $cutoffStart = 21;
-            if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
+            if ($cutoffEnd <= 0) {
+                $cutoffEnd = $cutoffStart - 1;
+                if ($cutoffEnd < 1) $cutoffEnd = 31;
+            }
 
             $bulan_start = intval($period->bulan);
             $tahun_start = intval($period->tahun);

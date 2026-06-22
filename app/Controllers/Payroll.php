@@ -607,7 +607,19 @@ class Payroll extends ResourceController
                 ->update([
                     'is_rapel' => 0,
                     'payout_period' => null
-                ]);
+                ]);            // Skip employee if they joined after the cutoff period end date
+            if (!empty($emp['tgl_masuk'])) {
+                $joinTs = strtotime($emp['tgl_masuk']);
+                $joinDateStr2 = date('Y-m-d', $joinTs);
+                if ($joinDateStr2 > $empEndDateStr) {
+                    $db->table('payrolls')
+                        ->where('employee_id', $emp['id'])
+                        ->where('bulan', $bulan)
+                        ->where('tahun', $tahun)
+                        ->delete();
+                    continue;
+                }
+            }
 
             // Logika Rapel Karyawan Baru
             $isNewHireRapel = false;
@@ -618,7 +630,9 @@ class Payroll extends ResourceController
                 $joinMonth = intval(date('n', $joinTs));
                 $joinDay = intval(date('j', $joinTs));
 
-                if ($joinYear === intval($tahun) && $joinMonth === intval($bulan)) {
+                // Check if join date falls within the current period boundaries
+                $joinDateStr2 = date('Y-m-d', $joinTs);
+                if ($joinDateStr2 >= $empStartDateStr && $joinDateStr2 <= $empEndDateStr) {
                     $isRapelGP = ($empConfig && isset($empConfig->is_rapel_gaji_pokok)) ? intval($empConfig->is_rapel_gaji_pokok) : 1;
                     
                     // Gaji pokok cutoff start
@@ -635,9 +649,7 @@ class Payroll extends ResourceController
                     }
                     
                     // Jika karyawan masuk pada/setelah tanggal cutoff, gajinya masuk ke bulan depan (rapel + prorate)
-                    // Contoh: cutoff = 5, join tanggal 5/6/7... → rapel ke bulan depan
-                    //         cutoff = 5, join tanggal 1/2/3/4 → masuk gaji bulan ini
-                    if ($joinDay >= $gpStartVal && $isRapelGP === 1) {
+                    if ($joinYear === intval($tahun) && $joinMonth === intval($bulan) && $joinDay >= $gpStartVal && $isRapelGP === 1) {
                         $isNewHireRapel = true;
                         
                         $nextMonth = intval($bulan) + 1;
@@ -649,7 +661,7 @@ class Payroll extends ResourceController
                         $nextPeriodStr = $nextMonth . '-' . $nextYear;
                     }
                 }
-                }
+            }
 
             // Resolve employee-specific minimum wage and UMP/UMK values
             $empMinimumWage = $minimumWage;
@@ -1099,6 +1111,17 @@ class Payroll extends ResourceController
                 $gajiProrata = $baseSalary;
             } else {
                 $gajiProrata = ($actualDaysWorked / $standardDays) * $baseSalary;
+            }
+
+            // Apply prorated basic salary if the employee is a new hire joining within this period
+            if (!empty($emp['tgl_masuk'])) {
+                $joinTs = strtotime($emp['tgl_masuk']);
+                $joinDateStr = date('Y-m-d', $joinTs);
+                if ($joinDateStr >= $empStartDateStr && $joinDateStr <= $empEndDateStr) {
+                    $baseSalary = $gajiProrata;
+                    $bpjsWageBase = $baseSalary;
+                    $pphWageBase = $baseSalary;
+                }
             }
 
             // Resolve payroll scheme if available for overtime type settings

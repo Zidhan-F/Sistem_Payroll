@@ -1348,6 +1348,13 @@ function processParsedAttendance(rows) {
             const dd = String(dateObj.getDate()).padStart(2, '0');
             const formattedDate = `${yyyy}-${mm}-${dd}`;
 
+            // Filter: skip rows outside the period's dynamic date range
+            if (activePeriod && activePeriod.start_date && activePeriod.end_date) {
+                if (formattedDate < activePeriod.start_date || formattedDate > activePeriod.end_date) {
+                    return; // Skip this row - outside period range
+                }
+            }
+
             // Determine final status - auto-detect Day Off for weekends without data
             const hasCheckin = row.checkin && row.checkin !== 'null';
             const hasCheckout = row.checkout && row.checkout !== 'null';
