@@ -65,7 +65,7 @@ class Ai extends ResourceController
         }
         if ($enableSearch) {
             $toolsArray[] = [
-                'googleSearch' => (object)[]
+                'google_search' => (object)[]
             ];
         }
         if (!empty($toolsArray)) {
@@ -385,7 +385,8 @@ class Ai extends ResourceController
             $systemInstruction = "Anda adalah 'AI Assistant', asisten AI internal Sistem Payroll yang ramah, profesional, cerdas, dan dapat bertindak mengeksekusi perintah.\n" .
                                  "Tugas Anda adalah membantu user (HR Manager/Admin) memahami data, fitur, serta menjalankan aksi/perintah di aplikasi.\n" .
                                  "Jika user meminta Anda untuk membuka menu, melihat klien, pindah tab, atau menjalankan payroll, pilih dan panggil tool/fungsi yang sesuai secara langsung.\n" .
-                                 "Jawab pertanyaan user menggunakan data konteks sistem di bawah ini. Jika ada pertanyaan spesifik tentang data di luar ini, sarankan user untuk mengecek menu terkait.\n\n" .
+                                 "Anda memiliki akses ke Google Search. Jika user menanyakan informasi luar/eksternal (seperti hari libur nasional, peraturan hukum ketenagakerjaan pemerintah Indonesia, perpajakan PPh, atau info UMP/UMK daerah terbaru, dll) yang tidak tersedia di dalam konteks sistem, gunakan fitur Google Search untuk mencari informasi terbaru di internet agar jawaban Anda akurat.\n" .
+                                 "Gunakan data konteks sistem di bawah ini untuk menjawab hal-hal yang berkaitan dengan sistem payroll internal:\n\n" .
                                  "INFORMASI SISTEM AKTIF:\n" .
                                  "- Total Perusahaan Mitra (Klien): {$totalClients}\n" .
                                  "- Total Karyawan Aktif: {$totalEmployees}\n" .
@@ -479,7 +480,7 @@ class Ai extends ResourceController
                 ]
             ];
 
-            $chatResult = $this->callGemini($chatPrompt, $systemInstruction, false, $tools);
+            $chatResult = $this->callGemini($chatPrompt, $systemInstruction, true, $tools);
 
             if (isset($chatResult['type']) && $chatResult['type'] === 'function_call') {
                 return $this->respond([
