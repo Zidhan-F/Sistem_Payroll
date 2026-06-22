@@ -2972,10 +2972,12 @@ class Api extends ResourceController
                 $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
                 $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
 
+                $effectiveStartDateStr = !empty($employee->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($employee->tgl_masuk))) : $startDateStr;
+
                 // 1. Query total hari_kerja (Hadir)
                 $hadirCount = $this->db->table('attendance_logs')
                                        ->where('employee_id', $employee->id)
-                                       ->where('log_date >=', $startDateStr)
+                                       ->where('log_date >=', $effectiveStartDateStr)
                                        ->where('log_date <=', $endDateStr)
                                        ->where('status', 'Hadir')
                                        ->where('(is_rapel = 0 OR is_rapel IS NULL)')
@@ -2986,7 +2988,7 @@ class Api extends ResourceController
                 $lemburBiasaObj = $this->db->table('overtime_logs')
                                          ->selectSum('jam_lembur')
                                          ->where('employee_id', $employee->id)
-                                         ->where('tanggal >=', $startDateStr)
+                                         ->where('tanggal >=', $effectiveStartDateStr)
                                          ->where('tanggal <=', $endDateStr)
                                          ->where('status', 'Approved')
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
@@ -2998,7 +3000,7 @@ class Api extends ResourceController
                 $lemburLiburObj = $this->db->table('overtime_logs')
                                          ->selectSum('jam_lembur')
                                          ->where('employee_id', $employee->id)
-                                         ->where('tanggal >=', $startDateStr)
+                                         ->where('tanggal >=', $effectiveStartDateStr)
                                          ->where('tanggal <=', $endDateStr)
                                          ->where('status', 'Approved')
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
@@ -3012,7 +3014,7 @@ class Api extends ResourceController
                 // 3. Query total alpa (Absen)
                 $alpaCount = $this->db->table('attendance_logs')
                                       ->where('employee_id', $employee->id)
-                                      ->where('log_date >=', $startDateStr)
+                                      ->where('log_date >=', $effectiveStartDateStr)
                                       ->where('log_date <=', $endDateStr)
                                       ->where('status', 'Absen')
                                       ->where('(is_rapel = 0 OR is_rapel IS NULL)')
@@ -3039,7 +3041,7 @@ class Api extends ResourceController
                 // Override values with DB calculated ones if we found daily logs
                 $hasAnyLogs = $this->db->table('attendance_logs')
                                        ->where('employee_id', $employee->id)
-                                       ->where('log_date >=', $startDateStr)
+                                       ->where('log_date >=', $effectiveStartDateStr)
                                        ->where('log_date <=', $endDateStr)
                                        ->countAllResults();
                 
@@ -3322,6 +3324,34 @@ class Api extends ResourceController
                 }
             }
             $stdWorkingDays = $this->getStandardWorkingDays(intval($period->tahun), intval($period->bulan), $workDaysConfig);
+
+            // Calculate expected working days since join date
+            $expectedWorkingDays = $stdWorkingDays;
+            $effectiveStartDateStr = $startDateStr;
+            if ($emp && !empty($emp->tgl_masuk)) {
+                $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
+                if ($joinDateStr >= $startDateStr && $joinDateStr <= $endDateStr) {
+                    $effectiveStartDateStr = $joinDateStr;
+                    // Calculate expected working days from join date to end date
+                    $expectedWorkingDays = 0;
+                    $startTs = strtotime($joinDateStr);
+                    $endTs = strtotime($endDateStr);
+                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+                        $dayOfWeek = date('w', $curr);
+                        if ($workDaysConfig === 5) {
+                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
+                                $expectedWorkingDays++;
+                            }
+                        } elseif ($workDaysConfig === 6) {
+                            if ($dayOfWeek != 0) {
+                                $expectedWorkingDays++;
+                            }
+                        } else {
+                            $expectedWorkingDays++;
+                        }
+                    }
+                }
+            }
             
             $minimumWage = 0;
             $mwId = null;
@@ -3428,9 +3458,8 @@ class Api extends ResourceController
                 $joinTs = strtotime($emp->tgl_masuk);
                 $joinDateStr = date('Y-m-d', $joinTs);
                 if ($joinDateStr >= $startDateStr && $joinDateStr <= $endDateStr) {
-                    $actualDaysWorked = ($att && isset($att->hari_kerja)) ? intval($att->hari_kerja) : 0;
-                    if ($actualDaysWorked < $stdWorkingDays && $stdWorkingDays > 0) {
-                        $gajiPokok = ($actualDaysWorked / $stdWorkingDays) * $gajiPokok;
+                    if ($expectedWorkingDays < $stdWorkingDays && $stdWorkingDays > 0) {
+                        $gajiPokok = ($expectedWorkingDays / $stdWorkingDays) * $gajiPokok;
                     }
                 }
             }
@@ -3657,10 +3686,11 @@ class Api extends ResourceController
             $earlyArrivalMinutes = 0;
             $earlyArrivalPay = 0.0;
             if ($att) {
+
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
                     if ($potongan_absen == 0) {
-                        $missingDays = max(0, $stdWorkingDays - intval($att->hari_kerja));
+                        $missingDays = max(0, $expectedWorkingDays - intval($att->hari_kerja));
                         if ($missingDays > 0) {
                             if ($isProrate) {
                                 // Pro-rate: potongan = Base Salary * (Hari Tidak Masuk / Hari Kerja Standard)
@@ -3705,7 +3735,7 @@ class Api extends ResourceController
                         ->selectSum('late_hours')
                         ->selectSum('early_leave_hours')
                         ->where('employee_id', $emp->id)
-                        ->where('log_date >=', $startDateStr)
+                        ->where('log_date >=', $effectiveStartDateStr)
                         ->where('log_date <=', $endDateStr)
                         ->get()->getRow();
                 }
@@ -3732,7 +3762,7 @@ class Api extends ResourceController
                     if ($emp && isset($emp->id)) {
                         $approvedEarlyArrivals = $this->db->table('early_arrival')
                             ->where('employee_id', $emp->id)
-                            ->where('date >=', $startDateStr)
+                            ->where('date >=', $effectiveStartDateStr)
                             ->where('date <=', $endDateStr)
                             ->where('status', 'APPROVED')
                             ->where('payroll_status', 'NOT_PROCESSED')
@@ -6439,10 +6469,12 @@ class Api extends ResourceController
             $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
             $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
 
+            $effectiveStartDateStr = !empty($emp->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $startDateStr;
+
             $lemburSumObj = $this->db->table('overtime_logs')
                                      ->selectSum('jam_lembur')
                                      ->where('employee_id', $emp->id)
-                                     ->where('tanggal >=', $startDateStr)
+                                     ->where('tanggal >=', $effectiveStartDateStr)
                                      ->where('tanggal <=', $endDateStr)
                                      ->where('status', 'Approved')
                                      ->where('(is_rapel = 0 OR is_rapel IS NULL)')
@@ -6452,7 +6484,7 @@ class Api extends ResourceController
             // Calculate actual present days from attendance_logs
             $actualHadir = $this->db->table('attendance_logs')
                                     ->where('employee_id', $emp->id)
-                                    ->where('log_date >=', $startDateStr)
+                                    ->where('log_date >=', $effectiveStartDateStr)
                                     ->where('log_date <=', $endDateStr)
                                     ->where('status', 'Hadir')
                                     ->where('(is_rapel = 0 OR is_rapel IS NULL)')
@@ -6462,7 +6494,7 @@ class Api extends ResourceController
             $hasAnyClientLogs = $this->db->table('attendance_logs')
                                          ->join('employees', 'employees.id = attendance_logs.employee_id')
                                          ->where('employees.client_id', $pkwt->client_id)
-                                         ->where('attendance_logs.log_date >=', $startDateStr)
+                                         ->where('attendance_logs.log_date >=', $effectiveStartDateStr)
                                          ->where('attendance_logs.log_date <=', $endDateStr)
                                          ->countAllResults();
 
@@ -6592,10 +6624,12 @@ class Api extends ResourceController
             $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
             $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
 
+            $effectiveStartDateStr = !empty($emp->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $startDateStr;
+
             $eaSumObj = $this->db->table('early_arrival')
                                  ->selectSum('eligible_minutes')
                                  ->where('employee_id', $emp->id)
-                                 ->where('date >=', $startDateStr)
+                                 ->where('date >=', $effectiveStartDateStr)
                                  ->where('date <=', $endDateStr)
                                  ->where('status', 'APPROVED')
                                  ->get()->getRow();

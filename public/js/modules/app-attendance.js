@@ -322,28 +322,114 @@ async function deleteAttendanceLog(id) {
     }
 }
 
-function downloadMainAbsensiTemplate() {
-    try {
-        const headers = [
-            {
-                'Employee ID': '',
-                'Nama': '',
-                'Tgl dan Hari': '',
-                'Shift': '',
-                'Jam Masuk': '',
-                'Jam Keluar': ''
-            }
-        ];
+async function downloadMainAbsensiTemplate() {
+    const clientId = document.getElementById('attendanceClientSelect')?.value;
+    const month = document.getElementById('attendanceMonthSelect')?.value;
+    const year = document.getElementById('attendanceYearSelect')?.value;
 
-        const worksheet = XLSX.utils.json_to_sheet(headers);
+    if (!clientId) {
+        showToast('Pilih client terlebih dahulu.', 'warning');
+        return;
+    }
+
+    showToast('Menyiapkan template absensi...', 'info');
+
+    try {
+        // 1. Get or create the period for this month & year
+        const resPeriods = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+        let periods = resPeriods.ok ? await resPeriods.json() : [];
+
+        let activePeriod = periods.find(p => parseInt(p.bulan) == parseInt(month) && parseInt(p.tahun) == parseInt(year));
+        if (!activePeriod) {
+            // Auto create period
+            const createRes = await fetch(`${API_URL}/periods`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    client_id: parseInt(clientId),
+                    bulan: parseInt(month),
+                    tahun: parseInt(year)
+                })
+            });
+            if (createRes.ok) {
+                const refetchRes = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+                periods = refetchRes.ok ? await refetchRes.json() : [];
+                activePeriod = periods.find(p => parseInt(p.bulan) == parseInt(month) && parseInt(p.tahun) == parseInt(year));
+            }
+        }
+
+        if (!activePeriod) {
+            showToast('Gagal memuat atau membuat periode payroll.', 'error');
+            return;
+        }
+
+        // 2. Fetch employees for this period
+        const resEmp = await fetch(`${API_URL}/attendance/${activePeriod.id}?client_id=${clientId}`);
+        if (!resEmp.ok) throw new Error('HTTP ' + resEmp.status);
+        const employees = await resEmp.json();
+
+        if (employees.length === 0) {
+            showToast('Tidak ada karyawan aktif untuk membuat template.', 'warning');
+            return;
+        }
+
+        // 3. Generate template
+        const mVal = parseInt(activePeriod.bulan);
+        const yVal = parseInt(activePeriod.tahun);
+        const daysInMonth = new Date(yVal, mVal, 0).getDate();
+        
+        const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        const templateData = [];
+
+        employees.forEach(emp => {
+            const empId = emp.employ_id || emp.nik || '';
+            const empName = emp.employee_name || '';
+            const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateObj = new Date(yVal, mVal - 1, d);
+                const dayOfWeek = dateObj.getDay();
+                const dateStr = `${yVal}-${String(mVal).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const dayName = dayNames[dayOfWeek];
+                const tglHariStr = `${dateStr} ${dayName}`;
+
+                let jamMasuk = '08:00';
+                let jamKeluar = '17:00';
+
+                // Determine if it is a rest day
+                let isRestDay = false;
+                if (workDaysConfig === 5) {
+                    isRestDay = (dayOfWeek === 0 || dayOfWeek === 6); // Sat, Sun
+                } else if (workDaysConfig === 6) {
+                    isRestDay = (dayOfWeek === 0); // Sun
+                }
+
+                if (isRestDay) {
+                    jamMasuk = '';
+                    jamKeluar = '';
+                }
+
+                templateData.push({
+                    'Employee ID': empId,
+                    'Nama': empName,
+                    'Tgl dan Hari': tglHariStr,
+                    'Shift': '',
+                    'Jam Masuk': jamMasuk,
+                    'Jam Keluar': jamKeluar,
+                    'Status': isRestDay ? 'Off' : 'Hadir'
+                });
+            }
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(templateData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Template");
         
         // Auto-fit column widths
-        const max_widths = [15, 25, 20, 15, 12, 12];
+        const max_widths = [15, 25, 20, 12, 12, 12, 12];
         worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
 
-        const filename = `Attendance_Template_Blank.xlsx`;
+        const filename = `Attendance_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
         XLSX.writeFile(workbook, filename);
         showToast('Template berhasil didownload!', 'success');
     } catch (err) {

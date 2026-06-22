@@ -105,6 +105,10 @@ class Employee extends ResourceController
         unset($data['umr_tipe']);
         unset($data['custom_nominal']);
 
+        if (!empty($data['start_contract'])) {
+            $data['tgl_masuk'] = $data['start_contract'];
+        }
+
         // Auto-generate employ_id: {tahun_kontrak}{urutan_5digit}
         $contractYear = date('Y');
         if (!empty($data['start_contract'])) {
@@ -239,6 +243,10 @@ class Employee extends ResourceController
         
         unset($data['umr_tipe']);
         unset($data['custom_nominal']);
+
+        if (!empty($data['start_contract'])) {
+            $data['tgl_masuk'] = $data['start_contract'];
+        }
 
         if ($this->model->update($id, $data)) {
             

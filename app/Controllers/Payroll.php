@@ -204,10 +204,13 @@ class Payroll extends ResourceController
                 }
             }
 
+            $effectiveStartDateStr = !empty($emp['tgl_masuk']) ? max($empStartDateStr, date('Y-m-d', strtotime($emp['tgl_masuk']))) : $empStartDateStr;
+            $effectiveLemburStartDateStr = !empty($emp['tgl_masuk']) ? max($empLemburStartDateStr, date('Y-m-d', strtotime($emp['tgl_masuk']))) : $empLemburStartDateStr;
+
             // Hadir
             $hadirStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('log_date >=', $empStartDateStr)
+                             ->where('log_date >=', $effectiveStartDateStr)
                              ->where('log_date <=', $empEndDateStr)
                              ->where('status', 'Hadir')
                              ->where('(is_rapel = 0 OR is_rapel IS NULL)')
@@ -225,7 +228,7 @@ class Payroll extends ResourceController
             // Sakit/Izin/Cuti
             $sakitStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('log_date >=', $empStartDateStr)
+                             ->where('log_date >=', $effectiveStartDateStr)
                              ->where('log_date <=', $empEndDateStr)
                              ->groupStart()
                                  ->where('status', 'Sakit')
@@ -251,7 +254,7 @@ class Payroll extends ResourceController
             // Absen/Alpa
             $alpaStd = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('log_date >=', $empStartDateStr)
+                             ->where('log_date >=', $effectiveStartDateStr)
                              ->where('log_date <=', $empEndDateStr)
                              ->where('status', 'Absen')
                              ->where('(is_rapel = 0 OR is_rapel IS NULL)')
@@ -269,7 +272,7 @@ class Payroll extends ResourceController
             // Late & Early Leave (hours sum)
             $lateSumObj = $db->table('attendance_logs')
                              ->where('employee_id', $emp['id'])
-                             ->where('log_date >=', $empStartDateStr)
+                             ->where('log_date >=', $effectiveStartDateStr)
                              ->where('log_date <=', $empEndDateStr)
                              ->selectSum('late_hours')
                              ->get()->getRow();
@@ -277,7 +280,7 @@ class Payroll extends ResourceController
 
             $earlySumObj = $db->table('attendance_logs')
                               ->where('employee_id', $emp['id'])
-                              ->where('log_date >=', $empStartDateStr)
+                              ->where('log_date >=', $effectiveStartDateStr)
                               ->where('log_date <=', $empEndDateStr)
                               ->selectSum('early_leave_hours')
                               ->get()->getRow();
@@ -286,7 +289,7 @@ class Payroll extends ResourceController
             // Lembur (hours sum) - ONLY APPROVED
             $lemburStdSum = $db->table('overtime_logs')
                              ->where('overtime_logs.employee_id', $emp['id'])
-                             ->where('overtime_logs.tanggal >=', $empLemburStartDateStr)
+                             ->where('overtime_logs.tanggal >=', $effectiveLemburStartDateStr)
                              ->where('overtime_logs.tanggal <=', $empLemburEndDateStr)
                              ->where('overtime_logs.status', 'Approved')
                              ->selectSum('overtime_logs.jam_lembur')
@@ -1080,10 +1083,13 @@ class Payroll extends ResourceController
             $bpjsWageBase = $baseSalary;
             $pphWageBase = $baseSalary;
 
+            $effectiveStartDateStr = !empty($emp['tgl_masuk']) ? max($empStartDateStr, date('Y-m-d', strtotime($emp['tgl_masuk']))) : $empStartDateStr;
+            $effectiveLemburStartDateStr = !empty($emp['tgl_masuk']) ? max($empLemburStartDateStr, date('Y-m-d', strtotime($emp['tgl_masuk']))) : $empLemburStartDateStr;
+
             // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs berdasarkan cutoff period
             $attendanceLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date >=', $effectiveStartDateStr)
                 ->where('log_date <=', $empEndDateStr)
                 ->where('status', 'Hadir')
                 ->get()->getResultArray();
@@ -1092,7 +1098,7 @@ class Payroll extends ResourceController
             // Query approved overtime logs for this employee in the cutoff range (excluding rapel)
             $overtimeLogs = $db->table('overtime_logs')
                 ->where('overtime_logs.employee_id', $emp['id'])
-                ->where('overtime_logs.tanggal >=', $empLemburStartDateStr)
+                ->where('overtime_logs.tanggal >=', $effectiveLemburStartDateStr)
                 ->where('overtime_logs.tanggal <=', $empLemburEndDateStr)
                 ->where('overtime_logs.status', 'Approved')
                 ->join('attendance_logs', 'attendance_logs.employee_id = overtime_logs.employee_id AND attendance_logs.log_date = overtime_logs.tanggal', 'left')
@@ -1240,7 +1246,7 @@ class Payroll extends ResourceController
             $absenCount = 0;
             $absenLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date >=', $effectiveStartDateStr)
                 ->where('log_date <=', $empEndDateStr)
                 ->where('status', 'Absen')
                 ->get()->getResultArray();
@@ -1256,7 +1262,7 @@ class Payroll extends ResourceController
             // Hitung jumlah hari tidak masuk: alfa + early leave dihitung alfa
             $earlyLeaveAlfaDays = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date >=', $effectiveStartDateStr)
                 ->where('log_date <=', $empEndDateStr)
                 ->where('is_early_leave_alfa', 1)
                 ->countAllResults();
@@ -1292,7 +1298,7 @@ class Payroll extends ResourceController
                 ->selectSum('denda_terlambat')
                 ->selectSum('late_penalty_hours')
                 ->where('employee_id', $emp['id'])
-                ->where('log_date >=', $empStartDateStr)
+                ->where('log_date >=', $effectiveStartDateStr)
                 ->where('log_date <=', $empEndDateStr)
                 ->get()->getRow();
 

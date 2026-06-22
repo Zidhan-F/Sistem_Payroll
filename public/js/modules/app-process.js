@@ -25,9 +25,22 @@ async function loadActivePeriod() {
         }
         
         if (periods.length > 0) {
-            const hasCurrentPeriod = periods.some(p => p.id == currentPeriodId);
-            let activePeriod = periods.find(p => p.id == currentPeriodId);
-            if (!currentPeriodId || !hasCurrentPeriod) {
+            let activePeriod = null;
+            
+            // Try to match selected month/year first
+            if (monthSelect && yearSelect) {
+                const selMonth = parseInt(monthSelect.value);
+                const selYear = parseInt(yearSelect.value);
+                activePeriod = periods.find(p => parseInt(p.bulan) === selMonth && parseInt(p.tahun) === selYear);
+            }
+            
+            // Otherwise try currentPeriodId
+            if (!activePeriod && currentPeriodId) {
+                activePeriod = periods.find(p => p.id == currentPeriodId);
+            }
+            
+            // Fallback to the first period
+            if (!activePeriod) {
                 activePeriod = periods[0];
             }
             
@@ -101,12 +114,14 @@ function onProcessPeriodChange() {
         document.getElementById('prosesActions').style.display = 'none';
         document.getElementById('prosesEmptyState').style.display = 'block';
         
-        // Update the empty state message dynamically to guide the user
         const emptyStateText = document.querySelector('#prosesEmptyState p');
         if (emptyStateText) {
             const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
             const monthName = monthNames[selectedMonth - 1] || '';
-            emptyStateText.innerHTML = `Periode <strong>${monthName} ${selectedYear}</strong> belum dibuka untuk client ini. Silakan klik tombol <strong>'Open New Period'</strong> di sub-menu Attendance untuk membuka periode baru.`;
+            emptyStateText.innerHTML = `Periode <strong>${monthName} ${selectedYear}</strong> belum dibuka untuk client ini.<br><br>
+            <button type="button" onclick="bukaModalPeriode()" class="btn-save" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; border: none; color: white; transition: background 0.2s;">
+                <i class="fas fa-plus-circle"></i> Buka Periode Baru
+            </button>`;
         }
         
         if (document.getElementById('resultSection')) document.getElementById('resultSection').style.display = 'none';
@@ -748,15 +763,26 @@ function bukaModalPeriode() {
     document.getElementById('modalPeriode').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
     
-    // Set default month and year in the form to current month and year
+    // Set default month and year in the form based on current process selection if available, otherwise current date
     const d = new Date();
-    const currentMonth = d.getMonth() + 1; // 1-12
-    const currentYear = d.getFullYear();
+    let currentMonth = d.getMonth() + 1; // 1-12
+    let currentYear = d.getFullYear();
+
+    const processMonthSelect = document.getElementById('processMonthSelect');
+    const processYearSelect = document.getElementById('processYearSelect');
+    if (processMonthSelect && processMonthSelect.value) {
+        currentMonth = parseInt(processMonthSelect.value);
+    }
+    if (processYearSelect && processYearSelect.value) {
+        currentYear = parseInt(processYearSelect.value);
+    }
     
     const monthSelect = document.getElementById('periodMonth');
     const yearInput = document.getElementById('periodYear');
     if (monthSelect) monthSelect.value = currentMonth;
     if (yearInput) yearInput.value = currentYear;
+
+    loadActivePeriod();
 }
 window.bukaModalPeriode = bukaModalPeriode;
 
@@ -833,6 +859,7 @@ async function bukaModalUploadAbsensi() {
     document.getElementById('uploadAbsensiLogs').innerHTML = 'Waiting for file...';
     parsedAttendanceData = [];
     parsedDailyLogs = [];
+    window.modalUploadResolvedPeriodId = null;
     
     const saveBtn = document.getElementById('btnSaveUploadedAbsensi');
     if (saveBtn) {
@@ -840,6 +867,25 @@ async function bukaModalUploadAbsensi() {
         saveBtn.style.cursor = 'not-allowed';
         saveBtn.style.opacity = '0.5';
     }
+
+    // Populate Year dropdown
+    const yearSelect = document.getElementById('modalUploadAbsensiTahun');
+    const currentYear = new Date().getFullYear();
+    yearSelect.innerHTML = '';
+    for (let y = currentYear - 2; y <= currentYear + 2; y++) {
+        yearSelect.innerHTML += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
+    }
+
+    // Set current month
+    const monthSelect = document.getElementById('modalUploadAbsensiBulan');
+    const currentMonth = new Date().getMonth() + 1;
+    monthSelect.value = currentMonth;
+
+    // Check main page selectors for pre-selected month/year
+    const mainMonth = document.getElementById('attendanceMonthSelect')?.value;
+    const mainYear = document.getElementById('attendanceYearSelect')?.value;
+    if (mainMonth) monthSelect.value = parseInt(mainMonth);
+    if (mainYear) yearSelect.value = parseInt(mainYear);
 
     // Load clients
     try {
@@ -890,8 +936,6 @@ async function bukaModalUploadAbsensi() {
             } else {
                 clientSelect.disabled = false;
                 clientSelect.value = '';
-                document.getElementById('modalUploadAbsensiPeriod').innerHTML = '<option value="" disabled selected hidden>-- Select Client First --</option>';
-                document.getElementById('modalUploadAbsensiPeriod').disabled = true;
             }
         }
     } catch (e) {
@@ -907,11 +951,12 @@ function tutupModalUploadAbsensi() {
 
 async function onAbsensiClientChanged() {
     const clientId = document.getElementById('modalUploadAbsensiClient').value;
-    const periodSelect = document.getElementById('modalUploadAbsensiPeriod');
+    const bulan = document.getElementById('modalUploadAbsensiBulan').value;
+    const tahun = document.getElementById('modalUploadAbsensiTahun').value;
     
-    if (!clientId) {
-        periodSelect.innerHTML = '<option value="" disabled selected hidden>-- Select Client First --</option>';
-        periodSelect.disabled = true;
+    if (!clientId || !bulan || !tahun) {
+        window.currentPeriodAttendance = [];
+        window.modalUploadResolvedPeriodId = null;
         return;
     }
 
@@ -920,110 +965,72 @@ async function onAbsensiClientChanged() {
     }
     window.isCheckingPeriods = true;
 
-    periodSelect.innerHTML = '<option value="" disabled selected hidden>Loading periods...</option>';
-    periodSelect.disabled = true;
+    const logsDiv = document.getElementById('uploadAbsensiLogs');
+    if (logsDiv && logsDiv.parentElement) {
+        logsDiv.parentElement.style.display = 'none';
+    }
+    logsDiv.innerHTML = 'Loading employees...\n';
 
     try {
+        // Auto-create period if it doesn't exist
         const res = await fetch(`${API_URL}/periods?client_id=${clientId}`);
         let periods = res.ok ? await res.json() : [];
 
-        // Check if the main page's selected month & year exists in the periods
-        const mainMonth = document.getElementById('attendanceMonthSelect')?.value;
-        const mainYear = document.getElementById('attendanceYearSelect')?.value;
-        
-        if (mainMonth && mainYear) {
-            const hasMatchedPeriod = periods.some(p => parseInt(p.bulan) == parseInt(mainMonth) && parseInt(p.tahun) == parseInt(mainYear));
-            if (!hasMatchedPeriod) {
-                // Period does not exist yet. Let's create it automatically!
-                const createRes = await fetch(`${API_URL}/periods`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        client_id: parseInt(clientId),
-                        bulan: parseInt(mainMonth),
-                        tahun: parseInt(mainYear)
-                    })
-                });
-                if (createRes.ok) {
-                    // Refetch the periods list
-                    const refetchRes = await fetch(`${API_URL}/periods?client_id=${clientId}`);
-                    periods = refetchRes.ok ? await refetchRes.json() : [];
-                }
+        let matchedPeriod = periods.find(p => parseInt(p.bulan) == parseInt(bulan) && parseInt(p.tahun) == parseInt(tahun));
+        if (!matchedPeriod) {
+            const createRes = await fetch(`${API_URL}/periods`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    client_id: parseInt(clientId),
+                    bulan: parseInt(bulan),
+                    tahun: parseInt(tahun)
+                })
+            });
+            if (createRes.ok) {
+                const refetchRes = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+                periods = refetchRes.ok ? await refetchRes.json() : [];
+                matchedPeriod = periods.find(p => parseInt(p.bulan) == parseInt(bulan) && parseInt(p.tahun) == parseInt(tahun));
             }
         }
 
         window.modalUploadPeriods = periods;
+        window.modalUploadResolvedPeriodId = matchedPeriod ? matchedPeriod.id : null;
 
-        if (periods.length === 0) {
-            periodSelect.innerHTML = '<option value="">No periods available</option>';
+        if (!matchedPeriod) {
+            logsDiv.innerHTML += 'Warning: Could not find or create period.\n';
             window.isCheckingPeriods = false;
             return;
         }
 
-        periodSelect.innerHTML = '<option value="" disabled selected hidden>-- Select Period --</option>' + periods.map(p => `
-            <option value="${p.id}">${p.nama} (${p.status})</option>
-        `).join('');
-        periodSelect.disabled = false;
-
-        // Auto-select active period if it matches
-        if (typeof currentPeriodId !== 'undefined' && currentPeriodId && periods.some(p => p.id == currentPeriodId)) {
-            periodSelect.value = currentPeriodId;
-            onAbsensiPeriodChanged();
-        } else {
-            if (mainMonth && mainYear) {
-                const matchedPeriod = periods.find(p => parseInt(p.bulan) == parseInt(mainMonth) && parseInt(p.tahun) == parseInt(mainYear));
-                if (matchedPeriod) {
-                    periodSelect.value = matchedPeriod.id;
-                    onAbsensiPeriodChanged();
-                }
-            }
-        }
+        // Load employees for this period
+        const periodId = matchedPeriod.id;
+        logsDiv.innerHTML += `Period resolved (ID: ${periodId}). Fetching employees...\n`;
+        const empRes = await fetch(`${API_URL}/attendance/${periodId}?client_id=${clientId}`);
+        if (!empRes.ok) throw new Error('HTTP ' + empRes.status);
+        const data = await empRes.json();
+        window.currentPeriodAttendance = data;
+        logsDiv.innerHTML += `Loaded ${data.length} active employees.\nReady to select attendance Excel file.\n`;
     } catch (e) {
         console.error(e);
-        periodSelect.innerHTML = '<option value="" disabled selected hidden>Error loading periods</option>';
+        logsDiv.innerHTML += `Error: ${e.message || e}\n`;
     } finally {
         window.isCheckingPeriods = false;
     }
 }
 
-async function onAbsensiPeriodChanged() {
-    const clientId = document.getElementById('modalUploadAbsensiClient').value;
-    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
-    const logsDiv = document.getElementById('uploadAbsensiLogs');
-    
-    if (!clientId || !periodId) {
-        window.currentPeriodAttendance = [];
-        return;
-    }
-
-    if (logsDiv && logsDiv.parentElement) {
-        logsDiv.parentElement.style.display = 'none';
-    }
-    logsDiv.innerHTML = "Fetching active employees for this period...\n";
-    try {
-        const res = await fetch(`${API_URL}/attendance/${periodId}?client_id=${clientId}`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        window.currentPeriodAttendance = data;
-        logsDiv.innerHTML += `Loaded ${data.length} active employees from database.\nReady to select attendance Excel file.\n`;
-    } catch (e) {
-        console.error(e);
-        logsDiv.innerHTML += `Error loading employee roster: ${e.message || e}\n`;
-    }
+// Keep as stub for backward compatibility
+function onAbsensiPeriodChanged() {
+    // No-op: period is now auto-resolved from month/year
 }
 
 function downloadAbsensiTemplate() {
     const clientId = document.getElementById('modalUploadAbsensiClient').value;
-    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
+    const bulan = document.getElementById('modalUploadAbsensiBulan').value;
+    const tahun = document.getElementById('modalUploadAbsensiTahun').value;
 
-    if (!clientId || !periodId) {
-        showToast('Please select Client and Period first.', 'warning');
-        return;
-    }
-
-    const activePeriod = window.modalUploadPeriods?.find(p => p.id == periodId);
-    if (!activePeriod) {
-        showToast('Period details not found.', 'error');
+    if (!clientId || !bulan || !tahun) {
+        showToast('Pilih Client, Bulan dan Tahun terlebih dahulu.', 'warning');
         return;
     }
 
@@ -1033,11 +1040,12 @@ function downloadAbsensiTemplate() {
         return;
     }
 
-    const month = parseInt(activePeriod.bulan);
-    const year = parseInt(activePeriod.tahun);
+    const month = parseInt(bulan);
+    const year = parseInt(tahun);
     const daysInMonth = new Date(year, month, 0).getDate();
     
     const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const bulanNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const templateData = [];
 
     employees.forEach(emp => {
@@ -1054,28 +1062,27 @@ function downloadAbsensiTemplate() {
 
             let jamMasuk = '08:00';
             let jamKeluar = '17:00';
-            let status = 'Hadir';
 
-            // Determine if it is a rest day
             let isRestDay = false;
             if (workDaysConfig === 5) {
-                isRestDay = (dayOfWeek === 0 || dayOfWeek === 6); // Sat, Sun
+                isRestDay = (dayOfWeek === 0 || dayOfWeek === 6);
             } else if (workDaysConfig === 6) {
-                isRestDay = (dayOfWeek === 0); // Sun
+                isRestDay = (dayOfWeek === 0);
             }
 
             if (isRestDay) {
                 jamMasuk = '';
                 jamKeluar = '';
-                status = 'Off';
             }
 
             templateData.push({
                 'Employee ID': empId,
                 'Nama': empName,
                 'Tgl dan Hari': tglHariStr,
+                'Shift': '',
                 'Jam Masuk': jamMasuk,
-                'Jam Keluar': jamKeluar
+                'Jam Keluar': jamKeluar,
+                'Status': isRestDay ? 'Off' : 'Hadir'
             });
         }
     });
@@ -1084,11 +1091,10 @@ function downloadAbsensiTemplate() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Template");
     
-    // Auto-fit column widths
-    const max_widths = [15, 25, 20, 12, 12];
+    const max_widths = [15, 25, 20, 12, 12, 12, 12];
     worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
 
-    const filename = `Attendance_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
+    const filename = `Attendance_Template_${bulanNames[month]}_${year}.xlsx`;
     XLSX.writeFile(workbook, filename);
     showToast('Template downloaded successfully!', 'success');
 }
@@ -1148,9 +1154,10 @@ function parseAttendanceExcelDate(val) {
 
 function processAbsensiFile(file) {
     const clientId = document.getElementById('modalUploadAbsensiClient').value;
-    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
-    if (!clientId || !periodId) {
-        showToast('Please select Client and Period first before selecting file.', 'warning');
+    const bulan = document.getElementById('modalUploadAbsensiBulan').value;
+    const tahun = document.getElementById('modalUploadAbsensiTahun').value;
+    if (!clientId || !bulan || !tahun) {
+        showToast('Pilih Client, Bulan dan Tahun terlebih dahulu.', 'warning');
         return;
     }
 
@@ -1199,9 +1206,11 @@ function handleAbsensiFileSelect(event) {
 }
 
 function processParsedAttendance(rows) {
-    const periodId = document.getElementById('modalUploadAbsensiPeriod').value;
-    const activePeriod = (window.modalUploadPeriods || []).find(p => p.id == periodId);
-    const payoutPeriodStr = activePeriod ? `${activePeriod.bulan}-${activePeriod.tahun}` : '';
+    const bulan = document.getElementById('modalUploadAbsensiBulan').value;
+    const tahun = document.getElementById('modalUploadAbsensiTahun').value;
+    const periodId = window.modalUploadResolvedPeriodId;
+    const activePeriod = periodId ? (window.modalUploadPeriods || []).find(p => p.id == periodId) : null;
+    const payoutPeriodStr = bulan && tahun ? `${bulan}-${tahun}` : '';
     const logsDiv = document.getElementById('uploadAbsensiLogs');
     const employees = window.currentPeriodAttendance || [];
     if (employees.length === 0) {
@@ -1348,10 +1357,12 @@ function processParsedAttendance(rows) {
             const dd = String(dateObj.getDate()).padStart(2, '0');
             const formattedDate = `${yyyy}-${mm}-${dd}`;
 
-            // Filter: skip rows outside the period's dynamic date range
-            if (activePeriod && activePeriod.start_date && activePeriod.end_date) {
-                if (formattedDate < activePeriod.start_date || formattedDate > activePeriod.end_date) {
-                    return; // Skip this row - outside period range
+            // Filter: skip rows outside the selected calendar month
+            if (bulan && tahun) {
+                const filterMonth = parseInt(bulan);
+                const filterYear = parseInt(tahun);
+                if (dateObj.getMonth() + 1 !== filterMonth || dateObj.getFullYear() !== filterYear) {
+                    return; // Skip this row - not in the selected calendar month
                 }
             }
 
@@ -1492,11 +1503,12 @@ async function saveUploadedAbsensi() {
 
         if (resSummary.ok) {
             showToast('Attendance logs successfully imported!', 'success');
-            tutupModalUploadAbsensi();
             
             const uploadedClientId = document.getElementById('modalUploadAbsensiClient')?.value;
-            const periodId = document.getElementById('modalUploadAbsensiPeriod')?.value;
-            const activePeriod = window.modalUploadPeriods?.find(p => p.id == periodId);
+            const uploadedBulan = document.getElementById('modalUploadAbsensiBulan')?.value;
+            const uploadedTahun = document.getElementById('modalUploadAbsensiTahun')?.value;
+
+            tutupModalUploadAbsensi();
 
             // Sync main dashboard attendance selectors
             const mainClientSelect = document.getElementById('attendanceClientSelect');
@@ -1509,12 +1521,11 @@ async function saveUploadedAbsensi() {
                     window.syncCustomClientDropdown();
                 }
             }
-            if (activePeriod) {
-                if (mainMonthSelect) mainMonthSelect.value = parseInt(activePeriod.bulan);
-                if (mainYearSelect) mainYearSelect.value = parseInt(activePeriod.tahun);
-            }
+            if (uploadedBulan && mainMonthSelect) mainMonthSelect.value = parseInt(uploadedBulan);
+            if (uploadedTahun && mainYearSelect) mainYearSelect.value = parseInt(uploadedTahun);
 
-            // Refresh table if we are currently looking at the same period inside workspace
+            // Refresh table
+            const periodId = window.modalUploadResolvedPeriodId;
             if (typeof currentPeriodId !== 'undefined' && window.currentPeriodId == periodId) {
                 renderCutOffTable();
             }

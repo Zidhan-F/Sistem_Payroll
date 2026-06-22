@@ -1948,7 +1948,7 @@
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadAbsensi()"></i>
         </div>
         <div class="modal-body" style="padding: 20px;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                 <div class="form-group">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Client</label>
                     <select id="modalUploadAbsensiClient" onchange="onAbsensiClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
@@ -1956,9 +1956,25 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Period</label>
-                    <select id="modalUploadAbsensiPeriod" onchange="onAbsensiPeriodChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;" disabled>
-                        <option value="">-- Select Client First --</option>
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Bulan</label>
+                    <select id="modalUploadAbsensiBulan" onchange="onAbsensiClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="1">Januari</option>
+                        <option value="2">Februari</option>
+                        <option value="3">Maret</option>
+                        <option value="4">April</option>
+                        <option value="5">Mei</option>
+                        <option value="6">Juni</option>
+                        <option value="7">Juli</option>
+                        <option value="8">Agustus</option>
+                        <option value="9">September</option>
+                        <option value="10">Oktober</option>
+                        <option value="11">November</option>
+                        <option value="12">Desember</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Tahun</label>
+                    <select id="modalUploadAbsensiTahun" onchange="onAbsensiClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                     </select>
                 </div>
             </div>
