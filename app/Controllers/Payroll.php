@@ -75,6 +75,8 @@ class Payroll extends ResourceController
         $endDateStr = date('Y-m-t', strtotime($startDateStr));
 
         $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
+        $monthStart = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
+        $monthEnd = date('Y-m-t', strtotime($monthStart));
 
         $period = $db->table('payroll_periods')
                      ->where('client_id', $clientId)
@@ -269,6 +271,72 @@ class Payroll extends ResourceController
                 $lemburHours = $jamLemburVal;
             }
 
+            // Override normal values to 0 if the employee joined after the cutoff date of the period
+            $joinDate = !empty($emp['tgl_masuk']) ? $emp['tgl_masuk'] : ($emp['start_contract'] ?? null);
+            if ($joinDate && $joinDate > $empEndDateStr) {
+                $hadirCount = 0;
+                $sakitCount = 0;
+                $alpaCount = 0;
+                $lemburHours = 0.0;
+                $lateHours = 0.0;
+                $earlyHours = 0.0;
+            }
+
+            $rapelHariKerja = 0;
+            $rapelJamLembur = 0.0;
+            $rapelPayoutPeriod = '';
+
+            $rapelDays = $db->table('attendance_logs')
+                            ->where('employee_id', $emp['id'])
+                            ->where('status', 'Hadir')
+                            ->where('is_rapel', 1)
+                            ->groupStart()
+                                ->where('payout_period', $payoutPeriodStr)
+                                ->orGroupStart()
+                                    ->where('log_date >=', $monthStart)
+                                    ->where('log_date <=', $monthEnd)
+                                ->groupEnd()
+                            ->groupEnd()
+                            ->get()->getResultArray();
+
+            $rapelHariKerja = count($rapelDays);
+            if ($rapelHariKerja > 0) {
+                $rapelPayoutPeriod = $rapelDays[0]['payout_period'];
+            }
+
+            $rapelOtSum = $db->table('overtime_logs')
+                             ->selectSum('jam_lembur')
+                             ->where('employee_id', $emp['id'])
+                             ->where('status', 'Approved')
+                             ->where('is_rapel', 1)
+                             ->groupStart()
+                                 ->where('payout_period', $payoutPeriodStr)
+                                 ->orGroupStart()
+                                     ->where('tanggal >=', $monthStart)
+                                     ->where('tanggal <=', $monthEnd)
+                                 ->groupEnd()
+                             ->groupEnd()
+                             ->get()->getRow();
+            $rapelJamLembur = $rapelOtSum ? floatval($rapelOtSum->jam_lembur) : 0.0;
+
+            if ($rapelJamLembur > 0 && empty($rapelPayoutPeriod)) {
+                $firstOt = $db->table('overtime_logs')
+                              ->where('employee_id', $emp['id'])
+                              ->where('status', 'Approved')
+                              ->where('is_rapel', 1)
+                              ->groupStart()
+                                  ->where('payout_period', $payoutPeriodStr)
+                                  ->orGroupStart()
+                                      ->where('tanggal >=', $monthStart)
+                                      ->where('tanggal <=', $monthEnd)
+                                  ->groupEnd()
+                              ->groupEnd()
+                              ->get()->getRow();
+                if ($firstOt) {
+                    $rapelPayoutPeriod = $firstOt->payout_period;
+                }
+            }
+
             $summary[] = [
                 'employee_id' => $emp['id'],
                 'hadir' => $hadirCount,
@@ -276,7 +344,10 @@ class Payroll extends ResourceController
                 'alpa' => $alpaCount,
                 'lembur' => $lemburHours,
                 'late_hours' => $lateHours,
-                'early_leave_hours' => $earlyHours
+                'early_leave_hours' => $earlyHours,
+                'rapel_hari_kerja' => $rapelHariKerja,
+                'rapel_jam_lembur' => $rapelJamLembur,
+                'rapel_payout_period' => $rapelPayoutPeriod
             ];
         }
 

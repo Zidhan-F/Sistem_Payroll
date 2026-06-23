@@ -2931,6 +2931,33 @@ class Api extends ResourceController
         $this->syncEmployeesToPKWT($clientId);
         $this->syncOvertimeToPayrollAttendance($periodId, $clientId);
         $this->syncEarlyArrivalToPayrollAttendance($periodId, $clientId);
+
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        if (!$period) {
+            return $this->respond([]);
+        }
+
+        $clientConfig = $this->db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
+        $daysInMonth = date('t', mktime(0, 0, 0, intval($period->bulan), 1, intval($period->tahun)));
+        $cutoffStart = $clientConfig ? intval($clientConfig->cutoff_start) : 21;
+        $cutoffEnd = $clientConfig ? intval($clientConfig->cutoff_end) : 20;
+        if ($cutoffStart <= 0) $cutoffStart = 21;
+        if ($cutoffEnd <= 0) $cutoffEnd = $daysInMonth;
+
+        $bulan_start = intval($period->bulan);
+        $tahun_start = intval($period->tahun);
+        $bulan_end = $bulan_start;
+        $tahun_end = $tahun_start;
+        if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
+            $bulan_start -= 1;
+            if ($bulan_start < 1) {
+                $bulan_start = 12;
+                $tahun_start -= 1;
+            }
+        }
+        $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
+        $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
+
         // Get all PKWT and their attendance for this period
         $query = $this->db->table('pkwt')
                           ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, 
@@ -2939,7 +2966,8 @@ class Api extends ResourceController
                                     payroll_attendance.potongan_absensi, payroll_attendance.bonus_tambahan,
                                     payroll_attendance.early_arrival_minutes,
                                     employees.id as employee_id, employees.employ_id, employees.nik, employees.gaji_pokok,
-                                    employees.hari_kerja as employee_hari_kerja, positions.hari_kerja as position_hari_kerja')
+                                    employees.hari_kerja as employee_hari_kerja, positions.hari_kerja as position_hari_kerja,
+                                    employees.tgl_masuk, employees.start_contract')
                           ->join('payroll_attendance', "payroll_attendance.pkwt_id = pkwt.id AND payroll_attendance.period_id = $periodId", 'left')
                           ->join('employees', "employees.client_id = pkwt.client_id AND employees.nama = pkwt.employee_name", 'left')
                           ->join('positions', 'positions.id = employees.position_id', 'left');
@@ -2947,6 +2975,88 @@ class Api extends ResourceController
             $query->where('pkwt.client_id', $clientId);
         }
         $pkwts = $query->get()->getResult();
+
+        foreach ($pkwts as $row) {
+            $row->rapel_hari_kerja = 0;
+            $row->rapel_jam_lembur = 0.0;
+            $row->rapel_payout_period = '';
+
+            // Override normal values to 0 if the employee joined after the cutoff date of the period
+            $joinDate = !empty($row->tgl_masuk) ? $row->tgl_masuk : (!empty($row->start_contract) ? $row->start_contract : null);
+            if ($joinDate && $joinDate > $endDateStr) {
+                $row->hari_kerja = 0;
+                $row->jam_lembur = 0.0;
+                $row->jam_lembur_hari_biasa = 0.0;
+                $row->jam_lembur_hari_libur = 0.0;
+                $row->early_arrival_minutes = 0;
+                $row->potongan_absensi = 0.0;
+                $row->bonus_tambahan = 0.0;
+            }
+
+            if (!empty($row->employee_id)) {
+                $payoutPeriodStr = intval($period->bulan) . '-' . intval($period->tahun);
+                
+                // Outgoing rapel search range (current calendar month)
+                $monthStart = sprintf('%04d-%02d-01', $period->tahun, $period->bulan);
+                $monthEnd = date('Y-m-t', strtotime($monthStart));
+
+                // Query attendance logs with is_rapel = 1 that are either:
+                // 1. Paid in this period (payout_period = $payoutPeriodStr) - Incoming rapel
+                // 2. Logged in this period's calendar month - Outgoing rapel
+                $rapelDays = $this->db->table('attendance_logs')
+                                      ->where('employee_id', $row->employee_id)
+                                      ->where('status', 'Hadir')
+                                      ->where('is_rapel', 1)
+                                      ->groupStart()
+                                          ->where('payout_period', $payoutPeriodStr)
+                                          ->orGroupStart()
+                                              ->where('log_date >=', $monthStart)
+                                              ->where('log_date <=', $monthEnd)
+                                          ->groupEnd()
+                                      ->groupEnd()
+                                      ->get()->getResultArray();
+                
+                $row->rapel_hari_kerja = count($rapelDays);
+                if ($row->rapel_hari_kerja > 0) {
+                    $row->rapel_payout_period = $rapelDays[0]['payout_period'];
+                }
+
+                // Query overtime logs with is_rapel = 1 and status = Approved
+                $rapelOtSum = $this->db->table('overtime_logs')
+                                      ->selectSum('jam_lembur')
+                                      ->where('employee_id', $row->employee_id)
+                                      ->where('status', 'Approved')
+                                      ->where('is_rapel', 1)
+                                      ->groupStart()
+                                          ->where('payout_period', $payoutPeriodStr)
+                                          ->orGroupStart()
+                                              ->where('tanggal >=', $monthStart)
+                                              ->where('tanggal <=', $monthEnd)
+                                          ->groupEnd()
+                                      ->groupEnd()
+                                      ->get()->getRow();
+                $row->rapel_jam_lembur = $rapelOtSum ? floatval($rapelOtSum->jam_lembur) : 0.0;
+
+                if ($row->rapel_jam_lembur > 0 && empty($row->rapel_payout_period)) {
+                    $firstOt = $this->db->table('overtime_logs')
+                                        ->where('employee_id', $row->employee_id)
+                                        ->where('status', 'Approved')
+                                        ->where('is_rapel', 1)
+                                        ->groupStart()
+                                            ->where('payout_period', $payoutPeriodStr)
+                                            ->orGroupStart()
+                                                ->where('tanggal >=', $monthStart)
+                                                ->where('tanggal <=', $monthEnd)
+                                            ->groupEnd()
+                                        ->groupEnd()
+                                        ->get()->getRow();
+                    if ($firstOt) {
+                        $row->rapel_payout_period = $firstOt->payout_period;
+                    }
+                }
+            }
+        }
+
         return $this->respond($pkwts);
     }
 

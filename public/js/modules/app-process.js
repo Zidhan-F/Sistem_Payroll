@@ -225,9 +225,9 @@ async function renderReviewGajiTable() {
             tbody.innerHTML = data.map(row => `
                 <tr>
                     <td style="text-align: center; vertical-align: middle;">
-                        <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" ${(row.status_approval === 'Approved' || row.status_approval === 'Hold') ? 'disabled' : ''} ${row.status_approval === 'Approved' ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
+                        <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" data-is-rapel="${row.is_new_hire_rapel ? 'true' : 'false'}" ${(row.status_approval === 'Approved' || row.status_approval === 'Hold') ? 'disabled' : ''} ${row.status_approval === 'Approved' ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
                     </td>
-                    <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen sebelum cut-off)</span>' : ''}</td>
+                    <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen sebelum cut-off)</span>' : ''}${row.is_new_hire_rapel ? ` <span class="status-badge warning" style="font-size:10px; margin-left:5px; padding:2px 6px; background-color:#fff3cd; color:#856404; border:1px solid #ffeeba; font-weight:600; border-radius:4px;">Dirapel ke ${row.rapel_payout_period}</span>` : ''}</td>
                     <td>${row.division_name || '-'}</td>
                     <td>${row.department_name || '-'}</td>
                     <td>${row.position_name || '-'}</td>
