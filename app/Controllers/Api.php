@@ -122,7 +122,7 @@ class Api extends ResourceController
 
         // 2. Check if there are any payrolls on hold (PKWT)
         $holdPayrolls = $this->db->table('payroll_final')
-                                 ->select('payroll_final.*, pkwt.employee_name, clients.nama as client_name, clients.sektor as client_sektor, payroll_periods.nama as period_name')
+                                 ->select('payroll_final.*, pkwt.employee_name, clients.nama as client_name, clients.sektor as client_sektor, payroll_periods.bulan, payroll_periods.tahun')
                                  ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                                  ->join('clients', 'clients.id = pkwt.client_id')
                                  ->join('payroll_periods', 'payroll_periods.id = payroll_final.period_id')
@@ -130,12 +130,18 @@ class Api extends ResourceController
                                  ->get()
                                  ->getResultArray();
                                  
+        $months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         foreach ($holdPayrolls as $hp) {
+            $periodName = ($months[intval($hp['bulan']) - 1] ?? '') . " " . $hp['tahun'];
+            $isRapel = (floatval($hp['take_home_pay'] ?? 0) == 0);
+            
             $notifications[] = [
                 'id' => 'payroll_hold_' . $hp['id'],
                 'type' => 'error',
-                'title' => 'Gaji Ditunda (Hold)',
-                'message' => "Gaji karyawan <strong>" . esc($hp['employee_name']) . "</strong> (Klien: " . esc($hp['client_name']) . ") pada periode " . esc($hp['period_name']) . " ditunda karena terdapat ketidakhadiran (absen) di hari kerja sebelum cut-off.",
+                'title' => $isRapel ? 'Gaji Dirapel (Hold)' : 'Gaji Ditunda (Hold)',
+                'message' => $isRapel 
+                    ? "Gaji karyawan <strong>" . esc($hp['employee_name']) . "</strong> (Klien: " . esc($hp['client_name']) . ") pada periode " . esc($periodName) . " ditunda karena karyawan baru bergabung setelah tanggal cut-off (gaji akan dirapel bulan depan)."
+                    : "Gaji karyawan <strong>" . esc($hp['employee_name']) . "</strong> (Klien: " . esc($hp['client_name']) . ") pada periode " . esc($periodName) . " ditunda karena terdapat ketidakhadiran (absen) di hari kerja setelah cut-off.",
                 'link' => 'process',
                 'client_id' => intval($hp['client_id']),
                 'client_name' => $hp['client_name'],
@@ -158,12 +164,15 @@ class Api extends ResourceController
                 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
             ];
             $pName = ($monthsWord[intval($hp['bulan'])] ?? '') . ' ' . $hp['tahun'];
+            $isRapel = (floatval($hp['take_home_pay'] ?? 0) == 0);
             
             $notifications[] = [
                 'id' => 'payroll_hold_legacy_' . $hp['id'],
                 'type' => 'error',
-                'title' => 'Gaji Ditunda (Hold)',
-                'message' => "Gaji karyawan <strong>" . esc($hp['employee_name']) . "</strong> (Klien: " . esc($hp['client_name']) . ") pada periode " . esc($pName) . " ditunda karena terdapat ketidakhadiran (absen) di hari kerja sebelum cut-off.",
+                'title' => $isRapel ? 'Gaji Dirapel (Hold)' : 'Gaji Ditunda (Hold)',
+                'message' => $isRapel
+                    ? "Gaji karyawan <strong>" . esc($hp['employee_name']) . "</strong> (Klien: " . esc($hp['client_name']) . ") pada periode " . esc($pName) . " ditunda karena karyawan baru bergabung setelah tanggal cut-off (gaji akan dirapel bulan depan)."
+                    : "Gaji karyawan <strong>" . esc($hp['employee_name']) . "</strong> (Klien: " . esc($hp['client_name']) . ") pada periode " . esc($pName) . " ditunda karena terdapat ketidakhadiran (absen) di hari kerja setelah cut-off.",
                 'link' => 'process',
                 'client_id' => intval($hp['client_id']),
                 'client_name' => $hp['client_name'],
@@ -969,7 +978,7 @@ class Api extends ResourceController
         }
 
         if (empty($jamMasuk)) {
-            // Check if this is a rest day (weekend) — if so, do NOT mark as incomplete
+            // Check if this is a rest day (weekend or public holiday) — if so, do NOT mark as incomplete
             $dayOfWeek = intval(date('w', strtotime($tanggal))); // 0=Sunday, 6=Saturday
             $workDaysConfig = 5; // default
             if ($emp) {
@@ -994,6 +1003,13 @@ class Api extends ResourceController
                 $isRestDay = ($dayOfWeek === 0 || $dayOfWeek === 6);
             } elseif ($workDaysConfig === 6) {
                 $isRestDay = ($dayOfWeek === 0);
+            }
+            // Also check if it's a public holiday from holiday_calendar
+            if (!$isRestDay) {
+                $publicHoliday = $db->table('holiday_calendar')->where('tanggal', $tanggal)->get()->getRow();
+                if ($publicHoliday) {
+                    $isRestDay = true;
+                }
             }
             if (!$isRestDay) {
                 $result['is_incomplete'] = 1;
@@ -1063,7 +1079,7 @@ class Api extends ResourceController
 
         // ── HADIR: hitung keterlambatan ───────────────────────────────────────
         if (empty($jamMasuk)) {
-            // Reuse weekend rest-day check — do NOT mark as incomplete on rest days
+            // Reuse weekend/holiday rest-day check — do NOT mark as incomplete on rest days or public holidays
             $dayOfWeek2 = intval(date('w', strtotime($tanggal)));
             $wdc2 = 5;
             if ($emp) {
@@ -1081,6 +1097,11 @@ class Api extends ResourceController
             $isRestDay2 = false;
             if ($wdc2 === 5) { $isRestDay2 = ($dayOfWeek2 === 0 || $dayOfWeek2 === 6); }
             elseif ($wdc2 === 6) { $isRestDay2 = ($dayOfWeek2 === 0); }
+            // Also check holiday_calendar for public holidays
+            if (!$isRestDay2) {
+                $pubHol2 = $db->table('holiday_calendar')->where('tanggal', $tanggal)->get()->getRow();
+                if ($pubHol2) { $isRestDay2 = true; }
+            }
             if (!$isRestDay2) {
                 $result['is_incomplete'] = 1;
             }
@@ -1242,9 +1263,14 @@ class Api extends ResourceController
                           attendance_logs.created_at, attendance_logs.shift_scheme_id, attendance_logs.is_rapel, 
                           attendance_logs.payout_period, attendance_logs.calculated_work_hours, 
                           attendance_logs.calculated_overtime_hours, attendance_logs.is_incomplete,
-                          employees.nama as employee_name, shift_schemes.name as shift_name');
+                          employees.nama as employee_name, shift_schemes.name as shift_name,
+                          employees.hari_kerja as employee_hari_kerja,
+                          positions.hari_kerja as position_hari_kerja,
+                          holiday_calendar.deskripsi as holiday_deskripsi');
         $builder->join('employees', 'employees.id = attendance_logs.employee_id', 'left');
         $builder->join('shift_schemes', 'shift_schemes.id = attendance_logs.shift_scheme_id', 'left');
+        $builder->join('positions', 'positions.id = employees.position_id', 'left');
+        $builder->join('holiday_calendar', 'holiday_calendar.tanggal = attendance_logs.log_date', 'left');
 
         if ($employeeId) {
             $builder->where('attendance_logs.employee_id', intval($employeeId));
@@ -1262,6 +1288,35 @@ class Api extends ResourceController
         $builder->orderBy('attendance_logs.log_date', 'ASC');
         $logs = $builder->get()->getResultArray();
 
+        // Enrich each log with is_holiday flag based on holiday_calendar + day of week + work schedule
+        foreach ($logs as &$log) {
+            $isHoliday = 0;
+            $holidayName = $log['holiday_deskripsi'] ?? null;
+            
+            if (!empty($holidayName)) {
+                // It's in the holiday_calendar
+                $isHoliday = 1;
+            } else {
+                $dayOfWeek = date('w', strtotime($log['tanggal']));
+                if ($dayOfWeek == 0) {
+                    // Sunday is always a holiday
+                    $isHoliday = 1;
+                    $holidayName = 'Hari Minggu';
+                } elseif ($dayOfWeek == 6) {
+                    // Saturday is holiday only for 5-day work week
+                    $workDays = intval($log['employee_hari_kerja'] ?: ($log['position_hari_kerja'] ?: 5));
+                    if ($workDays < 6) {
+                        $isHoliday = 1;
+                        $holidayName = 'Hari Sabtu (5 hari kerja)';
+                    }
+                }
+            }
+            
+            $log['is_holiday'] = $isHoliday;
+            $log['holiday_name'] = $holidayName;
+        }
+        unset($log); // break reference
+
         $cutoffDay = 21;
         if ($clientId) {
             $config = $this->db->table('client_payroll_configs')
@@ -1274,19 +1329,42 @@ class Api extends ResourceController
 
         $isLateUpload = false;
         $cutoffDateStr = null;
+        // Fetch holidays for the requested period
+        $holidays = [];
         if ($bulan && $tahun) {
             $daysInMonth = intval(date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun))));
-            $dayVal = min($cutoffDay, $daysInMonth);
-            $cutoffDateStr = sprintf('%04d-%02d-%02d', intval($tahun), intval($bulan), $dayVal);
+            // Cutoff is for next month's payroll since this month's attendance is for next month's payroll
+            $nextMonth = intval($bulan) + 1;
+            $nextYear = intval($tahun);
+            if ($nextMonth > 12) {
+                $nextMonth = 1;
+                $nextYear++;
+            }
+            $daysInNextMonth = intval(date('t', mktime(0, 0, 0, $nextMonth, 1, $nextYear)));
+            $dayVal = min($cutoffDay, $daysInNextMonth);
+            $cutoffDateStr = sprintf('%04d-%02d-%02d', $nextYear, $nextMonth, $dayVal);
             if (date('Y-m-d') > $cutoffDateStr) {
                 $isLateUpload = true;
+            }
+
+            // Get all holidays for the month/year
+            $startDate = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
+            $endDate = sprintf('%04d-%02d-%02d', intval($tahun), intval($bulan), $daysInMonth);
+            $holidayRows = $this->db->table('holiday_calendar')
+                ->where('tanggal >=', $startDate)
+                ->where('tanggal <=', $endDate)
+                ->orderBy('tanggal', 'ASC')
+                ->get()->getResultArray();
+            foreach ($holidayRows as $h) {
+                $holidays[$h['tanggal']] = $h['deskripsi'];
             }
         }
 
         return $this->respond([
             'data' => $logs,
             'is_late_upload' => $isLateUpload,
-            'cutoff_date' => $cutoffDateStr
+            'cutoff_date' => $cutoffDateStr,
+            'holidays' => $holidays
         ]);
     }
 
@@ -3398,18 +3476,18 @@ class Api extends ResourceController
                 if ($cutoffEnd < 1) $cutoffEnd = 31;
             }
 
-            // Check if employee is on hold due to absence in days before cutoff
+            // Check if employee is on hold due to absence in days after cutoff
             $holdPayroll = false;
             $tYear = intval($period->tahun);
             $tMonth = intval($period->bulan);
             if ($cutoffStart > 1) {
-                $remainingStartDate = sprintf('%04d-%02d-01', $tYear, $tMonth);
-                $remainingEndDate = sprintf('%04d-%02d-%02d', $tYear, $tMonth, $cutoffStart - 1);
+                $remainingStartDate = sprintf('%04d-%02d-%02d', $tYear, $tMonth, $cutoffStart);
+                $remainingEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tYear, $tMonth)));
                 
                 $absentCountRemaining = $this->db->table('attendance_logs')
                     ->where('employee_id', $emp->id)
-                    ->where('tanggal >=', $remainingStartDate)
-                    ->where('tanggal <=', $remainingEndDate)
+                    ->where('log_date >=', $remainingStartDate)
+                    ->where('log_date <=', $remainingEndDate)
                     ->where('status', 'Absen')
                     ->countAllResults();
                 if ($absentCountRemaining > 0) {
@@ -3451,14 +3529,14 @@ class Api extends ResourceController
             $nextPeriodStr = '';
             if ($emp && !empty($emp->tgl_masuk)) {
                 $joinTs = strtotime($emp->tgl_masuk);
-                $joinYear = intval(date('Y', $joinTs));
-                $joinMonth = intval(date('n', $joinTs));
-                $joinDay = intval(date('j', $joinTs));
-
-                // Check if join date falls within the current period boundaries (startDateStr to endDateStr)
-                $joinDateStr2 = date('Y-m-d', $joinTs);
-                if ($joinDateStr2 >= $startDateStr && $joinDateStr2 <= $endDateStr) {
+                $joinDateStr = date('Y-m-d', $joinTs);
+                
+                if ($joinDateStr > $endDateStr) {
                     $isRapelGP = ($clientConfig && isset($clientConfig->is_rapel_gaji_pokok)) ? intval($clientConfig->is_rapel_gaji_pokok) : 1;
+                    $joinYear = intval(date('Y', $joinTs));
+                    $joinMonth = intval(date('n', $joinTs));
+                    $joinDay = intval(date('j', $joinTs));
+                    
                     if ($joinYear === $tYear && $joinMonth === $tMonth && $joinDay >= $cutoffStart && $isRapelGP === 1) {
                         $isNewHireRapel = true;
                         
@@ -3469,25 +3547,21 @@ class Api extends ResourceController
                             $nextYear++;
                         }
                         $nextPeriodStr = $nextMonth . '-' . $nextYear;
-                    }
-                }
-            }
-
-            if (!empty($emp->tgl_masuk)) {
-                $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
-                if ($joinDateStr > $cutoffEndDateStr) {
-                    // Skip employee because join date is after cutoff date!
-                    $this->db->table('payroll_final')
+                    } else {
+                        // Skip employee because join date is after cutoff date and not in current calendar month
+                        $this->db->table('payroll_final')
                              ->where('period_id', $periodId)
                              ->where('pkwt_id', $pkwt->id)
                              ->delete();
-                    continue;
+                        continue;
+                    }
                 }
             }
             
             $isProrate = false;
             $isAbsenTidakPotong = false;
             $nominalPotonganAbsen = 0;
+            $payrollScheme = null;
             
             // Try resolving from payroll scheme first
             if ($clientConfig && $clientConfig->payroll_scheme_id) {
@@ -3766,7 +3840,7 @@ class Api extends ResourceController
                     'total_pendapatan' => 0.0,
                     'total_potongan' => 0.0,
                     'take_home_pay' => 0.0,
-                    'status_approval' => $holdPayroll ? 'Hold' : 'Pending',
+                    'status_approval' => 'Hold',
                     'bpjs_kes_karyawan' => 0.0,
                     'bpjs_kes_perusahaan' => 0.0,
                     'bpjs_jht_karyawan' => 0.0,
@@ -4028,12 +4102,12 @@ class Api extends ResourceController
                 }
 
                 // Calculate upah sejam (hourly rate for overtime)
-                $overtimeType = ($schemeTemplate && !empty($schemeTemplate['overtime_type'])) ? $schemeTemplate['overtime_type'] : 'standard';
+                $overtimeType = ($payrollScheme && !empty($payrollScheme->overtime_type)) ? $payrollScheme->overtime_type : 'standard';
                 $overtimePay = 0;
 
                 if ($overtimeType === 'lumpsum') {
-                    $lumpsumSubtype = $schemeTemplate['lumpsum_subtype'] ?? 'per_jam';
-                    $lumpsumNominal = floatval($schemeTemplate['lumpsum_nominal'] ?? 0);
+                    $lumpsumSubtype = $payrollScheme->lumpsum_subtype ?? 'per_jam';
+                    $lumpsumNominal = floatval($payrollScheme->lumpsum_nominal ?? 0);
                     
                     if ($lumpsumSubtype === 'per_jam') {
                         $overtimePay = ($jamLemburBiasa + $jamLemburLibur) * $lumpsumNominal;
@@ -4451,6 +4525,7 @@ class Api extends ResourceController
         $isProrate = false;
         $isAbsenTidakPotong = false;
         $nominalPotonganAbsen = 0;
+        $payrollScheme = null;
         
         // Try resolving from payroll scheme first
         if ($clientConfig && $clientConfig->payroll_scheme_id) {
@@ -4712,10 +4787,10 @@ class Api extends ResourceController
             $jamLemburLibur = floatval($final['jam_lembur_libur'] ?? 0);
             $lemburPayTotal = floatval($final['lembur_pay'] ?? 0);
 
-            $overtimeType = ($schemeTemplate && !empty($schemeTemplate['overtime_type'])) ? $schemeTemplate['overtime_type'] : 'standard';
+            $overtimeType = ($payrollScheme && !empty($payrollScheme->overtime_type)) ? $payrollScheme->overtime_type : 'standard';
 
             if ($overtimeType === 'lumpsum' && $lemburPayTotal > 0) {
-                $lumpsumSubtype = $schemeTemplate['lumpsum_subtype'] ?? 'per_jam';
+                $lumpsumSubtype = $payrollScheme->lumpsum_subtype ?? 'per_jam';
                 if ($lumpsumSubtype === 'per_jam') {
                     $totalJam = $jamLemburBiasa + $jamLemburLibur;
                     $earnings[] = [
@@ -5550,10 +5625,12 @@ class Api extends ResourceController
         } else {
             // === Lembur di Hari Libur / Tanggal Merah ===
             if ($workingDaysPerWeek == 6) {
-                // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4
+                // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4 (maksimal 11 jam)
+                $jamLembur = min(11.0, $jamLembur);
                 $batasAwal = 7.0;
             } else {
-                // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10+ x4
+                // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10 s/d ke-12 x4 (maksimal 12 jam)
+                $jamLembur = min(12.0, $jamLembur);
                 $batasAwal = 8.0;
             }
 
@@ -6563,7 +6640,21 @@ class Api extends ResourceController
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                                          ->where('is_holiday', 1)
                                          ->get()->getRow();
-                           if ($existing) {
+                $lemburLibur = $lemburLiburObj ? floatval($lemburLiburObj->jam_lembur) : 0.0;
+                $lemburSum = $lemburBiasa + $lemburLibur;
+
+                $pkwt = $this->db->table('pkwt')
+                                 ->where('client_id', $clientId)
+                                 ->where('employee_name', $employee->nama)
+                                 ->get()->getRow();
+                if (!$pkwt) continue;
+
+                $existing = $this->db->table('payroll_attendance')
+                                     ->where('period_id', $period->id)
+                                     ->where('pkwt_id', $pkwt->id)
+                                     ->get()->getRow();
+
+                if ($existing) {
                     $this->db->table('payroll_attendance')
                              ->where('id', $existing->id)
                              ->update([

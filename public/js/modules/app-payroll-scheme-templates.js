@@ -18,7 +18,7 @@ async function loadSchemeTemplates(clientId) {
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
-        const response = await fetch(`/api/payroll-schemes?client_id=${clientId}`);
+        const response = await fetch(`/api/payroll-schemes-templates?client_id=${clientId}`);
         const schemes = await response.json();
         
         allSchemeTemplates = schemes;
@@ -302,8 +302,8 @@ async function saveSchemeTemplate() {
     
     try {
         const url = currentSchemeTemplate 
-            ? `/api/payroll-schemes/${currentSchemeTemplate.id}`
-            : '/api/payroll-schemes';
+            ? `/api/payroll-schemes-templates/${currentSchemeTemplate.id}`
+            : '/api/payroll-schemes-templates';
         
         const method = currentSchemeTemplate ? 'PUT' : 'POST';
         
@@ -335,7 +335,7 @@ async function saveSchemeTemplate() {
  */
 async function editSchemeTemplate(id) {
     try {
-        const response = await fetch(`/api/payroll-schemes/${id}`);
+        const response = await fetch(`/api/payroll-schemes-templates/${id}`);
         const scheme = await response.json();
         
         currentSchemeTemplate = scheme;
@@ -426,7 +426,7 @@ async function editSchemeTemplate(id) {
  */
 async function viewSchemeTemplateDetail(id) {
     try {
-        const response = await fetch(`/api/payroll-schemes/${id}`);
+        const response = await fetch(`/api/payroll-schemes-templates/${id}`);
         const scheme = await response.json();
         
         // Build detail HTML
@@ -493,7 +493,7 @@ async function toggleSchemeTemplateActive(id) {
     if (!confirm('Are you sure you want to change the status of this scheme?')) return;
     
     try {
-        const response = await fetch(`/api/payroll-schemes/toggle-active/${id}`, {
+        const response = await fetch(`/api/payroll-schemes-templates/toggle-active/${id}`, {
             method: 'POST'
         });
         
@@ -517,7 +517,7 @@ async function deleteSchemeTemplate(id) {
     if (!confirm('Are you sure you want to delete this scheme? This action cannot be undone.')) return;
     
     try {
-        const response = await fetch(`/api/payroll-schemes/${id}`, {
+        const response = await fetch(`/api/payroll-schemes-templates/${id}`, {
             method: 'DELETE'
         });
         
@@ -547,7 +547,7 @@ function closeSchemeTemplateModal() {
  */
 async function getSchemesByOrgStructure(clientId, divisionId, departmentId, positionId) {
     try {
-        let url = `/api/payroll-schemes/by-org?client_id=${clientId}`;
+        let url = `/api/payroll-schemes-templates/by-org?client_id=${clientId}`;
         if (divisionId) url += `&division_id=${divisionId}`;
         if (departmentId) url += `&department_id=${departmentId}`;
         if (positionId) url += `&position_id=${positionId}`;

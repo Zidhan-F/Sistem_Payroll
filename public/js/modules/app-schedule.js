@@ -655,7 +655,7 @@ function filterInlineAttendanceTable() {
     });
 }
 
-function downloadInlineAbsensiTemplate() {
+async function downloadInlineAbsensiTemplate() {
     const clientId = document.getElementById('inlineUploadAbsensiClient').value;
     const periodId = document.getElementById('inlineUploadAbsensiPeriod').value;
 
@@ -679,6 +679,19 @@ function downloadInlineAbsensiTemplate() {
     const month = parseInt(activePeriod.bulan);
     const year = parseInt(activePeriod.tahun);
     const daysInMonth = new Date(year, month, 0).getDate();
+
+    // Fetch holidays for the year from Holiday Calendar
+    let holidayMap = {};
+    try {
+        const resHolidays = await fetch(`${API_URL}/holidays?tahun=${year}`);
+        if (resHolidays.ok) {
+            const holidayList = await resHolidays.json();
+            (Array.isArray(holidayList) ? holidayList : []).forEach(h => {
+                const hDate = (h.tanggal || '').substring(0, 10);
+                if (hDate) holidayMap[hDate] = h.deskripsi || 'Hari Libur';
+            });
+        }
+    } catch(e) { console.warn('Could not load holidays for template:', e); }
     
     const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
     const templateData = [];
@@ -687,17 +700,23 @@ function downloadInlineAbsensiTemplate() {
         const empId = emp.employ_id || emp.nik || '';
         const empName = emp.employee_name || '';
         const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+        const joinDate = (emp.tgl_masuk || emp.start_contract || '').substring(0, 10);
 
         for (let d = 1; d <= daysInMonth; d++) {
             const dateObj = new Date(year, month - 1, d);
             const dayOfWeek = dateObj.getDay();
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+            // Skip dates prior to employee's join date
+            if (joinDate && dateStr < joinDate) {
+                continue;
+            }
+
             const dayName = dayNames[dayOfWeek];
             const tglHariStr = `${dateStr} ${dayName}`;
 
             let jamMasuk = '08:00';
             let jamKeluar = '17:00';
-            let status = 'Hadir';
 
             let isRestDay = false;
             if (workDaysConfig === 5) {
@@ -706,9 +725,18 @@ function downloadInlineAbsensiTemplate() {
                 isRestDay = (dayOfWeek === 0);
             }
 
-            if (isRestDay) {
+            // Public holiday check from holiday_calendar
+            const isPublicHoliday = !!holidayMap[dateStr];
+
+            if (isRestDay || isPublicHoliday) {
                 jamMasuk = '';
                 jamKeluar = '';
+            }
+
+            let status = 'Hadir';
+            if (isPublicHoliday) {
+                status = 'Off';
+            } else if (isRestDay) {
                 status = 'Off';
             }
 

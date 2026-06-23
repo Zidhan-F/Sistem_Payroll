@@ -590,31 +590,12 @@ class Payroll extends ResourceController
                     'is_rapel' => 0,
                     'payout_period' => null
                 ]);            // Skip employee if they joined after the cutoff period end date
-            if (!empty($emp['tgl_masuk'])) {
-                $joinTs = strtotime($emp['tgl_masuk']);
-                $joinDateStr2 = date('Y-m-d', $joinTs);
-                if ($joinDateStr2 > $empEndDateStr) {
-                    $db->table('payrolls')
-                        ->where('employee_id', $emp['id'])
-                        ->where('bulan', $bulan)
-                        ->where('tahun', $tahun)
-                        ->delete();
-                    continue;
-                }
-            }
-
-            // Logika Rapel Karyawan Baru
             $isNewHireRapel = false;
             $nextPeriodStr = '';
             if (!empty($emp['tgl_masuk'])) {
                 $joinTs = strtotime($emp['tgl_masuk']);
-                $joinYear = intval(date('Y', $joinTs));
-                $joinMonth = intval(date('n', $joinTs));
-                $joinDay = intval(date('j', $joinTs));
-
-                // Check if join date falls within the current period boundaries
                 $joinDateStr2 = date('Y-m-d', $joinTs);
-                if ($joinDateStr2 >= $empStartDateStr && $joinDateStr2 <= $empEndDateStr) {
+                if ($joinDateStr2 > $empEndDateStr) {
                     $isRapelGP = ($empConfig && isset($empConfig->is_rapel_gaji_pokok)) ? intval($empConfig->is_rapel_gaji_pokok) : 1;
                     
                     // Gaji pokok cutoff start
@@ -630,7 +611,10 @@ class Payroll extends ResourceController
                         $gpStartVal = ($empConfig && isset($empConfig->cutoff_start)) ? intval($empConfig->cutoff_start) : 21;
                     }
                     
-                    // Jika karyawan masuk pada/setelah tanggal cutoff, gajinya masuk ke bulan depan (rapel + prorate)
+                    $joinYear = intval(date('Y', $joinTs));
+                    $joinMonth = intval(date('n', $joinTs));
+                    $joinDay = intval(date('j', $joinTs));
+                    
                     if ($joinYear === intval($tahun) && $joinMonth === intval($bulan) && $joinDay >= $gpStartVal && $isRapelGP === 1) {
                         $isNewHireRapel = true;
                         
@@ -641,6 +625,14 @@ class Payroll extends ResourceController
                             $nextYear++;
                         }
                         $nextPeriodStr = $nextMonth . '-' . $nextYear;
+                    } else {
+                        // Skip employee because join date is after cutoff date and not in current calendar month
+                        $db->table('payrolls')
+                            ->where('employee_id', $emp['id'])
+                            ->where('bulan', $bulan)
+                            ->where('tahun', $tahun)
+                            ->delete();
+                        continue;
                     }
                 }
             }
@@ -1005,20 +997,20 @@ class Payroll extends ResourceController
                     $db->table('payrolls')->where('id', $existingPayroll->id)->delete();
                 }
 
-                // Check if employee is on hold due to absence in days before cutoff
+                // Check if employee is on hold due to absence in days after cutoff
                 $holdPayroll = false;
                 $gpStartVal = 21; // default
                 if ($empConfig && isset($empConfig->cutoff_start)) {
                     $gpStartVal = intval($empConfig->cutoff_start);
                 }
                 if ($gpStartVal > 1) {
-                    $remainingStartDate = sprintf('%04d-%02d-01', $tahun, $bulan);
-                    $remainingEndDate = sprintf('%04d-%02d-%02d', $tahun, $bulan, $gpStartVal - 1);
+                    $remainingStartDate = sprintf('%04d-%02d-%02d', $tahun, $bulan, $gpStartVal);
+                    $remainingEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tahun, $bulan)));
                     
                     $absentCountRemaining = $db->table('attendance_logs')
                         ->where('employee_id', $emp['id'])
-                        ->where('tanggal >=', $remainingStartDate)
-                        ->where('tanggal <=', $remainingEndDate)
+                        ->where('log_date >=', $remainingStartDate)
+                        ->where('log_date <=', $remainingEndDate)
                         ->where('status', 'Absen')
                         ->countAllResults();
                     if ($absentCountRemaining > 0) {
@@ -1035,7 +1027,7 @@ class Payroll extends ResourceController
                     'total_tunjangan' => 0.0,
                     'total_potongan' => 0.0,
                     'take_home_pay' => 0.0,
-                    'status_pembayaran' => $holdPayroll ? 'Hold' : 'Pending'
+                    'status_pembayaran' => 'Hold'
                 ];
                 $this->model->insert($payrollData);
 
@@ -1222,10 +1214,12 @@ class Payroll extends ResourceController
                             }
 
                             if ($workDaysPerWeek == 6) {
-                                // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4
+                                // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4 (maksimal 11 jam)
+                                $jam = min(11.0, $jam);
                                 $batasAwal = 7.0;
                             } else {
-                                // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10+ x4
+                                // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10 s/d ke-12 x4 (maksimal 12 jam)
+                                $jam = min(12.0, $jam);
                                 $batasAwal = 8.0;
                             }
 
@@ -1848,13 +1842,47 @@ class Payroll extends ResourceController
                     }
 
                     if ($isHoliday) {
-                        if ($jam <= 6) {
-                            $rapelLemburLibur += $jam * 2 * $upahPerJam;
-                        } elseif ($jam == 7) {
-                            $rapelLemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam);
-                        } else {
-                            $rapelLemburLibur += (6 * 2 * $upahPerJam) + (1 * 3 * $upahPerJam) + (($jam - 7) * 4 * $upahPerJam);
+                        $workDaysPerWeek = 5;
+                        if ($emp) {
+                            $posHkOt = intval($emp['hari_kerja'] ?? 5);
+                            if ($posHkOt < 1) {
+                                $posId = $emp['position_id'] ?? null;
+                                if ($posId) {
+                                    $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
+                                    if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
+                                        $posHkOt = intval($pos->hari_kerja);
+                                    }
+                                }
+                            }
+                            if ($posHkOt == 6) {
+                                $workDaysPerWeek = 6;
+                            }
                         }
+
+                        if ($workDaysPerWeek == 6) {
+                            // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4 (maksimal 11 jam)
+                            $jam = min(11.0, $jam);
+                            $batasAwal = 7.0;
+                        } else {
+                            // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10 s/d ke-12 x4 (maksimal 12 jam)
+                            $jam = min(12.0, $jam);
+                            $batasAwal = 8.0;
+                        }
+
+                        $jamKonversi = 0.0;
+                        if ($jam <= $batasAwal) {
+                            $jamKonversi += $jam * 2.0;
+                        } else {
+                            $jamKonversi += $batasAwal * 2.0;
+                            $sisa = $jam - $batasAwal;
+                            if ($sisa <= 1.0) {
+                                    $jamKonversi += $sisa * 3.0;
+                            } else {
+                                    $jamKonversi += 1.0 * 3.0;
+                                    $jamKonversi += ($sisa - 1.0) * 4.0;
+                            }
+                        }
+                        $rapelLemburLibur += $jamKonversi * $upahPerJam;
                     } else {
                         $jam = min($jam, 3);
                         $ember1 = min($jam, 1);
@@ -2021,20 +2049,20 @@ class Payroll extends ResourceController
                     ]);
             }
 
-            // Check if employee is on hold due to absence in days before cutoff
+            // Check if employee is on hold due to absence in days after cutoff
             $holdPayroll = false;
             $gpStartVal = 21; // default
             if ($empConfig && isset($empConfig->cutoff_start)) {
                 $gpStartVal = intval($empConfig->cutoff_start);
             }
             if ($gpStartVal > 1) {
-                $remainingStartDate = sprintf('%04d-%02d-01', $tahun, $bulan);
-                $remainingEndDate = sprintf('%04d-%02d-%02d', $tahun, $bulan, $gpStartVal - 1);
+                $remainingStartDate = sprintf('%04d-%02d-%02d', $tahun, $bulan, $gpStartVal);
+                $remainingEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tahun, $bulan)));
                 
                 $absentCountRemaining = $db->table('attendance_logs')
                     ->where('employee_id', $emp['id'])
-                    ->where('tanggal >=', $remainingStartDate)
-                    ->where('tanggal <=', $remainingEndDate)
+                    ->where('log_date >=', $remainingStartDate)
+                    ->where('log_date <=', $remainingEndDate)
                     ->where('status', 'Absen')
                     ->countAllResults();
                 if ($absentCountRemaining > 0) {

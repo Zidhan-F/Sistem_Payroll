@@ -207,14 +207,14 @@ $routes->group('api', function($routes) {
     $routes->delete('global-positions/(:num)', 'GlobalSto::deletePosition/$1');
 
     // Payroll Scheme Templates (Multiple schemes per org structure)
-    $routes->get('payroll-schemes', 'PayrollScheme::index');
-    $routes->get('payroll-schemes/by-org', 'PayrollScheme::getByOrgStructure');
-    $routes->get('payroll-schemes/for-employee', 'PayrollScheme::getSchemeForEmployee');
-    $routes->get('payroll-schemes/(:num)', 'PayrollScheme::show/$1');
-    $routes->post('payroll-schemes', 'PayrollScheme::create');
-    $routes->put('payroll-schemes/(:num)', 'PayrollScheme::update/$1');
-    $routes->delete('payroll-schemes/(:num)', 'PayrollScheme::delete/$1');
-    $routes->post('payroll-schemes/toggle-active/(:num)', 'PayrollScheme::toggleActive/$1');
+    $routes->get('payroll-schemes-templates', 'PayrollScheme::index');
+    $routes->get('payroll-schemes-templates/by-org', 'PayrollScheme::getByOrgStructure');
+    $routes->get('payroll-schemes-templates/for-employee', 'PayrollScheme::getSchemeForEmployee');
+    $routes->get('payroll-schemes-templates/(:num)', 'PayrollScheme::show/$1');
+    $routes->post('payroll-schemes-templates', 'PayrollScheme::create');
+    $routes->put('payroll-schemes-templates/(:num)', 'PayrollScheme::update/$1');
+    $routes->delete('payroll-schemes-templates/(:num)', 'PayrollScheme::delete/$1');
+    $routes->post('payroll-schemes-templates/toggle-active/(:num)', 'PayrollScheme::toggleActive/$1');
     // Shift Schemes
     $routes->get('shift-schemes', 'Api::getShiftSchemes');
     $routes->post('shift-schemes', 'Api::createShiftScheme');

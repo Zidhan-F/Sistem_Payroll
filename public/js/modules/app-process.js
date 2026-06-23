@@ -227,7 +227,7 @@ async function renderReviewGajiTable() {
                     <td style="text-align: center; vertical-align: middle;">
                         <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" data-is-rapel="${row.is_new_hire_rapel ? 'true' : 'false'}" ${(row.status_approval === 'Approved' || row.status_approval === 'Hold') ? 'disabled' : ''} ${row.status_approval === 'Approved' ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
                     </td>
-                    <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen sebelum cut-off)</span>' : ''}${row.is_new_hire_rapel ? ` <span class="status-badge warning" style="font-size:10px; margin-left:5px; padding:2px 6px; background-color:#fff3cd; color:#856404; border:1px solid #ffeeba; font-weight:600; border-radius:4px;">Dirapel ke ${row.rapel_payout_period}</span>` : ''}</td>
+                    <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? (row.is_new_hire_rapel ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Gaji dirapel ke bulan depan)</span>' : '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen setelah cut-off)</span>') : ''}${row.is_new_hire_rapel ? ` <span class="status-badge warning" style="font-size:10px; margin-left:5px; padding:2px 6px; background-color:#fff3cd; color:#856404; border:1px solid #ffeeba; font-weight:600; border-radius:4px;">Dirapel ke ${row.rapel_payout_period || ''}</span>` : ''}</td>
                     <td>${row.division_name || '-'}</td>
                     <td>${row.department_name || '-'}</td>
                     <td>${row.position_name || '-'}</td>
@@ -1024,7 +1024,7 @@ function onAbsensiPeriodChanged() {
     // No-op: period is now auto-resolved from month/year
 }
 
-function downloadAbsensiTemplate() {
+async function downloadAbsensiTemplate() {
     const clientId = document.getElementById('modalUploadAbsensiClient').value;
     const bulan = document.getElementById('modalUploadAbsensiBulan').value;
     const tahun = document.getElementById('modalUploadAbsensiTahun').value;
@@ -1043,6 +1043,19 @@ function downloadAbsensiTemplate() {
     const month = parseInt(bulan);
     const year = parseInt(tahun);
     const daysInMonth = new Date(year, month, 0).getDate();
+
+    // Fetch holidays for the year from Holiday Calendar
+    let holidayMap = {};
+    try {
+        const resHolidays = await fetch(`${API_URL}/holidays?tahun=${year}`);
+        if (resHolidays.ok) {
+            const holidayList = await resHolidays.json();
+            (Array.isArray(holidayList) ? holidayList : []).forEach(h => {
+                const hDate = (h.tanggal || '').substring(0, 10);
+                if (hDate) holidayMap[hDate] = h.deskripsi || 'Hari Libur';
+            });
+        }
+    } catch(e) { console.warn('Could not load holidays for template:', e); }
     
     const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
     const bulanNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -1052,17 +1065,25 @@ function downloadAbsensiTemplate() {
         const empId = emp.employ_id || emp.nik || '';
         const empName = emp.employee_name || '';
         const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+        const joinDate = (emp.tgl_masuk || emp.start_contract || '').substring(0, 10);
 
         for (let d = 1; d <= daysInMonth; d++) {
             const dateObj = new Date(year, month - 1, d);
             const dayOfWeek = dateObj.getDay();
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+            // Skip dates prior to employee's join date
+            if (joinDate && dateStr < joinDate) {
+                continue;
+            }
+
             const dayName = dayNames[dayOfWeek];
             const tglHariStr = `${dateStr} ${dayName}`;
 
             let jamMasuk = '08:00';
             let jamKeluar = '17:00';
 
+            // Weekend rest day check
             let isRestDay = false;
             if (workDaysConfig === 5) {
                 isRestDay = (dayOfWeek === 0 || dayOfWeek === 6);
@@ -1070,9 +1091,19 @@ function downloadAbsensiTemplate() {
                 isRestDay = (dayOfWeek === 0);
             }
 
-            if (isRestDay) {
+            // Public holiday check from holiday_calendar
+            const isPublicHoliday = !!holidayMap[dateStr];
+
+            if (isRestDay || isPublicHoliday) {
                 jamMasuk = '';
                 jamKeluar = '';
+            }
+
+            let status = 'Hadir';
+            if (isPublicHoliday) {
+                status = 'Off';
+            } else if (isRestDay) {
+                status = 'Off';
             }
 
             templateData.push({
@@ -1082,7 +1113,7 @@ function downloadAbsensiTemplate() {
                 'Shift': '',
                 'Jam Masuk': jamMasuk,
                 'Jam Keluar': jamKeluar,
-                'Status': isRestDay ? 'Off' : 'Hadir'
+                'Status': status
             });
         }
     });

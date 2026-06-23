@@ -103,8 +103,19 @@ async function loadAttendanceLogs() {
             const d = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
             const tanggalFormatted = d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
             
+            // Holiday detection from API
+            const isHolidayFlag = parseInt(a.is_holiday) === 1;
+            const holidayName = a.holiday_name || '';
+            const isPublicHoliday = isHolidayFlag && holidayName && !holidayName.startsWith('Hari Minggu') && !holidayName.startsWith('Hari Sabtu');
+
             // Build shift status badges
             let shiftBadges = '';
+
+            // Holiday badge (shown first for prominence)
+            if (isPublicHoliday) {
+                shiftBadges += `<span style="background:#fef2f2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;" title="${holidayName}"><i class="fas fa-calendar-day" style="margin-right:3px;font-size:10px;"></i>${holidayName}</span>`;
+            }
+
             if (parseInt(a.is_incomplete) === 1) {
                 shiftBadges += `<span style="background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Incomplete</span>`;
             }
@@ -127,9 +138,20 @@ async function loadAttendanceLogs() {
                 shiftBadges += `<span style="background:#e8fdf0;color:#15803d;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:5px;">Hadir</span>`;
             }
 
-            const rowStyle = isLibur 
-                ? 'border-bottom: 1px solid #f1f5f9; background-color: #f8fafc; color: #94a3b8; opacity: 0.85;'
-                : 'border-bottom: 1px solid #f1f5f9;';
+            // Row styling: public holidays get red tint, regular off days get grey tint
+            let rowStyle = 'border-bottom: 1px solid #f1f5f9;';
+            if (isPublicHoliday) {
+                rowStyle = 'border-bottom: 1px solid #fecaca; background-color: #fff5f5; border-left: 3px solid #ef4444;';
+            } else if (isLibur || isHolidayFlag) {
+                rowStyle = 'border-bottom: 1px solid #f1f5f9; background-color: #f8fafc; color: #94a3b8; opacity: 0.85;';
+            }
+
+            // OT label: show special icon for holiday overtime
+            const otHours = parseFloat(a.calculated_overtime_hours || 0);
+            let otLabel = `<small style="color:var(--success);">OT: ${otHours.toFixed(1)}j</small>`;
+            if (isHolidayFlag && otHours > 0) {
+                otLabel = `<small style="color:#dc2626;font-weight:600;"><i class="fas fa-star" style="font-size:9px;margin-right:2px;"></i>OT Libur: ${otHours.toFixed(1)}j</small>`;
+            }
 
             return `<tr data-employee-id="${a.employee_id || ''}" data-employee-name="${(a.employee_name || '').toLowerCase()}" data-shift-name="${(a.shift_name || 'default').toLowerCase()}" style="${rowStyle}">
                 <td style="text-align:center;padding:12px;color:#64748b;">${i+1}</td>
@@ -143,7 +165,7 @@ async function loadAttendanceLogs() {
                 <td style="text-align:center;padding:12px;color:#475569;">${formatTimeHM(a.jam_keluar)}</td>
                 <td style="text-align:center;padding:12px;color:#475569;font-weight:700;">
                     ${parseFloat(a.calculated_work_hours || 0).toFixed(1)}j<br>
-                    <small style="color:var(--success);">OT: ${parseFloat(a.calculated_overtime_hours || 0).toFixed(1)}j</small>
+                    ${otLabel}
                 </td>
 
                 <td style="text-align:center;padding:12px;white-space:nowrap;">
@@ -373,10 +395,22 @@ async function downloadMainAbsensiTemplate() {
             return;
         }
 
-        // 3. Generate template
+        // 3. Fetch holidays for the month
         const mVal = parseInt(activePeriod.bulan);
         const yVal = parseInt(activePeriod.tahun);
         const daysInMonth = new Date(yVal, mVal, 0).getDate();
+
+        let holidayMap = {};
+        try {
+            const resHolidays = await fetch(`${API_URL}/holidays?tahun=${yVal}`);
+            if (resHolidays.ok) {
+                const holidayList = await resHolidays.json();
+                (Array.isArray(holidayList) ? holidayList : []).forEach(h => {
+                    const hDate = (h.tanggal || '').substring(0, 10);
+                    if (hDate) holidayMap[hDate] = h.deskripsi || 'Hari Libur';
+                });
+            }
+        } catch(e) { console.warn('Could not load holidays for template:', e); }
         
         const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
         const templateData = [];
@@ -385,18 +419,25 @@ async function downloadMainAbsensiTemplate() {
             const empId = emp.employ_id || emp.nik || '';
             const empName = emp.employee_name || '';
             const workDaysConfig = parseInt(emp.employee_hari_kerja || emp.position_hari_kerja || 5);
+            const joinDate = (emp.tgl_masuk || emp.start_contract || '').substring(0, 10);
 
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateObj = new Date(yVal, mVal - 1, d);
                 const dayOfWeek = dateObj.getDay();
                 const dateStr = `${yVal}-${String(mVal).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                
+                // Skip dates prior to employee's join date
+                if (joinDate && dateStr < joinDate) {
+                    continue;
+                }
+
                 const dayName = dayNames[dayOfWeek];
                 const tglHariStr = `${dateStr} ${dayName}`;
 
                 let jamMasuk = '08:00';
                 let jamKeluar = '17:00';
 
-                // Determine if it is a rest day
+                // Determine if it is a rest day (weekend)
                 let isRestDay = false;
                 if (workDaysConfig === 5) {
                     isRestDay = (dayOfWeek === 0 || dayOfWeek === 6); // Sat, Sun
@@ -404,9 +445,19 @@ async function downloadMainAbsensiTemplate() {
                     isRestDay = (dayOfWeek === 0); // Sun
                 }
 
-                if (isRestDay) {
+                // Check if it's a public holiday from holiday_calendar
+                const isPublicHoliday = !!holidayMap[dateStr];
+
+                if (isRestDay || isPublicHoliday) {
                     jamMasuk = '';
                     jamKeluar = '';
+                }
+
+                let status = 'Hadir';
+                if (isPublicHoliday) {
+                    status = 'Off'; // Public holiday → Off
+                } else if (isRestDay) {
+                    status = 'Off'; // Weekend rest day → Off
                 }
 
                 templateData.push({
@@ -416,7 +467,7 @@ async function downloadMainAbsensiTemplate() {
                     'Shift': '',
                     'Jam Masuk': jamMasuk,
                     'Jam Keluar': jamKeluar,
-                    'Status': isRestDay ? 'Off' : 'Hadir'
+                    'Status': status
                 });
             }
         });

@@ -250,6 +250,15 @@ class Employee extends ResourceController
 
         if ($this->model->update($id, $data)) {
             
+            // Sync PKWT employee_name if updated
+            if (isset($data['nama']) && $oldEmp && $data['nama'] !== $oldEmp['nama']) {
+                $db = \Config\Database::connect();
+                $db->table('pkwt')
+                   ->where('client_id', $oldEmp['client_id'])
+                   ->where('employee_name', $oldEmp['nama'])
+                   ->update(['employee_name' => $data['nama']]);
+            }
+
             // Sync Contract / PKWT Gaji Pokok if updated
             if (isset($data['gaji_pokok'])) {
                 $contractModel = new \App\Models\ContractModel();
@@ -355,6 +364,20 @@ class Employee extends ResourceController
     {
         $emp = $this->model->find($id);
         if ($emp && $this->model->delete($id)) {
+            // Delete corresponding PKWT records and associated tables
+            $db = \Config\Database::connect();
+            $pkwt = $db->table('pkwt')
+                       ->where('client_id', $emp['client_id'])
+                       ->where('employee_name', $emp['nama'])
+                       ->get()
+                       ->getRow();
+            if ($pkwt) {
+                $db->table('pkwt_components')->where('pkwt_id', $pkwt->id)->delete();
+                $db->table('payroll_attendance')->where('pkwt_id', $pkwt->id)->delete();
+                $db->table('payroll_final')->where('pkwt_id', $pkwt->id)->delete();
+                $db->table('pkwt')->where('id', $pkwt->id)->delete();
+            }
+
             $desc = 'Menghapus data karyawan: Nama: ' . ($emp['nama'] ?? 'ID '.$id);
             $fields = [];
             foreach ($emp as $key => $val) {

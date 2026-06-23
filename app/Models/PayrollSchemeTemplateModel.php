@@ -108,7 +108,7 @@ class PayrollSchemeTemplateModel extends Model
                               divisions.nama as division_name,
                               departments.nama as department_name,
                               positions.nama as position_name,
-                              minimum_wages.nama as minimum_wage_name,
+                              minimum_wages.nama_daerah as minimum_wage_name,
                               minimum_wages.nominal as minimum_wage_nominal')
                     ->join('divisions', 'divisions.id = payroll_scheme_templates.division_id', 'left')
                     ->join('departments', 'departments.id = payroll_scheme_templates.department_id', 'left')
@@ -128,7 +128,7 @@ class PayrollSchemeTemplateModel extends Model
                                   divisions.nama as division_name,
                                   departments.nama as department_name,
                                   positions.nama as position_name,
-                                  minimum_wages.nama as minimum_wage_name,
+                                  minimum_wages.nama_daerah as minimum_wage_name,
                                   minimum_wages.nominal as minimum_wage_nominal')
                         ->join('divisions', 'divisions.id = payroll_scheme_templates.division_id', 'left')
                         ->join('departments', 'departments.id = payroll_scheme_templates.department_id', 'left')
