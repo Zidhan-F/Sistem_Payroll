@@ -181,6 +181,8 @@ async function renderCutOffTable() {
         }
         tbody.innerHTML = data.map(row => {
             const hariKerja = parseFloat(row.hari_kerja) || 0;
+            const rapelHari = parseInt(row.rapel_hari_kerja) || 0;
+            const displayHari = hariKerja > 0 ? `${hariKerja} Days` : (rapelHari > 0 ? `${rapelHari} Days (Rapel)` : '0 Days');
             const jamLembur = parseFloat(row.jam_lembur) || 0;
             const earlyArrival = parseInt(row.early_arrival_minutes) || 0;
             const potongan = parseFloat(row.potongan_absensi) || 0;
@@ -188,12 +190,12 @@ async function renderCutOffTable() {
             return `
             <tr>
                 <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
-                <td>${hariKerja > 0 ? hariKerja + ' Days' : '-'}</td>
+                <td>${displayHari}</td>
                 <td>${jamLembur > 0 ? jamLembur + ' Hours' : '-'}</td>
                 <td>${earlyArrival > 0 ? earlyArrival + ' mnt' : '-'}</td>
                 <td>${formatRupiah(potongan)}</td>
                 <td>${formatRupiah(bonus)}</td>
-                <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja || 22}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
+                <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
             </tr>`;
         }).join('');
     } catch (err) { 

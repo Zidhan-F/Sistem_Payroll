@@ -7,20 +7,6 @@ let allHolidaysData = [];
 
 async function loadHolidays() {
     try {
-        // Silently sync with Google Calendar in background
-        fetch(`${API_URL}/holidays/sync`, { method: 'POST' })
-            .then(res => {
-                if (res.ok) {
-                    fetch(`${API_URL}/holidays?tahun=${currentHolidayYear}`)
-                        .then(r => r.json())
-                        .then(data => {
-                            allHolidaysData = data || [];
-                            renderHolidayView();
-                        });
-                }
-            })
-            .catch(err => console.error('Silent Google Calendar sync failed:', err));
-
         const res = await fetch(`${API_URL}/holidays?tahun=${currentHolidayYear}`);
         if (!res.ok) throw new Error('Network response was not ok');
         allHolidaysData = await res.json();

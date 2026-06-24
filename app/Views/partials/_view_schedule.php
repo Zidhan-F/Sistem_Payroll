@@ -76,7 +76,7 @@
                             <i class="fas fa-list"></i> Table List
                         </button>
                     </div>
-                    <button id="btnSyncGoogleCalendar" onclick="syncGoogleCalendar()" style="background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; display: none; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; padding: 10px 20px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='#e0f2fe'">
+                    <button id="btnSyncGoogleCalendar" onclick="syncGoogleCalendar()" style="background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; padding: 10px 20px; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='#e0f2fe'">
                         <i class="fas fa-sync-alt"></i> Sync Google Calendar
                     </button>
                     <button class="btn-add" onclick="bukaModalHoliday()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">

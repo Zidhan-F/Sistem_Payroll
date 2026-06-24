@@ -595,16 +595,46 @@ class Payroll extends ResourceController
             if (!empty($emp['tgl_masuk'])) {
                 $joinTs = strtotime($emp['tgl_masuk']);
                 $joinDateStr2 = date('Y-m-d', $joinTs);
-                if ($joinDateStr2 > $empEndDateStr) {
+
+                $gpEndField = "cutoff_gaji_pokok_end";
+                $gpRefField = "cutoff_gaji_pokok_schedule_ref";
+                $gpRefId = ($empConfig && isset($empConfig->$gpRefField)) ? intval($empConfig->$gpRefField) : null;
+                $gpEndVal = ($empConfig && isset($empConfig->$gpEndField)) ? intval($empConfig->$gpEndField) : null;
+                if ($gpRefId) {
+                    $sched = $db->table('payroll_schedules')->where('id', $gpRefId)->get()->getRow();
+                    if ($sched) $gpEndVal = intval($sched->cutoff_end);
+                }
+                if ($gpEndVal === null) {
+                    if ($empConfig && isset($empConfig->cutoff_end)) {
+                        $gpEndVal = intval($empConfig->cutoff_end);
+                    } else {
+                        $gpStartField = "cutoff_gaji_pokok_start";
+                        $gpStartVal = ($empConfig && isset($empConfig->$gpStartField)) ? intval($empConfig->$gpStartField) : null;
+                        if ($gpRefId && isset($sched)) {
+                            $gpStartVal = intval($sched->cutoff_start);
+                        }
+                        if ($gpStartVal === null) {
+                            $gpStartVal = ($empConfig && isset($empConfig->cutoff_start)) ? intval($empConfig->cutoff_start) : 21;
+                        }
+                        $gpEndVal = $gpStartVal - 1;
+                        $daysInMonth = date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun)));
+                        if ($gpEndVal < 1) $gpEndVal = $daysInMonth;
+                        if ($gpEndVal > $daysInMonth) $gpEndVal = $daysInMonth;
+                    }
+                }
+
+                $currentPeriodCutoffEnd = sprintf('%04d-%02d-%02d', intval($tahun), intval($bulan), $gpEndVal);
+
+                if ($joinDateStr2 > $currentPeriodCutoffEnd) {
                     $isRapelGP = ($empConfig && isset($empConfig->is_rapel_gaji_pokok)) ? intval($empConfig->is_rapel_gaji_pokok) : 1;
                     
                     // Gaji pokok cutoff start
                     $gpStartField = "cutoff_gaji_pokok_start";
-                    $gpRefField = "cutoff_gaji_pokok_schedule_ref";
                     $gpStartVal = ($empConfig && isset($empConfig->$gpStartField)) ? intval($empConfig->$gpStartField) : null;
-                    $gpRefId = ($empConfig && isset($empConfig->$gpRefField)) ? intval($empConfig->$gpRefField) : null;
                     if ($gpRefId) {
-                        $sched = $db->table('payroll_schedules')->where('id', $gpRefId)->get()->getRow();
+                        if (!isset($sched)) {
+                            $sched = $db->table('payroll_schedules')->where('id', $gpRefId)->get()->getRow();
+                        }
                         if ($sched) $gpStartVal = intval($sched->cutoff_start);
                     }
                     if ($gpStartVal === null) {
@@ -640,8 +670,8 @@ class Payroll extends ResourceController
             // Resolve employee-specific minimum wage and UMP/UMK values
             $empMinimumWage = $minimumWage;
             $empMwId = null;
-            if ($payrollConfig && !empty($payrollConfig->minimum_wage_id)) {
-                $empMwId = $payrollConfig->minimum_wage_id;
+            if ($empConfig && !empty($empConfig->minimum_wage_id)) {
+                $empMwId = $empConfig->minimum_wage_id;
             }
             if (!empty($emp['minimum_wage_id'])) {
                 $empMwId = $emp['minimum_wage_id'];
@@ -778,15 +808,18 @@ class Payroll extends ResourceController
 
             if ($activeContract && floatval($activeContract->gaji_pokok) > 0) {
                 $baseSalary = floatval($activeContract->gaji_pokok);
-            } elseif ($payrollConfig) {
+            } elseif ($empConfig) {
                 // ── PRIORITAS 2: Dari client_payroll_configs (UMP/UMK/Nominal) ──
-                if ($payrollConfig->payroll_type === 'UMP' || $payrollConfig->payroll_type === 'UMK') {
-                    if ($payrollConfig->minimum_wage_nominal > 0) {
-                        $baseSalary = floatval($payrollConfig->minimum_wage_nominal);
+                if ($empConfig->payroll_type === 'UMP' || $empConfig->payroll_type === 'UMK') {
+                    $mwNominal = (isset($empConfig->minimum_wage_nominal) && floatval($empConfig->minimum_wage_nominal) > 0) 
+                        ? floatval($empConfig->minimum_wage_nominal) 
+                        : $empMinimumWage;
+                    if ($mwNominal > 0) {
+                        $baseSalary = $mwNominal;
                     }
-                } elseif ($payrollConfig->payroll_type === 'Nominal') {
-                    if ($payrollConfig->custom_nominal > 0) {
-                        $baseSalary = floatval($payrollConfig->custom_nominal);
+                } elseif ($empConfig->payroll_type === 'Nominal') {
+                    if (isset($empConfig->custom_nominal) && floatval($empConfig->custom_nominal) > 0) {
+                        $baseSalary = floatval($empConfig->custom_nominal);
                     }
                 }
             }
@@ -916,14 +949,9 @@ class Payroll extends ResourceController
 
             if ($isNewHireRapel) {
                 // Calculate actual present days from attendance_logs
-                $actualDaysWorked = $db->table('attendance_logs')
-                    ->where('employee_id', $emp['id'])
-                    ->where('log_date >=', $empStartDateStr)
-                    ->where('log_date <=', $empEndDateStr)
-                    ->where('status', 'Hadir')
-                    ->countAllResults();
-
-                $rapelAmount = ($standardDays > 0) ? (($actualDaysWorked / $standardDays) * $baseSalary) : 0.0;
+                // Force to 0 because join date is after cutoff end, meaning 0 days worked in this period.
+                $actualDaysWorked = 0;
+                $rapelAmount = 0.0;
 
                 if ($rapelAmount > 0) {
                     $existingRapel = $db->table('pkwt_components')
@@ -1004,8 +1032,14 @@ class Payroll extends ResourceController
                     $gpStartVal = intval($empConfig->cutoff_start);
                 }
                 if ($gpStartVal > 1) {
-                    $remainingStartDate = sprintf('%04d-%02d-%02d', $tahun, $bulan, $gpStartVal);
-                    $remainingEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tahun, $bulan)));
+                    $prevMonth = intval($bulan) - 1;
+                    $prevYear = intval($tahun);
+                    if ($prevMonth == 0) {
+                        $prevMonth = 12;
+                        $prevYear--;
+                    }
+                    $remainingStartDate = sprintf('%04d-%02d-%02d', $prevYear, $prevMonth, $gpStartVal);
+                    $remainingEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $prevYear, $prevMonth)));
                     
                     $absentCountRemaining = $db->table('attendance_logs')
                         ->where('employee_id', $emp['id'])
@@ -1109,16 +1143,32 @@ class Payroll extends ResourceController
                 $joinTs = strtotime($emp['tgl_masuk']);
                 $joinDateStr = date('Y-m-d', $joinTs);
                 if ($joinDateStr >= $empStartDateStr && $joinDateStr <= $empEndDateStr) {
-                    $baseSalary = $gajiProrata;
-                    $bpjsWageBase = $baseSalary;
-                    $pphWageBase = $baseSalary;
+                    // Resolve cutoff start for this month to check if they joined after or before it
+                    $gpStartField = "cutoff_gaji_pokok_start";
+                    $gpRefField = "cutoff_gaji_pokok_schedule_ref";
+                    $gpRefId = ($empConfig && isset($empConfig->$gpRefField)) ? intval($empConfig->$gpRefField) : null;
+                    $gpStartVal = ($empConfig && isset($empConfig->$gpStartField)) ? intval($empConfig->$gpStartField) : null;
+                    if ($gpRefId) {
+                        $sched = $db->table('payroll_schedules')->where('id', $gpRefId)->get()->getRow();
+                        if ($sched) $gpStartVal = intval($sched->cutoff_start);
+                    }
+                    if ($gpStartVal === null) {
+                        $gpStartVal = ($empConfig && isset($empConfig->cutoff_start)) ? intval($empConfig->cutoff_start) : 21;
+                    }
+
+                    $joinDay = intval(date('j', $joinTs));
+                    if ($joinDay >= $gpStartVal) {
+                        $baseSalary = $gajiProrata;
+                        $bpjsWageBase = $baseSalary;
+                        $pphWageBase = $baseSalary;
+                    }
                 }
             }
 
             // Resolve payroll scheme if available for overtime type settings
             $ps = null;
-            if ($payrollConfig && !empty($payrollConfig->payroll_scheme_id)) {
-                $ps = $db->table('payroll_schemes')->where('id', $payrollConfig->payroll_scheme_id)->get()->getRow();
+            if ($empConfig && !empty($empConfig->payroll_scheme_id)) {
+                $ps = $db->table('payroll_schemes')->where('id', $empConfig->payroll_scheme_id)->get()->getRow();
             }
 
             $overtimeType = ($ps && !empty($ps->overtime_type)) ? $ps->overtime_type : 'standard';
@@ -1140,7 +1190,11 @@ class Payroll extends ResourceController
                     if ($lumpsumSubtype === 'per_jam') {
                         $overtimePay = $totalJamLemburLog * $lumpsumNominal;
                     } elseif ($lumpsumSubtype === 'harian') {
-                        $overtimePay = count($overtimeLogs) * $lumpsumNominal;
+                        $distinctDays = [];
+                        foreach ($overtimeLogs as $otLog) {
+                            $distinctDays[$otLog['tanggal']] = true;
+                        }
+                        $overtimePay = count($distinctDays) * $lumpsumNominal;
                     } elseif ($lumpsumSubtype === 'bulanan') {
                         $overtimePay = $lumpsumNominal;
                     }
@@ -1353,10 +1407,10 @@ class Payroll extends ResourceController
 
             // Ikut skema absensi dari payroll_scheme
             $potonganAlpa = 0.0;
-            if ($payrollConfig) {
+            if ($empConfig) {
                 $ps = null;
-                if (!empty($payrollConfig->payroll_scheme_id)) {
-                    $ps = $db->table('payroll_schemes')->where('id', $payrollConfig->payroll_scheme_id)->get()->getRow();
+                if (!empty($empConfig->payroll_scheme_id)) {
+                    $ps = $db->table('payroll_schemes')->where('id', $empConfig->payroll_scheme_id)->get()->getRow();
                 }
 
                 if ($ps && intval($ps->absen_tidak_potong ?? 0) == 1) {
@@ -1807,7 +1861,11 @@ class Payroll extends ResourceController
                         }
                         $rapelOvertimePay = $totalRapelJam * $lumpsumNominal;
                     } elseif ($lumpsumSubtype === 'harian') {
-                        $rapelOvertimePay = count($overtimeRapelLogs) * $lumpsumNominal;
+                        $distinctRapelDays = [];
+                        foreach ($overtimeRapelLogs as $otLog) {
+                            $distinctRapelDays[$otLog['tanggal']] = true;
+                        }
+                        $rapelOvertimePay = count($distinctRapelDays) * $lumpsumNominal;
                     } elseif ($lumpsumSubtype === 'bulanan') {
                         $rapelOvertimePay = $lumpsumNominal;
                     }
@@ -2056,8 +2114,14 @@ class Payroll extends ResourceController
                 $gpStartVal = intval($empConfig->cutoff_start);
             }
             if ($gpStartVal > 1) {
-                $remainingStartDate = sprintf('%04d-%02d-%02d', $tahun, $bulan, $gpStartVal);
-                $remainingEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tahun, $bulan)));
+                $prevMonth = intval($bulan) - 1;
+                $prevYear = intval($tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
+                }
+                $remainingStartDate = sprintf('%04d-%02d-%02d', $prevYear, $prevMonth, $gpStartVal);
+                $remainingEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $prevYear, $prevMonth)));
                 
                 $absentCountRemaining = $db->table('attendance_logs')
                     ->where('employee_id', $emp['id'])
