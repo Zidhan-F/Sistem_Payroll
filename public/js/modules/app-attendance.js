@@ -212,9 +212,19 @@ function bukaModalAttendance() {
     const tanggalInput = document.getElementById('attendanceTanggal');
     if (tanggalInput) {
         tanggalInput.disabled = false;
-        if (!tanggalInput.value) {
-            const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const curYear = now.getFullYear();
+        const curMonth = now.getMonth() + 1;
+
+        const selMonth = parseInt(document.getElementById('attendanceMonthSelect')?.value || curMonth);
+        const selYear = parseInt(document.getElementById('attendanceYearSelect')?.value || curYear);
+
+        if (selMonth === curMonth && selYear === curYear) {
+            const today = now.toISOString().split('T')[0];
             tanggalInput.value = today;
+        } else {
+            const formattedMonth = String(selMonth).padStart(2, '0');
+            tanggalInput.value = `${selYear}-${formattedMonth}-01`;
         }
     }
     loadAttendanceEmployees();
@@ -237,25 +247,29 @@ function bukaModalAttendance() {
 
 // Auto-deteksi data kehadiran yang sudah ada saat karyawan & tanggal dipilih
 async function checkExistingAttendance() {
-    const employeeId = document.getElementById('attendanceEmployeeSelect')?.value;
-    const tanggal = document.getElementById('attendanceTanggal')?.value;
+    const empSelect = document.getElementById('attendanceEmployeeSelect');
+    const dateInput = document.getElementById('attendanceTanggal');
+    const employeeId = empSelect?.value;
+    const tanggal = dateInput?.value;
 
-    // Hanya cek jika keduanya sudah terisi dan bukan sedang mode edit manual
-    if (!employeeId || !tanggal || editingAttendanceLogId) return;
+    // Jika select karyawan atau input tanggal dinonaktifkan, berarti sedang mode edit manual dari tabel (tidak perlu check)
+    if (empSelect?.disabled || dateInput?.disabled) return;
+
+    if (!employeeId || !tanggal) return;
 
     try {
         const res = await fetch(`${API_URL}/attendance-logs?employee_id=${employeeId}&tanggal=${tanggal}`);
         const data = await res.json();
         const logs = Array.isArray(data) ? data : (data.data || []);
 
+        const statusInput = document.getElementById('attendanceStatus');
+        const jamMasukInput = document.getElementById('attendanceJamMasuk');
+        const jamKeluarInput = document.getElementById('attendanceJamKeluar');
+        const keteranganInput = document.getElementById('attendanceKeterangan');
+
         if (logs.length > 0) {
             const existing = logs[0];
             // Auto-fill form dengan data yang sudah ada
-            const statusInput = document.getElementById('attendanceStatus');
-            const jamMasukInput = document.getElementById('attendanceJamMasuk');
-            const jamKeluarInput = document.getElementById('attendanceJamKeluar');
-            const keteranganInput = document.getElementById('attendanceKeterangan');
-
             if (statusInput) statusInput.value = existing.status || 'Hadir';
             if (jamMasukInput) jamMasukInput.value = existing.jam_masuk || '';
             if (jamKeluarInput) jamKeluarInput.value = existing.jam_keluar || '';
@@ -269,6 +283,12 @@ async function checkExistingAttendance() {
             // Reset ke mode tambah baru
             editingAttendanceLogId = null;
             document.getElementById('attendanceModalTitle').innerText = 'Input Kehadiran';
+            
+            // Bersihkan field yang sempat terisi otomatis
+            if (statusInput) statusInput.value = 'Hadir';
+            if (jamMasukInput) jamMasukInput.value = '';
+            if (jamKeluarInput) jamKeluarInput.value = '';
+            if (keteranganInput) keteranganInput.value = '';
         }
     } catch (e) {
         console.error('Auto-check attendance error:', e);
@@ -316,15 +336,27 @@ async function simpanAttendance(e) {
         showToast(data.message || 'Kehadiran berhasil disimpan!', 'success');
         closeModal('attendanceModal');
 
-        // Auto-update filter dropdowns to the month and year of the saved log
-        const dateParts = tanggal.split('-');
-        if (dateParts.length === 3) {
-            const yearVal = parseInt(dateParts[0]);
-            const monthVal = parseInt(dateParts[1]);
-            const monthSelect = document.getElementById('attendanceMonthSelect');
-            const yearSelect = document.getElementById('attendanceYearSelect');
-            if (monthSelect) monthSelect.value = monthVal;
-            if (yearSelect) yearSelect.value = yearVal;
+        // Auto-update filter dropdowns to the payout period of the saved log
+        if (data.payout_period) {
+            const parts = data.payout_period.split('-');
+            if (parts.length === 2) {
+                const monthVal = parseInt(parts[0]);
+                const yearVal = parseInt(parts[1]);
+                const monthSelect = document.getElementById('attendanceMonthSelect');
+                const yearSelect = document.getElementById('attendanceYearSelect');
+                if (monthSelect) monthSelect.value = monthVal;
+                if (yearSelect) yearSelect.value = yearVal;
+            }
+        } else {
+            const dateParts = tanggal.split('-');
+            if (dateParts.length === 3) {
+                const yearVal = parseInt(dateParts[0]);
+                const monthVal = parseInt(dateParts[1]);
+                const monthSelect = document.getElementById('attendanceMonthSelect');
+                const yearSelect = document.getElementById('attendanceYearSelect');
+                if (monthSelect) monthSelect.value = monthVal;
+                if (yearSelect) yearSelect.value = yearVal;
+            }
         }
 
         loadAttendanceLogs();
@@ -662,6 +694,7 @@ window.toggleAttendanceClientDropdown = toggleAttendanceClientDropdown;
 window.closeAttendanceClientDropdown = closeAttendanceClientDropdown;
 window.filterClientDropdownOptions = filterClientDropdownOptions;
 window.editAttendanceLog = editAttendanceLog;
+window.deleteAttendanceLog = deleteAttendanceLog;
 window.bukaModalAttendance = bukaModalAttendance;
 window.simpanAttendance = simpanAttendance;
 window.loadAttendanceLogs = loadAttendanceLogs;

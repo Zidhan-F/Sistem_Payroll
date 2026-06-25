@@ -1281,8 +1281,14 @@ class Api extends ResourceController
         if ($tanggal) {
             $builder->where('attendance_logs.log_date', $tanggal);
         } elseif ($bulan && $tahun) {
-            $builder->where('MONTH(attendance_logs.log_date)', intval($bulan));
-            $builder->where('YEAR(attendance_logs.log_date)', intval($tahun));
+            $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
+            $builder->groupStart()
+                ->groupStart()
+                    ->where('MONTH(attendance_logs.log_date)', intval($bulan))
+                    ->where('YEAR(attendance_logs.log_date)', intval($tahun))
+                ->groupEnd()
+                ->orWhere('attendance_logs.payout_period', $payoutPeriodStr)
+            ->groupEnd();
         }
 
         $builder->orderBy('attendance_logs.log_date', 'ASC');
@@ -1434,7 +1440,10 @@ class Api extends ResourceController
                 $calc['shift_scheme_id'],
                 $calc['payout_period']
             );
-            return $this->respond(['message' => 'Attendance log berhasil diupdate']);
+            return $this->respond([
+                'message' => 'Attendance log berhasil diupdate',
+                'payout_period' => $calc['payout_period']
+            ]);
         }
 
         $insertData = [
@@ -1471,7 +1480,10 @@ class Api extends ResourceController
             $calc['shift_scheme_id'],
             $calc['payout_period']
         );
-        return $this->respondCreated(['message' => 'Attendance log berhasil ditambahkan']);
+        return $this->respondCreated([
+            'message' => 'Attendance log berhasil ditambahkan',
+            'payout_period' => $calc['payout_period']
+        ]);
     }
 
     public function createAttendanceBulk()
@@ -1753,7 +1765,10 @@ class Api extends ResourceController
             $calc['shift_scheme_id'],
             $calc['payout_period']
         );
-        return $this->respond(['message' => 'Attendance log berhasil diupdate']);
+        return $this->respond([
+            'message' => 'Attendance log berhasil diupdate',
+            'payout_period' => $calc['payout_period']
+        ]);
     }
 
     public function deleteAttendanceLog($id)
