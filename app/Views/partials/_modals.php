@@ -285,11 +285,11 @@
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 6px;">
                                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #dbeafe;">
-                                            <span style="background: #3b82f6; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 1</span>
+                                            <span style="background: #3b82f6; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">1 jam</span>
                                             <span style="font-size: 12px; color: #334155; font-weight: 500;">1.5× Upah / Jam</span>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #dbeafe;">
-                                            <span style="background: #2563eb; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 2-3</span>
+                                            <span style="background: #2563eb; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">2-3 jam</span>
                                             <span style="font-size: 12px; color: #334155; font-weight: 500;">2.0× Upah / Jam</span>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #fffbeb; border-radius: 8px; border: 1px solid #fef3c7;">
@@ -298,10 +298,10 @@
                                         </div>
                                     </div>
                                 </div>
-
+ 
                                 <!-- Divider line -->
                                 <div style="border-top: 1px dashed #bfdbfe; margin: 2px 0;"></div>
-
+ 
                                 <!-- Hari Libur Section -->
                                 <div>
                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
@@ -310,15 +310,15 @@
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 6px;">
                                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #fee2e2;">
-                                            <span style="background: #ef4444; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 1-6</span>
+                                            <span style="background: #ef4444; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">1-6 Jam</span>
                                             <span style="font-size: 12px; color: #334155; font-weight: 500;">2.0× Upah / Jam</span>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #fee2e2;">
-                                            <span style="background: #dc2626; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 7</span>
+                                            <span style="background: #dc2626; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">7 Jam</span>
                                             <span style="font-size: 12px; color: #334155; font-weight: 500;">3.0× Upah / Jam</span>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #fee2e2;">
-                                            <span style="background: #991b1b; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">Jam 8+</span>
+                                            <span style="background: #991b1b; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; min-width: 55px; text-align: center;">8 jam</span>
                                             <span style="font-size: 12px; color: #334155; font-weight: 500;">4.0× Upah / Jam</span>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 11px; color: #64748b;">

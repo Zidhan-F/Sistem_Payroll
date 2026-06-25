@@ -153,9 +153,6 @@
                                 <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                                     <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Monthly Salary Processing</h3>
                                     <div style="display: flex; gap: 12px; align-items: center;">
-                                        <button type="button" onclick="bukaModalPeriode()" class="btn-save" style="background: var(--primary-color); display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; border: none; color: white; cursor: pointer; margin-right: 5px;">
-                                            <i class="fas fa-plus-circle"></i> Buka Periode Baru
-                                        </button>
                                         <select id="processMonthSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 130px;">
                                             <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
                                             <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>

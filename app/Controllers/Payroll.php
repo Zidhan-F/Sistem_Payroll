@@ -1114,6 +1114,104 @@ class Payroll extends ResourceController
                 ->get()->getResultArray();
             $actualDaysWorked = count($attendanceLogs);
 
+            $isJoinedPrevMonth = false;
+            $isActiveRegularPrevMonth = false;
+            if (!empty($emp['tgl_masuk'])) {
+                $joinTs = strtotime($emp['tgl_masuk']);
+                $joinYear = intval(date('Y', $joinTs));
+                $joinMonth = intval(date('n', $joinTs));
+                
+                $prevMonth = intval($bulan) - 1;
+                $prevYear = intval($tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
+                }
+                
+                if ($joinYear === $prevYear && $joinMonth === $prevMonth) {
+                    // Resolve cutoff end for previous month
+                    $refField = "cutoff_gaji_pokok_schedule_ref";
+                    $endField = "cutoff_gaji_pokok_end";
+                    
+                    $refId = ($empConfig && isset($empConfig->$refField)) ? intval($empConfig->$refField) : null;
+                    $cutoffEndVal = ($empConfig && isset($empConfig->$endField)) ? intval($empConfig->$endField) : null;
+                    
+                    if ($refId) {
+                        $sched = $db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
+                        if ($sched) {
+                            $cutoffEndVal = intval($sched->cutoff_end);
+                        }
+                    }
+                    
+                    if ($cutoffEndVal === null) {
+                        if ($empConfig && isset($empConfig->cutoff_end)) {
+                            $cutoffEndVal = intval($empConfig->cutoff_end);
+                        } else {
+                            $startField = "cutoff_gaji_pokok_start";
+                            $startVal = ($empConfig && isset($empConfig->$startField)) ? intval($empConfig->$startField) : null;
+                            if ($startVal === null && $empConfig && isset($empConfig->cutoff_start)) {
+                                $startVal = intval($empConfig->cutoff_start);
+                            }
+                            if ($startVal === null) {
+                                $startVal = 21;
+                            }
+                            $cutoffEndVal = $startVal - 1;
+                            $daysInPrevMonth = date('t', mktime(0, 0, 0, $prevMonth, 1, $prevYear));
+                            if ($cutoffEndVal < 1) $cutoffEndVal = $daysInPrevMonth;
+                            if ($cutoffEndVal > $daysInPrevMonth) $cutoffEndVal = $daysInPrevMonth;
+                        }
+                    }
+                    
+                    $joinDateStr = date('Y-m-d', $joinTs);
+                    $prevCutoffEndDate = sprintf('%04d-%02d-%02d', $prevYear, $prevMonth, $cutoffEndVal);
+                    
+                    if ($joinDateStr > $prevCutoffEndDate) {
+                        $isJoinedPrevMonth = true;
+                    } else {
+                        // Joined in previous month before cutoff. Check if active in current month (dates 1 to cutoffEnd)
+                        $currentMonthStartStr = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
+                        $currentCutoffEndStr = sprintf('%04d-%02d-%02d', intval($tahun), intval($bulan), $cutoffEndVal);
+                        $currentLogsCount = $db->table('attendance_logs')
+                                                     ->where('employee_id', $emp['id'])
+                                                     ->where('log_date >=', $currentMonthStartStr)
+                                                     ->where('log_date <=', $currentCutoffEndStr)
+                                                     ->countAllResults();
+                        
+                        $prevCutoffStartStr = date('Y-m-d', strtotime('+1 day', strtotime($prevCutoffEndDate)));
+                        $prevMonthLogsCount = $db->table('attendance_logs')
+                                                     ->where('employee_id', $emp['id'])
+                                                     ->where('log_date >=', $prevCutoffStartStr)
+                                                     ->where('log_date <', $currentMonthStartStr)
+                                                     ->countAllResults();
+                        
+                        if ($currentLogsCount > 0 && $prevMonthLogsCount === 0) {
+                            $isActiveRegularPrevMonth = true;
+                        }
+                    }
+                }
+            }
+
+            if ($isActiveRegularPrevMonth) {
+                // Determine workDaysConfig for helper
+                $workDaysConfigVal = 5; // default
+                if ($emp) {
+                    $workDaysConfigVal = intval($emp['hari_kerja'] ?? 5);
+                    if ($workDaysConfigVal < 1) {
+                        $posId = $emp['position_id'] ?? null;
+                        if ($posId) {
+                            $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
+                            if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
+                                $workDaysConfigVal = intval($pos->hari_kerja);
+                            }
+                        }
+                    }
+                }
+                $prevMonthEndStr = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $prevYear, $prevMonth)));
+                $prevCutoffStartStr = date('Y-m-d', strtotime('+1 day', strtotime($prevCutoffEndDate)));
+                $prevMonthWorkingDays = $this->getStandardWorkingDaysInRange($prevCutoffStartStr, $prevMonthEndStr, $workDaysConfigVal);
+                $actualDaysWorked += $prevMonthWorkingDays;
+            }
+
             // Query approved overtime logs for this employee in the cutoff range (excluding rapel)
             $overtimeLogs = $db->table('overtime_logs')
                 ->where('overtime_logs.employee_id', $emp['id'])
@@ -1351,6 +1449,16 @@ class Payroll extends ResourceController
             while ($currTime <= $endTime) {
                 $currDateStr = date('Y-m-d', $currTime);
                 $dayOfWeek = intval(date('w', $currTime)); // 0 = Sunday, 6 = Saturday
+                
+                // Skip dates in previous month if employee is a regular active employee from previous month
+                if ($isActiveRegularPrevMonth) {
+                    $currDateMonth = intval(date('n', $currTime));
+                    $currDateYear = intval(date('Y', $currTime));
+                    if ($currDateYear === $prevYear && $currDateMonth === $prevMonth) {
+                        $currTime = strtotime('+1 day', $currTime);
+                        continue;
+                    }
+                }
                 
                 // Skip dates before employee's join date
                 $joinDate = !empty($emp['tgl_masuk']) ? $emp['tgl_masuk'] : ($emp['start_contract'] ?? null);
@@ -2635,6 +2743,28 @@ class Payroll extends ResourceController
             if ($bruto <= 2126000000) return 30.0;
             return 34.0;
         }
+    }
+
+    private function getStandardWorkingDaysInRange(string $startDate, string $endDate, int $workDaysConfig): int
+    {
+        $startTs = strtotime($startDate);
+        $endTs = strtotime($endDate);
+        $stdDays = 0;
+        for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+            $dayOfWeek = date('w', $curr);
+            if ($workDaysConfig === 5) {
+                if ($dayOfWeek != 0 && $dayOfWeek != 6) {
+                    $stdDays++;
+                }
+            } elseif ($workDaysConfig === 6) {
+                if ($dayOfWeek != 0) {
+                    $stdDays++;
+                }
+            } else {
+                $stdDays++;
+            }
+        }
+        return $stdDays;
     }
 }
 

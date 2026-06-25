@@ -2,18 +2,63 @@
 // Extracted from app.js for modular monolith architecture
 
 // ===== 7. PROSES PAYROLL BULANAN =====
+async function autoCreatePeriod(month, year) {
+    if (!window.selectedClientId) return;
+    const data = {
+        client_id: parseInt(window.selectedClientId),
+        bulan: parseInt(month),
+        tahun: parseInt(year)
+    };
+    try {
+        const res = await fetch(`${API_URL}/periods`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            const url = `${API_URL}/periods?client_id=${window.selectedClientId}`;
+            const response = await fetch(url);
+            const periods = await response.json();
+            window.loadedPeriods = periods;
+            
+            const activePeriod = periods.find(p => parseInt(p.bulan) === month && parseInt(p.tahun) === year);
+            if (activePeriod) {
+                currentPeriodId = activePeriod.id;
+                window.currentPeriodId = activePeriod.id;
+                selectPeriod(currentPeriodId, activePeriod.nama);
+            }
+        } else {
+            console.error('Failed to auto-create period');
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+
 async function loadActivePeriod() {
     try {
+        const monthSelect = document.getElementById('processMonthSelect');
+        const yearSelect = document.getElementById('processYearSelect');
+        
+        const d = new Date();
+        const currentMonth = d.getMonth() + 1;
+        const currentYear = d.getFullYear();
+        
+        if (monthSelect && !monthSelect.value) {
+            monthSelect.value = currentMonth;
+        }
+        if (yearSelect && !yearSelect.value) {
+            yearSelect.value = currentYear;
+        }
+
+        const selMonth = monthSelect ? parseInt(monthSelect.value) : currentMonth;
+        const selYear = yearSelect ? parseInt(yearSelect.value) : currentYear;
+
         const url = window.selectedClientId ? `${API_URL}/periods?client_id=${window.selectedClientId}` : `${API_URL}/periods`;
         const response = await fetch(url);
         const periods = await response.json();
         window.loadedPeriods = periods;
         
-        // 1. Render dropdown selector on the main page
-        const monthSelect = document.getElementById('processMonthSelect');
-        const yearSelect = document.getElementById('processYearSelect');
-        
-        // 2. Render history list inside the popup modal
         const list = document.getElementById('periodHistoryList');
         if (list) {
             list.innerHTML = periods.map(p => `
@@ -24,26 +69,9 @@ async function loadActivePeriod() {
             `).join('');
         }
         
-        if (periods.length > 0) {
-            let activePeriod = null;
-            
-            // Try to match selected month/year first
-            if (monthSelect && yearSelect) {
-                const selMonth = parseInt(monthSelect.value);
-                const selYear = parseInt(yearSelect.value);
-                activePeriod = periods.find(p => parseInt(p.bulan) === selMonth && parseInt(p.tahun) === selYear);
-            }
-            
-            // Otherwise try currentPeriodId
-            if (!activePeriod && currentPeriodId) {
-                activePeriod = periods.find(p => p.id == currentPeriodId);
-            }
-            
-            // Fallback to the first period
-            if (!activePeriod) {
-                activePeriod = periods[0];
-            }
-            
+        let activePeriod = periods.find(p => parseInt(p.bulan) === selMonth && parseInt(p.tahun) === selYear);
+        
+        if (activePeriod) {
             currentPeriodId = activePeriod.id;
             window.currentPeriodId = activePeriod.id;
             
@@ -52,15 +80,13 @@ async function loadActivePeriod() {
             
             selectPeriod(currentPeriodId, activePeriod.nama);
         } else {
-            // Default select to current month/year if no periods exist
-            const d = new Date();
-            if (monthSelect) monthSelect.value = d.getMonth() + 1;
-            if (yearSelect) yearSelect.value = d.getFullYear();
-            
-            currentPeriodId = null;
-            window.currentPeriodId = null;
-            
-            selectPeriod(null, '');
+            if (window.selectedClientId) {
+                await autoCreatePeriod(selMonth, selYear);
+            } else {
+                currentPeriodId = null;
+                window.currentPeriodId = null;
+                selectPeriod(null, '');
+            }
         }
     } catch (err) { console.error(err); }
 }
@@ -95,7 +121,7 @@ function selectPeriod(id, name) {
     tutupSemuaModal();
 }
 
-function onProcessPeriodChange() {
+async function onProcessPeriodChange() {
     const monthSelect = document.getElementById('processMonthSelect');
     const yearSelect = document.getElementById('processYearSelect');
     if (!monthSelect || !yearSelect || !window.loadedPeriods) return;
@@ -108,24 +134,18 @@ function onProcessPeriodChange() {
     if (matchedPeriod) {
         selectPeriod(matchedPeriod.id, matchedPeriod.nama);
     } else {
-        // No period opened for this month and year
-        currentPeriodId = null;
-        window.currentPeriodId = null;
-        document.getElementById('prosesActions').style.display = 'none';
-        document.getElementById('prosesEmptyState').style.display = 'block';
-        
-        const emptyStateText = document.querySelector('#prosesEmptyState p');
-        if (emptyStateText) {
-            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-            const monthName = monthNames[selectedMonth - 1] || '';
-            emptyStateText.innerHTML = `Periode <strong>${monthName} ${selectedYear}</strong> belum dibuka untuk client ini.<br><br>
-            <button type="button" onclick="bukaModalPeriode()" class="btn-save" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; border: none; color: white; transition: background 0.2s;">
-                <i class="fas fa-plus-circle"></i> Buka Periode Baru
-            </button>`;
+        if (window.selectedClientId) {
+            showToast('Membuka periode baru secara otomatis...', 'info');
+            await autoCreatePeriod(selectedMonth, selectedYear);
+        } else {
+            currentPeriodId = null;
+            window.currentPeriodId = null;
+            document.getElementById('prosesActions').style.display = 'none';
+            document.getElementById('prosesEmptyState').style.display = 'block';
+            
+            if (document.getElementById('resultSection')) document.getElementById('resultSection').style.display = 'none';
+            if (document.getElementById('resultsEmptyState')) document.getElementById('resultsEmptyState').style.display = 'block';
         }
-        
-        if (document.getElementById('resultSection')) document.getElementById('resultSection').style.display = 'none';
-        if (document.getElementById('resultsEmptyState')) document.getElementById('resultsEmptyState').style.display = 'block';
     }
 }
 window.onProcessPeriodChange = onProcessPeriodChange;
@@ -1463,14 +1483,38 @@ function processParsedAttendance(rows) {
             // Overtime will be calculated on the backend from daily shift attendance logs
 
 
-            const isAbsent = (statusNorm === 'alfa' || statusNorm === 'absent' || statusNorm === 'missing');
+            const isAbsent = (statusNorm === 'alfa' || statusNorm === 'absent' || statusNorm === 'missing' || statusNorm === 'absen');
             if (isAbsent && !isRestDay) {
                 totalAlfa++;
             }
         });
 
         const gajiPokok = parseFloat(emp.gaji_pokok || 0);
-        const divider = (workDaysConfig === 5) ? 22 : ((workDaysConfig === 6) ? 26 : 30);
+        let divider = (workDaysConfig === 5) ? 22 : ((workDaysConfig === 6) ? 26 : 30);
+        if (bulan && tahun) {
+            const filterMonth = parseInt(bulan);
+            const filterYear = parseInt(tahun);
+            const daysInMonth = new Date(filterYear, filterMonth, 0).getDate();
+            let stdDays = 0;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateObj = new Date(filterYear, filterMonth - 1, d);
+                const dayOfWeek = dateObj.getDay();
+                if (workDaysConfig === 5) {
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                        stdDays++;
+                    }
+                } else if (workDaysConfig === 6) {
+                    if (dayOfWeek !== 0) {
+                        stdDays++;
+                    }
+                } else {
+                    stdDays++;
+                }
+            }
+            if (stdDays > 0) {
+                divider = stdDays;
+            }
+        }
         const dendaAbsenPerDay = gajiPokok / divider;
         const totalPotongan = totalAlfa * dendaAbsenPerDay;
 

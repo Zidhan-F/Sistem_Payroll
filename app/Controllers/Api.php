@@ -3106,6 +3106,25 @@ class Api extends ResourceController
                                           ->where('log_date <=', $monthEnd)
                                           ->get()->getResultArray();
                     $row->rapel_hari_kerja = count($rawRapelDays);
+
+                    // If still 0, check if no logs exist at all for this employee in that range
+                    if ($row->rapel_hari_kerja === 0) {
+                        $totalLogsInRange = $this->db->table('attendance_logs')
+                                                     ->where('employee_id', $row->employee_id)
+                                                     ->where('log_date >=', $joinDate)
+                                                     ->where('log_date <=', $monthEnd)
+                                                     ->countAllResults();
+                        if ($totalLogsInRange === 0) {
+                            // Fallback to calendar working days based on work schedule config
+                            $workDaysConfig = 5;
+                            if (isset($row->employee_hari_kerja) && intval($row->employee_hari_kerja) > 0) {
+                                $workDaysConfig = intval($row->employee_hari_kerja);
+                            } elseif (isset($row->position_hari_kerja) && intval($row->position_hari_kerja) > 0) {
+                                $workDaysConfig = intval($row->position_hari_kerja);
+                            }
+                            $row->rapel_hari_kerja = $this->getStandardWorkingDaysInRange($joinDate, $monthEnd, $workDaysConfig);
+                        }
+                    }
                 }
 
                 if ($row->rapel_hari_kerja > 0) {
@@ -3310,7 +3329,8 @@ class Api extends ResourceController
                             $alpaCount++;
                         } else {
                             $logStatus = $logsByDate[$currDateStr]['status'] ?? 'Hadir';
-                            if ($logStatus === 'Absen') {
+                            $logStatusNorm = strtolower(trim($logStatus));
+                            if ($logStatusNorm === 'absen' || $logStatusNorm === 'alpa' || $logStatusNorm === 'absent' || $logStatusNorm === 'missing') {
                                 $alpaCount++;
                             }
                         }
@@ -3333,7 +3353,64 @@ class Api extends ResourceController
                     $gajiPokok = floatval($activeContract->gaji_pokok);
                 }
 
-                $divider = ($workDaysConfig === 5) ? 22 : (($workDaysConfig === 6) ? 26 : 30);
+                if ($gajiPokok <= 0 && $pkwtId) {
+                    $basicComp = $this->db->table('pkwt_components')
+                                          ->where('pkwt_id', $pkwtId)
+                                          ->groupStart()
+                                              ->where('jenis_komponen', 'basic_salary')
+                                              ->orLike('nama', 'Gaji Pokok')
+                                          ->groupEnd()
+                                          ->get()->getRow();
+                    if ($basicComp) {
+                        $base_nilai = floatval($basicComp->nilai);
+                        $sumber_nilai = $basicComp->sumber_nilai ?? 'nominal';
+                        
+                        if ($sumber_nilai === 'ump' || $sumber_nilai === 'umk' || $sumber_nilai === 'ump_umk') {
+                            $mwId = $employee->minimum_wage_id ?? null;
+                            $minimumWage = 0;
+                            if ($employee && isset($employee->minimum_wage_id)) {
+                                $mw = $this->db->table('minimum_wages')->where('id', $employee->minimum_wage_id)->get()->getRow();
+                                if ($mw) {
+                                    $minimumWage = floatval($mw->nominal);
+                                    $mwId = $mw->id;
+                                }
+                            } else if ($clientConfig && isset($clientConfig->minimum_wage_id)) {
+                                $mw = $this->db->table('minimum_wages')->where('id', $clientConfig->minimum_wage_id)->get()->getRow();
+                                if ($mw) {
+                                    $minimumWage = floatval($mw->nominal);
+                                    $mwId = $mw->id;
+                                }
+                            }
+
+                            $empProvince = null;
+                            if ($employee && !empty($employee->work_location_id)) {
+                                $wl = $this->db->table('work_locations')->where('id', $employee->work_location_id)->get()->getRow();
+                                if ($wl && !empty($wl->provinsi)) {
+                                    $empProvince = $wl->provinsi;
+                                }
+                            }
+
+                            $resolvedWages = $this->resolveUmpUmk($mwId, null, $empProvince);
+                            $umpWageValue = $resolvedWages['ump'];
+                            $umkWageValue = $resolvedWages['umk'];
+
+                            if ($sumber_nilai === 'ump') {
+                                $base_nilai = $umpWageValue * ($base_nilai / 100);
+                            } else if ($sumber_nilai === 'umk') {
+                                $base_nilai = $umkWageValue * ($base_nilai / 100);
+                            } else if ($sumber_nilai === 'ump_umk') {
+                                $base_nilai = $minimumWage * ($base_nilai / 100);
+                            }
+                        }
+                        
+                        $gajiPokok = $base_nilai;
+                    }
+                }
+
+                $divider = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
+                if ($divider <= 0) {
+                    $divider = ($workDaysConfig === 5) ? 22 : (($workDaysConfig === 6) ? 26 : 30);
+                }
                 $dendaAbsenPerDay = $gajiPokok / $divider;
                 $calculatedPotongan = $alpaCount * $dendaAbsenPerDay;
 
@@ -3351,6 +3428,7 @@ class Api extends ResourceController
                 }
 
                 $isJoinedPrevMonth = false;
+                $isActiveRegularPrevMonth = false;
                 if ($employee && !empty($employee->tgl_masuk)) {
                     $joinTs = strtotime($employee->tgl_masuk);
                     $joinYear = intval(date('Y', $joinTs));
@@ -3368,11 +3446,31 @@ class Api extends ResourceController
                         $prevCutoffEndDate = sprintf('%04d-%02d-%02d', $prevYear, $prevMonth, $cutoffStartEnd['end']);
                         if ($joinDateStr > $prevCutoffEndDate) {
                             $isJoinedPrevMonth = true;
+                        } else {
+                            // Joined in previous month before cutoff. Check if active in current month (dates 1 to cutoffEnd)
+                            $currentMonthStartStr = sprintf('%04d-%02d-01', $period->tahun, $period->bulan);
+                            $currentCutoffEndStr = sprintf('%04d-%02d-%02d', $period->tahun, $period->bulan, $cutoffStartEnd['end']);
+                            $currentLogsCount = $this->db->table('attendance_logs')
+                                                         ->where('employee_id', $employee->id)
+                                                         ->where('log_date >=', $currentMonthStartStr)
+                                                         ->where('log_date <=', $currentCutoffEndStr)
+                                                         ->countAllResults();
+                            
+                            $prevCutoffStartStr = date('Y-m-d', strtotime('+1 day', strtotime($prevCutoffEndDate)));
+                            $prevMonthLogsCount = $this->db->table('attendance_logs')
+                                                         ->where('employee_id', $employee->id)
+                                                         ->where('log_date >=', $prevCutoffStartStr)
+                                                         ->where('log_date <', $currentMonthStartStr)
+                                                         ->countAllResults();
+                            
+                            if ($currentLogsCount > 0 && $prevMonthLogsCount === 0) {
+                                $isActiveRegularPrevMonth = true;
+                            }
                         }
                     }
                 }
 
-                if ($isJoinedPrevMonth) {
+                if ($isJoinedPrevMonth || $isActiveRegularPrevMonth) {
                     $hariKerja = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
                     $potonganAbsensi = 0.0;
                 }
@@ -3663,6 +3761,46 @@ class Api extends ResourceController
                     $prevCutoffEndDate = sprintf('%04d-%02d-%02d', $prevYear, $prevMonth, $cutoffEnd);
                     if ($joinDateStr > $prevCutoffEndDate) {
                         $isJoinedPrevMonth = true;
+                    }
+                }
+            }
+
+            $isActiveRegularPrevMonth = false;
+            if ($emp && !empty($emp->tgl_masuk) && !$isJoinedPrevMonth) {
+                $joinTs = strtotime($emp->tgl_masuk);
+                $joinYear = intval(date('Y', $joinTs));
+                $joinMonth = intval(date('n', $joinTs));
+                
+                $prevMonth = intval($period->bulan) - 1;
+                $prevYear = intval($period->tahun);
+                if ($prevMonth == 0) {
+                    $prevMonth = 12;
+                    $prevYear--;
+                }
+                
+                if ($joinYear === $prevYear && $joinMonth === $prevMonth) {
+                    $cutoffStartEnd = $this->resolveCutoffStartEnd($clientConfig);
+                    $cutoffEndVal = $cutoffStartEnd['end'];
+                    
+                    $currentMonthStartStr = sprintf('%04d-%02d-01', intval($period->tahun), intval($period->bulan));
+                    $currentCutoffEndStr = sprintf('%04d-%02d-%02d', intval($period->tahun), intval($period->bulan), $cutoffEndVal);
+                    
+                    $currentLogsCount = $this->db->table('attendance_logs')
+                                                 ->where('employee_id', $emp->id)
+                                                 ->where('log_date >=', $currentMonthStartStr)
+                                                 ->where('log_date <=', $currentCutoffEndStr)
+                                                 ->countAllResults();
+                    
+                    $prevCutoffEndDate = sprintf('%04d-%02d-%02d', $prevYear, $prevMonth, $cutoffEndVal);
+                    $prevCutoffStartStr = date('Y-m-d', strtotime('+1 day', strtotime($prevCutoffEndDate)));
+                    $prevMonthLogsCount = $this->db->table('attendance_logs')
+                                                 ->where('employee_id', $emp->id)
+                                                 ->where('log_date >=', $prevCutoffStartStr)
+                                                 ->where('log_date <', $currentMonthStartStr)
+                                                 ->countAllResults();
+                    
+                    if ($currentLogsCount > 0 && $prevMonthLogsCount === 0) {
+                        $isActiveRegularPrevMonth = true;
                     }
                 }
             }
@@ -4169,12 +4307,47 @@ class Api extends ResourceController
 
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
-                    if ($potongan_absen == 0) {
-                        $missingDays = max(0, $expectedWorkingDays - intval($att->hari_kerja));
+                    if ($potongan_absen == 0 && !$isJoinedPrevMonth && !$isActiveRegularPrevMonth) {
+                        $prevMonth = intval($period->bulan) - 1;
+                        $prevYear = intval($period->tahun);
+                        if ($prevMonth == 0) {
+                            $prevMonth = 12;
+                            $prevYear--;
+                        }
+                        $prevMonthStart = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+                        $prevMonthEnd = date('Y-m-t', strtotime($prevMonthStart));
+                        $prevCalendarStdDays = $this->getStandardWorkingDaysInRange($prevMonthStart, $prevMonthEnd, $workDaysConfig);
+
+                        $expectedWorkingDaysCalendar = $prevCalendarStdDays;
+                        if ($emp && !empty($emp->tgl_masuk)) {
+                            $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
+                            if ($joinDateStr >= $prevMonthStart && $joinDateStr <= $prevMonthEnd) {
+                                $expectedWorkingDaysCalendar = 0;
+                                $startTs = strtotime($joinDateStr);
+                                $endTs = strtotime($prevMonthEnd);
+                                for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+                                    $dayOfWeek = date('w', $curr);
+                                    if ($workDaysConfig === 5) {
+                                        if ($dayOfWeek != 0 && $dayOfWeek != 6) {
+                                            $expectedWorkingDaysCalendar++;
+                                        }
+                                    } elseif ($workDaysConfig === 6) {
+                                        if ($dayOfWeek != 0) {
+                                            $expectedWorkingDaysCalendar++;
+                                        }
+                                    } else {
+                                        $expectedWorkingDaysCalendar++;
+                                    }
+                                }
+                            }
+                        }
+
+                        $missingDays = max(0, $expectedWorkingDaysCalendar - intval($att->hari_kerja));
                         if ($missingDays > 0) {
                             if ($isProrate) {
                                 // Pro-rate: potongan = Base Salary * (Hari Tidak Masuk / Hari Kerja Standard)
-                                $potongan_absen = $unproratedGajiPokok * ($missingDays / $stdWorkingDays);
+                                $div = ($prevCalendarStdDays > 0) ? $prevCalendarStdDays : ($stdWorkingDays > 0 ? $stdWorkingDays : 22);
+                                $potongan_absen = $unproratedGajiPokok * ($missingDays / $div);
                             } else {
                                 // Deduction tetap: potongan = nominal yang ditetapkan per hari absen
                                 $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
@@ -4296,6 +4469,17 @@ class Api extends ResourceController
                 $overtimeType = ($payrollScheme && !empty($payrollScheme->overtime_type)) ? $payrollScheme->overtime_type : 'standard';
                 $overtimePay = 0;
 
+                // Resolve calendar month range start/end for overtime logs query
+                $calPrevMonth = intval($period->bulan) - 1;
+                $calPrevYear = intval($period->tahun);
+                if ($calPrevMonth == 0) {
+                    $calPrevMonth = 12;
+                    $calPrevYear--;
+                }
+                $calStartDateStr = sprintf('%04d-%02d-01', $calPrevYear, $calPrevMonth);
+                $calEndDateStr = date('Y-m-t', strtotime($calStartDateStr));
+                $calEffectiveStartDateStr = !empty($emp->tgl_masuk) ? max($calStartDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $calStartDateStr;
+
                 if ($overtimeType === 'lumpsum') {
                     $lumpsumSubtype = $payrollScheme->lumpsum_subtype ?? 'per_jam';
                     $lumpsumNominal = floatval($payrollScheme->lumpsum_nominal ?? 0);
@@ -4303,19 +4487,14 @@ class Api extends ResourceController
                     if ($lumpsumSubtype === 'per_jam') {
                         $overtimePay = ($jamLemburBiasa + $jamLemburLibur) * $lumpsumNominal;
                     } elseif ($lumpsumSubtype === 'harian') {
-                        // Count the number of distinct approved overtime logs in the cutoff month range for this employee
+                        // Count the number of distinct approved overtime logs in the calendar month range for this employee
                         $numDaysLembur = 0;
                         if ($emp && isset($emp->id)) {
-                            $effectiveLemburStartDateStr = $startDateStr;
-                            if (!empty($emp->tgl_masuk)) {
-                                $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
-                                $effectiveLemburStartDateStr = max($startDateStr, $joinDateStr);
-                            }
                             $otLogsQuery = $this->db->table('overtime_logs')
                                 ->select('tanggal')
                                 ->where('employee_id', $emp->id)
-                                ->where('tanggal >=', $effectiveLemburStartDateStr)
-                                ->where('tanggal <=', $endDateStr)
+                                ->where('tanggal >=', $calEffectiveStartDateStr)
+                                ->where('tanggal <=', $calEndDateStr)
                                 ->where('status', 'Approved')
                                 ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                                 ->get()
@@ -4345,9 +4524,36 @@ class Api extends ResourceController
                         $upahSejamLembur = ($gajiPokokForOt > 0) ? ($gajiPokokForOt / $otDivisor) : 0;
                     }
 
-                    // Calculate converted hours with progressive multiplier
-                    $jamKonversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $workDaysPerWeek);
-                    $jamKonversiLibur = $this->hitungJamLemburKonversi($jamLemburLibur, true, $workDaysPerWeek);
+                    // Query daily overtime logs in the calendar month range
+                    $otLogsQuery = [];
+                    if ($emp && isset($emp->id)) {
+                        $otLogsQuery = $this->db->table('overtime_logs')
+                            ->where('employee_id', $emp->id)
+                            ->where('tanggal >=', $calEffectiveStartDateStr)
+                            ->where('tanggal <=', $calEndDateStr)
+                            ->where('status', 'Approved')
+                            ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                            ->get()
+                            ->getResultArray();
+                    }
+
+                    if (!empty($otLogsQuery)) {
+                        $jamKonversiBiasa = 0.0;
+                        $jamKonversiLibur = 0.0;
+                        foreach ($otLogsQuery as $otLog) {
+                            $otHours = floatval($otLog['jam_lembur']);
+                            $isOtHoliday = isset($otLog['is_holiday']) && intval($otLog['is_holiday']) === 1;
+                            if ($isOtHoliday) {
+                                $jamKonversiLibur += $this->hitungJamLemburKonversi($otHours, true, $workDaysPerWeek, true);
+                            } else {
+                                $jamKonversiBiasa += $this->hitungJamLemburKonversi($otHours, false, $workDaysPerWeek, true);
+                            }
+                        }
+                    } else {
+                        // Fallback to monthly total, without daily cap
+                        $jamKonversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $workDaysPerWeek, false);
+                        $jamKonversiLibur = $this->hitungJamLemburKonversi($jamLemburLibur, true, $workDaysPerWeek, false);
+                    }
 
                     $overtimePay = ($jamKonversiBiasa + $jamKonversiLibur) * $upahSejamLembur;
                 }
@@ -5164,17 +5370,22 @@ class Api extends ResourceController
                         $cutoffStartDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
                         $cutoffEndDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
 
-                        $effectiveLemburStartDateStr = $cutoffStartDateStr;
-                        if (!empty($emp->tgl_masuk)) {
-                            $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
-                            $effectiveLemburStartDateStr = max($cutoffStartDateStr, $joinDateStr);
+                        // Resolve calendar month range
+                        $calPrevMonth = intval($period->bulan) - 1;
+                        $calPrevYear = intval($period->tahun);
+                        if ($calPrevMonth == 0) {
+                            $calPrevMonth = 12;
+                            $calPrevYear--;
                         }
+                        $calStartDateStr = sprintf('%04d-%02d-01', $calPrevYear, $calPrevMonth);
+                        $calEndDateStr = date('Y-m-t', strtotime($calStartDateStr));
+                        $calEffectiveStartDateStr = !empty($emp->tgl_masuk) ? max($calStartDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $calStartDateStr;
 
                         $otLogsSlip = $this->db->table('overtime_logs')
                             ->select('tanggal')
                             ->where('employee_id', $emp->id)
-                            ->where('tanggal >=', $effectiveLemburStartDateStr)
-                            ->where('tanggal <=', $cutoffEndDateStr)
+                            ->where('tanggal >=', $calEffectiveStartDateStr)
+                            ->where('tanggal <=', $calEndDateStr)
                             ->where('status', 'Approved')
                             ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                             ->get()
@@ -5210,20 +5421,67 @@ class Api extends ResourceController
                 $otDivisorSlip = ($clientConfig && isset($clientConfig->overtime_divisor) && intval($clientConfig->overtime_divisor) > 0) ? intval($clientConfig->overtime_divisor) : 173;
                 $upahSejamSlip = ($clientManualOtRateSlip > 0) ? $clientManualOtRateSlip : (($schemeOtRate > 0) ? $schemeOtRate : (($unproratedGpSlip > 0) ? ($unproratedGpSlip / $otDivisorSlip) : 0));
 
-                if ($jamLemburBiasa > 0) {
-                    $konversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $wdPerWeekSlip);
-                    $payBiasa = $konversiBiasa * $upahSejamSlip;
+                // Resolve calendar month range
+                $calPrevMonth = intval($period->bulan) - 1;
+                $calPrevYear = intval($period->tahun);
+                if ($calPrevMonth == 0) {
+                    $calPrevMonth = 12;
+                    $calPrevYear--;
+                }
+                $calStartDateStr = sprintf('%04d-%02d-01', $calPrevYear, $calPrevMonth);
+                $calEndDateStr = date('Y-m-t', strtotime($calStartDateStr));
+                $calEffectiveStartDateStr = !empty($emp->tgl_masuk) ? max($calStartDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $calStartDateStr;
+
+                $otLogsQuery = [];
+                if ($emp && isset($emp->id)) {
+                    $otLogsQuery = $this->db->table('overtime_logs')
+                        ->where('employee_id', $emp->id)
+                        ->where('tanggal >=', $calEffectiveStartDateStr)
+                        ->where('tanggal <=', $calEndDateStr)
+                        ->where('status', 'Approved')
+                        ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                        ->get()
+                        ->getResultArray();
+                }
+
+                if (!empty($otLogsQuery)) {
+                    $konversiBiasa = 0.0;
+                    $konversiLibur = 0.0;
+                    foreach ($otLogsQuery as $otLog) {
+                        $otHours = floatval($otLog['jam_lembur']);
+                        $isOtHoliday = isset($otLog['is_holiday']) && intval($otLog['is_holiday']) === 1;
+                        if ($isOtHoliday) {
+                            $konversiLibur += $this->hitungJamLemburKonversi($otHours, true, $wdPerWeekSlip, true);
+                        } else {
+                            $konversiBiasa += $this->hitungJamLemburKonversi($otHours, false, $wdPerWeekSlip, true);
+                        }
+                    }
+                } else {
+                    $konversiBiasa = $this->hitungJamLemburKonversi($jamLemburBiasa, false, $wdPerWeekSlip, false);
+                    $konversiLibur = $this->hitungJamLemburKonversi($jamLemburLibur, true, $wdPerWeekSlip, false);
+                }
+
+                if ($jamLemburBiasa > 0 && $jamLemburLibur > 0) {
+                    $payBiasa = round($konversiBiasa * $upahSejamSlip, 2);
+                    $payLibur = $lemburPayTotal - $payBiasa;
+                    
                     $earnings[] = [
-                        'nama' => 'Lembur Hari Kerja (' . $jamLemburBiasa . ' jam → ' . $konversiBiasa . ' jam konversi)',
+                        'nama' => 'Lembur Hari Kerja (' . $jamLemburBiasa . ' jam → ' . $konversiBiasa . 'x upah perjam)',
                         'nilai' => $payBiasa
                     ];
-                }
-                if ($jamLemburLibur > 0) {
-                    $konversiLibur = $this->hitungJamLemburKonversi($jamLemburLibur, true, $wdPerWeekSlip);
-                    $payLibur = $konversiLibur * $upahSejamSlip;
                     $earnings[] = [
-                        'nama' => 'Lembur Hari Libur (' . $jamLemburLibur . ' jam → ' . $konversiLibur . ' jam konversi)',
+                        'nama' => 'Lembur Hari Libur (' . $jamLemburLibur . ' jam → ' . $konversiLibur . 'x upah perjam)',
                         'nilai' => $payLibur
+                    ];
+                } else if ($jamLemburBiasa > 0) {
+                    $earnings[] = [
+                        'nama' => 'Lembur Hari Kerja (' . $jamLemburBiasa . ' jam → ' . $konversiBiasa . 'x upah perjam)',
+                        'nilai' => $lemburPayTotal
+                    ];
+                } else if ($jamLemburLibur > 0) {
+                    $earnings[] = [
+                        'nama' => 'Lembur Hari Libur (' . $jamLemburLibur . ' jam → ' . $konversiLibur . 'x upah perjam)',
+                        'nilai' => $lemburPayTotal
                     ];
                 }
             } else if ($lemburPayTotal > 0) {
@@ -5973,7 +6231,7 @@ class Api extends ResourceController
      * @param int   $workingDaysPerWeek  Jumlah hari kerja per minggu (5 atau 6)
      * @return float Jam lembur konversi (sudah dikalikan multiplier)
      */
-    private function hitungJamLemburKonversi(float $jamLembur, bool $isHoliday = false, int $workingDaysPerWeek = 5): float
+    private function hitungJamLemburKonversi(float $jamLembur, bool $isHoliday = false, int $workingDaysPerWeek = 5, bool $applyDailyCap = true): float
     {
         if ($jamLembur <= 0) {
             return 0.0;
@@ -5984,7 +6242,9 @@ class Api extends ResourceController
         if (!$isHoliday) {
             // === Lembur di Hari Kerja Biasa ===
             // Batas lembur maksimal 3 jam sehari (Kepmen 102/2004)
-            $jamLembur = min(3.0, $jamLembur);
+            if ($applyDailyCap) {
+                $jamLembur = min(3.0, $jamLembur);
+            }
 
             // Jam ke-1 x 1.5
             $jamPertama = min(1.0, $jamLembur);
@@ -7234,15 +7494,31 @@ class Api extends ResourceController
 
             $effectiveStartDateStr = !empty($emp->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $startDateStr;
 
-            $lemburSumObj = $this->db->table('overtime_logs')
+            // 2a. Lembur Hari Kerja (is_holiday = 0 OR is_holiday IS NULL)
+            $lemburBiasaObj = $this->db->table('overtime_logs')
                                      ->selectSum('jam_lembur')
                                      ->where('employee_id', $emp->id)
                                      ->where('tanggal >=', $effectiveStartDateStr)
                                      ->where('tanggal <=', $endDateStr)
                                      ->where('status', 'Approved')
                                      ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                     ->where('(is_holiday = 0 OR is_holiday IS NULL)')
                                      ->get()->getRow();
-            $lemburSum = $lemburSumObj ? floatval($lemburSumObj->jam_lembur) : 0.0;
+            $lemburBiasa = $lemburBiasaObj ? floatval($lemburBiasaObj->jam_lembur) : 0.0;
+
+            // 2b. Lembur Hari Libur (is_holiday = 1)
+            $lemburLiburObj = $this->db->table('overtime_logs')
+                                     ->selectSum('jam_lembur')
+                                     ->where('employee_id', $emp->id)
+                                     ->where('tanggal >=', $effectiveStartDateStr)
+                                     ->where('tanggal <=', $endDateStr)
+                                     ->where('status', 'Approved')
+                                     ->where('(is_rapel = 0 OR is_rapel IS NULL)')
+                                     ->where('is_holiday', 1)
+                                     ->get()->getRow();
+            $lemburLibur = $lemburLiburObj ? floatval($lemburLiburObj->jam_lembur) : 0.0;
+
+            $lemburSum = $lemburBiasa + $lemburLibur;
 
             // Calculate actual present days from attendance_logs
             $actualHadir = $this->db->table('attendance_logs')
@@ -7285,6 +7561,7 @@ class Api extends ResourceController
             }
 
             $isJoinedPrevMonth = false;
+            $isActiveRegularPrevMonth = false;
             if ($emp && !empty($emp->tgl_masuk)) {
                 $joinTs = strtotime($emp->tgl_masuk);
                 $joinYear = intval(date('Y', $joinTs));
@@ -7302,11 +7579,31 @@ class Api extends ResourceController
                     $prevCutoffEndDate = sprintf('%04d-%02d-%02d', $prevYear, $prevMonth, $cutoffStartEnd['end']);
                     if ($joinDateStr > $prevCutoffEndDate) {
                         $isJoinedPrevMonth = true;
+                    } else {
+                        // Joined in previous month before cutoff. Check if active in current month (dates 1 to cutoffEnd)
+                        $currentMonthStartStr = sprintf('%04d-%02d-01', $period->tahun, $period->bulan);
+                        $currentCutoffEndStr = sprintf('%04d-%02d-%02d', $period->tahun, $period->bulan, $cutoffStartEnd['end']);
+                        $currentLogsCount = $this->db->table('attendance_logs')
+                                                     ->where('employee_id', $emp->id)
+                                                     ->where('log_date >=', $currentMonthStartStr)
+                                                     ->where('log_date <=', $currentCutoffEndStr)
+                                                     ->countAllResults();
+                        
+                        $prevCutoffStartStr = date('Y-m-d', strtotime('+1 day', strtotime($prevCutoffEndDate)));
+                        $prevMonthLogsCount = $this->db->table('attendance_logs')
+                                                     ->where('employee_id', $emp->id)
+                                                     ->where('log_date >=', $prevCutoffStartStr)
+                                                     ->where('log_date <', $currentMonthStartStr)
+                                                     ->countAllResults();
+                        
+                        if ($currentLogsCount > 0 && $prevMonthLogsCount === 0) {
+                            $isActiveRegularPrevMonth = true;
+                        }
                     }
                 }
             }
 
-            if ($isJoinedPrevMonth) {
+            if ($isJoinedPrevMonth || $isActiveRegularPrevMonth) {
                 $posHk = 5;
                 if ($emp->position_id) {
                     $pos = $this->db->table('positions')->where('id', $emp->position_id)->get()->getRow();
@@ -7327,18 +7624,26 @@ class Api extends ResourceController
                                  ->get()->getRow();
 
             if ($existing) {
+                $updateData = [
+                    'jam_lembur' => $lemburSum,
+                    'jam_lembur_hari_biasa' => $lemburBiasa,
+                    'jam_lembur_hari_libur' => $lemburLibur,
+                    'hari_kerja' => $hariKerjaVal
+                ];
+                if ($isJoinedPrevMonth || $isActiveRegularPrevMonth) {
+                    $updateData['potongan_absensi'] = 0.0;
+                }
                 $this->db->table('payroll_attendance')
                          ->where('id', $existing->id)
-                         ->update([
-                             'jam_lembur' => $lemburSum,
-                             'hari_kerja' => $hariKerjaVal
-                         ]);
+                         ->update($updateData);
             } else {
                 $this->db->table('payroll_attendance')->insert([
                     'period_id' => $periodId,
                     'pkwt_id' => $pkwt->id,
                     'hari_kerja' => $hariKerjaVal,
                     'jam_lembur' => $lemburSum,
+                    'jam_lembur_hari_biasa' => $lemburBiasa,
+                    'jam_lembur_hari_libur' => $lemburLibur,
                     'potongan_absensi' => 0.0,
                     'bonus_tambahan' => 0.0
                 ]);
