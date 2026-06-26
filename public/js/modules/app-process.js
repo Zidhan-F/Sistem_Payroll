@@ -205,6 +205,7 @@ async function renderCutOffTable() {
             const displayHari = hariKerja > 0 ? `${hariKerja} Days` : (rapelHari > 0 ? `${rapelHari} Days (Rapel)` : '0 Days');
             const jamLembur = parseFloat(row.jam_lembur) || 0;
             const earlyArrival = parseInt(row.early_arrival_minutes) || 0;
+            const earlyArrivalHours = earlyArrival > 0 ? Math.round(earlyArrival / 60) : 0;
             const potongan = parseFloat(row.potongan_absensi) || 0;
             const bonus = parseFloat(row.bonus_tambahan) || 0;
             return `
@@ -212,10 +213,10 @@ async function renderCutOffTable() {
                 <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span></td>
                 <td>${displayHari}</td>
                 <td>${jamLembur > 0 ? jamLembur + ' Hours' : '-'}</td>
-                <td>${earlyArrival > 0 ? earlyArrival + ' mnt' : '-'}</td>
+                <td>${earlyArrivalHours > 0 ? earlyArrivalHours + ' Hours' : '-'}</td>
                 <td>${formatRupiah(potongan)}</td>
                 <td>${formatRupiah(bonus)}</td>
-                <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja}, ${jamLembur}, ${potongan}, ${bonus})"><i class="fas fa-edit"></i></button></td>
+                <td><button class="btn-icon btn-edit" onclick="bukaModalCutOff(${row.pkwt_id}, '${row.employee_name}', ${hariKerja}, ${jamLembur}, ${potongan}, ${bonus}, ${earlyArrivalHours})"><i class="fas fa-edit"></i></button></td>
             </tr>`;
         }).join('');
     } catch (err) { 
@@ -717,7 +718,8 @@ function downloadSlip() {
                 hari_kerja: parseInt(document.getElementById('cutoffHariKerja').value) || 0,
                 jam_lembur: parseFloat(document.getElementById('cutoffJamLembur').value) || 0,
                 potongan_absensi: parseFloat(document.getElementById('cutoffPotongan').value) || 0,
-                bonus_tambahan: parseFloat(document.getElementById('cutoffBonus').value) || 0
+                bonus_tambahan: parseFloat(document.getElementById('cutoffBonus').value) || 0,
+                early_arrival_minutes: (parseInt(document.getElementById('cutoffEarlyArrival').value) || 0) * 60
             };
             try {
                 const res = await fetch(`${API_URL}/attendance`, {
@@ -808,13 +810,14 @@ function bukaModalPeriode() {
 }
 window.bukaModalPeriode = bukaModalPeriode;
 
-function bukaModalCutOff(pkwtId, empName, hariKerja = 22, jamLembur = 0, potongan = 0, bonus = 0) {
+function bukaModalCutOff(pkwtId, empName, hariKerja = 22, jamLembur = 0, potongan = 0, bonus = 0, earlyArrival = 0) {
     document.getElementById('modalCutOff').style.display = 'block';
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('cutoffPkwtId').value = pkwtId;
     document.getElementById('cutoffEmployeeName').value = empName;
     document.getElementById('cutoffHariKerja').value = parseFloat(hariKerja) || 0;
     document.getElementById('cutoffJamLembur').value = parseFloat(jamLembur) || 0;
+    document.getElementById('cutoffEarlyArrival').value = parseInt(earlyArrival) || 0;
     
     // Calculate default potongan if nominal_potongan is set and no manual potongan exists yet
     let finalPotongan = parseFloat(potongan) || 0;

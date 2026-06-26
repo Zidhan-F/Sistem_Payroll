@@ -665,13 +665,23 @@ class Migrasi extends BaseController
                 id INT IDENTITY(1,1) PRIMARY KEY,
                 early_arrival_enabled BIT DEFAULT 1,
                 max_early_arrival_minutes INT DEFAULT 180,
+                early_arrival_min_minutes INT DEFAULT 30,
+                early_arrival_calculation_unit INT DEFAULT 60,
+                early_arrival_rounding_method NVARCHAR(20) DEFAULT 'CEILING',
                 created_at DATETIME DEFAULT GETDATE(),
                 updated_at DATETIME DEFAULT GETDATE()
             )");
 
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('company_payroll_setting') AND name = 'early_arrival_min_minutes')
+            ALTER TABLE company_payroll_setting ADD early_arrival_min_minutes INT DEFAULT 30");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('company_payroll_setting') AND name = 'early_arrival_calculation_unit')
+            ALTER TABLE company_payroll_setting ADD early_arrival_calculation_unit INT DEFAULT 60");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('company_payroll_setting') AND name = 'early_arrival_rounding_method')
+            ALTER TABLE company_payroll_setting ADD early_arrival_rounding_method NVARCHAR(20) DEFAULT 'CEILING'");
+
         $settingExists = $db->query("SELECT COUNT(*) as [count] FROM company_payroll_setting")->getRow();
         if ($settingExists && intval($settingExists->count) === 0) {
-            $db->query("INSERT INTO company_payroll_setting (early_arrival_enabled, max_early_arrival_minutes) VALUES (1, 180)");
+            $db->query("INSERT INTO company_payroll_setting (early_arrival_enabled, max_early_arrival_minutes, early_arrival_min_minutes, early_arrival_calculation_unit, early_arrival_rounding_method) VALUES (1, 180, 30, 60, 'CEILING')");
         }
 
         // 31. Tabel Early Arrival Logs

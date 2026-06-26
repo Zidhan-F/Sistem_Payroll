@@ -145,6 +145,7 @@ class Payroll extends ResourceController
             $hasAttendanceRecord = false;
             $hariKerjaVal = 0;
             $jamLemburVal = 0.0;
+            $earlyArrivalMinutesVal = 0;
 
             if ($pkwt && $periodId) {
                 $att = $db->table('payroll_attendance')
@@ -155,8 +156,19 @@ class Payroll extends ResourceController
                     $hasAttendanceRecord = true;
                     $hariKerjaVal = floatval($att->hari_kerja);
                     $jamLemburVal = floatval($att->jam_lembur);
+                    $earlyArrivalMinutesVal = intval($att->early_arrival_minutes ?? 0);
                 }
             }
+
+            // Match payroll scheme template for organizational matching (moved up)
+            $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
+            $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
+                $clientId,
+                $emp['division_id'] ?? null,
+                $emp['department_id'] ?? null,
+                $emp['position_id'] ?? null
+            );
+            $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
 
             $effectiveStartDateStr = !empty($emp['tgl_masuk']) ? max($empStartDateStr, date('Y-m-d', strtotime($emp['tgl_masuk']))) : $empStartDateStr;
             $effectiveLemburStartDateStr = !empty($emp['tgl_masuk']) ? max($empLemburStartDateStr, date('Y-m-d', strtotime($emp['tgl_masuk']))) : $empLemburStartDateStr;
@@ -1622,15 +1634,7 @@ class Payroll extends ResourceController
             // Gunakan gajiProrata sebagai basis (bukan baseSalary penuh)
             $baseSalaryForCalc = $gajiProrata;
 
-            // Match payroll scheme template for organizational matching
-            $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
-            $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
-                $clientId,
-                $emp['division_id'] ?? null,
-                $emp['department_id'] ?? null,
-                $emp['position_id'] ?? null
-            );
-            $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+
 
             // ── Denda Berdasarkan Skema ────────────────────────────────────────
             // Ambil konfigurasi denda dari scheme template yang aktif untuk karyawan
@@ -2093,24 +2097,111 @@ class Payroll extends ResourceController
             }
 
             // Calculate Early Arrival Pay
-            $approvedEarlyArrivals = $db->table('early_arrival')
-                ->where('employee_id', $emp['id'])
-                ->where('date >=', $empStartDateStr)
-                ->where('date <=', $empEndDateStr)
-                ->where('status', 'APPROVED')
-                ->where('payroll_status', 'NOT_PROCESSED')
-                ->get()->getResultArray();
+            $companySetting = $db->table('company_payroll_setting')->get()->getRowArray();
+            $minMinutes = isset($companySetting['early_arrival_min_minutes']) ? intval($companySetting['early_arrival_min_minutes']) : 30;
+            $calcUnit = isset($companySetting['early_arrival_calculation_unit']) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
+            $roundingMethod = $companySetting['early_arrival_rounding_method'] ?? 'CEILING';
+            $maxMinutes = isset($companySetting['max_early_arrival_minutes']) ? intval($companySetting['max_early_arrival_minutes']) : 180;
+            $earlyArrivalEnabled = isset($companySetting['early_arrival_enabled']) ? intval($companySetting['early_arrival_enabled']) : 1;
 
-            $totalEarlyArrivalMinutes = 0;
+            $totalEarlyArrivalBobotHours = 0.0;
             $earlyArrivalIdsToProcess = [];
-            foreach ($approvedEarlyArrivals as $eaLog) {
-                $totalEarlyArrivalMinutes += intval($eaLog['eligible_minutes']);
-                $earlyArrivalIdsToProcess[] = $eaLog['id'];
+
+            if ($earlyArrivalEnabled) {
+                // Cari total APPROVED early arrival logs untuk menentukan override
+                $approvedEarlyArrivals = $db->table('early_arrival')
+                    ->where('employee_id', $emp['id'])
+                    ->where('date >=', $empStartDateStr)
+                    ->where('date <=', $empEndDateStr)
+                    ->where('status', 'APPROVED')
+                    ->where('payroll_status', 'NOT_PROCESSED')
+                    ->get()->getResultArray();
+
+                $sumEligibleMinutes = 0;
+                foreach ($approvedEarlyArrivals as $eaLog) {
+                    $sumEligibleMinutes += intval($eaLog['eligible_minutes']);
+                }
+
+                // Check override manual (bila data di payroll_attendance.early_arrival_minutes berbeda dengan logs di DB)
+                $isOverride = ($hasAttendanceRecord && ($earlyArrivalMinutesVal !== $sumEligibleMinutes || (empty($approvedEarlyArrivals) && $earlyArrivalMinutesVal > 0)));
+
+                if ($isOverride) {
+                    // Gunakan nilai override dari payroll_attendance
+                    if ($earlyArrivalMinutesVal >= $minMinutes) {
+                        $jamEA = ($roundingMethod === 'CEILING') ? ceil($earlyArrivalMinutesVal / $calcUnit) : ($earlyArrivalMinutesVal / $calcUnit);
+                        
+                        // Batasi max_early_arrival_minutes
+                        $maxHours = $maxMinutes / $calcUnit;
+                        if ($jamEA > $maxHours) {
+                            $jamEA = $maxHours;
+                        }
+                        
+                        // Hitung bobot jam Kemnaker
+                        if ($jamEA >= 1) {
+                            $totalEarlyArrivalBobotHours = 1.5 + ($jamEA - 1) * 2.0;
+                        }
+                    }
+                } else {
+                    // Hitung per transaksi harian
+                    foreach ($approvedEarlyArrivals as $eaLog) {
+                        $minutes = intval($eaLog['eligible_minutes']);
+                        if ($minutes >= $minMinutes) {
+                            $jamEA = ($roundingMethod === 'CEILING') ? ceil($minutes / $calcUnit) : ($minutes / $calcUnit);
+                            
+                            // Batasi max_early_arrival_minutes
+                            $maxHours = $maxMinutes / $calcUnit;
+                            if ($jamEA > $maxHours) {
+                                $jamEA = $maxHours;
+                            }
+                            
+                            // Hitung bobot jam Kemnaker
+                            if ($jamEA >= 1) {
+                                $totalEarlyArrivalBobotHours += (1.5 + ($jamEA - 1) * 2.0);
+                            }
+                        }
+                        $earlyArrivalIdsToProcess[] = $eaLog['id'];
+                    }
+                }
             }
 
+            // Hitung upah per jam khusus Early Arrival: (Gaji Pokok + Tunjangan Tetap) / divisor
+            $eaDivisor = ($empConfig && isset($empConfig->overtime_divisor) && intval($empConfig->overtime_divisor) > 0) ? intval($empConfig->overtime_divisor) : 173.0;
+            $totalTunjanganTetap = 0.0;
+            
+            // 1. Dari pkwt_components
+            foreach ($empComponents as $comp) {
+                $isTunjangan = ($comp['tipe'] === 'Tunjangan');
+                $isTetap = (isset($comp['sifat_kompensasi']) && $comp['sifat_kompensasi'] === 'tetap');
+                $isBulanan = (empty($comp['periode']) || $comp['periode'] === 'bulan');
+                
+                if ($isTunjangan && $isTetap && $isBulanan) {
+                    $base_nilai = floatval($comp['nilai']);
+                    $sumber_nilai = $comp['sumber_nilai'] ?? 'nominal';
+                    if ($sumber_nilai === 'ump') {
+                        $base_nilai = $umpWageValue * ($base_nilai / 100);
+                    } else if ($sumber_nilai === 'umk') {
+                        $base_nilai = $umkWageValue * ($base_nilai / 100);
+                    } else if ($sumber_nilai === 'ump_umk') {
+                        $base_nilai = $empMinimumWage * ($base_nilai / 100);
+                    }
+                    $totalTunjanganTetap += $base_nilai;
+                }
+            }
+
+            // 2. Dari schemeTemplate
+            if ($schemeTemplate) {
+                $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_transport'] ?? 0);
+                $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_komunikasi'] ?? 0);
+                $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_jabatan'] ?? 0);
+                $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_kehadiran'] ?? 0);
+                $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_kinerja'] ?? 0);
+            }
+
+            $eaUpahPerJam = ($baseSalary + $totalTunjanganTetap) / $eaDivisor;
+
             $earlyArrivalPay = 0.0;
-            if ($totalEarlyArrivalMinutes > 0) {
-                $earlyArrivalPay = ($totalEarlyArrivalMinutes / 60) * $upahPerJam;
+            if ($totalEarlyArrivalBobotHours > 0) {
+                $earlyArrivalPay = $totalEarlyArrivalBobotHours * $eaUpahPerJam;
                 $customTunjangan += $earlyArrivalPay;
                 $customDetails[] = [
                     'nama_komponen' => 'Early Arrival',
@@ -2118,14 +2209,16 @@ class Payroll extends ResourceController
                     'jumlah' => $earlyArrivalPay
                 ];
 
-                // Update early arrival records to PROCESSED
-                $db->table('early_arrival')
-                    ->whereIn('id', $earlyArrivalIdsToProcess)
-                    ->update([
-                        'payroll_status' => 'PROCESSED',
-                        'payroll_period' => $payoutPeriodStr,
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+                if (!empty($earlyArrivalIdsToProcess)) {
+                    // Update early arrival records to PROCESSED
+                    $db->table('early_arrival')
+                        ->whereIn('id', $earlyArrivalIdsToProcess)
+                        ->update([
+                            'payroll_status' => 'PROCESSED',
+                            'payroll_period' => $payoutPeriodStr,
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+                }
             }
 
             // 4. Combined Net Rapel

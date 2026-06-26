@@ -1011,6 +1011,10 @@
                         <input type="number" id="cutoffBonus" value="0" required>
                     </div>
                 </div>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label>Early Arrival (Hours)</label>
+                    <input type="number" id="cutoffEarlyArrival" value="0" required>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="tutupModalCutOff()">Cancel</button>

@@ -3436,10 +3436,23 @@ class Api extends ResourceController
                                        ->where('log_date <=', $endDateStr)
                                        ->countAllResults();
                 
+                $earlyArrivalMinutes = 0;
                 if ($hasAnyLogs > 0) {
                     $hariKerja = $hadirCount;
                     $jamLembur = $lemburSum;
                     $potonganAbsensi = $calculatedPotongan;
+                    
+                    // Hitung total APPROVED early arrival minutes dari tabel logs
+                    $eaSumObj = $this->db->table('early_arrival')
+                                         ->selectSum('eligible_minutes')
+                                         ->where('employee_id', $employee->id)
+                                         ->where('date >=', $effectiveStartDateStr)
+                                         ->where('date <=', $endDateStr)
+                                         ->where('status', 'APPROVED')
+                                         ->get()->getRow();
+                    $earlyArrivalMinutes = $eaSumObj ? intval($eaSumObj->eligible_minutes) : 0;
+                } else {
+                    $earlyArrivalMinutes = intval($record['early_arrival_minutes'] ?? 0);
                 }
 
                 $isJoinedPrevMonth = false;
@@ -3507,6 +3520,7 @@ class Api extends ResourceController
                 'jam_lembur' => $jamLembur,
                 'jam_lembur_hari_biasa' => $jamLemburHariBiasa ?? 0,
                 'jam_lembur_hari_libur' => $jamLemburHariLibur ?? 0,
+                'early_arrival_minutes' => $earlyArrivalMinutes,
                 'potongan_absensi' => $potonganAbsensi,
                 'bonus_tambahan' => $record['bonus_tambahan'] ?? 0,
             ];
@@ -4428,13 +4442,19 @@ class Api extends ResourceController
                 $totalPotongan += $potonganLate + $potonganEarly;
                 
                 // === Early Arrival Calculation ===
-                $earlyArrivalMinutes = isset($att->early_arrival_minutes) ? intval($att->early_arrival_minutes) : 0;
-                if ($earlyArrivalMinutes > 0) {
-                    $earlyArrivalPay = ($earlyArrivalMinutes / 60.0) * $upahPerJam;
-                    $totalPendapatan += $earlyArrivalPay;
+                $companySetting = $this->db->table('company_payroll_setting')->get()->getRowArray();
+                $minMinutes = isset($companySetting['early_arrival_min_minutes']) ? intval($companySetting['early_arrival_min_minutes']) : 30;
+                $calcUnit = isset($companySetting['early_arrival_calculation_unit']) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
+                $roundingMethod = $companySetting['early_arrival_rounding_method'] ?? 'CEILING';
+                $maxMinutes = isset($companySetting['max_early_arrival_minutes']) ? intval($companySetting['max_early_arrival_minutes']) : 180;
+                $earlyArrivalEnabled = isset($companySetting['early_arrival_enabled']) ? intval($companySetting['early_arrival_enabled']) : 1;
 
-                    // Update early arrival logs in the DB to PROCESSED
-                    $payoutPeriodStr = ($period->bulan < 10 ? '0' : '') . $period->bulan . '/' . $period->tahun;
+                $totalEarlyArrivalBobotHours = 0.0;
+                $earlyArrivalMinutes = isset($att->early_arrival_minutes) ? intval($att->early_arrival_minutes) : 0;
+
+                if ($earlyArrivalEnabled) {
+                    // Cari total APPROVED early arrival logs untuk menentukan override
+                    $approvedEarlyArrivals = [];
                     if ($emp && isset($emp->id)) {
                         $approvedEarlyArrivals = $this->db->table('early_arrival')
                             ->where('employee_id', $emp->id)
@@ -4443,22 +4463,111 @@ class Api extends ResourceController
                             ->where('status', 'APPROVED')
                             ->where('payroll_status', 'NOT_PROCESSED')
                             ->get()->getResultArray();
+                    }
 
-                        $eaIds = [];
-                        foreach ($approvedEarlyArrivals as $eaLog) {
-                            $eaIds[] = $eaLog['id'];
+                    $sumEligibleMinutes = 0;
+                    foreach ($approvedEarlyArrivals as $eaLog) {
+                        $sumEligibleMinutes += intval($eaLog['eligible_minutes']);
+                    }
+
+                    // Check override manual (bila data di payroll_attendance.early_arrival_minutes berbeda dengan logs di DB)
+                    $isOverride = ($att && ($earlyArrivalMinutes !== $sumEligibleMinutes || (empty($approvedEarlyArrivals) && $earlyArrivalMinutes > 0)));
+
+                    if ($isOverride) {
+                        // Gunakan nilai override dari payroll_attendance
+                        if ($earlyArrivalMinutes >= $minMinutes) {
+                            $jamEA = ($roundingMethod === 'CEILING') ? ceil($earlyArrivalMinutes / $calcUnit) : ($earlyArrivalMinutes / $calcUnit);
+                            
+                            // Batasi max_early_arrival_minutes
+                            $maxHours = $maxMinutes / $calcUnit;
+                            if ($jamEA > $maxHours) {
+                                $jamEA = $maxHours;
+                            }
+                            
+                            // Hitung bobot jam Kemnaker
+                            if ($jamEA >= 1) {
+                                $totalEarlyArrivalBobotHours = 1.5 + ($jamEA - 1) * 2.0;
+                            }
                         }
-
-                        if (!empty($eaIds)) {
-                            $this->db->table('early_arrival')
-                                ->whereIn('id', $eaIds)
-                                ->update([
-                                    'payroll_status' => 'PROCESSED',
-                                    'payroll_period' => $payoutPeriodStr,
-                                    'updated_at' => date('Y-m-d H:i:s')
-                                ]);
+                    } else {
+                        // Hitung per transaksi harian
+                        foreach ($approvedEarlyArrivals as $eaLog) {
+                            $minutes = intval($eaLog['eligible_minutes']);
+                            if ($minutes >= $minMinutes) {
+                                $jamEA = ($roundingMethod === 'CEILING') ? ceil($minutes / $calcUnit) : ($minutes / $calcUnit);
+                                
+                                // Batasi max_early_arrival_minutes
+                                $maxHours = $maxMinutes / $calcUnit;
+                                if ($jamEA > $maxHours) {
+                                    $jamEA = $maxHours;
+                                }
+                                
+                                // Hitung bobot jam Kemnaker
+                                if ($jamEA >= 1) {
+                                    $totalEarlyArrivalBobotHours += (1.5 + ($jamEA - 1) * 2.0);
+                                }
+                            }
                         }
                     }
+
+                    // Update early arrival records to PROCESSED
+                    $eaIds = [];
+                    foreach ($approvedEarlyArrivals as $eaLog) {
+                        $eaIds[] = $eaLog['id'];
+                    }
+
+                    if (!empty($eaIds)) {
+                        $payoutPeriodStr = ($period->bulan < 10 ? '0' : '') . $period->bulan . '/' . $period->tahun;
+                        $this->db->table('early_arrival')
+                            ->whereIn('id', $eaIds)
+                            ->update([
+                                'payroll_status' => 'PROCESSED',
+                                'payroll_period' => $payoutPeriodStr,
+                                'updated_at' => date('Y-m-d H:i:s')
+                            ]);
+                    }
+                }
+
+                $totalTunjanganTetap = 0.0;
+                
+                // 1. Dari $components (dari pkwt_components)
+                foreach ($components as $comp) {
+                    $isTunjangan = (isset($comp->tipe) && (strtolower($comp->tipe) === 'pendapatan' || strtolower($comp->tipe) === 'tunjangan'));
+                    $isTetap = (isset($comp->sifat_kompensasi) && strtolower($comp->sifat_kompensasi) === 'tetap');
+                    $isBulanan = (empty($comp->periode) || strtolower($comp->periode) === 'bulan');
+                    $isBasic = (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') || (stripos($comp->nama, 'Gaji Pokok') !== false);
+                    
+                    if ($isTunjangan && $isTetap && $isBulanan && !$isBasic) {
+                        $base_nilai = floatval($comp->nilai);
+                        $sumber_nilai = $comp->sumber_nilai ?? 'nominal';
+                        if ($sumber_nilai === 'ump') {
+                            $base_nilai = $umpWageValue * ($base_nilai / 100);
+                        } else if ($sumber_nilai === 'umk') {
+                            $base_nilai = $umkWageValue * ($base_nilai / 100);
+                        } else if ($sumber_nilai === 'ump_umk') {
+                            $base_nilai = $minimumWage * ($base_nilai / 100);
+                        }
+                        $totalTunjanganTetap += $base_nilai;
+                    }
+                }
+
+                // 2. Dari $schemeTemplate
+                if ($schemeTemplate) {
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_transport'] ?? 0);
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_komunikasi'] ?? 0);
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_jabatan'] ?? 0);
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_kehadiran'] ?? 0);
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_kinerja'] ?? 0);
+                }
+
+                $eaDivisor = ($clientConfig && isset($clientConfig->overtime_divisor) && intval($clientConfig->overtime_divisor) > 0) ? intval($clientConfig->overtime_divisor) : 173.0;
+                $gajiPokokForEa = ($unproratedGajiPokok > 0) ? $unproratedGajiPokok : $gajiPokok;
+                $eaUpahPerJam = ($gajiPokokForEa + $totalTunjanganTetap) / $eaDivisor;
+
+                $earlyArrivalPay = 0.0;
+                if ($totalEarlyArrivalBobotHours > 0) {
+                    $earlyArrivalPay = $totalEarlyArrivalBobotHours * $eaUpahPerJam;
+                    $totalPendapatan += $earlyArrivalPay;
                 }
                 
                 $totalPendapatan += $att->bonus_tambahan;
@@ -5515,7 +5624,7 @@ class Api extends ResourceController
 
             if (isset($final['early_arrival_pay']) && floatval($final['early_arrival_pay']) > 0) {
                 $earnings[] = [
-                    'nama' => 'Early Arrival (' . intval($final['early_arrival_minutes']) . ' mnt)',
+                    'nama' => 'Early Arrival (' . round(intval($final['early_arrival_minutes']) / 60) . ' jam)',
                     'nilai' => floatval($final['early_arrival_pay'])
                 ];
             }
@@ -7076,6 +7185,21 @@ class Api extends ResourceController
                 'setting_value' => strval($companySetting['max_early_arrival_minutes']),
                 'updated_at' => $companySetting['updated_at'] ?? null
             ];
+            $settings[] = [
+                'setting_key' => 'early_arrival_min_minutes',
+                'setting_value' => strval($companySetting['early_arrival_min_minutes'] ?? 30),
+                'updated_at' => $companySetting['updated_at'] ?? null
+            ];
+            $settings[] = [
+                'setting_key' => 'early_arrival_calculation_unit',
+                'setting_value' => strval($companySetting['early_arrival_calculation_unit'] ?? 60),
+                'updated_at' => $companySetting['updated_at'] ?? null
+            ];
+            $settings[] = [
+                'setting_key' => 'early_arrival_rounding_method',
+                'setting_value' => strval($companySetting['early_arrival_rounding_method'] ?? 'CEILING'),
+                'updated_at' => $companySetting['updated_at'] ?? null
+            ];
         }
 
         return $this->respond($settings);
@@ -7096,6 +7220,12 @@ class Api extends ResourceController
                 $companySettingsUpdate['early_arrival_enabled'] = ($val === 'true' || $val === '1' || $val === true || $val === 1) ? 1 : 0;
             } elseif ($key === 'max_early_arrival_minutes') {
                 $companySettingsUpdate['max_early_arrival_minutes'] = intval($val);
+            } elseif ($key === 'early_arrival_min_minutes') {
+                $companySettingsUpdate['early_arrival_min_minutes'] = intval($val);
+            } elseif ($key === 'early_arrival_calculation_unit') {
+                $companySettingsUpdate['early_arrival_calculation_unit'] = intval($val);
+            } elseif ($key === 'early_arrival_rounding_method') {
+                $companySettingsUpdate['early_arrival_rounding_method'] = strval($val);
             } else {
                 $systemSettingsData[$key] = $val;
             }
