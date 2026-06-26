@@ -264,12 +264,13 @@
                             <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Clock In</th>
                             <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Clock Out</th>
                             <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Work Hours (Overtime)</th>
+                            <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Early Arrival</th>
                             <th style="width: 120px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="attendanceTableBody">
                         <tr>
-                            <td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
+                            <td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
                                 <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
                                 Please select a client first to display attendance data.
                             </td>
@@ -616,8 +617,8 @@
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Tanggal</th>
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Shift Mulai</th>
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Check In</th>
-                                <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Selisih Cepat</th>
-                                <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Menit Layak</th>
+                                <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Selisih (Jam)</th>
+                                <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Jam Layak</th>
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
                                 <th style="width: 150px; text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Aksi</th>
                             </tr>
@@ -664,8 +665,8 @@
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Tanggal</th>
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Shift Mulai</th>
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Check In</th>
-                                <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Selisih Cepat</th>
-                                <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Menit Layak</th>
+                                <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Selisih (Jam)</th>
+                                <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Jam Layak</th>
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
                                 <th style="text-align: center; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Periode Payroll</th>
                                 <th style="text-align: left; padding: 16px; color: #475569; font-weight: 600; font-size: 13px;">Verifikator</th>

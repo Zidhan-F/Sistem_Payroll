@@ -40,7 +40,7 @@ async function loadAttendanceLogs() {
     document.querySelectorAll('#attendanceLateUploadRemark').forEach(banner => banner.style.display = 'none');
 
     if (!clientId) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
             Pilih client terlebih dahulu.</td></tr>`;
         return;
@@ -49,7 +49,7 @@ async function loadAttendanceLogs() {
     // Sinkronisasi selectedClientId secara global
     window.selectedClientId = clientId;
 
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
 
     try {
@@ -92,7 +92,7 @@ async function loadAttendanceLogs() {
         }
 
         if (!currentAttendanceLogs || currentAttendanceLogs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8;">
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
                 <i class="fas fa-clipboard-check" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
                 Belum ada data kehadiran untuk periode ini.</td></tr>`;
             return;
@@ -153,6 +153,30 @@ async function loadAttendanceLogs() {
                 otLabel = `<small style="color:#dc2626;font-weight:600;"><i class="fas fa-star" style="font-size:9px;margin-right:2px;"></i>OT Libur: ${otHours.toFixed(1)}j</small>`;
             }
 
+            // Early Arrival formatting
+            const eaMins = parseInt(a.ea_eligible_minutes) || 0;
+            const eaStatus = a.ea_status || '';
+            let eaLabel = '<span style="color:#94a3b8;font-style:italic;">-</span>';
+            if (eaMins > 0) {
+                const eaHrs = eaMins / 60;
+                const eaHrsStr = (eaHrs % 1 === 0 ? eaHrs : eaHrs.toFixed(1)) + 'j';
+                const statusStr = (eaStatus || 'PENDING').toUpperCase();
+                
+                let badgeBg = '#fff7ed'; // Pending orange
+                let badgeColor = '#c2410c';
+                if (statusStr === 'APPROVED' || statusStr === 'PROCESSED') {
+                    badgeBg = '#e8fdf0'; // Green
+                    badgeColor = '#15803d';
+                } else if (statusStr === 'REJECTED') {
+                    badgeBg = '#fee2e2'; // Red
+                    badgeColor = '#b91c1c';
+                }
+                
+                eaLabel = `<span style="background:${badgeBg};color:${badgeColor};padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;display:inline-block;" title="Status: ${statusStr}">
+                    ${eaHrsStr} (${statusStr})
+                </span>`;
+            }
+
             return `<tr data-employee-id="${a.employee_id || ''}" data-employee-name="${(a.employee_name || '').toLowerCase()}" data-shift-name="${(a.shift_name || 'default').toLowerCase()}" style="${rowStyle}">
                 <td style="text-align:center;padding:12px;color:#64748b;">${i+1}</td>
                 <td style="padding:12px;font-weight:600;color:#1e293b;">${a.employee_name || '-'}</td>
@@ -167,6 +191,7 @@ async function loadAttendanceLogs() {
                     ${parseFloat(a.calculated_work_hours || 0).toFixed(1)}j<br>
                     ${otLabel}
                 </td>
+                <td style="text-align:center;padding:12px;">${eaLabel}</td>
 
                 <td style="text-align:center;padding:12px;white-space:nowrap;">
                     <button onclick="editAttendanceLog(${a.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Edit">
@@ -179,7 +204,7 @@ async function loadAttendanceLogs() {
             </tr>`;
         }).join('');
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
     }
 }
 

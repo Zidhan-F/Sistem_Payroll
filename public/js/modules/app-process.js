@@ -233,7 +233,7 @@ async function renderReviewGajiTable() {
     try {
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="19" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
         const res = await fetch(url);
@@ -245,36 +245,58 @@ async function renderReviewGajiTable() {
         if (!tbody) return;
         if (data.length > 0) {
             section.style.display = 'block';
-            tbody.innerHTML = data.map(row => `
-                <tr>
-                    <td style="text-align: center; vertical-align: middle;">
-                        <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" data-is-rapel="${row.is_new_hire_rapel ? 'true' : 'false'}" ${(row.status_approval === 'Approved' || row.status_approval === 'Hold') ? 'disabled' : ''} ${row.status_approval === 'Approved' ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
-                    </td>
-                    <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? (row.is_new_hire_rapel ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Gaji dirapel ke bulan depan)</span>' : '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen setelah cut-off)</span>') : ''}${row.is_new_hire_rapel ? ` <span class="status-badge warning" style="font-size:10px; margin-left:5px; padding:2px 6px; background-color:#fff3cd; color:#856404; border:1px solid #ffeeba; font-weight:600; border-radius:4px;">Dirapel ke ${row.rapel_payout_period || ''}</span>` : ''}</td>
-                    <td>${row.division_name || '-'}</td>
-                    <td>${row.department_name || '-'}</td>
-                    <td>${row.position_name || '-'}</td>
-                    <td>${row.scheme_name || '-'}</td>
-                    <td>${formatRupiah(row.total_pendapatan)}</td>
-                    <td>${formatRupiah(row.total_potongan)}</td>
-                    <td style="font-weight:700;">${formatRupiah(row.take_home_pay)}</td>
-                    <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : (row.status_approval === 'Hold' ? 'danger' : 'warning')}">${row.status_approval}</span></td>
-                    <td>
-                        <div style="display:flex; gap:6px; align-items:center;">
-                            <button class="btn-icon btn-neutral" onclick="bukaSlipGaji(${row.id})" title="View Salary Slip / Details" style="width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = data.map(row => {
+                const gp = parseFloat(row.gaji_pokok || 0);
+                const ot = parseFloat(row.lembur_pay || 0);
+                const ea = parseFloat(row.early_arrival_pay || 0);
+                const totalPendapatan = parseFloat(row.total_pendapatan || 0);
+                const lainBonus = Math.max(0, totalPendapatan - gp - ot - ea);
+
+                const potAbsen = parseFloat(row.potongan_absen || 0);
+                const bpjsKaryawan = parseFloat(row.bpjs_kes_karyawan || 0) + parseFloat(row.bpjs_jht_karyawan || 0) + parseFloat(row.bpjs_jp_karyawan || 0);
+                const pph21 = parseFloat(row.pph21 || 0);
+                const totalPotongan = parseFloat(row.total_potongan || 0);
+                const potLain = Math.max(0, totalPotongan - potAbsen - bpjsKaryawan - pph21);
+
+                return `
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;">
+                            <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" data-is-rapel="${row.is_new_hire_rapel ? 'true' : 'false'}" ${(row.status_approval === 'Approved' || row.status_approval === 'Hold') ? 'disabled' : ''} ${row.status_approval === 'Approved' ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
+                        </td>
+                        <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? (row.is_new_hire_rapel ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Gaji dirapel ke bulan depan)</span>' : '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen setelah cut-off)</span>') : ''}${row.is_new_hire_rapel ? ` <span class="status-badge warning" style="font-size:10px; margin-left:5px; padding:2px 6px; background-color:#fff3cd; color:#856404; border:1px solid #ffeeba; font-weight:600; border-radius:4px;">Dirapel ke ${row.rapel_payout_period || ''}</span>` : ''}</td>
+                        <td>${row.division_name || '-'}</td>
+                        <td>${row.department_name || '-'}</td>
+                        <td>${row.position_name || '-'}</td>
+                        <td>${row.scheme_name || '-'}</td>
+                        <td>${formatRupiah(gp)}</td>
+                        <td>${formatRupiah(ot)}</td>
+                        <td>${formatRupiah(ea)}</td>
+                        <td>${formatRupiah(lainBonus)}</td>
+                        <td style="font-weight:600;">${formatRupiah(totalPendapatan)}</td>
+                        <td>${formatRupiah(potAbsen)}</td>
+                        <td>${formatRupiah(bpjsKaryawan)}</td>
+                        <td>${formatRupiah(pph21)}</td>
+                        <td>${formatRupiah(potLain)}</td>
+                        <td style="font-weight:600;">${formatRupiah(totalPotongan)}</td>
+                        <td style="font-weight:700; color:#2e7d32;">${formatRupiah(row.take_home_pay)}</td>
+                        <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : (row.status_approval === 'Hold' ? 'danger' : 'warning')}">${row.status_approval}</span></td>
+                        <td>
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <button class="btn-icon btn-neutral" onclick="bukaSlipGaji(${row.id})" title="View Salary Slip / Details" style="width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         } else { 
             section.style.display = 'block';
-            tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="19" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;
         }
     } catch (err) { 
         console.error(err); 
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="19" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
         }
     }
 }
@@ -441,10 +463,20 @@ async function exportGajiToExcel() {
 
         // Format the rows for Excel
         const formatted = data.map((row, index) => {
-            const bpjsTK = parseFloat(row.bpjs_jht_karyawan || 0) + parseFloat(row.bpjs_jp_karyawan || 0);
-            const bpjsKes = parseFloat(row.bpjs_kes_karyawan || 0);
             const dob = [row.tempat_lahir, row.tanggal_lahir].filter(Boolean).join(', ') || '-';
             
+            const gp = parseFloat(row.gaji_pokok || 0);
+            const ot = parseFloat(row.lembur_pay || 0);
+            const ea = parseFloat(row.early_arrival_pay || 0);
+            const totalPendapatan = parseFloat(row.total_pendapatan || 0);
+            const lainBonus = Math.max(0, totalPendapatan - gp - ot - ea);
+
+            const potAbsen = parseFloat(row.potongan_absen || 0);
+            const bpjsKaryawan = parseFloat(row.bpjs_kes_karyawan || 0) + parseFloat(row.bpjs_jht_karyawan || 0) + parseFloat(row.bpjs_jp_karyawan || 0);
+            const pph21 = parseFloat(row.pph21 || 0);
+            const totalPotongan = parseFloat(row.total_potongan || 0);
+            const potLain = Math.max(0, totalPotongan - potAbsen - bpjsKaryawan - pph21);
+
             return {
                 'No': index + 1,
                 'Company / Client': row.client_name || '-',
@@ -458,16 +490,17 @@ async function exportGajiToExcel() {
                 'Position / Role': row.position_name || '-',
                 'Work Location': row.location_name || '-',
                 'Min. Wage (UMP/UMK)': row.min_wage ? formatMoney(row.min_wage) : '0',
-                'Basic Salary': formatMoney(row.gaji_pokok),
-                'Overtime Pay': formatMoney(row.lembur_pay),
-                'Bonus/Lainnya': formatMoney(row.bonus_tambahan),
-                'Total Income (Pendapatan)': formatMoney(row.total_pendapatan),
-                'Absence Deduction': formatMoney(row.potongan_absen),
-                'BPJS Ketenagakerjaan (Karyawan)': formatMoney(bpjsTK),
-                'BPJS Kesehatan (Karyawan)': formatMoney(bpjsKes),
-                'Tax (PPh21)': formatMoney(row.pph21),
-                'Total Deductions (Potongan)': formatMoney(row.total_potongan),
-                'Take Home Pay': formatMoney(row.take_home_pay),
+                'Basic Salary (Gaji Pokok)': formatMoney(gp),
+                'Overtime Pay (Lembur)': formatMoney(ot),
+                'Early Arrival Pay': formatMoney(ea),
+                'Bonus / Lainnya': formatMoney(lainBonus),
+                'Total Income (Pendapatan)': formatMoney(totalPendapatan),
+                'Absence Deduction (Potongan Absen)': formatMoney(potAbsen),
+                'BPJS Karyawan': formatMoney(bpjsKaryawan),
+                'Tax (PPh21)': formatMoney(pph21),
+                'Potongan Lain': formatMoney(potLain),
+                'Total Deductions (Potongan)': formatMoney(totalPotongan),
+                'Net Salary (Take Home Pay)': formatMoney(row.take_home_pay),
                 'Status': row.status_approval || 'Pending'
             };
         });
@@ -490,17 +523,18 @@ async function exportGajiToExcel() {
             {wch: 15},  // Department
             {wch: 18},  // Position / Role
             {wch: 25},  // Work Location
-            {wch: 15},  // Min. Wage (UMP/UMK)
-            {wch: 15},  // Basic Salary
-            {wch: 12},  // Overtime Pay
-            {wch: 15},  // Bonus/Lainnya
-            {wch: 20},  // Total Income (Pendapatan)
-            {wch: 15},  // Absence Deduction
-            {wch: 28},  // BPJS Ketenagakerjaan (Karyawan)
-            {wch: 25},  // BPJS Kesehatan (Karyawan)
-            {wch: 12},  // Tax (PPh21)
+            {wch: 20},  // Min. Wage (UMP/UMK)
+            {wch: 25},  // Basic Salary (Gaji Pokok)
+            {wch: 20},  // Overtime Pay (Lembur)
+            {wch: 20},  // Early Arrival Pay
+            {wch: 20},  // Bonus / Lainnya
+            {wch: 25},  // Total Income (Pendapatan)
+            {wch: 28},  // Absence Deduction (Potongan Absen)
+            {wch: 18},  // BPJS Karyawan
+            {wch: 15},  // Tax (PPh21)
+            {wch: 18},  // Potongan Lain
             {wch: 25},  // Total Deductions (Potongan)
-            {wch: 20},  // Take Home Pay
+            {wch: 25},  // Net Salary (Take Home Pay)
             {wch: 12}   // Status
         ];
         ws['!cols'] = wscols;

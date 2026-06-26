@@ -1266,11 +1266,14 @@ class Api extends ResourceController
                           employees.nama as employee_name, shift_schemes.name as shift_name,
                           employees.hari_kerja as employee_hari_kerja,
                           positions.hari_kerja as position_hari_kerja,
-                          holiday_calendar.deskripsi as holiday_deskripsi');
+                          holiday_calendar.deskripsi as holiday_deskripsi,
+                          early_arrival.eligible_minutes as ea_eligible_minutes,
+                          early_arrival.status as ea_status');
         $builder->join('employees', 'employees.id = attendance_logs.employee_id', 'left');
         $builder->join('shift_schemes', 'shift_schemes.id = attendance_logs.shift_scheme_id', 'left');
         $builder->join('positions', 'positions.id = employees.position_id', 'left');
         $builder->join('holiday_calendar', 'holiday_calendar.tanggal = attendance_logs.log_date', 'left');
+        $builder->join('early_arrival', 'early_arrival.attendance_id = attendance_logs.id', 'left');
 
         if ($employeeId) {
             $builder->where('attendance_logs.employee_id', intval($employeeId));

@@ -1,5 +1,11 @@
 // === Early Arrival Module ===
 
+const formatMinsToHours = (minutes) => {
+    const mins = parseInt(minutes) || 0;
+    const hrs = mins / 60;
+    return (hrs % 1 === 0 ? hrs : hrs.toFixed(1)) + ' jam';
+};
+
 async function loadEarlyArrivalClients() {
     const select = document.getElementById('eaClientFilter');
     if (!select) return;
@@ -231,8 +237,8 @@ function filterEaPending() {
             <td style="text-align:center;padding:16px;color:#475569;">${dateFormatted}</td>
             <td style="text-align:center;padding:16px;color:#475569;font-weight:600;">${item.shift_start_time || '-'}</td>
             <td style="text-align:center;padding:16px;color:#475569;font-weight:600;">${item.check_in_time || '-'}</td>
-            <td style="text-align:center;padding:16px;color:#475569;">${item.early_minutes} mnt</td>
-            <td style="text-align:center;padding:16px;font-weight:700;color:#1e293b;">${item.eligible_minutes} mnt</td>
+            <td style="text-align:center;padding:16px;color:#475569;">${formatMinsToHours(item.early_minutes)}</td>
+            <td style="text-align:center;padding:16px;font-weight:700;color:#1e293b;">${formatMinsToHours(item.eligible_minutes)}</td>
             <td style="text-align:center;padding:16px;">${statusBadge}</td>
             <td style="text-align:center;padding:16px;">${actionButtons}</td>
         </tr>`;
@@ -301,8 +307,8 @@ function filterEaHistory() {
             <td style="text-align:center;padding:16px;color:#475569;">${dateFormatted}</td>
             <td style="text-align:center;padding:16px;color:#475569;font-weight:600;">${item.shift_start_time || '-'}</td>
             <td style="text-align:center;padding:16px;color:#475569;font-weight:600;">${item.check_in_time || '-'}</td>
-            <td style="text-align:center;padding:16px;color:#475569;">${item.early_minutes} mnt</td>
-            <td style="text-align:center;padding:16px;font-weight:700;color:#1e293b;">${item.eligible_minutes} mnt</td>
+            <td style="text-align:center;padding:16px;color:#475569;">${formatMinsToHours(item.early_minutes)}</td>
+            <td style="text-align:center;padding:16px;font-weight:700;color:#1e293b;">${formatMinsToHours(item.eligible_minutes)}</td>
             <td style="text-align:center;padding:16px;">${statusBadge}</td>
             <td style="text-align:center;padding:16px;color:#475569;font-weight:600;">${item.payroll_period || '-'}</td>
             <td style="padding:16px;">${verifier}</td>

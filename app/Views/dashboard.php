@@ -637,8 +637,16 @@
                                                         <th>Department</th>
                                                         <th>Position</th>
                                                         <th>Scheme</th>
-                                                        <th>Take Home Pay</th>
-                                                        <th>Deductions</th>
+                                                        <th>Gaji Pokok</th>
+                                                        <th>Lembur</th>
+                                                        <th>Early Arrival</th>
+                                                        <th>Lainnya/Bonus</th>
+                                                        <th>Total Earnings</th>
+                                                        <th>Potongan Absen</th>
+                                                        <th>BPJS Karyawan</th>
+                                                        <th>PPh 21</th>
+                                                        <th>Potongan Lain</th>
+                                                        <th>Total Deductions</th>
                                                         <th>Net Salary</th>
                                                         <th>Status</th>
                                                         <th>Action</th>
