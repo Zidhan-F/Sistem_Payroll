@@ -923,14 +923,17 @@ async function fetchNotifications() {
             const clientSektor = item.client_sektor ? item.client_sektor.replace(/'/g, "\\'") : '';
             const itemId = item.id ? item.id.replace(/'/g, "\\'") : '';
             return `
-                <div class="notification-item" onclick="handleNotificationClick('${item.link}', ${clientId}, '${clientName}', '${clientSektor}', '${itemId}')">
+                <div class="notification-item" style="position: relative;" onclick="handleNotificationClick('${item.link}', ${clientId}, '${clientName}', '${clientSektor}', '${itemId}')">
                     <div class="notification-icon ${iconColorClass}">
                         <i class="${iconClass}"></i>
                     </div>
-                    <div class="notification-content">
+                    <div class="notification-content" style="padding-right: 28px;">
                         <div class="notification-item-title">${item.title}</div>
                         <div class="notification-item-message">${item.message}</div>
                     </div>
+                    <button class="notification-dismiss-btn" onclick="dismissNotification(event, '${itemId}')" style="position: absolute; right: 12px; top: 12px; border: none; background: transparent; color: #94a3b8; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; z-index: 10;" onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='#fee2e2';" onmouseout="this.style.color='#94a3b8'; this.style.backgroundColor='transparent';" title="Hapus Notifikasi">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>`;
         }).join('');
 
@@ -943,6 +946,31 @@ async function fetchNotifications() {
             </div>`;
     }
 }
+
+async function dismissNotification(event, notificationId) {
+    if (event) {
+        event.stopPropagation();
+    }
+    if (!notificationId) return;
+    try {
+        const res = await fetch(`${API_URL}/notifications/dismiss`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notification_id: notificationId })
+        });
+        if (res.ok) {
+            fetchNotifications(); // Refresh notifications dropdown
+        } else {
+            console.error('Failed to dismiss notification');
+        }
+    } catch (err) {
+        console.error('Error dismissing notification:', err);
+    }
+}
+
+window.dismissNotification = dismissNotification;
 
 function handleNotificationClick(link, clientId = null, clientName = '', clientSektor = '', itemId = '') {
     // Close dropdown

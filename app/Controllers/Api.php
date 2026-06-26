@@ -180,10 +180,42 @@ class Api extends ResourceController
             ];
         }
 
+        // Filter out dismissed notifications
+        $dismissed = $this->db->table('dismissed_notifications')->get()->getResultArray();
+        $dismissedIds = array_column($dismissed, 'notification_id');
+        if (!empty($dismissedIds)) {
+            $notifications = array_values(array_filter($notifications, function($n) use ($dismissedIds) {
+                return !in_array($n['id'], $dismissedIds);
+            }));
+        }
+
         return $this->respond([
             'status' => 200,
             'data' => $notifications,
             'count' => count($notifications)
+        ]);
+    }
+
+    public function dismissNotification()
+    {
+        $json = $this->request->getJSON();
+        $notificationId = $json->notification_id ?? '';
+
+        if (empty($notificationId)) {
+            return $this->fail('Notification ID is required');
+        }
+
+        $exists = $this->db->table('dismissed_notifications')->where('notification_id', $notificationId)->countAllResults();
+        if ($exists === 0) {
+            $this->db->table('dismissed_notifications')->insert([
+                'notification_id' => $notificationId,
+                'dismissed_at' => date('Y-m-d H:i:s')
+            ]);
+        }
+
+        return $this->respond([
+            'status' => 200,
+            'message' => 'Notification dismissed successfully'
         ]);
     }
 

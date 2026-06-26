@@ -709,7 +709,15 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_attendance') AND name = 'early_arrival_minutes')
             ALTER TABLE payroll_attendance ADD early_arrival_minutes INT DEFAULT 0");
 
-        return "Migrasi Berhasil! (termasuk kolom absensi lembur dan tabel early arrival)";
+        // 32. Tabel Dismissed Notifications
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'dismissed_notifications')
+            CREATE TABLE dismissed_notifications (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                notification_id NVARCHAR(150) NOT NULL UNIQUE,
+                dismissed_at DATETIME DEFAULT GETDATE()
+            )");
+
+        return "Migrasi Berhasil! (termasuk kolom absensi lembur, early arrival, dan dismissed notifications)";
     }
 
     /**

@@ -101,6 +101,7 @@ $routes->group('api', function($routes) {
     $routes->post('client-absence-config', 'Api::saveAbsenceConfig');
     $routes->get('check-schema', 'Api::checkSchema');
     $routes->get('notifications', 'Api::getNotifications');
+    $routes->post('notifications/dismiss', 'Api::dismissNotification');
     $routes->get('preview-payroll', 'Api::previewPayroll');
 
     // Attendance Logs
