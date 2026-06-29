@@ -717,7 +717,64 @@ class Migrasi extends BaseController
                 dismissed_at DATETIME DEFAULT GETDATE()
             )");
 
-        return "Migrasi Berhasil! (termasuk kolom absensi lembur, early arrival, dan dismissed notifications)";
+        // 33. Users Table Enhancements (RBAC - Role Based Access Control)
+        // Pastikan tabel users ada
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'users')
+            CREATE TABLE users (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                username NVARCHAR(100) NOT NULL,
+                email NVARCHAR(100) NULL,
+                password NVARCHAR(255) NOT NULL,
+                role NVARCHAR(50) DEFAULT 'staff',
+                full_name NVARCHAR(200) NULL,
+                is_active TINYINT DEFAULT 1,
+                created_at DATETIME DEFAULT GETDATE(),
+                updated_at DATETIME DEFAULT GETDATE()
+            )");
+
+        // Tambah kolom baru ke tabel users jika belum ada
+        $userCols = [
+            'full_name'  => "NVARCHAR(200) NULL",
+            'is_active'  => "TINYINT DEFAULT 1",
+            'created_at' => "DATETIME DEFAULT GETDATE()",
+            'updated_at' => "DATETIME DEFAULT GETDATE()"
+        ];
+        foreach ($userCols as $col => $definition) {
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('users') AND name = '$col')
+                ALTER TABLE users ADD $col $definition");
+        }
+
+        // Seed admin default jika belum ada user admin
+        $adminExists = $db->query("SELECT COUNT(*) as cnt FROM users WHERE username = 'admin'")->getRow();
+        if (!$adminExists || $adminExists->cnt == 0) {
+            $db->table('users')->insert([
+                'username'  => 'admin',
+                'email'     => 'admin@payroll.com',
+                'password'  => 'admin123',
+                'role'      => 'admin',
+                'full_name' => 'Administrator',
+                'is_active' => 1
+            ]);
+        } else {
+            // Update admin existing agar aktif dan memiliki role admin
+            $db->query("UPDATE users SET is_active = 1, role = 'admin' WHERE username = 'admin'");
+        }
+
+        // Pastikan semua user yang null is_active-nya diset ke 1 (aktif)
+        $db->query("UPDATE users SET is_active = 1 WHERE is_active IS NULL");
+        $db->query("UPDATE users SET role = 'staff' WHERE role IS NULL OR role = ''");
+
+        // 34. Tabel Password Resets (Forgot Password OTP)
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'password_resets')
+            CREATE TABLE password_resets (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                email NVARCHAR(100) NOT NULL,
+                token NVARCHAR(10) NOT NULL,
+                created_at DATETIME DEFAULT GETDATE(),
+                expires_at DATETIME NOT NULL
+            )");
+
+        return "Migrasi Berhasil! (termasuk kolom absensi lembur, early arrival, dismissed notifications, RBAC users, dan password resets)";
     }
 
     /**

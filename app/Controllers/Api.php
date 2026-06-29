@@ -223,26 +223,53 @@ class Api extends ResourceController
     public function login()
     {
         $json = $this->request->getJSON();
-        $username = $json->username ?? '';
+        $usernameOrEmail = trim($json->username ?? '');
         $password = $json->password ?? '';
 
-        $user = $this->db->table('users')
-                         ->where('username', $username)
-                         ->get()
-                         ->getRow();
+        if (empty($usernameOrEmail) || empty($password)) {
+            return $this->fail('Username/Email dan password wajib diisi');
+        }
+
+        // Cek apakah input adalah email dengan memindai karakter '@'
+        $isEmail = strpos($usernameOrEmail, '@') !== false;
+
+        $query = $this->db->table('users');
+        if ($isEmail) {
+            // Validasi email
+            if (!filter_var($usernameOrEmail, FILTER_VALIDATE_EMAIL)) {
+                return $this->fail('Format email tidak valid');
+            }
+            $query->where('email', $usernameOrEmail);
+        } else {
+            $query->where('username', $usernameOrEmail);
+        }
+
+        $user = $query->get()->getRow();
 
         if ($user && $password === $user->password) { // Catatan: Sebaiknya gunakan password_verify
+            // Cek apakah user aktif
+            if (isset($user->is_active) && !$user->is_active) {
+                return $this->failUnauthorized('Akun Anda telah dinonaktifkan. Hubungi administrator.');
+            }
+
+            // Cek apakah role masih pending
+            if (($user->role ?? '') === 'pending') {
+                return $this->failUnauthorized('Akun Anda belum disetujui atau belum diberi role oleh Administrator.');
+            }
+
             $this->logActivity("User login berhasil", $user->username);
             return $this->respond([
                 'message' => 'Login berhasil',
                 'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username
+                    'id'        => $user->id,
+                    'username'  => $user->username,
+                    'role'      => $user->role ?? 'admin',
+                    'full_name' => $user->full_name ?? $user->username
                 ]
             ]);
         }
 
-        return $this->failUnauthorized('Username atau password salah');
+        return $this->failUnauthorized('Username/Email atau password salah');
     }
 
     public function getMinimumWages()
@@ -4081,7 +4108,63 @@ class Api extends ResourceController
                     }
                 }
                 
-                $rapelAmount = ($prevStdWorkingDays > 0) ? ($actualDaysWorkedPrev / $prevStdWorkingDays) * $unproratedGajiPokok : 0.0;
+                $prevMonthComponents = [];
+                foreach ($rawComponents as $comp) {
+                    $isAdhoc = isset($comp->allowance_type) && $comp->allowance_type === 'Ad-hoc';
+                    if ($isAdhoc) {
+                        $payoutPeriod = trim($comp->payout_period ?? '');
+                        $prevPeriod1 = intval($prevMonth) . '-' . intval($prevYear);
+                        $prevPeriod2 = sprintf('%02d-%d', intval($prevMonth), intval($prevYear));
+                        if ($payoutPeriod !== $prevPeriod1 && $payoutPeriod !== $prevPeriod2) {
+                            continue; // Skip this component
+                        }
+                    }
+                    $prevMonthComponents[] = $comp;
+                }
+
+                $prevProrateFactor = ($prevStdWorkingDays > 0) ? ($actualDaysWorkedPrev / $prevStdWorkingDays) : 0.0;
+                $totalPrevEarnings = 0.0;
+                $totalPrevDeductions = 0.0;
+
+                foreach ($prevMonthComponents as $comp) {
+                    $isBasic = (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') || (stripos($comp->nama, 'Gaji Pokok') !== false);
+                    
+                    if ($isBasic) {
+                        $nilai = $unproratedGajiPokok * $prevProrateFactor;
+                    } else {
+                        $base_nilai = floatval($comp->nilai);
+                        if (isset($comp->sumber_nilai)) {
+                            if ($comp->sumber_nilai === 'ump') {
+                                $base_nilai = $umpWageValue * ($base_nilai / 100);
+                            } else if ($comp->sumber_nilai === 'umk') {
+                                $base_nilai = $umkWageValue * ($base_nilai / 100);
+                            } else if ($comp->sumber_nilai === 'ump_umk') {
+                                $base_nilai = $minimumWage * ($base_nilai / 100);
+                            }
+                        }
+                        
+                        // Determine period and scale
+                        $periode = $comp->periode ?? 'bulan';
+                        if ($periode === 'hari' || $periode === 'hari_kerja') {
+                            $nilai = $base_nilai * $actualDaysWorkedPrev;
+                        } elseif ($periode === 'minggu') {
+                            $nilai = $base_nilai * 4 * $prevProrateFactor;
+                        } elseif ($periode === 'tahun') {
+                            $nilai = ($base_nilai / 12) * $prevProrateFactor;
+                        } else {
+                            // monthly/bulan
+                            $nilai = $base_nilai * $prevProrateFactor;
+                        }
+                    }
+
+                    if (($comp->tipe ?? 'pendapatan') === 'pendapatan') {
+                        $totalPrevEarnings += $nilai;
+                    } else {
+                        $totalPrevDeductions += $nilai;
+                    }
+                }
+                $rapelAmount = $totalPrevEarnings - $totalPrevDeductions;
+                if ($rapelAmount < 0) $rapelAmount = 0.0;
                 
                 if ($rapelAmount > 0) {
                     $payoutPeriodStr = intval($period->bulan) . '-' . intval($period->tahun);
@@ -4146,10 +4229,93 @@ class Api extends ResourceController
             }
 
             if ($isNewHireRapel) {
-                // Calculate rapel amount (prorated basic salary they earned)
-                // Force to 0 because join date is after cutoff end, meaning 0 days worked in this period.
+                // Calculate actual present days from attendance_logs
                 $actualDaysWorked = 0;
+                
+                $currMonthStart = sprintf('%04d-%02d-01', $tYear, $tMonth);
+                $currMonthEnd = date('Y-m-t', strtotime($currMonthStart));
+                $currStdWorkingDays = $this->getStandardWorkingDaysInRange($currMonthStart, $currMonthEnd, $workDaysConfig);
+                
+                $joinDateStr = date('Y-m-d', $joinTs);
+                $hasAnyLogsPrev = $this->db->table('attendance_logs')
+                                           ->where('employee_id', $emp->id)
+                                           ->where('log_date >=', $joinDateStr)
+                                           ->where('log_date <=', $currMonthEnd)
+                                           ->countAllResults() > 0;
+                
+                if ($hasAnyLogsPrev) {
+                    $actualDaysWorkedPrev = $this->db->table('attendance_logs')
+                                                 ->where('employee_id', $emp->id)
+                                                 ->where('log_date >=', $joinDateStr)
+                                                 ->where('log_date <=', $currMonthEnd)
+                                                 ->where('status', 'Hadir')
+                                                 ->countAllResults();
+                } else {
+                    $actualDaysWorkedPrev = 0;
+                    $startTs = strtotime($joinDateStr);
+                    $endTs = strtotime($currMonthEnd);
+                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+                        $dayOfWeek = date('w', $curr);
+                        if ($workDaysConfig === 5) {
+                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
+                                $actualDaysWorkedPrev++;
+                            }
+                        } elseif ($workDaysConfig === 6) {
+                            if ($dayOfWeek != 0) {
+                                $actualDaysWorkedPrev++;
+                            }
+                        } else {
+                            $actualDaysWorkedPrev++;
+                        }
+                    }
+                }
+                
                 $rapelAmount = 0.0;
+                $totalEarnings = 0.0;
+                $totalDeductions = 0.0;
+                $prorateFactor = ($currStdWorkingDays > 0) ? ($actualDaysWorkedPrev / $currStdWorkingDays) : 0.0;
+
+                foreach ($components as $comp) {
+                    $isBasic = (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') || (stripos($comp->nama, 'Gaji Pokok') !== false);
+                    
+                    if ($isBasic) {
+                        $nilai = $unproratedGajiPokok * $prorateFactor;
+                        $gajiPokok = $nilai;
+                    } else {
+                        $base_nilai = floatval($comp->nilai);
+                        if (isset($comp->sumber_nilai)) {
+                            if ($comp->sumber_nilai === 'ump') {
+                                $base_nilai = $umpWageValue * ($base_nilai / 100);
+                            } else if ($comp->sumber_nilai === 'umk') {
+                                $base_nilai = $umkWageValue * ($base_nilai / 100);
+                            } else if ($comp->sumber_nilai === 'ump_umk') {
+                                $base_nilai = $minimumWage * ($base_nilai / 100);
+                            }
+                        }
+                        
+                        // Determine period and scale
+                        $periode = $comp->periode ?? 'bulan';
+                        if ($periode === 'hari' || $periode === 'hari_kerja') {
+                            $nilai = $base_nilai * $actualDaysWorkedPrev;
+                        } elseif ($periode === 'minggu') {
+                            $nilai = $base_nilai * 4 * $prorateFactor;
+                        } elseif ($periode === 'tahun') {
+                            $nilai = ($base_nilai / 12) * $prorateFactor;
+                        } else {
+                            // monthly/bulan
+                            $nilai = $base_nilai * $prorateFactor;
+                        }
+                    }
+
+                    if (($comp->tipe ?? 'pendapatan') === 'pendapatan') {
+                        $totalEarnings += $nilai;
+                    } else {
+                        $totalDeductions += $nilai;
+                    }
+                }
+
+                $rapelAmount = $totalEarnings - $totalDeductions;
+                if ($rapelAmount < 0) $rapelAmount = 0.0;
 
                 if ($rapelAmount > 0) {
                     $existingRapel = $this->db->table('pkwt_components')
@@ -5062,6 +5228,10 @@ class Api extends ResourceController
             return $this->failNotFound('Data gaji tidak ditemukan');
         }
         
+        if ($row->status_approval === 'Hold') {
+            return $this->fail('Gaji untuk karyawan ' . $row->employee_name . ' tidak dapat disetujui karena berstatus Hold (dirapel ke bulan depan).');
+        }
+        
         // Resolve Scheme
         $clientConfig = $this->resolveClientConfig($row->client_id, $row->position_name);
         if (!$clientConfig) {
@@ -5102,6 +5272,10 @@ class Api extends ResourceController
                             ->getRow();
             if (!$row) {
                 return $this->failNotFound('Data gaji tidak ditemukan (ID: ' . $id . ')');
+            }
+            
+            if ($row->status_approval === 'Hold') {
+                return $this->fail('Gaji untuk karyawan ' . $row->employee_name . ' tidak dapat disetujui karena berstatus Hold (dirapel ke bulan depan).');
             }
             
             // Resolve Scheme
@@ -5246,6 +5420,61 @@ class Api extends ResourceController
             $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
             if ($joinDateStr >= $startDateStr && $joinDateStr <= $endDateStr) {
                 $startDateStr = $joinDateStr;
+            }
+        }
+
+        $isHoldNewHire = false;
+        $holdActualDaysWorked = 0;
+        $holdStdWorkingDays = $stdWorkingDays;
+
+        if (($final['status_approval'] ?? '') === 'Hold' && $emp && !empty($emp->tgl_masuk)) {
+            $joinTs = strtotime($emp->tgl_masuk);
+            $joinYear = intval(date('Y', $joinTs));
+            $joinMonth = intval(date('n', $joinTs));
+            
+            $tYear = intval($final['tahun']);
+            $tMonth = intval($final['bulan']);
+            
+            if ($joinYear === $tYear && $joinMonth === $tMonth) {
+                $isHoldNewHire = true;
+                
+                $currMonthStart = sprintf('%04d-%02d-01', $tYear, $tMonth);
+                $currMonthEnd = date('Y-m-t', strtotime($currMonthStart));
+                $holdStdWorkingDays = $this->getStandardWorkingDaysInRange($currMonthStart, $currMonthEnd, $workDaysConfig);
+                
+                $joinDateStr = date('Y-m-d', $joinTs);
+                $hasAnyLogsPrev = $this->db->table('attendance_logs')
+                                           ->where('employee_id', $emp->id)
+                                           ->where('log_date >=', $joinDateStr)
+                                           ->where('log_date <=', $currMonthEnd)
+                                           ->countAllResults() > 0;
+                
+                if ($hasAnyLogsPrev) {
+                    $holdActualDaysWorked = $this->db->table('attendance_logs')
+                                                 ->where('employee_id', $emp->id)
+                                                 ->where('log_date >=', $joinDateStr)
+                                                 ->where('log_date <=', $currMonthEnd)
+                                                 ->where('status', 'Hadir')
+                                                 ->countAllResults();
+                } else {
+                    $holdActualDaysWorked = 0;
+                    $startTs = strtotime($joinDateStr);
+                    $endTs = strtotime($currMonthEnd);
+                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+                        $dayOfWeek = date('w', $curr);
+                        if ($workDaysConfig === 5) {
+                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
+                                $holdActualDaysWorked++;
+                            }
+                        } elseif ($workDaysConfig === 6) {
+                            if ($dayOfWeek != 0) {
+                                $holdActualDaysWorked++;
+                            }
+                        } else {
+                            $holdActualDaysWorked++;
+                        }
+                    }
+                }
             }
         }
         
@@ -5417,20 +5646,38 @@ class Api extends ResourceController
                     // Scale by period
                     if ($comp['periode'] === 'hari' || $comp['periode'] === 'hari_kerja') {
                         $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
+                        if ($isHoldNewHire) {
+                            $days = $holdActualDaysWorked;
+                        }
                         $nilai = $base_nilai * $days;
                     } elseif ($comp['periode'] === 'minggu') {
                         $nilai = $base_nilai * 4;
+                        if ($isHoldNewHire) {
+                            $nilai = $nilai * ($holdStdWorkingDays > 0 ? $holdActualDaysWorked / $holdStdWorkingDays : 0);
+                        }
                     } elseif ($comp['periode'] === 'tahun') {
                         $nilai = $base_nilai / 12;
+                        if ($isHoldNewHire) {
+                            $nilai = $nilai * ($holdStdWorkingDays > 0 ? $holdActualDaysWorked / $holdStdWorkingDays : 0);
+                        }
                     } else {
                         // bulanan
                         // Tunjangan tetap: Nilai tunjangan tetap bersifat konstan setiap periode (TIDAK terprorate)
                         $isCompAdhoc = isset($comp['allowance_type']) && $comp['allowance_type'] === 'Ad-hoc';
                         if ($isProrate && isset($comp['sifat_kompensasi']) && $comp['sifat_kompensasi'] === 'tidak_tetap' && !$isCompAdhoc) {
                             $days = ($att && isset($att['hari_kerja'])) ? intval($att['hari_kerja']) : 0;
-                            $nilai = $base_nilai * ($days / $stdWorkingDays);
+                            $stdDays = $stdWorkingDays;
+                            if ($isHoldNewHire) {
+                                $days = $holdActualDaysWorked;
+                                $stdDays = $holdStdWorkingDays;
+                            }
+                            $nilai = $base_nilai * ($days / $stdDays);
                         } else {
-                            $nilai = $base_nilai;
+                            if ($isHoldNewHire && !$isCompAdhoc) {
+                                $nilai = $base_nilai * ($holdStdWorkingDays > 0 ? $holdActualDaysWorked / $holdStdWorkingDays : 0);
+                            } else {
+                                $nilai = $base_nilai;
+                            }
                         }
                     }
                 } else {
@@ -5438,6 +5685,10 @@ class Api extends ResourceController
                     $nilai = floatval($comp['nilai']);
                     if (intval($comp['is_persentase']) === 1 || $comp['is_persentase'] === true) {
                         $nilai = (isset($final['gaji_pokok']) ? floatval($final['gaji_pokok']) : $gajiPokok) * ($nilai / 100);
+                    } else {
+                        if ($isHoldNewHire) {
+                            $nilai = $nilai * ($holdStdWorkingDays > 0 ? $holdActualDaysWorked / $holdStdWorkingDays : 0);
+                        }
                     }
                 }
             }

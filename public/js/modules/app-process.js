@@ -243,9 +243,23 @@ async function renderReviewGajiTable() {
         const data = await res.json();
         const section = document.getElementById('resultSection');
         if (!tbody) return;
-        if (data.length > 0) {
+
+        let displayData = data;
+        const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
+        if (role === 'staff') {
+            displayData = data.filter(row => {
+                const currentFullName = (currentUser && currentUser.full_name) ? currentUser.full_name.toLowerCase() : '';
+                const currentUsername = (currentUser && currentUser.username) ? currentUser.username.toLowerCase() : '';
+                const empName = (row.employee_name || '').toLowerCase();
+                return empName === currentFullName || empName === currentUsername;
+            });
+            // Staff hanya menerima slip gaji setelah disetujui (Approved)
+            displayData = displayData.filter(row => row.status_approval === 'Approved');
+        }
+
+        if (displayData.length > 0) {
             section.style.display = 'block';
-            tbody.innerHTML = data.map(row => {
+            tbody.innerHTML = displayData.map(row => {
                 const gp = parseFloat(row.gaji_pokok || 0);
                 const ot = parseFloat(row.lembur_pay || 0);
                 const ea = parseFloat(row.early_arrival_pay || 0);

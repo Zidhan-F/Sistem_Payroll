@@ -961,9 +961,93 @@ class Payroll extends ResourceController
 
             if ($isNewHireRapel) {
                 // Calculate actual present days from attendance_logs
-                // Force to 0 because join date is after cutoff end, meaning 0 days worked in this period.
                 $actualDaysWorked = 0;
-                $rapelAmount = 0.0;
+                
+                $workDaysConfigVal = 5;
+                if (isset($emp['hari_kerja']) && intval($emp['hari_kerja']) > 0) {
+                    $workDaysConfigVal = intval($emp['hari_kerja']);
+                } elseif ($empConfig && isset($empConfig->position_hari_kerja) && intval($empConfig->position_hari_kerja) > 0) {
+                    $workDaysConfigVal = intval($empConfig->position_hari_kerja);
+                }
+                
+                $currMonthStart = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
+                $currMonthEnd = date('Y-m-t', strtotime($currMonthStart));
+                $currStdWorkingDays = $this->getStandardWorkingDaysInRange($currMonthStart, $currMonthEnd, $workDaysConfigVal);
+                
+                $joinDateStr = date('Y-m-d', $joinTs);
+                $hasAnyLogsPrev = $db->table('attendance_logs')
+                                    ->where('employee_id', $emp['id'])
+                                    ->where('log_date >=', $joinDateStr)
+                                    ->where('log_date <=', $currMonthEnd)
+                                    ->countAllResults() > 0;
+                
+                if ($hasAnyLogsPrev) {
+                    $actualDaysWorkedPrev = $db->table('attendance_logs')
+                                                ->where('employee_id', $emp['id'])
+                                                ->where('log_date >=', $joinDateStr)
+                                                ->where('log_date <=', $currMonthEnd)
+                                                ->where('status', 'Hadir')
+                                                ->countAllResults();
+                } else {
+                    $actualDaysWorkedPrev = 0;
+                    $startTs = strtotime($joinDateStr);
+                    $endTs = strtotime($currMonthEnd);
+                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+                        $dayOfWeek = date('w', $curr);
+                        if ($workDaysConfigVal === 5) {
+                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
+                                $actualDaysWorkedPrev++;
+                            }
+                        } elseif ($workDaysConfigVal === 6) {
+                            if ($dayOfWeek != 0) {
+                                $actualDaysWorkedPrev++;
+                            }
+                        } else {
+                            $actualDaysWorkedPrev++;
+                        }
+                    }
+                }
+                
+                $totalEarnings = 0.0;
+                $totalDeductions = 0.0;
+                $prorateFactor = ($currStdWorkingDays > 0) ? ($actualDaysWorkedPrev / $currStdWorkingDays) : 0.0;
+                $proratedBaseSalary = $baseSalary * $prorateFactor;
+
+                foreach ($empComponents as &$comp) {
+                    $base_nilai = floatval($comp['nilai']);
+                    $sumber_nilai = $comp['sumber_nilai'] ?? 'nominal';
+                    if ($sumber_nilai === 'ump') {
+                        $base_nilai = $umpWageValue * ($base_nilai / 100);
+                    } else if ($sumber_nilai === 'umk') {
+                        $base_nilai = $umkWageValue * ($base_nilai / 100);
+                    } else if ($sumber_nilai === 'ump_umk') {
+                        $base_nilai = $empMinimumWage * ($base_nilai / 100);
+                    }
+
+                    $periode = $comp['periode'] ?? 'bulan';
+                    if ($periode === 'hari' || $periode === 'hari_kerja') {
+                        $nilai = $base_nilai * $actualDaysWorkedPrev;
+                    } elseif ($periode === 'minggu') {
+                        $nilai = $base_nilai * 4 * $prorateFactor;
+                    } elseif ($periode === 'tahun') {
+                        $nilai = ($base_nilai / 12) * $prorateFactor;
+                    } else {
+                        // monthly/bulan
+                        $nilai = $base_nilai * $prorateFactor;
+                    }
+                    $comp['nilai'] = $nilai;
+
+                    if ($comp['tipe'] === 'Tunjangan') {
+                        $totalEarnings += $nilai;
+                    } else {
+                        $totalDeductions += $nilai;
+                    }
+                }
+                unset($comp);
+
+                $rapelAmount = $proratedBaseSalary + $totalEarnings - $totalDeductions;
+                if ($rapelAmount < 0) $rapelAmount = 0.0;
+                $baseSalary = $proratedBaseSalary;
 
                 if ($rapelAmount > 0) {
                     $existingRapel = $db->table('pkwt_components')
@@ -1064,18 +1148,30 @@ class Payroll extends ResourceController
                     }
                 }
 
-                // Insert a record in the payrolls table with 0.0 values
+                // Insert a record in the payrolls table with calculated values
                 $payrollData = [
                     'employee_id' => $emp['id'],
                     'bulan' => $bulan,
                     'tahun' => $tahun,
-                    'gaji_pokok' => 0.0,
-                    'total_tunjangan' => 0.0,
-                    'total_potongan' => 0.0,
-                    'take_home_pay' => 0.0,
+                    'gaji_pokok' => $baseSalary,
+                    'total_tunjangan' => $totalEarnings,
+                    'total_potongan' => $totalDeductions,
+                    'take_home_pay' => $rapelAmount,
                     'status_pembayaran' => 'Hold'
                 ];
-                $this->model->insert($payrollData);
+                $payrollId = $this->model->insert($payrollData);
+
+                // Insert components to payroll_details for slip display
+                foreach ($empComponents as $comp) {
+                    if ($comp['nilai'] > 0) {
+                        $detailModel->insert([
+                            'payroll_id' => $payrollId,
+                            'nama_komponen' => $comp['nama_komponen'] ?? $comp['nama'] ?? '',
+                            'tipe' => $comp['tipe'],
+                            'jumlah' => $comp['nilai']
+                        ]);
+                    }
+                }
 
                 continue; // Skip the rest of the loop!
             }
@@ -1083,29 +1179,30 @@ class Payroll extends ResourceController
             // Overtime divisor (use client config if set, otherwise fallback to 173)
             $standardHours = ($empConfig && isset($empConfig->overtime_divisor) && intval($empConfig->overtime_divisor) > 0) ? intval($empConfig->overtime_divisor) : 173;
 
-            // Resolve Nominal Lembur Bulanan (contains "Lembur" or "Overtime" in name)
-            $nominalLemburBulanan = 0.0;
-            foreach ($empComponents as $comp) {
-                $compName = $comp['nama_komponen'] ?? $comp['nama'] ?? '';
-                if (stripos($compName, 'Lembur') !== false || stripos($compName, 'Overtime') !== false) {
-                    $baseVal = floatval($comp['nilai']);
-                    $sumberVal = $comp['sumber_nilai'] ?? 'nominal';
-                    if ($sumberVal === 'ump') {
-                        $baseVal = $umpWageValue * ($baseVal / 100);
-                    } else if ($sumberVal === 'umk') {
-                        $baseVal = $umkWageValue * ($baseVal / 100);
-                    } else if ($sumberVal === 'ump_umk') {
-                        $baseVal = $empMinimumWage * ($baseVal / 100);
-                    }
-                    $nominalLemburBulanan = $baseVal;
-                    break;
-                }
-            }
-            if ($nominalLemburBulanan <= 0.0) {
-                $nominalLemburBulanan = $baseSalary; // fallback to base salary
-            }
+            // Resolve upah per jam with priority chain (same as Api.php):
+            // 1. Client manual OT rate (clients.overtime_rate_per_hour)
+            // 2. Scheme template rate (payroll_scheme_templates.rate_lembur_per_jam)
+            // 3. Gaji Pokok / divisor (PP 35/2021)
+            $clientManualOtRate = ($schema && isset($schema['overtime_rate_per_hour'])) ? floatval($schema['overtime_rate_per_hour']) : 0;
 
-            $upahPerJam = $nominalLemburBulanan / $standardHours;
+            $schemeTemplateModel = new \App\Models\PayrollSchemeTemplateModel();
+            $schemeTemplateObj = $schemeTemplateModel->getSchemeForEmployee(
+                $clientId,
+                $emp['division_id'] ?? null,
+                $emp['department_id'] ?? null,
+                $emp['position_id'] ?? null
+            );
+            $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+            $schemeOtRate = ($schemeTemplate && isset($schemeTemplate['rate_lembur_per_jam'])) ? floatval($schemeTemplate['rate_lembur_per_jam']) : 0;
+
+            if ($clientManualOtRate > 0) {
+                $upahPerJam = $clientManualOtRate;
+            } elseif ($schemeOtRate > 0) {
+                $upahPerJam = $schemeOtRate;
+            } else {
+                $gajiPokokForOt = $baseSalary;
+                $upahPerJam = ($gajiPokokForOt > 0) ? ($gajiPokokForOt / $standardHours) : 0;
+            }
 
             // Initialize running totals for components
             $customTunjangan = 0.0;
@@ -1322,12 +1419,30 @@ class Payroll extends ResourceController
                     }
                 }
             } else {
-                // Standard progressive multiplier
-                $totalEmber1 = 0; // Jam pertama tiap hari → 1.5x
-                $totalEmber2 = 0; // Jam 2-3 tiap hari → 2.0x
+                // Standard progressive multiplier (PP No. 35 Tahun 2021)
+                // Determine working days per week for multiplier bracket
+                $workDaysPerWeek = 5;
+                if ($emp) {
+                    $posHkOt = intval($emp['hari_kerja'] ?? 5);
+                    if ($posHkOt < 1) {
+                        $posId = $emp['position_id'] ?? null;
+                        if ($posId) {
+                            $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
+                            if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
+                                $posHkOt = intval($pos->hari_kerja);
+                            }
+                        }
+                    }
+                    if ($posHkOt == 6) {
+                        $workDaysPerWeek = 6;
+                    }
+                }
 
                 if (count($overtimeLogs) > 0) {
                     $totalJamLemburLog = 0;
+                    $jamKonversiBiasa = 0.0;
+                    $jamKonversiLibur = 0.0;
+
                     foreach ($overtimeLogs as $otLog) {
                         $jam = floatval($otLog['jam_lembur']);
                         $totalJamLemburLog += $jam;
@@ -1343,86 +1458,27 @@ class Payroll extends ResourceController
                                 if ($holiday) {
                                     $isHoliday = 1;
                                 } elseif ($dayOfWeek == 6) {
-                                    // Saturday is weekend/holiday only for 5-day work weeks
-                                    $empWork = $db->table('employees')
-                                        ->select('employees.hari_kerja, positions.hari_kerja as position_hari_kerja')
-                                        ->join('positions', 'positions.id = employees.position_id', 'left')
-                                        ->where('employees.id', intval($emp['id']))
-                                        ->get()->getRow();
-                                    $workDaysPerWeek = 5;
-                                    if ($empWork) {
-                                        $workDaysPerWeek = intval($empWork->hari_kerja ?: ($empWork->position_hari_kerja ?: 5));
-                                    }
                                     $isHoliday = ($workDaysPerWeek < 6) ? 1 : 0;
                                 }
                             }
                         }
 
                         if ($isHoliday) {
-                            // Determine working days per week for holiday multiplier bracket
-                            $workDaysPerWeek = 5;
-                            if ($emp) {
-                                $posHkOt = intval($emp['hari_kerja'] ?? 5);
-                                if ($posHkOt < 1) {
-                                    $posId = $emp['position_id'] ?? null;
-                                    if ($posId) {
-                                        $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
-                                        if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
-                                            $posHkOt = intval($pos->hari_kerja);
-                                        }
-                                    }
-                                }
-                                if ($posHkOt == 6) {
-                                    $workDaysPerWeek = 6;
-                                }
-                            }
-
-                            if ($workDaysPerWeek == 6) {
-                                // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4 (maksimal 11 jam)
-                                $jam = min(11.0, $jam);
-                                $batasAwal = 7.0;
-                            } else {
-                                // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10 s/d ke-12 x4 (maksimal 12 jam)
-                                $jam = min(12.0, $jam);
-                                $batasAwal = 8.0;
-                            }
-
-                            $jamKonversi = 0.0;
-                            if ($jam <= $batasAwal) {
-                                $jamKonversi += $jam * 2.0;
-                            } else {
-                                $jamKonversi += $batasAwal * 2.0;
-                                $sisa = $jam - $batasAwal;
-                                if ($sisa <= 1.0) {
-                                    $jamKonversi += $sisa * 3.0;
-                                } else {
-                                    $jamKonversi += 1.0 * 3.0;
-                                    $jamKonversi += ($sisa - 1.0) * 4.0;
-                                }
-                            }
-                            $lemburLibur += $jamKonversi * $upahPerJam;
+                            $jamKonversiLibur += $this->hitungJamLemburKonversi($jam, true, $workDaysPerWeek, true);
                         } else {
-                            // Lembur Reguler: dual bucket (max 3 jam/hari)
-                            $jam = min($jam, 3);
-                            $ember1 = min($jam, 1);         // Jam pertama → 1.5x
-                            $ember2 = max($jam - 1, 0);     // Jam 2-3 → 2.0x
-                            $totalEmber1 += $ember1;
-                            $totalEmber2 += $ember2;
+                            $jamKonversiBiasa += $this->hitungJamLemburKonversi($jam, false, $workDaysPerWeek, true);
                         }
                     }
                     $dk['lembur'] = $totalJamLemburLog;
+                    $overtimePay = ($jamKonversiBiasa + $jamKonversiLibur) * $upahPerJam;
                 } else {
                     // Backward compatible: jika tidak ada overtime_logs, gunakan data form lama
                     if (isset($dk['lembur']) && floatval($dk['lembur']) > 0) {
                         $totalJamLembur = floatval($dk['lembur']);
-                        // Treat semua sebagai lembur reguler dengan dual bucket simplified
-                        $totalEmber1 = min($totalJamLembur, 1);
-                        $totalEmber2 = max($totalJamLembur - 1, 0);
+                        $jamKonversi = $this->hitungJamLemburKonversi($totalJamLembur, false, $workDaysPerWeek, false);
+                        $overtimePay = $jamKonversi * $upahPerJam;
                     }
                 }
-
-                $lemburReguler = ($totalEmber1 * 1.5 * $upahPerJam) + ($totalEmber2 * 2.0 * $upahPerJam);
-                $overtimePay = $lemburReguler + $lemburLibur;
             }
 
             // Potongan Absen — berdasarkan looping harian untuk mendeteksi alpa otomatis
@@ -1983,6 +2039,9 @@ class Payroll extends ResourceController
                     }
                 }
             } else {
+                $jamKonversiBiasa = 0.0;
+                $jamKonversiLibur = 0.0;
+
                 foreach ($overtimeRapelLogs as $otLog) {
                     $jam = floatval($otLog['jam_lembur']);
                     
@@ -2011,58 +2070,31 @@ class Payroll extends ResourceController
                         }
                     }
 
-                    if ($isHoliday) {
-                        $workDaysPerWeek = 5;
-                        if ($emp) {
-                            $posHkOt = intval($emp['hari_kerja'] ?? 5);
-                            if ($posHkOt < 1) {
-                                $posId = $emp['position_id'] ?? null;
-                                if ($posId) {
-                                    $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
-                                    if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
-                                        $posHkOt = intval($pos->hari_kerja);
-                                    }
+                    // Determine working days per week for multiplier bracket
+                    $workDaysPerWeek = 5;
+                    if ($emp) {
+                        $posHkOt = intval($emp['hari_kerja'] ?? 5);
+                        if ($posHkOt < 1) {
+                            $posId = $emp['position_id'] ?? null;
+                            if ($posId) {
+                                $pos = $db->table('positions')->where('id', $posId)->get()->getRow();
+                                if ($pos && isset($pos->hari_kerja) && intval($pos->hari_kerja) > 0) {
+                                    $posHkOt = intval($pos->hari_kerja);
                                 }
                             }
-                            if ($posHkOt == 6) {
-                                $workDaysPerWeek = 6;
-                            }
                         }
+                        if ($posHkOt == 6) {
+                            $workDaysPerWeek = 6;
+                        }
+                    }
 
-                        if ($workDaysPerWeek == 6) {
-                            // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4 (maksimal 11 jam)
-                            $jam = min(11.0, $jam);
-                            $batasAwal = 7.0;
-                        } else {
-                            // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10 s/d ke-12 x4 (maksimal 12 jam)
-                            $jam = min(12.0, $jam);
-                            $batasAwal = 8.0;
-                        }
-
-                        $jamKonversi = 0.0;
-                        if ($jam <= $batasAwal) {
-                            $jamKonversi += $jam * 2.0;
-                        } else {
-                            $jamKonversi += $batasAwal * 2.0;
-                            $sisa = $jam - $batasAwal;
-                            if ($sisa <= 1.0) {
-                                    $jamKonversi += $sisa * 3.0;
-                            } else {
-                                    $jamKonversi += 1.0 * 3.0;
-                                    $jamKonversi += ($sisa - 1.0) * 4.0;
-                            }
-                        }
-                        $rapelLemburLibur += $jamKonversi * $upahPerJam;
+                    if ($isHoliday) {
+                        $jamKonversiLibur += $this->hitungJamLemburKonversi($jam, true, $workDaysPerWeek, true);
                     } else {
-                        $jam = min($jam, 3);
-                        $ember1 = min($jam, 1);
-                        $ember2 = max($jam - 1, 0);
-                        $totalRapelEmber1 += $ember1;
-                        $totalRapelEmber2 += $ember2;
+                        $jamKonversiBiasa += $this->hitungJamLemburKonversi($jam, false, $workDaysPerWeek, true);
                     }
                 }
-                $rapelLemburReguler = ($totalRapelEmber1 * 1.5 * $upahPerJam) + ($totalRapelEmber2 * 2.0 * $upahPerJam);
-                $rapelOvertimePay = $rapelLemburReguler + $rapelLemburLibur;
+                $rapelOvertimePay = ($jamKonversiBiasa + $jamKonversiLibur) * $upahPerJam;
             }
 
             // 3. Subtract unpaid leave/absence deductions from previous month(s) marked as rapel
@@ -2858,6 +2890,69 @@ class Payroll extends ResourceController
             }
         }
         return $stdDays;
+    }
+
+    private function hitungJamLemburKonversi(float $jamLembur, bool $isHoliday = false, int $workingDaysPerWeek = 5, bool $applyDailyCap = true): float
+    {
+        if ($jamLembur <= 0) {
+            return 0.0;
+        }
+
+        $jamKonversi = 0.0;
+
+        if (!$isHoliday) {
+            // === Lembur di Hari Kerja Biasa ===
+            // Batas lembur maksimal 3 jam sehari (Kepmen 102/2004)
+            if ($applyDailyCap) {
+                $jamLembur = min(3.0, $jamLembur);
+            }
+
+            // Jam ke-1 x 1.5
+            $jamPertama = min(1.0, $jamLembur);
+            $jamKonversi += $jamPertama * 1.5;
+
+            // Jam ke-2 s.d ke-8 x 2.0
+            if ($jamLembur > 1.0) {
+                $jamBerikutnya = min(7.0, $jamLembur - 1.0);
+                $jamKonversi += $jamBerikutnya * 2.0;
+            }
+
+            // Jam ke-9 dst x 3.0
+            if ($jamLembur > 8.0) {
+                $jamSembilanDst = $jamLembur - 8.0;
+                $jamKonversi += $jamSembilanDst * 3.0;
+            }
+        } else {
+            // === Lembur di Hari Libur / Tanggal Merah ===
+            if ($workingDaysPerWeek == 6) {
+                // Skema 6 hari kerja: 7 jam x2, jam ke-8 x3, jam ke-9+ x4 (maksimal 11 jam)
+                $jamLembur = min(11.0, $jamLembur);
+                $batasAwal = 7.0;
+            } else {
+                // Skema 5 hari kerja: 8 jam x2, jam ke-9 x3, jam ke-10 s/d ke-12 x4 (maksimal 12 jam)
+                $jamLembur = min(12.0, $jamLembur);
+                $batasAwal = 8.0;
+            }
+
+            if ($jamLembur <= $batasAwal) {
+                $jamKonversi += $jamLembur * 2.0;
+            } else {
+                $jamKonversi += $batasAwal * 2.0; // Jam awal
+
+                $sisa = $jamLembur - $batasAwal;
+                if ($sisa <= 1.0) {
+                    // Jam transisi x 3.0
+                    $jamKonversi += $sisa * 3.0;
+                } else {
+                    // Jam transisi penuh x 3.0
+                    $jamKonversi += 1.0 * 3.0;
+                    // Jam selebihnya x 4.0
+                    $jamKonversi += ($sisa - 1.0) * 4.0;
+                }
+            }
+        }
+
+        return round($jamKonversi, 2);
     }
 }
 

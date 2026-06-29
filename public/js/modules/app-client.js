@@ -94,7 +94,16 @@ function selectClient(id, name, sektor) {
     document.getElementById('clientWorkspaceSektor').innerText = sektor || '-';
 
     switchView('clientWorkspace');
-    switchWorkspaceTab('karyawan');
+    
+    // Pilih tab default berdasarkan role untuk alur proses kerja
+    let defaultTab = 'karyawan';
+    const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
+    if (role === 'business_development') {
+        defaultTab = 'struktur';
+    } else if (['payroll', 'client_superior', 'hc_ops', 'staff'].includes(role)) {
+        defaultTab = 'proses';
+    }
+    switchWorkspaceTab(defaultTab);
 }
 
 function backToClientList() {
@@ -143,7 +152,13 @@ function switchWorkspaceTab(tab) {
     } else if (tab === 'proses') {
         loadActivePeriod();
         if (typeof switchPayrollProcessSubTab === 'function') {
-            switchPayrollProcessSubTab('processing');
+            const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
+            // Client / Superior & Staff langsung melihat hasil kalkulasi (4.1 & 4.2), Payroll melakukan proses (3.1)
+            if (role === 'client_superior' || role === 'staff') {
+                switchPayrollProcessSubTab('results');
+            } else {
+                switchPayrollProcessSubTab('processing');
+            }
         }
     }
 }

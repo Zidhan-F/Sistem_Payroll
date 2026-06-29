@@ -32,6 +32,7 @@
     <script src="<?= base_url('js/modules/app-overtime.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-early-arrival.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-shift.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-user-management.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-ai-assistant.js?v=' . time()) ?>"></script>
     <!-- Existing separate modules -->
     <script src="<?= base_url('js/app-org.js?v=' . time()) ?>"></script>

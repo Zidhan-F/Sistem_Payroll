@@ -1,7 +1,8 @@
 <!-- Sidebar -->
 <div class="sidebar">
-    <div class="sidebar-brand">
-        <h3>Payroll App</h3>
+    <div class="sidebar-brand" style="display: flex; align-items: center; gap: 10px; padding: 20px 15px;">
+        <img src="<?= base_url('images/logo.png') ?>" alt="BiPayroll Logo" style="width: 35px; height: 35px; object-fit: contain; background: white; border-radius: 50%; padding: 2px;">
+        <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px; color: var(--secondary-color); letter-spacing: -0.5px;">BiPayroll</h3>
     </div>
     <ul class="sidebar-menu">
         <li id="menuDashboard" class="active" onclick="switchView('dashboard')">
@@ -64,6 +65,10 @@
     <li id="menuSchedule" onclick="switchView('schedule')">
         <i class="fas fa-calendar-alt"></i>
         <span>Schedule</span>
+    </li>
+    <li id="menuUserManagement" onclick="switchView('userManagement')" style="display: none;">
+        <i class="fas fa-user-shield"></i>
+        <span>User Management</span>
     </li>
     </ul>
 </div>

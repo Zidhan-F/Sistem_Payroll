@@ -3008,3 +3008,427 @@ html.modal-open {
     margin-bottom: 10px;
     display: block;
 }
+
+/* ===== RBAC - Role Badge in Header ===== */
+.role-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+/* ===== User Management Stats Grid ===== */
+.user-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.user-stat-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.user-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.user-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.user-stat-info h4 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1;
+}
+
+.user-stat-info p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 4px 0 0;
+}
+
+/* ===== User Table Styling ===== */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* Role badge in table */
+.role-badge-table {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-active {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.status-inactive {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+/* Row inactive state */
+.row-inactive {
+    opacity: 0.55;
+}
+
+.row-inactive:hover {
+    opacity: 0.8;
+}
+
+/* Action buttons */
+.action-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+
+.btn-action {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.btn-edit {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.btn-edit:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-delete {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+.btn-delete:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-switch input {
+    display: none;
+}
+
+.toggle-slider {
+    width: 44px;
+    height: 24px;
+    background: #cbd5e1;
+    border-radius: 12px;
+    position: relative;
+    transition: background 0.3s;
+    flex-shrink: 0;
+}
+
+.toggle-slider::after {
+    content: '';
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: #10b981;
+}
+
+.toggle-switch input:checked + .toggle-slider::after {
+    transform: translateX(20px);
+}
+
+.toggle-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+/* Search input */
+.search-input {
+    padding: 8px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    width: 220px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.15);
+}
+
+/* Card header */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.card-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Section header */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-header h3 i {
+    color: var(--primary-color);
+}
+
+/* Required field indicator */
+.required {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* User Management responsive */
+@media (max-width: 768px) {
+    .user-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .search-input {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== WORKFLOW ROLE-BASED UI RESTRICTIONS ===== */
+
+/* 1. Client Management (Add & Edit: BD & Admin) */
+body:not(.role-admin):not(.role-business_development) #viewKlien .btn-add,
+body:not(.role-admin):not(.role-business_development) #viewKlien th:last-child,
+body:not(.role-admin):not(.role-business_development) #viewKlien td:last-child {
+    display: none !important;
+}
+
+/* 2. Organization Structure (Add & Edit: BD & Admin) */
+body:not(.role-admin):not(.role-business_development) #viewStruktur .btn-add,
+body:not(.role-admin):not(.role-business_development) #viewStruktur .org-actions,
+body:not(.role-admin):not(.role-business_development) #viewStruktur .btn-icon {
+    display: none !important;
+}
+
+/* 3. Scheme Choices / Compensation (Add & Edit: BD & Admin) */
+body:not(.role-admin):not(.role-business_development) #viewKompensasi button:not(.ws-tab),
+body:not(.role-admin):not(.role-business_development) #viewKompensasi .btn-save,
+body:not(.role-admin):not(.role-business_development) #viewKompensasi .btn-add,
+body:not(.role-admin):not(.role-business_development) #viewKompensasi .action-btns {
+    display: none !important;
+}
+
+/* 4. Employee Management (Add & Edit: Recruiter & Admin) */
+body:not(.role-admin):not(.role-recruiter) #viewKaryawan .btn-add,
+body:not(.role-admin):not(.role-recruiter) #viewKaryawan table th:last-child,
+body:not(.role-admin):not(.role-recruiter) #viewKaryawan table td:last-child {
+    display: none !important;
+}
+
+/* 5. Work Location (Add & Edit: Recruiter, HC Ops, Admin) */
+body:not(.role-admin):not(.role-recruiter):not(.role-hc_ops) #panelLokasiKerja .btn-add,
+body:not(.role-admin):not(.role-recruiter):not(.role-hc_ops) #panelLokasiKerja .btn-icon {
+    display: none !important;
+}
+
+/* 6. Shift Scheme (Add & Edit: HC Ops & Admin) */
+body:not(.role-admin):not(.role-hc_ops) #viewSkemaShift button,
+body:not(.role-admin):not(.role-hc_ops) #viewSkemaShift .btn-icon,
+body:not(.role-admin):not(.role-hc_ops) #viewSkemaShift .btn-add {
+    display: none !important;
+}
+
+/* 7. Holiday Calendar & Attendance Upload (Add & Edit: HC Ops & Admin) */
+body:not(.role-admin):not(.role-hc_ops) #panelScheduleHoliday button,
+body:not(.role-admin):not(.role-hc_ops) #panelScheduleHoliday .btn-add,
+body:not(.role-admin):not(.role-hc_ops) #panelScheduleAttendance button,
+body:not(.role-admin):not(.role-hc_ops) #panelScheduleAttendance .btn-add,
+body:not(.role-admin):not(.role-hc_ops) #panelScheduleOvertime button,
+body:not(.role-admin):not(.role-hc_ops) #panelScheduleOvertime .btn-add {
+    display: none !important;
+}
+
+/* 8. Generate Gaji (Add & Edit: Payroll & Admin) */
+body:not(.role-admin):not(.role-payroll) #panelSalaryProcessing button,
+body:not(.role-admin):not(.role-payroll) #panelSalaryProcessing .btn-save,
+body:not(.role-admin):not(.role-payroll) #panelSalaryProcessing .btn-add {
+    display: none !important;
+}
+
+/* 9. Approval & Print Slip Gaji (Approval: Client/Superior & Admin) */
+body:not(.role-admin):not(.role-client_superior) #btnApproveSelectedGaji,
+body:not(.role-admin):not(.role-client_superior) #tabelReviewGajiBody td:first-child,
+body:not(.role-admin):not(.role-client_superior) #viewProses table th:first-child {
+    display: none !important;
+}
+
+/* User Management Isolated Toggle Switch */
+.user-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+.user-toggle-container input {
+    display: none !important;
+}
+.user-toggle-slider {
+    width: 44px;
+    height: 24px;
+    background: #cbd5e1;
+    border-radius: 12px;
+    position: relative;
+    transition: background 0.3s;
+    flex-shrink: 0;
+}
+.user-toggle-slider::after {
+    content: '';
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.user-toggle-container input:checked + .user-toggle-slider {
+    background: #10b981;
+}
+.user-toggle-container input:checked + .user-toggle-slider::after {
+    transform: translateX(20px);
+}
+
+

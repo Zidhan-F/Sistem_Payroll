@@ -5,7 +5,7 @@
         </button>
         <h2 id="viewTitle">Dashboard</h2>
     </div>
-    <div style="display: flex; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 12px;">
         <div class="notifications-container">
             <div class="notifications-bell" id="notificationsBell">
                 <i class="fas fa-bell"></i>
@@ -24,6 +24,7 @@
         <div class="user-profile" onclick="logout()">
             <i class="fas fa-user-circle"></i>
             <span id="headerUserName">User</span>
+            <span id="headerRoleBadge" class="role-badge" style="display: none;"></span>
             <i class="fas fa-sign-out-alt" title="Logout"></i>
         </div>
     </div>

@@ -42,10 +42,172 @@ if (!currentUser) {
 let umrAllData = [];
 let simulasiAllData = [];
 
-// Update Header Nama
+// Update Header Nama & Role Badge
 if (currentUser && document.getElementById('headerUserName')) {
-    document.getElementById('headerUserName').innerText = currentUser.username;
+    document.getElementById('headerUserName').innerText = currentUser.full_name || currentUser.username;
 }
+
+// ===== RBAC - Role Based Access Control =====
+const ROLE_PERMISSIONS = {
+    admin: ['*'], // Akses semua
+    payroll: ['dashboard', 'klien', 'payroll', 'pajak', 'masterKompensasi', 'clientWorkspace'],
+    business_development: ['dashboard', 'klien', 'sto', 'clientWorkspace', 'payroll', 'masterKompensasi'],
+    recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'globalLokasiKerja', 'clientWorkspace'],
+    client_superior: ['dashboard', 'klien', 'clientWorkspace'],
+    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace'],
+    staff: ['dashboard', 'klien', 'clientWorkspace']
+};
+
+const ROLE_LABELS = {
+    admin: 'Admin',
+    payroll: 'Payroll',
+    business_development: 'Business Dev',
+    recruiter: 'Recruiter',
+    client_superior: 'Client / Superior',
+    hc_ops: 'HC Ops',
+    staff: 'Staff'
+};
+
+const ROLE_COLORS = {
+    admin: '#8b5cf6',
+    payroll: '#06b6d4',
+    business_development: '#f59e0b',
+    recruiter: '#10b981',
+    client_superior: '#ef4444',
+    hc_ops: '#3b82f6',
+    staff: '#6b7280'
+};
+
+function getCurrentRole() {
+    return (currentUser && currentUser.role) ? currentUser.role : 'admin';
+}
+
+function hasPermission(view) {
+    const role = getCurrentRole();
+    const perms = ROLE_PERMISSIONS[role] || [];
+    if (perms.includes('*')) return true;
+    return perms.includes(view);
+}
+
+function applyWorkspaceTabRestrictions() {
+    const role = getCurrentRole();
+    const tabs = document.querySelectorAll('.ws-tab');
+    if (!tabs.length) return;
+
+    const allowedTabs = {
+        admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses'],
+        payroll: ['proses'],
+        business_development: ['struktur', 'kompensasi'],
+        recruiter: ['karyawan', 'pkwt'],
+        client_superior: ['proses'],
+        hc_ops: ['proses'],
+        staff: ['proses']
+    };
+
+    const allowed = allowedTabs[role] || [];
+    tabs.forEach(tabBtn => {
+        const wtab = tabBtn.getAttribute('data-wtab');
+        if (role === 'admin' || allowed.includes(wtab)) {
+            tabBtn.style.display = '';
+        } else {
+            tabBtn.style.display = 'none';
+        }
+    });
+
+    // Handle sub-tabs in 'proses' tab
+    const subTabProcessing = document.getElementById('subTabSalaryProcessing');
+    const subTabResults = document.getElementById('subTabCalculationResults');
+    
+    const canProcess = (role === 'admin' || role === 'payroll');
+    const canViewResults = (role === 'admin' || role === 'payroll' || role === 'client_superior' || role === 'staff');
+
+    if (subTabProcessing) subTabProcessing.style.display = canProcess ? '' : 'none';
+    if (subTabResults) subTabResults.style.display = canViewResults ? '' : 'none';
+}
+
+function applyRoleRestrictions() {
+    const role = getCurrentRole();
+    const perms = ROLE_PERMISSIONS[role] || [];
+    const isAdmin = perms.includes('*');
+
+    // Set body class untuk styling CSS berbasis peran
+    document.body.className = '';
+    document.body.classList.add('role-' + role);
+
+    // Map sidebar menu IDs ke view names
+    const menuMapping = {
+        'menuDashboard': 'dashboard',
+        'menuKlien': 'klien',
+        'menuSto': 'sto',
+        'menuManajemenKaryawan': 'manajemenKaryawan',
+        'menuPayroll': 'payroll',
+        'menuSchedule': 'schedule',
+        'menuUserManagement': 'userManagement'
+    };
+
+    Object.entries(menuMapping).forEach(([menuId, view]) => {
+        const el = document.getElementById(menuId);
+        if (!el) return;
+
+        if (menuId === 'menuUserManagement') {
+            // User Management hanya untuk admin
+            el.style.display = isAdmin ? '' : 'none';
+        } else if (menuId === 'menuManajemenKaryawan') {
+            // Cek akses ke submenu karyawan
+            const hasAny = isAdmin || 
+                perms.includes('manajemenKaryawan') || 
+                perms.includes('globalLokasiKerja') || 
+                perms.includes('skemaShift');
+            el.style.display = hasAny ? '' : 'none';
+        } else if (menuId === 'menuPayroll') {
+            const hasAny = isAdmin || 
+                perms.includes('payroll') || 
+                perms.includes('pajak') || 
+                perms.includes('masterKompensasi');
+            el.style.display = hasAny ? '' : 'none';
+        } else {
+            el.style.display = (isAdmin || perms.includes(view)) ? '' : 'none';
+        }
+    });
+
+    // Submenu Karyawan detail restrictions
+    const subLokasi = document.getElementById('submenuLokasiKerja');
+    const subTambah = document.getElementById('submenuTambahKaryawan');
+    const subShift = document.getElementById('submenuSkemaShift');
+
+    if (subLokasi) subLokasi.style.display = (isAdmin || ['recruiter', 'hc_ops'].includes(role)) ? '' : 'none';
+    if (subTambah) subTambah.style.display = (isAdmin || role === 'recruiter') ? '' : 'none';
+    if (subShift) subShift.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+
+    // Submenu Payroll detail restrictions
+    const subUploadUmr = document.getElementById('submenu_uploadUmr');
+    const subKompensasi = document.getElementById('submenu_kompensasi');
+    const subSetting = document.getElementById('submenu_setting');
+    const subPajak = document.getElementById('submenu_pajak');
+
+    if (subUploadUmr) subUploadUmr.style.display = (isAdmin || role === 'payroll') ? '' : 'none';
+    if (subKompensasi) subKompensasi.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+    if (subSetting) subSetting.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+    if (subPajak) subPajak.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+
+    // Tampilkan role badge di header
+    const headerRoleBadge = document.getElementById('headerRoleBadge');
+    if (headerRoleBadge) {
+        const color = ROLE_COLORS[role] || '#6b7280';
+        headerRoleBadge.textContent = ROLE_LABELS[role] || role;
+        headerRoleBadge.style.background = color + '22';
+        headerRoleBadge.style.color = color;
+        headerRoleBadge.style.display = 'inline-block';
+    }
+
+    // Terapkan restriksi ke client workspace tabs
+    applyWorkspaceTabRestrictions();
+}
+
+// Terapkan restriksi role saat page load
+document.addEventListener('DOMContentLoaded', () => {
+    applyRoleRestrictions();
+});
 
 // ===== Global State =====
 if (typeof window.clients === 'undefined') window.clients = [];
@@ -421,6 +583,12 @@ function switchView(view) {
         return;
     }
 
+    // RBAC: Cek permission sebelum switch view
+    if (!hasPermission(view)) {
+        showToast('Anda tidak memiliki akses ke halaman ini', 'error');
+        return;
+    }
+
     localStorage.setItem('activeView', view);
 
     // Auto-close any open modals when switching views, but keep sidebar open
@@ -430,7 +598,24 @@ function switchView(view) {
     if (clientScopedViews.includes(view.toLowerCase())) {
         if (window.selectedClientId) {
             switchView('clientWorkspace');
-            switchWorkspaceTab(view.toLowerCase());
+            
+            // Pilih tab yang diizinkan untuk role saat ini
+            let targetTab = view.toLowerCase();
+            const role = getCurrentRole();
+            const allowedTabs = {
+                admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses'],
+                payroll: ['proses'],
+                business_development: ['struktur', 'kompensasi'],
+                recruiter: ['karyawan', 'pkwt'],
+                client_superior: ['proses'],
+                hc_ops: ['proses'],
+                staff: ['proses']
+            };
+            const allowed = allowedTabs[role] || [];
+            if (role !== 'admin' && !allowed.includes(targetTab)) {
+                targetTab = allowed[0] || 'proses';
+            }
+            switchWorkspaceTab(targetTab);
             return;
         } else {
             switchView('klien');
@@ -476,6 +661,9 @@ function switchView(view) {
         if (item) item.classList.add('active');
     } else if (view === 'schedule') {
         const item = document.getElementById('menuSchedule');
+        if (item) item.classList.add('active');
+    } else if (view === 'userManagement') {
+        const item = document.getElementById('menuUserManagement');
         if (item) item.classList.add('active');
     } else if (view === 'globalLokasiKerja' || view === 'manajemenKaryawan' || view === 'skemaShift') {
         const parent = document.getElementById('menuManajemenKaryawan');
@@ -524,7 +712,8 @@ function switchView(view) {
         pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme',
         schedule: 'Schedule',
-        skemaShift: 'Employee Management'
+        skemaShift: 'Employee Management',
+        userManagement: 'User Management'
     };
     const titleEl = document.getElementById('viewTitle');
     if (titleEl) {
@@ -548,6 +737,7 @@ function switchView(view) {
     }
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
+    if (view === 'userManagement') { if (typeof loadUsers === 'function') loadUsers(); }
     
     if (view === 'schedule') {
         // Initialize default filters to current month/year if not initialized
@@ -598,7 +788,7 @@ function switchView(view) {
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal(keepSidebarOpen = false) {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema', 'modalSchedule', 'modalUploadAbsensi', 'attendanceModal', 'overtimeModal'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema', 'modalSchedule', 'modalUploadAbsensi', 'attendanceModal', 'overtimeModal', 'modalUserForm', 'modalDeleteUser'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     
     // Clean up TomSelect instances from modalPilihanSkema if it was open
