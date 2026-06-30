@@ -562,6 +562,15 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
     document.getElementById('empEmployId').value = '';
     document.getElementById('empCustomStandardDays').value = '';
+    if (document.getElementById('empEmail')) {
+        document.getElementById('empEmail').value = '';
+    }
+    const empUserRoleSelect = document.getElementById('empUserRole');
+    if (empUserRoleSelect) {
+        empUserRoleSelect.value = 'staff';
+        const currentLoggedRole = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
+        empUserRoleSelect.disabled = (currentLoggedRole !== 'admin');
+    }
 
     // Load Shift Schemes dropdown
     const shiftSchemeSelect = document.getElementById('empShiftSchemeId');
@@ -686,6 +695,12 @@ async function bukaModalKaryawan(mode,id=null){
         cs.disabled = true; // Force lock client select during edit
         
         // Populating new fields
+        if (document.getElementById('empEmail')) {
+            document.getElementById('empEmail').value = emp.email || '';
+        }
+        if (document.getElementById('empUserRole')) {
+            document.getElementById('empUserRole').value = emp.user_role || 'staff';
+        }
         document.getElementById('empTempatLahir').value = emp.tempat_lahir || '';
         document.getElementById('empTanggalLahir').value = emp.tanggal_lahir || '';
         document.getElementById('empNpwp').value = emp.npwp || '';
@@ -782,6 +797,15 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
             return;
         }
     }
+    const emailVal = document.getElementById('empEmail') ? document.getElementById('empEmail').value.trim() : '';
+    if (emailVal) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(emailVal)) {
+            showToast('Format email tidak valid!', 'error');
+            document.getElementById('empEmail').focus();
+            return;
+        }
+    }
     const id=document.getElementById('employeeId').value;
     
     // Safely resolve client_id ensuring it is never lost/0
@@ -790,6 +814,8 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
 
     const d={
         nama:document.getElementById('empNama').value,
+        email:document.getElementById('empEmail') ? document.getElementById('empEmail').value.trim() : '',
+        user_role: document.getElementById('empUserRole') ? document.getElementById('empUserRole').value : 'staff',
         client_id:resolvedClientId,
         tempat_lahir:document.getElementById('empTempatLahir').value,
         tanggal_lahir:document.getElementById('empTanggalLahir').value,

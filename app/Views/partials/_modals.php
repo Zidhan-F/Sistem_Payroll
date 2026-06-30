@@ -1128,6 +1128,24 @@
                     </div>
                 </div>
 
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Email Address</label>
+                    <input type="email" id="empEmail" placeholder="employee@example.com" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">User Account Role (System Access)</label>
+                    <select id="empUserRole" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background-color: white;">
+                        <option value="staff">Staff</option>
+                        <option value="recruiter">Recruiter</option>
+                        <option value="hc_ops">HC Ops</option>
+                        <option value="payroll">Payroll</option>
+                        <option value="business_development">Business Development</option>
+                        <option value="client_superior">Client / Superior</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">Place of Birth</label>

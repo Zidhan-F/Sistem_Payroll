@@ -38,7 +38,8 @@ class Employee extends ResourceController
         $clientId = $this->request->getGet('client_id');
         if ($clientId) {
             $today = date('Y-m-d');
-            $data = $this->model->select('employees.*, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, COALESCE(employees.division_id, departments.division_id) as division_id, COALESCE(employees.department_id, positions.department_id) as department_id, clients.nama as nama_klien, COALESCE(NULLIF(CAST(employees.alamat AS VARCHAR(MAX)), \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal, work_locations.lokasi_kerja as nama_lokasi, work_locations.provinsi as provinsi, work_locations.kota_kabupaten as kota_kabupaten, (SELECT TOP 1 shift_scheme_id FROM employee_shifts WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC) as shift_scheme_id, (SELECT TOP 1 shift_schemes.name FROM employee_shifts LEFT JOIN shift_schemes ON shift_schemes.id = employee_shifts.shift_scheme_id WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC) as shift_name')
+            $data = $this->model->select('employees.*, users.role as user_role, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, COALESCE(employees.division_id, departments.division_id) as division_id, COALESCE(employees.department_id, positions.department_id) as department_id, clients.nama as nama_klien, COALESCE(NULLIF(CAST(employees.alamat AS VARCHAR(MAX)), \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal, work_locations.lokasi_kerja as nama_lokasi, work_locations.provinsi as provinsi, work_locations.kota_kabupaten as kota_kabupaten, (SELECT TOP 1 shift_scheme_id FROM employee_shifts WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC) as shift_scheme_id, (SELECT TOP 1 shift_schemes.name FROM employee_shifts LEFT JOIN shift_schemes ON shift_schemes.id = employee_shifts.shift_scheme_id WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC) as shift_name')
+                        ->join('users', 'users.username = employees.nik', 'left')
                         ->join('positions', 'positions.id = employees.position_id', 'left')
                         ->join('departments', 'departments.id = COALESCE(employees.department_id, positions.department_id)', 'left')
                         ->join('divisions', 'divisions.id = COALESCE(employees.division_id, departments.division_id)', 'left')
@@ -55,6 +56,18 @@ class Employee extends ResourceController
     public function create()
     {
         $data = $this->request->getJSON(true);
+        $userRole = $data['user_role'] ?? 'staff';
+        unset($data['user_role']);
+
+        $db = \Config\Database::connect();
+        $requesterUsername = $this->request->getHeaderLine('X-User-Action');
+        $requester = $db->table('users')->where('username', $requesterUsername)->get()->getRow();
+        $isRequesterAdmin = $requester && $requester->role === 'admin';
+
+        $assignedRole = 'staff';
+        if ($isRequesterAdmin && !empty($userRole)) {
+            $assignedRole = $userRole;
+        }
 
         if (!empty($data['npwp'])) {
             $digitsOnly = preg_replace('/\D/', '', $data['npwp']);
@@ -141,6 +154,26 @@ class Employee extends ResourceController
         if ($id = $this->model->insert($data)) {
             $data['id'] = $id;
 
+            // Otomatis buat akun user dengan role yang ditentukan
+            $dbUser = \Config\Database::connect();
+            $username = $data['employ_id'] ?? $data['nik'];
+            $email = $data['email'] ?? '';
+            $fullName = $data['nama'] ?? '';
+            
+            $userExists = $dbUser->table('users')->where('username', $username)->countAllResults();
+            if ($userExists === 0) {
+                $dbUser->table('users')->insert([
+                    'username'   => $username,
+                    'email'      => $email,
+                    'password'   => $username, // Password default menggunakan NIK agar mudah diingat
+                    'role'       => $assignedRole,
+                    'full_name'  => $fullName,
+                    'is_active'  => 1,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+
             // Assign shift scheme if provided
             if (!empty($data['shift_scheme_id'])) {
                 $dbShift = \Config\Database::connect();
@@ -191,6 +224,13 @@ class Employee extends ResourceController
     public function update($id = null)
     {
         $data = $this->request->getJSON(true);
+        $userRole = $data['user_role'] ?? null;
+        unset($data['user_role']);
+
+        $db = \Config\Database::connect();
+        $requesterUsername = $this->request->getHeaderLine('X-User-Action');
+        $requester = $db->table('users')->where('username', $requesterUsername)->get()->getRow();
+        $isRequesterAdmin = $requester && $requester->role === 'admin';
 
         if (!empty($data['npwp'])) {
             $digitsOnly = preg_replace('/\D/', '', $data['npwp']);
@@ -250,6 +290,28 @@ class Employee extends ResourceController
 
         if ($this->model->update($id, $data)) {
             
+            // Sync user role if requested by an admin
+            if ($userRole && $isRequesterAdmin && $oldEmp) {
+                $username = $oldEmp['employ_id'] ?? $oldEmp['nik'];
+                $userExists = $db->table('users')->where('username', $username)->countAllResults();
+                if ($userExists > 0) {
+                    $db->table('users')
+                       ->where('username', $username)
+                       ->update(['role' => $userRole]);
+                } else {
+                    $db->table('users')->insert([
+                        'username'   => $username,
+                        'email'      => $data['email'] ?? $oldEmp['email'] ?? '',
+                        'password'   => $username,
+                        'role'       => $userRole,
+                        'full_name'  => $data['nama'] ?? $oldEmp['nama'] ?? '',
+                        'is_active'  => 1,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
+            }
+
             // Sync PKWT employee_name if updated
             if (isset($data['nama']) && $oldEmp && $data['nama'] !== $oldEmp['nama']) {
                 $db = \Config\Database::connect();

@@ -8,6 +8,14 @@ function rowHtmlForEmployee(emp) {
             <td style="font-weight: 600;">${emp.nik || '-'}</td>
             <td style="font-weight: 600;">
                 <i class="fas fa-user" style="margin-right: 8px; opacity: 0.6;"></i>${emp.nama}
+                ${emp.email ? `<div style="font-size: 11px; color: #64748b; font-weight: normal; margin-top: 4px;"><i class="fas fa-envelope" style="margin-right: 4px; opacity: 0.6;"></i>${emp.email}</div>` : ''}
+                ${emp.user_role ? `
+                    <div style="margin-top: 4px;">
+                        <span style="font-size: 10px; font-weight: 700; color: ${(typeof ROLE_COLORS !== 'undefined' ? ROLE_COLORS[emp.user_role] : '') || '#6b7280'}; background: ${((typeof ROLE_COLORS !== 'undefined' ? ROLE_COLORS[emp.user_role] : '') || '#6b7280')}18; border: 1px solid ${((typeof ROLE_COLORS !== 'undefined' ? ROLE_COLORS[emp.user_role] : '') || '#6b7280')}33; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase;">
+                            <i class="fas fa-user-tag" style="font-size: 9px;"></i>${(typeof ROLE_LABELS !== 'undefined' ? ROLE_LABELS[emp.user_role] : '') || emp.user_role}
+                        </span>
+                    </div>
+                ` : ''}
             </td>
             <td>
                 <div style="font-size: 13px;">${emp.tempat_lahir || '-'}</div>
