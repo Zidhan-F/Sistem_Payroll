@@ -639,45 +639,258 @@
         </form>
     </div>
 
-    <!-- PPh 21 Scheme Form Modal -->
-    <div id="modalPph21" class="modal-skema" style="width: 500px; max-width: 95%;">
+       <!-- PPh 21 Scheme Form Modal -->
+    <div id="modalPph21" class="modal-skema" style="display: none; width: 500px; max-width: 95%; z-index: 2005; transition: width 0.3s ease;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalPph21Title">Add PPh 21 Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPph21()"></i>
         </div>
         <form id="formPph21">
-            <div class="modal-body" style="padding: 25px; display: flex; flex-direction: column; gap: 15px;">
-                <input type="hidden" id="pph21Id">
-                <input type="hidden" id="pph21Tipe" value="pph21">
+            <div id="modalPph21Body" class="modal-body" style="padding: 24px; display: grid; grid-template-columns: 1fr; gap: 24px; background: #f8fafc; max-height: 72vh; overflow-y: auto; transition: all 0.3s ease;">
                 
-                <div class="form-group" style="margin: 0;">
-                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">PPh 21 Scheme Name</label>
-                    <input type="text" id="pph21Nama" placeholder="Example: Standard Tax Scheme" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                <!-- Left Column: Inputs -->
+                <div style="display: flex; flex-direction: column; gap: 16px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: fit-content;">
+                    <input type="hidden" id="pph21Id">
+                    <input type="hidden" id="pph21Tipe" value="pph21">
+                    
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">PPh 21 Scheme Name</label>
+                        <input type="text" id="pph21Nama" placeholder="Example: Standard Tax Scheme" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
+                    </div>
+                    
+                    <div class="form-group" style="margin: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Metode / Kategori Pajak PPh 21</label>
+                            <span id="btnShowFormRef" onclick="toggleFormReference()" style="cursor: pointer; font-size: 12px; color: #3b82f6; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                <i class="fas fa-eye"></i> Lihat Detail
+                            </span>
+                        </div>
+                        <select id="pph21Metode" required onchange="handlePph21MetodeChange()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
+                            <option value="" disabled selected>-- Pilih Kategori PPh 21 --</option>
+                            <option value="Kategori Penerima">Kategori Penerima Penghasilan</option>
+                            <option value="TER">Tarif Efektif Rata-Rata (TER) Bulanan</option>
+                            <option value="Progresif">Tarif Progresif Pasal 17 UU PPh</option>
+                            <option value="PTKP">Batasan PTKP Setahun</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="groupPph21SubMetode" style="margin: 0; display: none;">
+                        <label id="labelPph21SubMetode" style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Detail Pilihan Kategori</label>
+                        <select id="pph21SubMetode" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
+                            <!-- Will be dynamically populated -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Default PTKP Status</label>
+                        <select id="pph21Ptkp" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
+                            <option value="TK/0">TK/0 - Tidak Kawin, 0 Tanggungan (Rp 54.000.000/thn)</option>
+                            <option value="TK/1">TK/1 - Tidak Kawin, 1 Tanggungan (Rp 58.500.000/thn)</option>
+                            <option value="TK/2">TK/2 - Tidak Kawin, 2 Tanggungan (Rp 63.000.000/thn)</option>
+                            <option value="TK/3">TK/3 - Tidak Kawin, 3 Tanggungan (Rp 67.500.000/thn)</option>
+                            <option value="K/0">K/0 - Kawin, 0 Tanggungan (Rp 58.500.000/thn)</option>
+                            <option value="K/1">K/1 - Kawin, 1 Tanggungan (Rp 63.000.000/thn)</option>
+                            <option value="K/2">K/2 - Kawin, 2 Tanggungan (Rp 67.500.000/thn)</option>
+                            <option value="K/3">K/3 - Kawin, 3 Tanggungan (Rp 72.000.000/thn)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Description / Notes</label>
+                        <textarea id="pph21Deskripsi" rows="3" placeholder="Enter brief description..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: none;"></textarea>
+                    </div>
                 </div>
-                
-                <div class="form-group" style="margin: 0;">
-                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Tax Method</label>
-                    <select id="pph21Metode" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
-                        <option value="Gross">Gross (Tax borne by Employee)</option>
-                        <option value="Gross Up">Gross Up (Tax Allowance)</option>
-                        <option value="Nett">Nett (Tax borne by Company)</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" style="margin: 0;">
-                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Default PTKP Status</label>
-                    <select id="pph21Ptkp" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
-                        <option value="TK/0">TK/0 (Single)</option>
-                        <option value="K/0">K/0 (Married)</option>
-                        <option value="K/1">K/1 (Married with 1 Child)</option>
-                        <option value="K/2">K/2 (Married with 2 Children)</option>
-                        <option value="K/3">K/3 (Married with 3 Children)</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" style="margin: 0;">
-                    <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Description / Notes</label>
-                    <textarea id="pph21Deskripsi" rows="4" placeholder="Enter brief description..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; resize: none;"></textarea>
+
+                <!-- Right Column: Interactive Reference (dynamic based on dropdown selection) -->
+                <div id="pph21FormReferenceContainer" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); height: 100%; max-height: 65vh; overflow-y: auto; display: none;">
+                    
+                    <!-- Default Placeholder (when nothing selected) -->
+                    <div id="pph21FormRefPlaceholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 300px; text-align: center; color: #64748b;">
+                        <i class="fas fa-file-invoice-dollar" style="font-size: 54px; color: #cbd5e1; margin-bottom: 16px;"></i>
+                        <h4 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 700; color: #475569;">Detail Referensi Peraturan</h4>
+                        <p style="font-size: 12px; margin: 0; max-width: 320px; line-height: 1.5; color: #94a3b8;">Silakan pilih metode/kategori PPh 21 pada dropdown di sebelah kiri untuk melihat detail peraturan perpajakan di sini.</p>
+                    </div>
+
+                    <!-- Panel 1: Kategori Penerima -->
+                    <div id="pph21FormPanel1" style="display: none;">
+                        <h4 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #dbeafe; padding-bottom: 10px;">
+                            <i class="fas fa-users" style="color: #2563eb;"></i> Kategori Penerima Penghasilan PPh 21
+                        </h4>
+                        <p style="margin: 0 0 14px 0; font-size: 12px; color: #64748b; line-height: 1.5;">Pajak PPh 21 dipotong dari berbagai kategori penerima penghasilan sehubungan dengan pekerjaan, jasa, atau kegiatan:</p>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div id="formRec1" style="display: flex; gap: 12px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+                                <div style="background: #f1f5f9; color: #475569; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-user-tie" style="font-size: 11px;"></i></div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 2px;">Pegawai Tetap</div>
+                                    <div style="font-size: 11px; color: #64748b; line-height: 1.4;">Penerima penghasilan teratur (gaji bulanan) dalam jangka waktu tertentu.</div>
+                                </div>
+                            </div>
+                            <div id="formRec2" style="display: flex; gap: 12px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+                                <div style="background: #f1f5f9; color: #475569; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-user-clock" style="font-size: 11px;"></i></div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 2px;">Penerima Pensiun Berkala</div>
+                                    <div style="font-size: 11px; color: #64748b; line-height: 1.4;">Mantan pegawai yang menerima uang pensiun bulanan.</div>
+                                </div>
+                            </div>
+                            <div id="formRec3" style="display: flex; gap: 12px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+                                <div style="background: #f1f5f9; color: #475569; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-hard-hat" style="font-size: 11px;"></i></div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 2px;">Pegawai Tidak Tetap / Tenaga Kerja Lepas</div>
+                                    <div style="font-size: 11px; color: #64748b; line-height: 1.4;">Pegawai yang hanya menerima penghasilan berdasarkan hari kerja, unit, atau borongan.</div>
+                                </div>
+                            </div>
+                            <div id="formRec4" style="display: flex; gap: 12px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+                                <div style="background: #f1f5f9; color: #475569; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-briefcase-medical" style="font-size: 11px;"></i></div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 2px;">Bukan Pegawai (Tenaga Ahli / Kemitraan)</div>
+                                    <div style="font-size: 11px; color: #64748b; line-height: 1.4;">Dokter, pengacara, konsultan, agen asuransi, artis, distributor MLM, dll.</div>
+                                </div>
+                            </div>
+                            <div id="formRec5" style="display: flex; gap: 12px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+                                <div style="background: #f1f5f9; color: #475569; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-money-check-alt" style="font-size: 11px;"></i></div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 2px;">Penerima Pesangon / Manfaat Pensiun Sekaligus</div>
+                                    <div style="font-size: 11px; color: #64748b; line-height: 1.4;">Pembayaran lumpsum (pesangon, THT, JHT) saat masa kerja berakhir.</div>
+                                </div>
+                            </div>
+                            <div id="formRec6" style="display: flex; gap: 12px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+                                <div style="background: #f1f5f9; color: #475569; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-award" style="font-size: 11px;"></i></div>
+                                <div>
+                                    <div style="font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 2px;">Peserta Kegiatan</div>
+                                    <div style="font-size: 11px; color: #64748b; line-height: 1.4;">Penerima honorarium atas partisipasi acara, lomba, rapat, seminar.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 2: TER Bulanan -->
+                    <div id="pph21FormPanel2" style="display: none;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #dbeafe; padding-bottom: 8px;">
+                            <i class="fas fa-percentage" style="color: #3b82f6;"></i> Tarif Efektif Rata-Rata (TER) Bulanan
+                        </h4>
+                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: #1e40af; font-weight: 600;">
+                            <i class="fas fa-calculator" style="margin-right: 6px;"></i> PPh 21 Bulanan = Penghasilan Bruto Sebulan × % TER
+                        </div>
+
+                        <!-- TER Sub-tabs inside Form -->
+                        <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+                            <button type="button" onclick="selectFormTerCategory('A')" id="formTerTabA" style="flex: 1; padding: 8px; border-radius: 6px; border: 2px solid #dbeafe; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 12px; cursor: pointer;">
+                                Kategori A
+                            </button>
+                            <button type="button" onclick="selectFormTerCategory('B')" id="formTerTabB" style="flex: 1; padding: 8px; border-radius: 6px; border: 2px solid #e2e8f0; background: white; color: #475569; font-weight: 700; font-size: 12px; cursor: pointer;">
+                                Kategori B
+                            </button>
+                            <button type="button" onclick="selectFormTerCategory('C')" id="formTerTabC" style="flex: 1; padding: 8px; border-radius: 6px; border: 2px solid #e2e8f0; background: white; color: #475569; font-weight: 700; font-size: 12px; cursor: pointer;">
+                                Kategori C
+                            </button>
+                        </div>
+
+                        <!-- TER Panel Contents -->
+                        <div id="formTerPanelA">
+                            <p style="margin: 0 0 8px 0; font-size: 11px; color: #475569;">PTKP: <strong>TK/0</strong>, <strong>TK/1</strong>, <strong>K/0</strong></p>
+                            <!-- Table Kategori A -->
+                            <div style="overflow-x: auto; border: 1px solid #dbeafe; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                    <thead style="position: sticky; top: 0; z-index: 1; background: #eff6ff;">
+                                        <tr>
+                                            <th style="padding: 6px 10px; text-align: left; color: #1d4ed8; font-weight: 700; border-bottom: 1px solid #dbeafe;">Penghasilan Bruto Bulanan</th>
+                                            <th style="padding: 6px 10px; text-align: right; color: #1d4ed8; font-weight: 700; border-bottom: 1px solid #dbeafe;">Tarif</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="formTerTableBodyA">
+                                        <!-- Will be dynamically populated by JS to keep modal file size optimized -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div id="formTerPanelB" style="display: none;">
+                            <p style="margin: 0 0 8px 0; font-size: 11px; color: #475569;">PTKP: <strong>TK/2</strong>, <strong>TK/3</strong>, <strong>K/1</strong>, <strong>K/2</strong></p>
+                            <div style="overflow-x: auto; border: 1px solid #fef3c7; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                    <thead style="position: sticky; top: 0; z-index: 1; background: #fffbeb;">
+                                        <tr>
+                                            <th style="padding: 6px 10px; text-align: left; color: #92400e; font-weight: 700; border-bottom: 1px solid #fef3c7;">Penghasilan Bruto Bulanan</th>
+                                            <th style="padding: 6px 10px; text-align: right; color: #92400e; font-weight: 700; border-bottom: 1px solid #fef3c7;">Tarif</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="formTerTableBodyB">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div id="formTerPanelC" style="display: none;">
+                            <p style="margin: 0 0 8px 0; font-size: 11px; color: #475569;">PTKP: <strong>K/3</strong> (Rp 72 jt)</p>
+                            <div style="overflow-x: auto; border: 1px solid #fce7f3; border-radius: 8px; max-height: 250px; overflow-y: auto;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                    <thead style="position: sticky; top: 0; z-index: 1; background: #fdf2f8;">
+                                        <tr>
+                                            <th style="padding: 6px 10px; text-align: left; color: #9d174d; font-weight: 700; border-bottom: 1px solid #fce7f3;">Penghasilan Bruto Bulanan</th>
+                                            <th style="padding: 6px 10px; text-align: right; color: #9d174d; font-weight: 700; border-bottom: 1px solid #fce7f3;">Tarif</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="formTerTableBodyC">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panel 3: Tarif Progresif -->
+                    <div id="pph21FormPanel3" style="display: none;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #fecaca; padding-bottom: 8px;">
+                            <i class="fas fa-layer-group" style="color: #dc2626;"></i> Tarif Progresif Pasal 17 UU PPh
+                        </h4>
+                        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: #991b1b; font-weight: 600;">
+                            <i class="fas fa-calculator" style="margin-right: 6px;"></i> PPh 21 Desember = PPh 21 Terutang Setahun − Total PPh 21 Jan–Nov
+                        </div>
+                        
+                        <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <thead style="background: #fef2f2;">
+                                    <tr>
+                                        <th style="padding: 8px 10px; text-align: left; color: #991b1b; font-weight: 700; border-bottom: 1px solid #fecaca;">Lapisan Penghasilan Kena Pajak (PKP)</th>
+                                        <th style="padding: 8px 10px; text-align: center; color: #991b1b; font-weight: 700; border-bottom: 1px solid #fecaca; width: 80px;">Tarif</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="formProgRow1" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 10px;">s.d. Rp 60.000.000</td><td style="padding: 8px 10px; text-align: center;"><span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-weight: 700;">5%</span></td></tr>
+                                    <tr id="formProgRow2" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 10px;">Rp 60.000.001 – Rp 250.000.000</td><td style="padding: 8px 10px; text-align: center;"><span style="background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 4px; font-weight: 700;">15%</span></td></tr>
+                                    <tr id="formProgRow3" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 10px;">Rp 250.000.001 – Rp 500.000.000</td><td style="padding: 8px 10px; text-align: center;"><span style="background: #fed7aa; color: #9a3412; padding: 2px 8px; border-radius: 4px; font-weight: 700;">25%</span></td></tr>
+                                    <tr id="formProgRow4" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 8px 10px;">Rp 500.000.001 – Rp 5.000.000.000</td><td style="padding: 8px 10px; text-align: center;"><span style="background: #fecaca; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-weight: 700;">30%</span></td></tr>
+                                    <tr id="formProgRow5"><td style="padding: 8px 10px;">Lebih dari Rp 5.000.000.000</td><td style="padding: 8px 10px; text-align: center;"><span style="background: #f87171; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 700;">35%</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Panel 4: Batasan PTKP -->
+                    <div id="pph21FormPanel4" style="display: none;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #bbf7d0; padding-bottom: 8px;">
+                            <i class="fas fa-user-shield" style="color: #16a34a;"></i> Batasan PTKP (Per Tahun)
+                        </h4>
+                        <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <thead style="background: #f0fdf4;">
+                                    <tr>
+                                        <th style="padding: 6px 8px; text-align: left; color: #166534; font-weight: 700;">Status</th>
+                                        <th style="padding: 6px 8px; text-align: left; color: #166534; font-weight: 700;">Keterangan</th>
+                                        <th style="padding: 6px 8px; text-align: right; color: #166534; font-weight: 700;">Jumlah</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="formPtkpRowTK0" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 6px 8px; font-weight: 700;">TK/0</td><td style="padding: 6px 8px; color: #64748b;">Tidak Kawin, 0 Tanggungan</td><td style="padding: 6px 8px; text-align: right; font-weight: 600;">Rp 54.000.000</td></tr>
+                                    <tr id="formPtkpRowTK1" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 6px 8px; font-weight: 700;">TK/1</td><td style="padding: 6px 8px; color: #64748b;">Tidak Kawin, 1 Tanggungan</td><td style="padding: 6px 8px; text-align: right; font-weight: 600;">Rp 58.500.000</td></tr>
+                                    <tr id="formPtkpRowTK2" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 6px 8px; font-weight: 700;">TK/2</td><td style="padding: 6px 8px; color: #64748b;">Tidak Kawin, 2 Tanggungan</td><td style="padding: 6px 8px; text-align: right; font-weight: 600;">Rp 63.000.000</td></tr>
+                                    <tr id="formPtkpRowTK3" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 6px 8px; font-weight: 700;">TK/3</td><td style="padding: 6px 8px; color: #64748b;">Tidak Kawin, 3 Tanggungan</td><td style="padding: 6px 8px; text-align: right; font-weight: 600;">Rp 67.500.000</td></tr>
+                                    <tr id="formPtkpRowK0" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 6px 8px; font-weight: 700;">K/0</td><td style="padding: 6px 8px; color: #64748b;">Kawin, 0 Tanggungan</td><td style="padding: 6px 8px; text-align: right; font-weight: 600;">Rp 58.500.000</td></tr>
+                                    <tr id="formPtkpRowK1" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 6px 8px; font-weight: 700;">K/1</td><td style="padding: 6px 8px; color: #64748b;">Kawin, 1 Tanggungan</td><td style="padding: 6px 8px; text-align: right; font-weight: 600;">Rp 63.000.000</td></tr>
+                                    <tr id="formPtkpRowK2" style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 6px 8px; font-weight: 700;">K/2</td><td style="padding: 6px 8px; color: #64748b;">Kawin, 2 Tanggungan</td><td style="padding: 6px 8px; text-align: right; font-weight: 600;">Rp 67.500.000</td></tr>
+                                    <tr id="formPtkpRowK3"><td style="padding: 6px 8px; font-weight: 700;">K/3</td><td style="padding: 6px 8px; color: #64748b;">Kawin, 3 Tanggungan</td><td style="padding: 6px 8px; text-align: right; font-weight: 600;">Rp 72.000.000</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
@@ -685,6 +898,917 @@
                 <button type="submit" class="btn-save" style="background: var(--primary-color);">Save</button>
             </div>
         </form>
+    </div>
+
+    <!-- PPh 21 Detail Info Modal -->
+    <div id="modalDetailPph21" class="modal-skema" style="display: none; width: 950px; max-width: 95%; z-index: 2005;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="fas fa-file-invoice-dollar" style="font-size: 20px; color: white;"></i>
+                <div>
+                    <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: white;" id="detailPph21Title">Referensi Lengkap PPh 21</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.85); font-weight: 400;">PP No. 58 Tahun 2023 &amp; PMK No. 168/2023 — Pilih topik di bawah untuk melihat detail</p>
+                </div>
+            </div>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 16px; padding: 4px;" onclick="tutupDetailPph21Modal()"></i>
+        </div>
+        <div class="modal-body" style="padding: 24px; max-height: 78vh; overflow-y: auto; background: #f8fafc;">
+
+            <!-- Scheme Info Card (top) -->
+            <div id="detailPph21SchemeInfoBar" style="display: none; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center;">
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Nama Skema</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #1e293b;" id="detailPph21SchemeName">-</div>
+                </div>
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center;">
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Metode Pajak</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #f59e0b;" id="detailPph21Method">-</div>
+                </div>
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center;">
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Status PTKP</div>
+                    <div style="font-size: 14px; font-weight: 700; color: #3b82f6;" id="detailPph21PTKP">-</div>
+                </div>
+            </div>
+
+            <!-- 4 Topic Selector Cards (Hidden by default) -->
+            <div id="detailPph21TopicSelector" style="display: none; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div id="pph21Topic1" onclick="selectPph21Topic(1)" style="cursor: pointer; background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; transition: all 0.25s ease; display: flex; align-items: flex-start; gap: 14px;">
+                    <div style="background: linear-gradient(135deg, #dbeafe, #eff6ff); width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-users" style="font-size: 18px; color: #2563eb;"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 3px;">1. Kategori Penerima Penghasilan</div>
+                        <div style="font-size: 12px; color: #64748b; line-height: 1.4;">Pegawai Tetap, Tidak Tetap, Tenaga Ahli, Pensiunan, dll.</div>
+                    </div>
+                </div>
+                <div id="pph21Topic2" onclick="selectPph21Topic(2)" style="cursor: pointer; background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; transition: all 0.25s ease; display: flex; align-items: flex-start; gap: 14px;">
+                    <div style="background: linear-gradient(135deg, #f3e8ff, #faf5ff); width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-percentage" style="font-size: 18px; color: #7c3aed;"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 3px;">2. Tarif Efektif Rata-Rata (TER)</div>
+                        <div style="font-size: 12px; color: #64748b; line-height: 1.4;">Tarif bulanan Jan–Nov: Kategori A, B, C berdasarkan PTKP</div>
+                    </div>
+                </div>
+                <div id="pph21Topic3" onclick="selectPph21Topic(3)" style="cursor: pointer; background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; transition: all 0.25s ease; display: flex; align-items: flex-start; gap: 14px;">
+                    <div style="background: linear-gradient(135deg, #fef2f2, #fff1f2); width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-layer-group" style="font-size: 18px; color: #dc2626;"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 3px;">3. Tarif Progresif Pasal 17</div>
+                        <div style="font-size: 12px; color: #64748b; line-height: 1.4;">Tarif tahunan / Desember: 5%, 15%, 25%, 30%, 35%</div>
+                    </div>
+                </div>
+                <div id="pph21Topic4" onclick="selectPph21Topic(4)" style="cursor: pointer; background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; transition: all 0.25s ease; display: flex; align-items: flex-start; gap: 14px;">
+                    <div style="background: linear-gradient(135deg, #dcfce7, #f0fdf4); width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-user-shield" style="font-size: 18px; color: #16a34a;"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 3px;">4. Batasan PTKP Setahun</div>
+                        <div style="font-size: 12px; color: #64748b; line-height: 1.4;">TK/0 s.d K/3 — Penghasilan Tidak Kena Pajak per tahun</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======== PANEL 1: Kategori Penerima Penghasilan ======== -->
+            <div id="pph21Panel1" style="display: none;">
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                    <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 12px;">
+                        <i class="fas fa-users" style="color: #2563eb;"></i> Kategori Penerima Penghasilan PPh 21
+                    </h4>
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Pajak PPh 21 dipotong dari berbagai kategori penerima penghasilan sehubungan dengan pekerjaan, jasa, atau kegiatan yang dilakukan oleh orang pribadi subjek pajak dalam negeri:</p>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div id="detailRec1" style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="background: #f1f5f9; color: #475569; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-user-tie" style="font-size: 14px;"></i></div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 13px; color: #1e293b; margin-bottom: 3px;">Pegawai Tetap</div>
+                                <div style="font-size: 12px; color: #64748b; line-height: 1.5;">Penerima penghasilan teratur (gaji bulanan) dalam jangka waktu tertentu berdasarkan perjanjian kerja.</div>
+                            </div>
+                        </div>
+                        <div id="detailRec2" style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="background: #f1f5f9; color: #475569; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-user-clock" style="font-size: 14px;"></i></div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 13px; color: #1e293b; margin-bottom: 3px;">Penerima Pensiun Berkala</div>
+                                <div style="font-size: 12px; color: #64748b; line-height: 1.5;">Mantan pegawai yang menerima uang pensiun bulanan secara berkala dari dana pensiun.</div>
+                            </div>
+                        </div>
+                        <div id="detailRec3" style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="background: #f1f5f9; color: #475569; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-hard-hat" style="font-size: 14px;"></i></div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 13px; color: #1e293b; margin-bottom: 3px;">Pegawai Tidak Tetap / Tenaga Kerja Lepas</div>
+                                <div style="font-size: 12px; color: #64748b; line-height: 1.5;">Pegawai yang hanya menerima penghasilan berdasarkan hari kerja, unit pekerjaan yang dihasilkan, atau secara borongan.</div>
+                            </div>
+                        </div>
+                        <div id="detailRec4" style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="background: #f1f5f9; color: #475569; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-briefcase-medical" style="font-size: 14px;"></i></div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 13px; color: #1e293b; margin-bottom: 3px;">Bukan Pegawai (Tenaga Ahli / Kemitraan)</div>
+                                <div style="font-size: 12px; color: #64748b; line-height: 1.5;">Seperti dokter, pengacara, konsultan, agen asuransi, artis, distributor MLM, dll., yang menerima honorarium atau komisi.</div>
+                            </div>
+                        </div>
+                        <div id="detailRec5" style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="background: #f1f5f9; color: #475569; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-money-check-alt" style="font-size: 14px;"></i></div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 13px; color: #1e293b; margin-bottom: 3px;">Penerima Pesangon / Manfaat Pensiun Sekaligus</div>
+                                <div style="font-size: 12px; color: #64748b; line-height: 1.5;">Pembayaran lumpsum saat masa kerja berakhir, termasuk uang pesangon, uang manfaat pensiun, THT, dan JHT yang dibayar sekaligus.</div>
+                            </div>
+                        </div>
+                        <div id="detailRec6" style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="background: #f1f5f9; color: #475569; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-award" style="font-size: 14px;"></i></div>
+                            <div>
+                                <div style="font-weight: 700; font-size: 13px; color: #1e293b; margin-bottom: 3px;">Peserta Kegiatan</div>
+                                <div style="font-size: 12px; color: #64748b; line-height: 1.5;">Penerima honorarium atas partisipasi dalam suatu acara, lomba, rapat, sidang, seminar, workshop, dan kegiatan lainnya.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======== PANEL 2: TER Bulanan ======== -->
+            <div id="pph21Panel2" style="display: none;">
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                    <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 12px;">
+                        <i class="fas fa-percentage" style="color: #3b82f6;"></i> Tarif Efektif Rata-Rata (TER) Bulanan
+                    </h4>
+                    <p style="margin: 0 0 14px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Digunakan untuk pemotongan PPh 21 masa <strong>Januari s.d. November</strong>. DJP membagi wajib pajak ke dalam 3 Kategori TER berdasarkan status PTKP.</p>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #1e40af; font-weight: 600;">
+                        <i class="fas fa-calculator" style="margin-right: 6px;"></i> Rumus: PPh 21 Bulanan = Penghasilan Bruto Sebulan × % TER
+                    </div>
+
+                    <!-- TER Sub-tabs -->
+                    <div id="detailTerTabsWrapper" style="display: flex; gap: 8px; margin-bottom: 14px;">
+                        <button onclick="selectTerCategory('A')" id="terTabA" style="flex: 1; padding: 10px 14px; border-radius: 8px; border: 2px solid #dbeafe; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-tag" style="margin-right: 4px;"></i> Kategori A
+                        </button>
+                        <button onclick="selectTerCategory('B')" id="terTabB" style="flex: 1; padding: 10px 14px; border-radius: 8px; border: 2px solid #e2e8f0; background: white; color: #475569; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-tag" style="margin-right: 4px;"></i> Kategori B
+                        </button>
+                        <button onclick="selectTerCategory('C')" id="terTabC" style="flex: 1; padding: 10px 14px; border-radius: 8px; border: 2px solid #e2e8f0; background: white; color: #475569; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-tag" style="margin-right: 4px;"></i> Kategori C
+                        </button>
+                    </div>
+
+                    <!-- TER A Panel -->
+                    <div id="terPanelA">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                            <span style="background: #f1f5f9; color: #334155; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">Kategori A</span>
+                            <span style="font-size: 12px; color: #475569; font-weight: 500;">PTKP: <strong>TK/0</strong> (Rp 54 jt), <strong>TK/1</strong> (Rp 58,5 jt), <strong>K/0</strong> (Rp 58,5 jt)</span>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                <thead style="position: sticky; top: 0; z-index: 1;">
+                                    <tr style="background: #f1f5f9;">
+                                        <th style="padding: 8px 12px; text-align: left; font-weight: 700; color: #475569; border-bottom: 1px solid #e2e8f0;">Penghasilan Bruto Bulanan</th>
+                                        <th style="padding: 8px 12px; text-align: right; font-weight: 700; color: #475569; border-bottom: 1px solid #e2e8f0;">Tarif (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">s.d. Rp 5.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 5.400.001 – Rp 5.650.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,25%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 5.650.001 – Rp 5.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 5.950.001 – Rp 6.300.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,75%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.300.001 – Rp 6.750.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.750.001 – Rp 7.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,25%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 7.500.001 – Rp 8.550.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 8.550.001 – Rp 9.650.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,75%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 9.650.001 – Rp 10.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.050.001 – Rp 10.350.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,25%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.350.001 – Rp 10.700.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.700.001 – Rp 11.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">3,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.050.001 – Rp 11.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">3,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.600.001 – Rp 12.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">4,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 12.500.001 – Rp 13.750.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">5,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 13.750.001 – Rp 15.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">6,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 15.100.001 – Rp 16.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">7,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 16.950.001 – Rp 19.750.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">8,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 19.750.001 – Rp 24.150.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">9,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 24.150.001 – Rp 26.450.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">10,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 26.450.001 – Rp 28.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">11,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 28.000.001 – Rp 30.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">12,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 30.050.001 – Rp 32.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">13,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 32.400.001 – Rp 35.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">14,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 35.400.001 – Rp 39.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">15,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 39.100.001 – Rp 43.850.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">16,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 43.850.001 – Rp 47.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">17,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 47.800.001 – Rp 51.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">18,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 51.400.001 – Rp 56.300.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">19,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 56.300.001 – Rp 62.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">20,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 62.200.001 – Rp 68.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">21,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 68.600.001 – Rp 77.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">22,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 77.500.001 – Rp 89.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">23,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 89.000.001 – Rp 103.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">24,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 103.000.001 – Rp 125.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">25,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 125.000.001 – Rp 157.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">26,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 157.000.001 – Rp 206.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">27,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 206.000.001 – Rp 337.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">28,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 337.000.001 – Rp 454.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">29,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 454.000.001 – Rp 550.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">30,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 550.000.001 – Rp 695.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">31,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 695.000.001 – Rp 910.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">32,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 910.000.001 – Rp 1.400.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">33,00%</td></tr>
+                                    <tr><td style="padding: 7px 12px;">Lebih dari Rp 1.400.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">34,00%</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TER B Panel -->
+                    <div id="terPanelB" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                            <span style="background: #f1f5f9; color: #334155; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">Kategori B</span>
+                            <span style="font-size: 12px; color: #475569; font-weight: 500;">PTKP: <strong>TK/2</strong> (Rp 63 jt), <strong>TK/3</strong> (Rp 67,5 jt), <strong>K/1</strong> (Rp 63 jt), <strong>K/2</strong> (Rp 67,5 jt)</span>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                <thead style="position: sticky; top: 0; z-index: 1;">
+                                    <tr style="background: #f1f5f9;">
+                                        <th style="padding: 8px 12px; text-align: left; font-weight: 700; color: #475569; border-bottom: 1px solid #e2e8f0;">Penghasilan Bruto Bulanan</th>
+                                        <th style="padding: 8px 12px; text-align: right; font-weight: 700; color: #475569; border-bottom: 1px solid #e2e8f0;">Tarif (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">s.d. Rp 6.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.200.001 – Rp 6.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,25%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.500.001 – Rp 6.850.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.850.001 – Rp 7.300.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,75%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 7.300.001 – Rp 9.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 9.200.001 – Rp 10.750.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.750.001 – Rp 11.250.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.250.001 – Rp 11.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.600.001 – Rp 12.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">3,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 12.600.001 – Rp 13.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">4,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 13.600.001 – Rp 14.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">5,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 14.950.001 – Rp 16.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">6,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 16.400.001 – Rp 18.450.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">7,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 18.450.001 – Rp 21.850.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">8,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 21.850.001 – Rp 26.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">9,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 26.000.001 – Rp 27.700.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">10,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 27.700.001 – Rp 29.350.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">11,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 29.350.001 – Rp 31.450.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">12,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 31.450.001 – Rp 33.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">13,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 33.950.001 – Rp 37.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">14,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 37.100.001 – Rp 41.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">15,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 41.100.001 – Rp 45.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">16,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 45.800.001 – Rp 49.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">17,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 49.500.001 – Rp 53.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">18,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 53.800.001 – Rp 58.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">19,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 58.500.001 – Rp 64.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">20,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 64.000.001 – Rp 71.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">21,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 71.000.001 – Rp 80.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">22,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 80.000.001 – Rp 93.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">23,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 93.000.001 – Rp 109.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">24,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 109.000.001 – Rp 129.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">25,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 129.000.001 – Rp 163.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">26,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 163.000.001 – Rp 211.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">27,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 211.000.001 – Rp 374.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">28,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 374.000.001 – Rp 459.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">29,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 459.000.001 – Rp 555.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">30,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 555.000.001 – Rp 704.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">31,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 704.000.001 – Rp 957.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">32,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 957.000.001 – Rp 1.405.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">33,00%</td></tr>
+                                    <tr><td style="padding: 7px 12px;">Lebih dari Rp 1.405.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">34,00%</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TER C Panel -->
+                    <div id="terPanelC" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                            <span style="background: #f1f5f9; color: #334155; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">Kategori C</span>
+                            <span style="font-size: 12px; color: #475569; font-weight: 500;">PTKP: <strong>K/3</strong> — Kawin, 3 Tanggungan (Rp 72.000.000/thn)</span>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                <thead style="position: sticky; top: 0; z-index: 1;">
+                                    <tr style="background: #f1f5f9;">
+                                        <th style="padding: 8px 12px; text-align: left; font-weight: 700; color: #475569; border-bottom: 1px solid #e2e8f0;">Penghasilan Bruto Bulanan</th>
+                                        <th style="padding: 8px 12px; text-align: right; font-weight: 700; color: #475569; border-bottom: 1px solid #e2e8f0;">Tarif (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">s.d. Rp 6.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.600.001 – Rp 6.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,25%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.950.001 – Rp 7.350.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 7.350.001 – Rp 7.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,75%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 7.800.001 – Rp 8.850.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 8.850.001 – Rp 9.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,25%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 9.800.001 – Rp 10.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,50%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.950.001 – Rp 11.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,75%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.200.001 – Rp 12.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 12.050.001 – Rp 12.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">3,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 12.950.001 – Rp 14.150.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">4,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 14.150.001 – Rp 15.550.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">5,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 15.550.001 – Rp 17.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">6,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 17.050.001 – Rp 19.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">7,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 19.500.001 – Rp 22.700.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">8,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 22.700.001 – Rp 26.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">9,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 26.600.001 – Rp 28.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">10,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 28.100.001 – Rp 30.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">11,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 30.100.001 – Rp 32.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">12,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 32.600.001 – Rp 35.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">13,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 35.400.001 – Rp 38.900.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">14,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 38.900.001 – Rp 43.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">15,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 43.000.001 – Rp 47.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">16,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 47.400.001 – Rp 51.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">17,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 51.200.001 – Rp 55.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">18,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 55.800.001 – Rp 60.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">19,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 60.400.001 – Rp 66.700.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">20,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 66.700.001 – Rp 74.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">21,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 74.500.001 – Rp 83.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">22,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 83.200.001 – Rp 95.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">23,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 95.600.001 – Rp 110.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">24,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 110.000.001 – Rp 134.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">25,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 134.000.001 – Rp 169.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">26,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 169.000.001 – Rp 221.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">27,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 221.000.001 – Rp 390.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">28,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 390.000.001 – Rp 463.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">29,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 463.000.001 – Rp 561.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">30,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 561.000.001 – Rp 709.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">31,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 709.000.001 – Rp 965.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">32,00%</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 965.000.001 – Rp 1.419.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">33,00%</td></tr>
+                                    <tr><td style="padding: 7px 12px;">Lebih dari Rp 1.419.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">34,00%</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======== PANEL 3: Tarif Progresif Pasal 17 ======== -->
+            <div id="pph21Panel3" style="display: none;">
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                    <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 12px;">
+                        <i class="fas fa-layer-group" style="color: #3b82f6;"></i> Tarif Progresif Pasal 17 UU PPh
+                    </h4>
+                    <p style="margin: 0 0 14px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Digunakan pada <strong>masa pajak terakhir (Desember)</strong> atau saat pegawai resign/berhenti. PPh 21 dihitung ulang secara akumulatif menggunakan Tarif Progresif Pasal 17 ayat (1) huruf a UU PPh setelah dikurangi PTKP setahun.</p>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #1e40af; font-weight: 600;">
+                        <i class="fas fa-calculator" style="margin-right: 6px;"></i> Rumus: PKP = Penghasilan Bruto Setahun − Biaya Jabatan − Iuran Pensiun − PTKP
+                    </div>
+
+                    <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                            <thead>
+                                <tr style="background: #f1f5f9;">
+                                    <th style="padding: 14px 18px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Lapisan Penghasilan Kena Pajak (PKP) per Tahun</th>
+                                    <th style="padding: 14px 18px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; width: 140px;">Tarif</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr id="detailProgRow1" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 14px 18px; color: #334155;">s.d. Rp 60.000.000</td>
+                                    <td style="padding: 14px 18px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 5px 18px; border-radius: 8px; font-weight: 700; font-size: 14px;">5%</span></td>
+                                </tr>
+                                <tr id="detailProgRow2" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 14px 18px; color: #334155;">Rp 60.000.001 – Rp 250.000.000</td>
+                                    <td style="padding: 14px 18px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 5px 18px; border-radius: 8px; font-weight: 700; font-size: 14px;">15%</span></td>
+                                </tr>
+                                <tr id="detailProgRow3" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 14px 18px; color: #334155;">Rp 250.000.001 – Rp 500.000.000</td>
+                                    <td style="padding: 14px 18px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 5px 18px; border-radius: 8px; font-weight: 700; font-size: 14px;">25%</span></td>
+                                </tr>
+                                <tr id="detailProgRow4" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 14px 18px; color: #334155;">Rp 500.000.001 – Rp 5.000.000.000</td>
+                                    <td style="padding: 14px 18px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 5px 18px; border-radius: 8px; font-weight: 700; font-size: 14px;">30%</span></td>
+                                </tr>
+                                <tr id="detailProgRow5">
+                                    <td style="padding: 14px 18px; color: #334155;">Lebih dari Rp 5.000.000.000</td>
+                                    <td style="padding: 14px 18px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 5px 18px; border-radius: 8px; font-weight: 700; font-size: 14px;">35%</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pengurang -->
+                    <div style="margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 14px;">
+                            <div style="font-weight: 700; font-size: 13px; color: #92400e; margin-bottom: 6px;"><i class="fas fa-briefcase" style="margin-right: 6px;"></i>Biaya Jabatan</div>
+                            <div style="font-size: 12px; color: #78350f; line-height: 1.7;">
+                                <div>• Tarif: <strong>5%</strong> dari Penghasilan Bruto</div>
+                                <div>• Maks: <strong>Rp 500.000 / bulan</strong></div>
+                                <div>• Maks: <strong>Rp 6.000.000 / tahun</strong></div>
+                            </div>
+                        </div>
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px;">
+                            <div style="font-weight: 700; font-size: 13px; color: #166534; margin-bottom: 6px;"><i class="fas fa-piggy-bank" style="margin-right: 6px;"></i>Iuran Pensiun / THT</div>
+                            <div style="font-size: 12px; color: #14532d; line-height: 1.7;">
+                                <div>• Iuran JP: <strong>1%</strong> karyawan</div>
+                                <div>• Iuran JHT: <strong>2%</strong> karyawan</div>
+                                <div>• Dikurangkan sebelum dihitung PKP</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======== PANEL 4: Batasan PTKP ======== -->
+            <div id="pph21Panel4" style="display: none;">
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                    <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 12px;">
+                        <i class="fas fa-user-shield" style="color: #3b82f6;"></i> Batasan PTKP (Penghasilan Tidak Kena Pajak) Setahun
+                    </h4>
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Jumlah pendapatan setahun yang dibebaskan dari pajak PPh 21. Tanggungan maksimal 3 orang (sedarah/semenda dalam garis keturunan lurus, satu derajat).</p>
+
+                    <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 16px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="background: #f1f5f9;">
+                                    <th style="padding: 12px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Status PTKP</th>
+                                    <th style="padding: 12px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Keterangan</th>
+                                    <th style="padding: 12px 14px; text-align: right; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Jumlah (per Tahun)</th>
+                                    <th style="padding: 12px 14px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Kategori TER</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr id="detailPtkpRowTK0" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 14px; font-weight: 700; color: #1e293b;">TK/0</td>
+                                    <td style="padding: 12px 14px; color: #475569;">Tidak Kawin, 0 Tanggungan</td>
+                                    <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 54.000.000</td>
+                                    <td style="padding: 12px 14px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">A</span></td>
+                                </tr>
+                                <tr id="detailPtkpRowTK1" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 14px; font-weight: 700; color: #1e293b;">TK/1</td>
+                                    <td style="padding: 12px 14px; color: #475569;">Tidak Kawin, 1 Tanggungan</td>
+                                    <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 58.500.000</td>
+                                    <td style="padding: 12px 14px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">A</span></td>
+                                </tr>
+                                <tr id="detailPtkpRowTK2" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 14px; font-weight: 700; color: #1e293b;">TK/2</td>
+                                    <td style="padding: 12px 14px; color: #475569;">Tidak Kawin, 2 Tanggungan</td>
+                                    <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 63.000.000</td>
+                                    <td style="padding: 12px 14px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">B</span></td>
+                                </tr>
+                                <tr id="detailPtkpRowTK3" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 14px; font-weight: 700; color: #1e293b;">TK/3</td>
+                                    <td style="padding: 12px 14px; color: #475569;">Tidak Kawin, 3 Tanggungan</td>
+                                    <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 67.500.000</td>
+                                    <td style="padding: 12px 14px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">B</span></td>
+                                </tr>
+                                <tr id="detailPtkpRowK0" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 14px; font-weight: 700; color: #1e293b;">K/0</td>
+                                    <td style="padding: 12px 14px; color: #475569;">Kawin, 0 Tanggungan</td>
+                                    <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 58.500.000</td>
+                                    <td style="padding: 12px 14px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">A</span></td>
+                                </tr>
+                                <tr id="detailPtkpRowK1" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 14px; font-weight: 700; color: #1e293b;">K/1</td>
+                                    <td style="padding: 12px 14px; color: #475569;">Kawin, 1 Tanggungan</td>
+                                    <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 63.000.000</td>
+                                    <td style="padding: 12px 14px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">B</span></td>
+                                </tr>
+                                <tr id="detailPtkpRowK2" style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 12px 14px; font-weight: 700; color: #1e293b;">K/2</td>
+                                    <td style="padding: 12px 14px; color: #475569;">Kawin, 2 Tanggungan</td>
+                                    <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 67.500.000</td>
+                                    <td style="padding: 12px 14px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">B</span></td>
+                                </tr>
+                                <tr id="detailPtkpRowK3">
+                                    <td style="padding: 12px 14px; font-weight: 700; color: #1e293b;">K/3</td>
+                                    <td style="padding: 12px 14px; color: #475569;">Kawin, 3 Tanggungan</td>
+                                    <td style="padding: 12px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 72.000.000</td>
+                                    <td style="padding: 12px 14px; text-align: center;"><span style="background: #f1f5f9; color: #334155; padding: 3px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">C</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Cara Hitung PTKP -->
+                    <div style="background: linear-gradient(135deg, #eef2ff, #f0f9ff); border: 1px solid #c7d2fe; border-radius: 10px; padding: 16px;">
+                        <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #1e293b;"><i class="fas fa-calculator" style="color: #6366f1; margin-right: 6px;"></i>Cara Menghitung PTKP</h5>
+                        <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #334155; line-height: 1.6;">
+                            <div>• <strong>Wajib Pajak Sendiri:</strong> Rp 54.000.000</div>
+                            <div>• <strong>Tambahan Status Kawin:</strong> + Rp 4.500.000</div>
+                            <div>• <strong>Tambahan per Tanggungan:</strong> + Rp 4.500.000 (maks 3 orang)</div>
+                            <div style="margin-top: 6px; background: white; border: 1px solid #c7d2fe; border-radius: 8px; padding: 10px 14px;">
+                                <strong style="color: #4f46e5;">Contoh K/3:</strong> Rp 54.000.000 + Rp 4.500.000 <span style="color: #94a3b8;">(kawin)</span> + Rp 13.500.000 <span style="color: #94a3b8;">(3 tanggungan)</span> = <strong style="color: #166534;">Rp 72.000.000</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="modal-footer" style="padding: 15px 24px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+            <button type="button" class="btn-cancel" onclick="tutupDetailPph21Modal()" style="margin: 0; padding: 10px 24px;">Tutup</button>
+        </div>
+    </div>
+    <div id="modalDetailPph21" class="modal-skema" style="display: none; width: 900px; max-width: 95%; z-index: 2005;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="fas fa-file-invoice-dollar" style="font-size: 20px; color: white;"></i>
+                <div>
+                    <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: white;" id="detailPph21Title">Detail Informasi PPh 21</h3>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.85); font-weight: 400;" id="detailPph21Subtitle">PP No. 58 Tahun 2023 & PMK No. 168/2023</p>
+                </div>
+            </div>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 16px; padding: 4px;" onclick="tutupDetailPph21Modal()"></i>
+        </div>
+        <div class="modal-body" style="padding: 24px; max-height: 75vh; overflow-y: auto; background: #f8fafc;">
+
+            <!-- Scheme Info Card -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Nama Skema</div>
+                    <div style="font-size: 15px; font-weight: 700; color: #1e293b;" id="detailPph21SchemeName">-</div>
+                </div>
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Metode Pajak</div>
+                    <div style="font-size: 15px; font-weight: 700; color: #f59e0b;" id="detailPph21Method">-</div>
+                </div>
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: center;">
+                    <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Status PTKP</div>
+                    <div style="font-size: 15px; font-weight: 700; color: #3b82f6;" id="detailPph21PTKP">-</div>
+                </div>
+            </div>
+
+            <!-- 1. Penjelasan Metode Pajak -->
+            <div id="detailPph21MethodExplanation" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-info-circle" style="color: #3b82f6;"></i> Penjelasan Metode Pajak
+                </h4>
+                <div id="detailPph21MethodDesc" style="font-size: 13px; color: #475569; line-height: 1.7;"></div>
+            </div>
+
+            <!-- 2. PTKP (Penghasilan Tidak Kena Pajak) -->
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-user-shield" style="color: #10b981;"></i> PTKP (Penghasilan Tidak Kena Pajak) per Tahun
+                </h4>
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: #f1f5f9;">
+                                <th style="padding: 10px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Status PTKP</th>
+                                <th style="padding: 10px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Keterangan</th>
+                                <th style="padding: 10px 14px; text-align: right; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Jumlah (per Tahun)</th>
+                                <th style="padding: 10px 14px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Kategori TER</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailPtkpTableBody">
+                            <tr style="border-bottom: 1px solid #f1f5f9;" id="ptkpRowTK0">
+                                <td style="padding: 10px 14px; font-weight: 700; color: #1e293b;">TK/0</td>
+                                <td style="padding: 10px 14px; color: #475569;">Tidak Kawin, 0 Tanggungan</td>
+                                <td style="padding: 10px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 54.000.000</td>
+                                <td style="padding: 10px 14px; text-align: center;"><span style="background: #dbeafe; color: #1d4ed8; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">A</span></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;" id="ptkpRowTK1">
+                                <td style="padding: 10px 14px; font-weight: 700; color: #1e293b;">TK/1</td>
+                                <td style="padding: 10px 14px; color: #475569;">Tidak Kawin, 1 Tanggungan</td>
+                                <td style="padding: 10px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 58.500.000</td>
+                                <td style="padding: 10px 14px; text-align: center;"><span style="background: #dbeafe; color: #1d4ed8; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">A</span></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;" id="ptkpRowTK2">
+                                <td style="padding: 10px 14px; font-weight: 700; color: #1e293b;">TK/2</td>
+                                <td style="padding: 10px 14px; color: #475569;">Tidak Kawin, 2 Tanggungan</td>
+                                <td style="padding: 10px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 63.000.000</td>
+                                <td style="padding: 10px 14px; text-align: center;"><span style="background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">B</span></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;" id="ptkpRowTK3">
+                                <td style="padding: 10px 14px; font-weight: 700; color: #1e293b;">TK/3</td>
+                                <td style="padding: 10px 14px; color: #475569;">Tidak Kawin, 3 Tanggungan</td>
+                                <td style="padding: 10px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 67.500.000</td>
+                                <td style="padding: 10px 14px; text-align: center;"><span style="background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">B</span></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;" id="ptkpRowK0">
+                                <td style="padding: 10px 14px; font-weight: 700; color: #1e293b;">K/0</td>
+                                <td style="padding: 10px 14px; color: #475569;">Kawin, 0 Tanggungan</td>
+                                <td style="padding: 10px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 58.500.000</td>
+                                <td style="padding: 10px 14px; text-align: center;"><span style="background: #dbeafe; color: #1d4ed8; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">A</span></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;" id="ptkpRowK1">
+                                <td style="padding: 10px 14px; font-weight: 700; color: #1e293b;">K/1</td>
+                                <td style="padding: 10px 14px; color: #475569;">Kawin, 1 Tanggungan</td>
+                                <td style="padding: 10px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 63.000.000</td>
+                                <td style="padding: 10px 14px; text-align: center;"><span style="background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">B</span></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;" id="ptkpRowK2">
+                                <td style="padding: 10px 14px; font-weight: 700; color: #1e293b;">K/2</td>
+                                <td style="padding: 10px 14px; color: #475569;">Kawin, 2 Tanggungan</td>
+                                <td style="padding: 10px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 67.500.000</td>
+                                <td style="padding: 10px 14px; text-align: center;"><span style="background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">B</span></td>
+                            </tr>
+                            <tr id="ptkpRowK3">
+                                <td style="padding: 10px 14px; font-weight: 700; color: #1e293b;">K/3</td>
+                                <td style="padding: 10px 14px; color: #475569;">Kawin, 3 Tanggungan</td>
+                                <td style="padding: 10px 14px; text-align: right; font-weight: 600; color: #1e293b; font-variant-numeric: tabular-nums;">Rp 72.000.000</td>
+                                <td style="padding: 10px 14px; text-align: center;"><span style="background: #fce7f3; color: #9d174d; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">C</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; color: #64748b; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>PTKP = Penghasilan yang dikecualikan dari pengenaan pajak. Tanggungan maksimal 3 orang (sedarah/semenda dalam garis keturunan lurus).</span>
+                </div>
+            </div>
+
+            <!-- 3. TER (Tarif Efektif Rata-rata) Bulanan -->
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                <h4 style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-percentage" style="color: #8b5cf6;"></i> Tarif Efektif Rata-Rata (TER) Bulanan
+                </h4>
+                <p style="margin: 0 0 14px 0; font-size: 12px; color: #64748b;">Digunakan untuk pemotongan PPh 21 masa Januari s.d. November. Rumus: <strong>PPh 21 = Penghasilan Bruto × % TER</strong></p>
+
+                <!-- TER Category A -->
+                <div style="margin-bottom: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="background: #dbeafe; color: #1d4ed8; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">Kategori A</span>
+                        <span style="font-size: 12px; color: #475569; font-weight: 500;">PTKP: TK/0, TK/1, K/0</span>
+                    </div>
+                    <div class="table-container" style="overflow-x: auto; border: 1px solid #dbeafe; border-radius: 8px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: #eff6ff;">
+                                    <th style="padding: 8px 12px; text-align: left; font-weight: 700; color: #1d4ed8; border-bottom: 1px solid #dbeafe;">Penghasilan Bruto Bulanan</th>
+                                    <th style="padding: 8px 12px; text-align: right; font-weight: 700; color: #1d4ed8; border-bottom: 1px solid #dbeafe;">Tarif Efektif (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">s.d. Rp 5.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 5.400.001 – Rp 5.650.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,25%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 5.650.001 – Rp 5.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 5.950.001 – Rp 6.300.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,75%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.300.001 – Rp 6.750.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.750.001 – Rp 7.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,25%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 7.500.001 – Rp 8.550.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 8.550.001 – Rp 9.650.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,75%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 9.650.001 – Rp 10.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.050.001 – Rp 10.350.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,25%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.350.001 – Rp 10.700.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.700.001 – Rp 11.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">3,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.050.001 – Rp 11.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">3,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.600.001 – Rp 12.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">4,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 12.500.001 – Rp 13.750.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">5,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 13.750.001 – Rp 15.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">6,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 15.100.001 – Rp 16.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">7,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 16.950.001 – Rp 19.750.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">8,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 19.750.001 – Rp 24.150.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">9,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 24.150.001 – Rp 26.450.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">10,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 26.450.001 – Rp 28.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">11,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 28.000.001 – Rp 30.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">12,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 30.050.001 – Rp 32.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">13,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 32.400.001 – Rp 35.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">14,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 35.400.001 – Rp 39.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">15,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 39.100.001 – Rp 43.850.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">16,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 43.850.001 – Rp 47.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">17,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 47.800.001 – Rp 51.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">18,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 51.400.001 – Rp 56.300.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">19,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 56.300.001 – Rp 62.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">20,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 62.200.001 – Rp 68.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">21,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 68.600.001 – Rp 77.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">22,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 77.500.001 – Rp 89.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">23,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 89.000.001 – Rp 103.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">24,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 103.000.001 – Rp 125.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">25,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 125.000.001 – Rp 157.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">26,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 157.000.001 – Rp 206.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">27,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 206.000.001 – Rp 337.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">28,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 337.000.001 – Rp 454.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">29,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 454.000.001 – Rp 550.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">30,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 550.000.001 – Rp 695.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">31,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 695.000.001 – Rp 910.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">32,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 910.000.001 – Rp 1.400.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">33,00%</td></tr>
+                                <tr><td style="padding: 7px 12px;">Lebih dari Rp 1.400.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">34,00%</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TER Category B -->
+                <div style="margin-bottom: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">Kategori B</span>
+                        <span style="font-size: 12px; color: #475569; font-weight: 500;">PTKP: TK/2, TK/3, K/1, K/2</span>
+                    </div>
+                    <div class="table-container" style="overflow-x: auto; border: 1px solid #fef3c7; border-radius: 8px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: #fffbeb;">
+                                    <th style="padding: 8px 12px; text-align: left; font-weight: 700; color: #92400e; border-bottom: 1px solid #fef3c7;">Penghasilan Bruto Bulanan</th>
+                                    <th style="padding: 8px 12px; text-align: right; font-weight: 700; color: #92400e; border-bottom: 1px solid #fef3c7;">Tarif Efektif (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">s.d. Rp 6.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.200.001 – Rp 6.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,25%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.500.001 – Rp 6.850.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.850.001 – Rp 7.300.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,75%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 7.300.001 – Rp 9.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 9.200.001 – Rp 10.750.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.750.001 – Rp 11.250.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.250.001 – Rp 11.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.600.001 – Rp 12.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">3,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 12.600.001 – Rp 13.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">4,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 13.600.001 – Rp 14.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">5,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 14.950.001 – Rp 16.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">6,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 16.400.001 – Rp 18.450.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">7,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 18.450.001 – Rp 21.850.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">8,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 21.850.001 – Rp 26.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">9,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 26.000.001 – Rp 27.700.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">10,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 27.700.001 – Rp 29.350.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">11,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 29.350.001 – Rp 31.450.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">12,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 31.450.001 – Rp 33.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">13,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 33.950.001 – Rp 37.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">14,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 37.100.001 – Rp 41.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">15,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 41.100.001 – Rp 45.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">16,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 45.800.001 – Rp 49.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">17,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 49.500.001 – Rp 53.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">18,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 53.800.001 – Rp 58.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">19,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 58.500.001 – Rp 64.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">20,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 64.000.001 – Rp 71.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">21,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 71.000.001 – Rp 80.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">22,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 80.000.001 – Rp 93.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">23,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 93.000.001 – Rp 109.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">24,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 109.000.001 – Rp 129.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">25,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 129.000.001 – Rp 163.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">26,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 163.000.001 – Rp 211.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">27,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 211.000.001 – Rp 374.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">28,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 374.000.001 – Rp 459.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">29,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 459.000.001 – Rp 555.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">30,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 555.000.001 – Rp 704.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">31,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 704.000.001 – Rp 957.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">32,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 957.000.001 – Rp 1.405.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">33,00%</td></tr>
+                                <tr><td style="padding: 7px 12px;">Lebih dari Rp 1.405.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">34,00%</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TER Category C -->
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="background: #fce7f3; color: #9d174d; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 12px;">Kategori C</span>
+                        <span style="font-size: 12px; color: #475569; font-weight: 500;">PTKP: K/3</span>
+                    </div>
+                    <div class="table-container" style="overflow-x: auto; border: 1px solid #fce7f3; border-radius: 8px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: #fdf2f8;">
+                                    <th style="padding: 8px 12px; text-align: left; font-weight: 700; color: #9d174d; border-bottom: 1px solid #fce7f3;">Penghasilan Bruto Bulanan</th>
+                                    <th style="padding: 8px 12px; text-align: right; font-weight: 700; color: #9d174d; border-bottom: 1px solid #fce7f3;">Tarif Efektif (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">s.d. Rp 6.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.600.001 – Rp 6.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,25%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 6.950.001 – Rp 7.350.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 7.350.001 – Rp 7.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">0,75%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 7.800.001 – Rp 8.850.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 8.850.001 – Rp 9.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,25%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 9.800.001 – Rp 10.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,50%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 10.950.001 – Rp 11.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">1,75%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 11.200.001 – Rp 12.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">2,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 12.050.001 – Rp 12.950.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">3,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 12.950.001 – Rp 14.150.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">4,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 14.150.001 – Rp 15.550.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">5,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 15.550.001 – Rp 17.050.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">6,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 17.050.001 – Rp 19.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">7,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 19.500.001 – Rp 22.700.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">8,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 22.700.001 – Rp 26.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">9,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 26.600.001 – Rp 28.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">10,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 28.100.001 – Rp 30.100.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">11,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 30.100.001 – Rp 32.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">12,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 32.600.001 – Rp 35.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">13,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 35.400.001 – Rp 38.900.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">14,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 38.900.001 – Rp 43.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">15,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 43.000.001 – Rp 47.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">16,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 47.400.001 – Rp 51.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">17,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 51.200.001 – Rp 55.800.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">18,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 55.800.001 – Rp 60.400.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">19,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 60.400.001 – Rp 66.700.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">20,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 66.700.001 – Rp 74.500.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">21,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 74.500.001 – Rp 83.200.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">22,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 83.200.001 – Rp 95.600.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">23,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 95.600.001 – Rp 110.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">24,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 110.000.001 – Rp 134.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">25,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 134.000.001 – Rp 169.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">26,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 169.000.001 – Rp 221.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">27,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 221.000.001 – Rp 390.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">28,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 390.000.001 – Rp 463.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">29,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 463.000.001 – Rp 561.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">30,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 561.000.001 – Rp 709.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">31,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 709.000.001 – Rp 965.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">32,00%</td></tr>
+                                <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 7px 12px;">Rp 965.000.001 – Rp 1.419.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">33,00%</td></tr>
+                                <tr><td style="padding: 7px 12px;">Lebih dari Rp 1.419.000.000</td><td style="padding: 7px 12px; text-align: right; font-weight: 600;">34,00%</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Tarif Progresif Pasal 17 (Desember / Tahunan) -->
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                <h4 style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-layer-group" style="color: #ef4444;"></i> Tarif Progresif Pasal 17 UU PPh (Masa Pajak Desember / Tahunan)
+                </h4>
+                <p style="margin: 0 0 12px 0; font-size: 12px; color: #64748b;">Digunakan untuk menghitung ulang PPh 21 pada masa pajak terakhir (Desember) atau saat pegawai resign. <strong>Rumus: PKP = (Penghasilan Bruto Setahun − Biaya Jabatan − Iuran Pensiun − PTKP)</strong></p>
+
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);">
+                                <th style="padding: 12px 14px; text-align: left; font-weight: 700; color: #991b1b; border-bottom: 2px solid #fecaca;">Lapisan Penghasilan Kena Pajak (PKP) per Tahun</th>
+                                <th style="padding: 12px 14px; text-align: center; font-weight: 700; color: #991b1b; border-bottom: 2px solid #fecaca; width: 120px;">Tarif</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px 14px; color: #334155;">s.d. Rp 60.000.000</td>
+                                <td style="padding: 12px 14px; text-align: center;">
+                                    <span style="background: #dcfce7; color: #166534; padding: 4px 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">5%</span>
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px 14px; color: #334155;">Rp 60.000.001 – Rp 250.000.000</td>
+                                <td style="padding: 12px 14px; text-align: center;">
+                                    <span style="background: #fef9c3; color: #854d0e; padding: 4px 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">15%</span>
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px 14px; color: #334155;">Rp 250.000.001 – Rp 500.000.000</td>
+                                <td style="padding: 12px 14px; text-align: center;">
+                                    <span style="background: #fed7aa; color: #9a3412; padding: 4px 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">25%</span>
+                                </td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px 14px; color: #334155;">Rp 500.000.001 – Rp 5.000.000.000</td>
+                                <td style="padding: 12px 14px; text-align: center;">
+                                    <span style="background: #fecaca; color: #991b1b; padding: 4px 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">30%</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 12px 14px; color: #334155;">Lebih dari Rp 5.000.000.000</td>
+                                <td style="padding: 12px 14px; text-align: center;">
+                                    <span style="background: #f87171; color: white; padding: 4px 14px; border-radius: 6px; font-weight: 700; font-size: 14px;">35%</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. Biaya Jabatan & Iuran Pensiun -->
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-receipt" style="color: #f59e0b;"></i> Pengurang Penghasilan Bruto
+                </h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 14px;">
+                        <div style="font-weight: 700; font-size: 13px; color: #92400e; margin-bottom: 6px;"><i class="fas fa-briefcase" style="margin-right: 6px;"></i>Biaya Jabatan</div>
+                        <div style="font-size: 12px; color: #78350f; line-height: 1.7;">
+                            <div>• Tarif: <strong>5%</strong> dari Penghasilan Bruto</div>
+                            <div>• Maks: <strong>Rp 500.000 / bulan</strong></div>
+                            <div>• Maks: <strong>Rp 6.000.000 / tahun</strong></div>
+                        </div>
+                    </div>
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px;">
+                        <div style="font-weight: 700; font-size: 13px; color: #166534; margin-bottom: 6px;"><i class="fas fa-piggy-bank" style="margin-right: 6px;"></i>Iuran Pensiun / THT</div>
+                        <div style="font-size: 12px; color: #14532d; line-height: 1.7;">
+                            <div>• Iuran Jaminan Pensiun (JP): <strong>1%</strong> karyawan</div>
+                            <div>• Iuran JHT: <strong>2%</strong> karyawan</div>
+                            <div>• Dikurangkan dari Penghasilan Bruto sebelum dihitung PKP</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. Alur Perhitungan PPh 21 -->
+            <div style="background: linear-gradient(135deg, #eef2ff 0%, #f0f9ff 100%); border: 1px solid #c7d2fe; border-radius: 12px; padding: 18px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-project-diagram" style="color: #6366f1;"></i> Alur Perhitungan PPh 21 (TER Bulanan + Progresif Desember)
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">1</span>
+                        <span style="font-size: 13px; color: #334155;"><strong>Jan – Nov:</strong> PPh 21 Bulanan = Penghasilan Bruto × Tarif TER (berdasarkan kategori PTKP)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">2</span>
+                        <span style="font-size: 13px; color: #334155;"><strong>Desember:</strong> Hitung Penghasilan Bruto setahun (akumulasi Jan–Des)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">3</span>
+                        <span style="font-size: 13px; color: #334155;"><strong>Kurangi:</strong> Biaya Jabatan (5%, maks Rp 6 jt/thn) + Iuran Pensiun/JHT karyawan</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">4</span>
+                        <span style="font-size: 13px; color: #334155;"><strong>Kurangi PTKP:</strong> PKP = Penghasilan Neto − PTKP (sesuai status)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">5</span>
+                        <span style="font-size: 13px; color: #334155;"><strong>Hitung PPh 21 Terutang Setahun:</strong> PKP × Tarif Progresif Pasal 17</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #10b981; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">6</span>
+                        <span style="font-size: 13px; color: #334155;"><strong>PPh 21 Desember:</strong> PPh 21 Terutang Setahun − Total PPh 21 yg sudah dipotong Jan–Nov</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="modal-footer" style="padding: 15px 24px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+            <button type="button" class="btn-cancel" onclick="tutupDetailPph21Modal()" style="margin: 0; padding: 10px 24px;">Tutup</button>
+        </div>
     </div>
 
 

@@ -58,7 +58,7 @@
             </li>
             <li id="submenu_pajak" onclick="switchPayrollSub('pajak')">
                 <i class="fas fa-percent"></i>
-                <span>BPJS & Tax Scheme</span>
+                <span>PPh 21 Tax Scheme</span>
             </li>
 
     </ul>
