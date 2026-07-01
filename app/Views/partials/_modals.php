@@ -2037,6 +2037,36 @@
         </div>
     </div>
 
+    <!-- Upload Manual Salary Excel Modal -->
+    <div id="modalUploadManualSalary" class="modal-skema" style="display: none; width: 650px; max-width: 95%; z-index: 2010;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #2980b9 0%, #1f618d 100%);">
+            <h3>Upload Gaji Manual</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadManualSalary()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <div id="dropzoneManualSalaryExcel" ondragover="handleManualSalaryDragOver(event)" ondragleave="handleManualSalaryDragLeave(event)" ondrop="handleManualSalaryDrop(event)" style="background: rgba(41, 128, 185, 0.08); border: 1px dashed #2980b9; padding: 25px 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; transition: all 0.2s ease;">
+                <i class="fas fa-file-excel" style="font-size: 48px; color: #2980b9; margin-bottom: 15px; display: block;"></i>
+                <span style="font-size: 16px; font-weight: 700; color: #2c3e50; display: block; margin-bottom: 5px;">Select Excel Manual Salary File</span>
+                <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 20px;">Required columns: PKWT ID, Employee Name, Employee ID (NIK), Working Days, Overtime Hours, Early Arrival Hours, Basic Salary (Gaji Pokok), Rapel, Bonus / Lainnya, Absence Deduction (Potongan Absen), Potongan Lain</span>
+                
+                <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 15px;">
+                    <input type="file" id="fileManualSalaryExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleManualSalaryFileSelect(event)">
+                    <button type="button" class="btn-save" onclick="document.getElementById('fileManualSalaryExcel').click()" style="background: #2980b9; padding: 10px 24px; font-weight: 600; border-radius: 8px; border: none; color: white; cursor: pointer;">
+                        Choose File
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="downloadSalaryTemplate()" style="padding: 10px 20px; border: 1px solid #cbd5e0; background: white; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px; border-radius: 8px;">
+                        <i class="fas fa-download"></i> Download Template
+                    </button>
+                </div>
+                <span id="labelManualSalaryFilename" style="font-size: 13px; font-weight: 600; color: #2980b9; display: block; margin-top: 5px;">No file chosen</span>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: right; gap: 8px;">
+            <button type="button" class="btn-cancel" onclick="tutupModalUploadManualSalary()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
+            <button type="button" id="btnSaveManualSalary" disabled onclick="saveManualSalary()" style="background: #2980b9; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5; transition: all 0.2s;">Apply & Save Salary</button>
+        </div>
+    </div>
+
     <!-- Upload Overtime Excel Modal -->
     <div id="modalUploadLembur" class="modal-skema" style="display: none; width: 650px; max-width: 95%;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">

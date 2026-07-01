@@ -233,7 +233,7 @@ async function renderReviewGajiTable() {
     try {
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="19" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="22" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
         const res = await fetch(url);
@@ -263,11 +263,30 @@ async function renderReviewGajiTable() {
                 const gp = parseFloat(row.gaji_pokok || 0);
                 const ot = parseFloat(row.lembur_pay || 0);
                 const ea = parseFloat(row.early_arrival_pay || 0);
+                
+                // Parse raw_components for Rapel component
+                let rapelVal = 0;
+                if (row.raw_components) {
+                    try {
+                        const comps = JSON.parse(row.raw_components);
+                        comps.forEach(c => {
+                            if (c.nama && c.nama.toLowerCase().includes('rapel')) {
+                                rapelVal += parseFloat(c.nilai || 0);
+                            }
+                        });
+                    } catch(e) {
+                        console.error('Error parsing raw_components:', e);
+                    }
+                }
+
                 const totalPendapatan = parseFloat(row.total_pendapatan || 0);
-                const lainBonus = Math.max(0, totalPendapatan - gp - ot - ea);
+                const lainBonus = Math.max(0, totalPendapatan - gp - ot - ea - rapelVal);
 
                 const potAbsen = parseFloat(row.potongan_absen || 0);
-                const bpjsKaryawan = parseFloat(row.bpjs_kes_karyawan || 0) + parseFloat(row.bpjs_jht_karyawan || 0) + parseFloat(row.bpjs_jp_karyawan || 0);
+                const bpjsKes = parseFloat(row.bpjs_kes_karyawan || 0);
+                const bpjsJht = parseFloat(row.bpjs_jht_karyawan || 0);
+                const bpjsJp = parseFloat(row.bpjs_jp_karyawan || 0);
+                const bpjsKaryawan = bpjsKes + bpjsJht + bpjsJp;
                 const pph21 = parseFloat(row.pph21 || 0);
                 const totalPotongan = parseFloat(row.total_potongan || 0);
                 const potLain = Math.max(0, totalPotongan - potAbsen - bpjsKaryawan - pph21);
@@ -285,10 +304,13 @@ async function renderReviewGajiTable() {
                         <td>${formatRupiah(gp)}</td>
                         <td>${formatRupiah(ot)}</td>
                         <td>${formatRupiah(ea)}</td>
+                        <td>${formatRupiah(rapelVal)}</td>
                         <td>${formatRupiah(lainBonus)}</td>
                         <td style="font-weight:600;">${formatRupiah(totalPendapatan)}</td>
                         <td>${formatRupiah(potAbsen)}</td>
-                        <td>${formatRupiah(bpjsKaryawan)}</td>
+                        <td>${formatRupiah(bpjsKes)}</td>
+                        <td>${formatRupiah(bpjsJht)}</td>
+                        <td>${formatRupiah(bpjsJp)}</td>
                         <td>${formatRupiah(pph21)}</td>
                         <td>${formatRupiah(potLain)}</td>
                         <td style="font-weight:600;">${formatRupiah(totalPotongan)}</td>
@@ -304,13 +326,13 @@ async function renderReviewGajiTable() {
             }).join('');
         } else { 
             section.style.display = 'block';
-            tbody.innerHTML = `<tr><td colspan="19" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="22" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;
         }
     } catch (err) { 
         console.error(err); 
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="19" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="22" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
         }
     }
 }
@@ -425,6 +447,310 @@ async function generateGaji() {
     if (res.ok) { showToast('Salary generated successfully!', 'success'); renderReviewGajiTable(); }
 }
 
+async function downloadSalaryTemplate() {
+    if (!currentPeriodId) {
+        showToast('Please select a period first.', 'warning');
+        return;
+    }
+    if (!window.selectedClientId) {
+        showToast('Please select a client first.', 'warning');
+        return;
+    }
+
+    showToast('Generating manual salary template...', 'info');
+
+    try {
+        const attUrl = `${API_URL}/attendance/${currentPeriodId}?client_id=${window.selectedClientId}`;
+        const resultsUrl = `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}`;
+        
+        const [attRes, resultsRes] = await Promise.all([
+            fetch(attUrl),
+            fetch(resultsUrl)
+        ]);
+        
+        if (!attRes.ok) {
+            throw new Error('Failed to load employee list');
+        }
+        const attData = await attRes.json();
+        const resultsData = resultsRes.ok ? await resultsRes.json() : [];
+
+        if (!attData || attData.length === 0) {
+            showToast('No active employees found for this client.', 'warning');
+            return;
+        }
+
+        // Map the employee list to template rows
+        const formatted = attData.map((row) => {
+            // Find matched payroll result for pre-fill
+            const matched = resultsData.find(r => r.pkwt_id == row.pkwt_id);
+            
+            let gp = parseFloat(row.gaji_pokok) || 0;
+            let otPay = 0;
+            let eaPay = 0;
+            let rapel = 0;
+            let bonus = parseFloat(row.bonus_tambahan) || 0;
+            let potAbsen = parseFloat(row.potongan_absensi) || 0;
+            let potLain = 0;
+
+            if (matched) {
+                gp = parseFloat(matched.gaji_pokok || 0);
+                otPay = parseFloat(matched.lembur_pay || 0);
+                eaPay = parseFloat(matched.early_arrival_pay || 0);
+                
+                // Parse rapel from raw_components
+                if (matched.raw_components) {
+                    try {
+                        const comps = JSON.parse(matched.raw_components);
+                        comps.forEach(c => {
+                            if (c.nama && c.nama.toLowerCase().includes('rapel')) {
+                                rapel += parseFloat(c.nilai || 0);
+                            }
+                        });
+                    } catch(e) {}
+                }
+                
+                const totalPendapatan = parseFloat(matched.total_pendapatan || 0);
+                bonus = Math.max(0, totalPendapatan - gp - otPay - eaPay - rapel);
+
+                potAbsen = parseFloat(matched.potongan_absen || 0);
+                const bpjsKaryawan = parseFloat(matched.bpjs_kes_karyawan || 0) + parseFloat(matched.bpjs_jht_karyawan || 0) + parseFloat(matched.bpjs_jp_karyawan || 0);
+                const totalPotongan = parseFloat(matched.total_potongan || 0);
+                potLain = Math.max(0, totalPotongan - potAbsen - bpjsKaryawan - parseFloat(matched.pph21 || 0));
+            }
+
+            return {
+                'PKWT ID': row.pkwt_id,
+                'Employee Name': row.employee_name,
+                'Employee ID (NIK)': row.employ_id || '',
+                'Working Days': parseFloat(row.hari_kerja) || 0,
+                'Overtime Hours': parseFloat(row.jam_lembur) || 0,
+                'Early Arrival Hours': row.early_arrival_minutes ? Math.round(row.early_arrival_minutes / 60) : 0,
+                'Basic Salary (Gaji Pokok)': gp,
+                'Rapel': rapel,
+                'Bonus / Lainnya': bonus,
+                'Absence Deduction (Potongan Absen)': potAbsen,
+                'Potongan Lain': potLain
+            };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(formatted);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Salary Upload Template");
+
+        // Set column widths
+        const wscols = [
+            { wch: 10 }, // PKWT ID
+            { wch: 25 }, // Employee Name
+            { wch: 18 }, // Employee ID (NIK)
+            { wch: 15 }, // Working Days
+            { wch: 15 }, // Overtime Hours
+            { wch: 18 }, // Early Arrival Hours
+            { wch: 25 }, // Basic Salary (Gaji Pokok)
+            { wch: 15 }, // Rapel
+            { wch: 20 }, // Bonus / Lainnya
+            { wch: 30 }, // Absence Deduction (Potongan Absen)
+            { wch: 15 }  // Potongan Lain
+        ];
+        ws['!cols'] = wscols;
+
+        // Save file
+        const monthSelect = document.getElementById('processMonthSelect');
+        const yearSelect = document.getElementById('processYearSelect');
+        const periodStr = monthSelect && yearSelect ? `${monthSelect.options[monthSelect.selectedIndex].text}_${yearSelect.value}` : currentPeriodId;
+        const filename = `manual_salary_template_${periodStr}.xlsx`;
+        XLSX.writeFile(wb, filename);
+
+        showToast('Template downloaded successfully!', 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to generate template: ' + err.message, 'error');
+    }
+}
+
+function bukaModalUploadManualSalary() {
+    window.uploadedManualSalaryData = null;
+    const fileInput = document.getElementById('fileManualSalaryExcel');
+    if (fileInput) fileInput.value = '';
+    
+    const labelFilename = document.getElementById('labelManualSalaryFilename');
+    if (labelFilename) labelFilename.innerText = 'No file chosen';
+    
+    const btnSave = document.getElementById('btnSaveManualSalary');
+    if (btnSave) {
+        btnSave.disabled = true;
+        btnSave.style.cursor = 'not-allowed';
+        btnSave.style.opacity = '0.5';
+    }
+
+    const dropzone = document.getElementById('dropzoneManualSalaryExcel');
+    if (dropzone) {
+        dropzone.style.background = 'rgba(41, 128, 185, 0.08)';
+    }
+    
+    document.getElementById('modalUploadManualSalary').style.display = 'block';
+    document.getElementById('overlay').style.display = 'block';
+}
+
+function tutupModalUploadManualSalary() {
+    document.getElementById('modalUploadManualSalary').style.display = 'none';
+    document.getElementById('overlay').style.display = 'none';
+}
+
+function handleManualSalaryDragOver(e) {
+    e.preventDefault();
+    const dropzone = document.getElementById('dropzoneManualSalaryExcel');
+    if (dropzone) {
+        dropzone.style.background = 'rgba(41, 128, 185, 0.15)';
+    }
+}
+
+function handleManualSalaryDragLeave(e) {
+    e.preventDefault();
+    const dropzone = document.getElementById('dropzoneManualSalaryExcel');
+    if (dropzone) {
+        dropzone.style.background = 'rgba(41, 128, 185, 0.08)';
+    }
+}
+
+function handleManualSalaryDrop(e) {
+    e.preventDefault();
+    const dropzone = document.getElementById('dropzoneManualSalaryExcel');
+    if (dropzone) {
+        dropzone.style.background = 'rgba(41, 128, 185, 0.08)';
+    }
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        processManualSalaryFile(files[0]);
+    }
+}
+
+function handleManualSalaryFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) {
+        processManualSalaryFile(file);
+    }
+}
+
+function processManualSalaryFile(file) {
+    showToast('Reading Excel file...', 'info');
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+            if (!jsonRows || jsonRows.length === 0) {
+                showToast('The uploaded sheet is empty.', 'error');
+                return;
+            }
+
+            const firstRow = jsonRows[0];
+            if (!firstRow.hasOwnProperty('PKWT ID')) {
+                showToast('Invalid template: Column "PKWT ID" is missing.', 'error');
+                return;
+            }
+
+            // Map rows
+            const payload = jsonRows.map(row => {
+                return {
+                    pkwt_id: parseInt(row['PKWT ID']),
+                    employee_name: row['Employee Name'],
+                    working_days: parseFloat(row['Working Days']) || 0,
+                    overtime_hours: parseFloat(row['Overtime Hours']) || 0,
+                    early_arrival_hours: parseFloat(row['Early Arrival Hours']) || 0,
+                    gaji_pokok: parseFloat(row['Basic Salary (Gaji Pokok)']) || 0,
+                    rapel: parseFloat(row['Rapel']) || 0,
+                    bonus_tambahan: parseFloat(row['Bonus / Lainnya']) || 0,
+                    potongan_absen: parseFloat(row['Absence Deduction (Potongan Absen)']) || 0,
+                    potongan_lain: parseFloat(row['Potongan Lain']) || 0
+                };
+            });
+
+            window.uploadedManualSalaryData = payload;
+            
+            const labelFilename = document.getElementById('labelManualSalaryFilename');
+            if (labelFilename) {
+                labelFilename.innerText = file.name;
+            }
+            
+            const btnSave = document.getElementById('btnSaveManualSalary');
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.style.cursor = 'pointer';
+                btnSave.style.opacity = '1';
+            }
+            
+            showToast('File loaded. Click "Apply & Save Salary" to finish.', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to process Excel: ' + err.message, 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+async function saveManualSalary() {
+    if (!window.uploadedManualSalaryData) {
+        showToast('Please select or drop a file first.', 'warning');
+        return;
+    }
+
+    showToast('Uploading and calculating salaries...', 'info');
+    
+    try {
+        const res = await fetch(`${API_URL}/upload-manual-payroll`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-User-Action': typeof currentUser !== 'undefined' && currentUser ? currentUser.username : 'Admin'
+            },
+            body: JSON.stringify({
+                period_id: currentPeriodId,
+                client_id: window.selectedClientId,
+                rows: window.uploadedManualSalaryData
+            })
+        });
+
+        if (res.ok) {
+            showToast('Salaries uploaded and calculated successfully!', 'success');
+            tutupModalUploadManualSalary();
+            renderCutOffTable();
+            renderReviewGajiTable();
+        } else {
+            const errData = await res.json();
+            const errMsg = errData.messages?.error || errData.message || 'Failed to upload manual salaries.';
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Upload Gagal',
+                    text: errMsg,
+                    confirmButtonColor: '#3498db'
+                });
+            } else {
+                showToast(errMsg, 'error');
+            }
+        }
+    } catch(err) {
+        console.error(err);
+        showToast('Failed to save salaries: ' + err.message, 'error');
+    }
+}
+
+window.downloadSalaryTemplate = downloadSalaryTemplate;
+window.bukaModalUploadManualSalary = bukaModalUploadManualSalary;
+window.tutupModalUploadManualSalary = tutupModalUploadManualSalary;
+window.handleManualSalaryDragOver = handleManualSalaryDragOver;
+window.handleManualSalaryDragLeave = handleManualSalaryDragLeave;
+window.handleManualSalaryDrop = handleManualSalaryDrop;
+window.handleManualSalaryFileSelect = handleManualSalaryFileSelect;
+window.saveManualSalary = saveManualSalary;
+
 async function approveGaji(id) {
     // Keep this individual helper but delegate to bulk logic for safety or perform verification
     showToast('Approving salary...', 'info');
@@ -482,11 +808,30 @@ async function exportGajiToExcel() {
             const gp = parseFloat(row.gaji_pokok || 0);
             const ot = parseFloat(row.lembur_pay || 0);
             const ea = parseFloat(row.early_arrival_pay || 0);
+
+            // Parse raw_components for Rapel component
+            let rapelVal = 0;
+            if (row.raw_components) {
+                try {
+                    const comps = JSON.parse(row.raw_components);
+                    comps.forEach(c => {
+                        if (c.nama && c.nama.toLowerCase().includes('rapel')) {
+                            rapelVal += parseFloat(c.nilai || 0);
+                        }
+                    });
+                } catch(e) {
+                    console.error('Error parsing raw_components:', e);
+                }
+            }
+
             const totalPendapatan = parseFloat(row.total_pendapatan || 0);
-            const lainBonus = Math.max(0, totalPendapatan - gp - ot - ea);
+            const lainBonus = Math.max(0, totalPendapatan - gp - ot - ea - rapelVal);
 
             const potAbsen = parseFloat(row.potongan_absen || 0);
-            const bpjsKaryawan = parseFloat(row.bpjs_kes_karyawan || 0) + parseFloat(row.bpjs_jht_karyawan || 0) + parseFloat(row.bpjs_jp_karyawan || 0);
+            const bpjsKes = parseFloat(row.bpjs_kes_karyawan || 0);
+            const bpjsJht = parseFloat(row.bpjs_jht_karyawan || 0);
+            const bpjsJp = parseFloat(row.bpjs_jp_karyawan || 0);
+            const bpjsKaryawan = bpjsKes + bpjsJht + bpjsJp;
             const pph21 = parseFloat(row.pph21 || 0);
             const totalPotongan = parseFloat(row.total_potongan || 0);
             const potLain = Math.max(0, totalPotongan - potAbsen - bpjsKaryawan - pph21);
@@ -507,10 +852,13 @@ async function exportGajiToExcel() {
                 'Basic Salary (Gaji Pokok)': formatMoney(gp),
                 'Overtime Pay (Lembur)': formatMoney(ot),
                 'Early Arrival Pay': formatMoney(ea),
+                'Rapel': formatMoney(rapelVal),
                 'Bonus / Lainnya': formatMoney(lainBonus),
                 'Total Income (Pendapatan)': formatMoney(totalPendapatan),
                 'Absence Deduction (Potongan Absen)': formatMoney(potAbsen),
-                'BPJS Karyawan': formatMoney(bpjsKaryawan),
+                'BPJS Kes (Karyawan)': formatMoney(bpjsKes),
+                'BPJS JHT (Karyawan)': formatMoney(bpjsJht),
+                'BPJS JP (Karyawan)': formatMoney(bpjsJp),
                 'Tax (PPh21)': formatMoney(pph21),
                 'Potongan Lain': formatMoney(potLain),
                 'Total Deductions (Potongan)': formatMoney(totalPotongan),
@@ -541,10 +889,13 @@ async function exportGajiToExcel() {
             {wch: 25},  // Basic Salary (Gaji Pokok)
             {wch: 20},  // Overtime Pay (Lembur)
             {wch: 20},  // Early Arrival Pay
+            {wch: 20},  // Rapel
             {wch: 20},  // Bonus / Lainnya
             {wch: 25},  // Total Income (Pendapatan)
             {wch: 28},  // Absence Deduction (Potongan Absen)
-            {wch: 18},  // BPJS Karyawan
+            {wch: 20},  // BPJS Kes (Karyawan)
+            {wch: 20},  // BPJS JHT (Karyawan)
+            {wch: 20},  // BPJS JP (Karyawan)
             {wch: 15},  // Tax (PPh21)
             {wch: 18},  // Potongan Lain
             {wch: 25},  // Total Deductions (Potongan)

@@ -82,26 +82,35 @@ function renderGlobalWorkLocationsTable(list = null) {
     
     const items = list !== null ? list : workLocations;
     
+    const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
+    const isRecruiter = (role === 'recruiter');
+
     if (items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--text-muted);">No work location data found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${isRecruiter ? 5 : 6}" style="text-align:center; padding: 20px; color: var(--text-muted);">No work location data found.</td></tr>`;
         return;
     }
     
     items.forEach(loc => {
+        let actionCell = `
+            <td>
+                <div style="display:flex; justify-content:center; align-items:center; gap:12px;">
+                    <button onclick="editLokasiKerja(${loc.id})" class="btn-icon" title="Edit" style="color:#94a3b8;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
+                    <button onclick="hapusLokasiKerja(${loc.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
+                </div>
+            </td>
+        `;
+        if (isRecruiter) {
+            actionCell = '';
+        }
+
         tbody.innerHTML += `
             <tr>
                 <td style="font-weight:600;">${loc.lokasi_kerja}</td>
                 <td style="font-weight:600;">${loc.location_code || '-'}</td>
                 <td>${loc.nama_klien || '-'}</td>
-
                 <td>${loc.provinsi || '-'}</td>
                 <td>${loc.kota_kabupaten || '-'}</td>
-                <td>
-                    <div style="display:flex; justify-content:center; align-items:center; gap:12px;">
-                        <button onclick="editLokasiKerja(${loc.id})" class="btn-icon" title="Edit" style="color:#94a3b8;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
-                        <button onclick="hapusLokasiKerja(${loc.id})" class="btn-icon" title="Hapus" style="color:#e74c3c;background:transparent;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:none;width:auto;height:auto;padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
-                    </div>
-                </td>
+                ${actionCell}
             </tr>
         `;
     });

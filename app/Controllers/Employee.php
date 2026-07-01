@@ -157,7 +157,7 @@ class Employee extends ResourceController
             // Otomatis buat akun user dengan role yang ditentukan
             $dbUser = \Config\Database::connect();
             $username = $data['employ_id'] ?? $data['nik'];
-            $email = $data['email'] ?? '';
+            $email = !empty($data['email']) ? $data['email'] : ($username . '@bipayroll.internal');
             $fullName = $data['nama'] ?? '';
             
             $userExists = $dbUser->table('users')->where('username', $username)->countAllResults();
@@ -288,6 +288,9 @@ class Employee extends ResourceController
             $data['tgl_masuk'] = $data['start_contract'];
         }
 
+        // Masukkan primary key ID ke data agar validator CI4 dapat membaca placeholder {id}
+        $data['id'] = $id;
+
         if ($this->model->update($id, $data)) {
             
             // Sync user role if requested by an admin
@@ -301,7 +304,7 @@ class Employee extends ResourceController
                 } else {
                     $db->table('users')->insert([
                         'username'   => $username,
-                        'email'      => $data['email'] ?? $oldEmp['email'] ?? '',
+                        'email'      => !empty($data['email']) ? $data['email'] : (!empty($oldEmp['email']) ? $oldEmp['email'] : ($username . '@bipayroll.internal')),
                         'password'   => $username,
                         'role'       => $userRole,
                         'full_name'  => $data['nama'] ?? $oldEmp['nama'] ?? '',

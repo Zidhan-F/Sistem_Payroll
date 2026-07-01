@@ -242,6 +242,7 @@ $routes->group('api', ['filter' => 'role:payroll'], function($routes) {
     $routes->post('attendance-bulk', 'Api::saveAttendanceBulk');
     $routes->post('generate-payroll/(:num)', 'Api::generatePayroll/$1');
     $routes->post('payroll/process-bulk', 'Payroll::processBulk');
+    $routes->post('upload-manual-payroll', 'Api::uploadManualPayroll');
 });
 
 // =====================================================================

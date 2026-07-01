@@ -3484,10 +3484,7 @@ class Api extends ResourceController
                     }
                 }
 
-                $divider = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
-                if ($divider <= 0) {
-                    $divider = ($workDaysConfig === 5) ? 22 : (($workDaysConfig === 6) ? 26 : 30);
-                }
+                $divider = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($startDateStr)) : 22);
                 $dendaAbsenPerDay = $gajiPokok / $divider;
                 $calculatedPotongan = $alpaCount * $dendaAbsenPerDay;
 
@@ -3561,7 +3558,7 @@ class Api extends ResourceController
                 }
 
                 if ($isJoinedPrevMonth || $isActiveRegularPrevMonth) {
-                    $hariKerja = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
+                    $hariKerja = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($startDateStr)) : 22);
                     $potonganAbsensi = 0.0;
                 }
 
@@ -3927,7 +3924,11 @@ class Api extends ResourceController
                     $workDaysConfig = intval($emp->position_hari_kerja);
                 }
             }
-            $stdWorkingDays = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
+            $systemStandardDays = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($startDateStr)) : 22);
+            
+            $stdWorkingDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
+                ? intval($emp->custom_standard_days)
+                : $systemStandardDays;
 
             // Calculate expected working days since join date
             $expectedWorkingDays = $stdWorkingDays;
@@ -4072,7 +4073,7 @@ class Api extends ResourceController
                     $workDaysConfig = intval($emp->position_hari_kerja);
                 }
                 
-                $prevStdWorkingDays = $this->getStandardWorkingDaysInRange($prevStartDateStr, $prevEndDateStr, $workDaysConfig);
+                $prevStdWorkingDays = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($prevStartDateStr)) : 22);
                 
                 $joinDateStr = date('Y-m-d', $joinTs);
                 $hasAnyLogsPrev = $this->db->table('attendance_logs')
@@ -4546,7 +4547,9 @@ class Api extends ResourceController
                         }
                         $prevMonthStart = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
                         $prevMonthEnd = date('Y-m-t', strtotime($prevMonthStart));
-                        $prevCalendarStdDays = $this->getStandardWorkingDaysInRange($prevMonthStart, $prevMonthEnd, $workDaysConfig);
+                        $prevCalendarStdDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
+                            ? intval($emp->custom_standard_days)
+                            : ($workDaysConfig === 6 ? 26 : ($workDaysConfig === 7 ? date('t', strtotime($prevMonthStart)) : 22));
 
                         $expectedWorkingDaysCalendar = $prevCalendarStdDays;
                         if ($emp && !empty($emp->tgl_masuk)) {
@@ -5313,6 +5316,430 @@ class Api extends ResourceController
         return $this->respond(['status' => 'success', 'message' => 'Semua data gaji terpilih berhasil disetujui']);
     }
 
+    public function uploadManualPayroll()
+    {
+        $json = $this->request->getJSON(true);
+        $periodId = $json['period_id'] ?? null;
+        $clientId = $json['client_id'] ?? null;
+        $rows = $json['rows'] ?? [];
+
+        if (!$periodId) {
+            return $this->fail('Parameter period_id dibutuhkan.');
+        }
+        if (empty($rows)) {
+            return $this->fail('Tidak ada data gaji untuk di-upload.');
+        }
+
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        if (!$period) {
+            return $this->failNotFound('Periode tidak ditemukan.');
+        }
+
+        $periodStatus = strtolower($period->status ?? 'open');
+        if ($periodStatus !== 'open' && $periodStatus !== 'active' && $periodStatus !== 'terbuka') {
+            return $this->fail('Periode payroll sudah ditutup, tidak dapat meng-upload data gaji.');
+        }
+
+        $this->db->transStart();
+
+        foreach ($rows as $row) {
+            $pkwtId = $row['pkwt_id'] ?? null;
+            if (!$pkwtId) continue;
+
+            // Fetch PKWT
+            $pkwt = $this->db->table('pkwt')->where('id', $pkwtId)->get()->getRow();
+            if (!$pkwt) continue;
+
+            // Fetch Employee
+            $emp = $this->db->table('employees')
+                            ->select('employees.*, minimum_wages.nominal as umr_nominal, minimum_wages.id as mw_id, positions.hari_kerja as position_hari_kerja')
+                            ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                            ->join('positions', 'positions.id = employees.position_id', 'left')
+                            ->where('employees.nama', $pkwt->employee_name)
+                            ->where('employees.client_id', $pkwt->client_id)
+                            ->get()
+                            ->getRow();
+            if (!$emp) continue;
+
+            // Resolve Client Config
+            $clientConfig = $this->resolveClientConfig($pkwt->client_id, $pkwt->position_name);
+
+            // Update payroll_attendance first to match manual upload values
+            $att = $this->db->table('payroll_attendance')
+                            ->where('period_id', $periodId)
+                            ->where('pkwt_id', $pkwtId)
+                            ->get()->getRow();
+
+            $attData = [
+                'period_id' => $periodId,
+                'pkwt_id' => $pkwtId,
+                'hari_kerja' => $row['working_days'],
+                'jam_lembur' => $row['overtime_hours'],
+                'early_arrival_minutes' => intval(($row['early_arrival_hours'] ?? 0) * 60),
+                'potongan_absensi' => $row['potongan_absen'],
+                'bonus_tambahan' => $row['bonus_tambahan']
+            ];
+
+            if ($att) {
+                $this->db->table('payroll_attendance')->where('id', $att->id)->update($attData);
+            } else {
+                $this->db->table('payroll_attendance')->insert($attData);
+            }
+
+            // Resolve UMP & UMK minimum wages
+            $minimumWage = 0;
+            $mwId = null;
+            if ($emp && isset($emp->umr_nominal) && $emp->umr_nominal > 0) {
+                $minimumWage = floatval($emp->umr_nominal);
+                $mwId = $emp->mw_id;
+            } else {
+                if ($clientConfig && isset($clientConfig->minimum_wage_id)) {
+                    $mw = $this->db->table('minimum_wages')->where('id', $clientConfig->minimum_wage_id)->get()->getRow();
+                    if ($mw) {
+                        $minimumWage = floatval($mw->nominal);
+                        $mwId = $mw->id;
+                    }
+                }
+            }
+
+            $empProvince = null;
+            if ($emp && !empty($emp->work_location_id)) {
+                $wl = $this->db->table('work_locations')->where('id', $emp->work_location_id)->get()->getRow();
+                if ($wl && !empty($wl->provinsi)) {
+                    $empProvince = $wl->provinsi;
+                }
+            }
+            $resolvedWages = $this->resolveUmpUmk($mwId, null, $empProvince);
+            $umpWageValue = $resolvedWages['ump'];
+            $umkWageValue = $resolvedWages['umk'];
+
+            // Fetch and build components
+            $rawComponents = $this->db->table('pkwt_components')->where('pkwt_id', $pkwtId)->get()->getResult();
+            $components = [];
+            $hasBasicSalaryInComponents = false;
+            $hasRapelInComponents = false;
+            $hasPotonganLainInComponents = false;
+
+            foreach ($rawComponents as $comp) {
+                // If it is rapel, we override its value with the uploaded rapel
+                if (stripos($comp->nama, 'Rapel') !== false) {
+                    $comp->nilai = $row['rapel'];
+                    $hasRapelInComponents = true;
+                }
+                
+                // Skip ad-hoc components if period doesn't match and it is not a rapel component
+                $isAdhoc = isset($comp->allowance_type) && $comp->allowance_type === 'Ad-hoc';
+                if ($isAdhoc) {
+                    $payoutPeriod = trim($comp->payout_period ?? '');
+                    $currentPeriod1 = intval($period->bulan) . '-' . intval($period->tahun);
+                    $currentPeriod2 = sprintf('%02d-%d', intval($period->bulan), intval($period->tahun));
+                    if ($payoutPeriod !== $currentPeriod1 && $payoutPeriod !== $currentPeriod2 && stripos($comp->nama, 'Rapel') === false) {
+                        continue;
+                    }
+                }
+
+                $isBasic = (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') || (stripos($comp->nama, 'Gaji Pokok') !== false);
+                if ($isBasic) {
+                    $comp->nilai = $row['gaji_pokok'];
+                    $hasBasicSalaryInComponents = true;
+                }
+                
+                if (stripos($comp->nama, 'Potongan Lain') !== false || stripos($comp->nama, 'Potongan Lainnya') !== false) {
+                    $comp->nilai = $row['potongan_lain'];
+                    $hasPotonganLainInComponents = true;
+                }
+
+                $components[] = $comp;
+            }
+
+            if (!$hasBasicSalaryInComponents) {
+                $compObj = new \stdClass();
+                $compObj->nama = 'Gaji Pokok';
+                $compObj->tipe = 'pendapatan';
+                $compObj->nilai = $row['gaji_pokok'];
+                $compObj->is_persentase = 0;
+                $compObj->jenis_komponen = 'basic_salary';
+                $components[] = $compObj;
+            }
+
+            if (!$hasRapelInComponents && $row['rapel'] > 0) {
+                $compObj = new \stdClass();
+                $compObj->nama = 'Rapel Gaji (Manual Upload)';
+                $compObj->tipe = 'pendapatan';
+                $compObj->nilai = $row['rapel'];
+                $compObj->is_persentase = 0;
+                $compObj->jenis_komponen = 'kompensasi';
+                $compObj->sifat_kompensasi = 'tidak_tetap';
+                $compObj->allowance_type = 'Ad-hoc';
+                $components[] = $compObj;
+            }
+
+            if (!$hasPotonganLainInComponents && $row['potongan_lain'] > 0) {
+                $compObj = new \stdClass();
+                $compObj->nama = 'Potongan Lain (Manual Upload)';
+                $compObj->tipe = 'potongan';
+                $compObj->nilai = $row['potongan_lain'];
+                $compObj->is_persentase = 0;
+                $compObj->jenis_komponen = 'scheme_template';
+                $components[] = $compObj;
+            }
+
+            // Calculate wage bases
+            $bpjsWageBase = 0;
+            $pphWageBase = 0;
+            $totalPendapatan = 0;
+            $totalPotongan = 0;
+
+            foreach ($components as $comp) {
+                $isBasic = (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') || (stripos($comp->nama, 'Gaji Pokok') !== false);
+                $nilai = 0;
+
+                if ($isBasic) {
+                    $nilai = $row['gaji_pokok'];
+                } else {
+                    if (($comp->jenis_komponen ?? '') === 'kompensasi' && ($comp->sifat_kompensasi ?? '') === 'tetap') {
+                        $nilai = floatval($comp->nilai);
+                    } else if (isset($comp->jenis_komponen) && !empty($comp->jenis_komponen)) {
+                        $base_nilai = floatval($comp->nilai);
+                        if (isset($comp->sumber_nilai)) {
+                            if ($comp->sumber_nilai === 'ump') {
+                                $base_nilai = $umpWageValue * ($base_nilai / 100);
+                            } else if ($comp->sumber_nilai === 'umk') {
+                                $base_nilai = $umkWageValue * ($base_nilai / 100);
+                            } else if ($comp->sumber_nilai === 'ump_umk') {
+                                $base_nilai = $minimumWage * ($base_nilai / 100);
+                            }
+                        }
+                        // Scale by period
+                        $periode = $comp->periode ?? 'bulan';
+                        if ($periode === 'hari' || $periode === 'hari_kerja') {
+                            $nilai = $base_nilai * $row['working_days'];
+                        } elseif ($periode === 'minggu') {
+                            $nilai = $base_nilai * 4;
+                        } elseif ($periode === 'tahun') {
+                            $nilai = $base_nilai / 12;
+                        } else {
+                            $nilai = $base_nilai;
+                        }
+                    } else {
+                        $nilai = floatval($comp->nilai);
+                        if (intval($comp->is_persentase) === 1 || $comp->is_persentase === true) {
+                            $nilai = $row['gaji_pokok'] * ($nilai / 100);
+                        }
+                    }
+                }
+
+                $comp->nilai = $nilai;
+
+                if ($comp->tipe === 'pendapatan') {
+                    $totalPendapatan += $nilai;
+
+                    $isBpjsInc = false;
+                    $isPphInc = true;
+                    if ($isBasic) {
+                        $isBpjsInc = true;
+                        $isPphInc = true;
+                    } else {
+                        $isBpjsInc = (isset($comp->is_bpjs) && $comp->is_bpjs == 1);
+                        $isPphInc = (!isset($comp->is_pph21) || $comp->is_pph21 == 1);
+                    }
+
+                    if ($isBpjsInc) {
+                        $bpjsWageBase += $nilai;
+                    }
+                    if ($isPphInc) {
+                        $pphWageBase += $nilai;
+                    }
+                } else {
+                    $totalPotongan += $nilai;
+                }
+            }
+
+            // Calculate overtime pay and early arrival pay automatically
+            $overtimePay = 0.0;
+            $earlyArrivalPay = 0.0;
+
+            // 1. Tentukan rate lembur per jam
+            $otDivisor = ($clientConfig && isset($clientConfig->overtime_divisor) && intval($clientConfig->overtime_divisor) > 0) ? intval($clientConfig->overtime_divisor) : 173;
+            $clientManualOtRate = ($clientConfig && isset($clientConfig->overtime_rate_per_hour)) ? floatval($clientConfig->overtime_rate_per_hour) : 0;
+            
+            // Get scheme template
+            $schemeModel = new \App\Models\PayrollSchemeTemplateModel();
+            $schemeTemplateObj = $schemeModel->getSchemeForEmployee(
+                $pkwt->client_id,
+                $emp->division_id ?? null,
+                $emp->department_id ?? null,
+                $emp->position_id ?? null
+            );
+            $schemeTemplate = $schemeTemplateObj ? (array)$schemeTemplateObj : null;
+            $schemeOtRate = ($schemeTemplate && isset($schemeTemplate['rate_lembur_per_jam'])) ? floatval($schemeTemplate['rate_lembur_per_jam']) : 0;
+
+            $upahSejamLembur = ($clientManualOtRate > 0) ? $clientManualOtRate : (($schemeOtRate > 0) ? $schemeOtRate : (($row['gaji_pokok'] > 0) ? ($row['gaji_pokok'] / $otDivisor) : 0));
+
+            // Tentukan working days per week
+            $workDaysPerWeek = 5;
+            if ($emp) {
+                $posHkOt = intval($emp->position_hari_kerja ?? 5);
+                if ($posHkOt == 6) $workDaysPerWeek = 6;
+            }
+
+            // Hitung konversi jam lembur
+            $jamKonversiBiasa = $this->hitungJamLemburKonversi(floatval($row['overtime_hours']), false, $workDaysPerWeek, false);
+            $overtimePay = $jamKonversiBiasa * $upahSejamLembur;
+
+            // 2. Hitung early arrival pay
+            $companySetting = $this->db->table('company_payroll_setting')->get()->getRowArray();
+            $minMinutes = isset($companySetting['early_arrival_min_minutes']) ? intval($companySetting['early_arrival_min_minutes']) : 30;
+            $calcUnit = isset($companySetting['early_arrival_calculation_unit']) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
+            $roundingMethod = $companySetting['early_arrival_rounding_method'] ?? 'CEILING';
+            $maxMinutes = isset($companySetting['max_early_arrival_minutes']) ? intval($companySetting['max_early_arrival_minutes']) : 180;
+            $earlyArrivalEnabled = isset($companySetting['early_arrival_enabled']) ? intval($companySetting['early_arrival_enabled']) : 1;
+
+            $earlyArrivalMinutes = intval(floatval($row['early_arrival_hours']) * 60);
+
+            if ($earlyArrivalEnabled && $earlyArrivalMinutes >= $minMinutes) {
+                $jamEA = ($roundingMethod === 'CEILING') ? ceil($earlyArrivalMinutes / $calcUnit) : ($earlyArrivalMinutes / $calcUnit);
+                
+                // Batasi max_early_arrival_minutes
+                $maxHours = $maxMinutes / $calcUnit;
+                if ($jamEA > $maxHours) {
+                    $jamEA = $maxHours;
+                }
+                
+                // Hitung bobot jam Kemnaker
+                $totalEarlyArrivalBobotHours = 0;
+                if ($jamEA >= 1) {
+                    $totalEarlyArrivalBobotHours = 1.5 + ($jamEA - 1) * 2.0;
+                }
+
+                // Hitung totalTunjanganTetap
+                $totalTunjanganTetap = 0;
+                foreach ($components as $comp) {
+                    if (($comp->tipe ?? '') === 'pendapatan') {
+                        $isBasic = (isset($comp->jenis_komponen) && $comp->jenis_komponen === 'basic_salary') || (stripos($comp->nama, 'Gaji Pokok') !== false);
+                        $isTetap = (isset($comp->sifat_kompensasi) && strtolower($comp->sifat_kompensasi) === 'tetap');
+                        $isBulanan = (empty($comp->periode) || strtolower($comp->periode) === 'bulan');
+                        
+                        if ($isTetap && $isBulanan && !$isBasic) {
+                            $totalTunjanganTetap += floatval($comp->nilai);
+                        }
+                    }
+                }
+
+                if ($schemeTemplate) {
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_transport'] ?? 0);
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_komunikasi'] ?? 0);
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_jabatan'] ?? 0);
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_kehadiran'] ?? 0);
+                    $totalTunjanganTetap += floatval($schemeTemplate['tunjangan_kinerja'] ?? 0);
+                }
+
+                $eaDivisor = ($clientConfig && isset($clientConfig->overtime_divisor) && intval($clientConfig->overtime_divisor) > 0) ? intval($clientConfig->overtime_divisor) : 173.0;
+                $eaUpahPerJam = ($row['gaji_pokok'] + $totalTunjanganTetap) / $eaDivisor;
+                $earlyArrivalPay = $totalEarlyArrivalBobotHours * $eaUpahPerJam;
+            }
+
+            // Include calculated Overtime Pay & Early Arrival Pay to total income and PPh wage base
+            $totalPendapatan += $overtimePay + $earlyArrivalPay;
+            $pphWageBaseFinal = $pphWageBase + $overtimePay + $earlyArrivalPay - $row['potongan_absen'];
+
+            // Cap/Floor BPJS base
+            if ($minimumWage > 0 && $bpjsWageBase < $minimumWage) {
+                $bpjsWageBase = $minimumWage;
+            }
+
+            // Resolve Schemes and PTKP
+            $taxScheme = null;
+            if ($clientConfig && $clientConfig->tax_scheme_id) {
+                $taxScheme = $this->db->table('tax_schemes')->where('id', $clientConfig->tax_scheme_id)->get()->getRow();
+            }
+            $bpjsScheme = null;
+            if ($clientConfig && !empty($clientConfig->bpjs_scheme_id)) {
+                $bpjsScheme = $this->db->table('tax_schemes')->where('id', $clientConfig->bpjs_scheme_id)->get()->getRow();
+            }
+            if (!$bpjsScheme) {
+                $bpjsScheme = $taxScheme;
+            }
+            $ptkpStatus = 'TK/0';
+            if ($emp && !empty($emp->ptkp)) {
+                $ptkpStatus = $emp->ptkp;
+            }
+
+            // Recalculate BPJS and Tax
+            $calc = $this->calculateBpjsAndTax($row['gaji_pokok'], $bpjsWageBase, $pphWageBaseFinal, null, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme);
+
+            // Compute net take home pay
+            $employeeBpjsDeductions = $calc['bpjs_kes_karyawan'] + $calc['bpjs_jht_karyawan'] + $calc['bpjs_jp_karyawan'];
+            $totalPotongan += $row['potongan_absen'] + $row['potongan_lain'];
+
+            if ($calc['metode_pajak'] === 'Gross Up') {
+                $totalPendapatan += $calc['tax_allowance'];
+                $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
+            } elseif ($calc['metode_pajak'] === 'Gross') {
+                $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
+            } else { // Nett
+                $totalPotongan += $employeeBpjsDeductions;
+            }
+
+            $thp = $totalPendapatan - $totalPotongan;
+
+            // Save to payroll_final
+            $existingFinal = $this->db->table('payroll_final')
+                                      ->where('period_id', $periodId)
+                                      ->where('pkwt_id', $pkwtId)
+                                      ->get()->getRow();
+
+            $finalData = [
+                'period_id' => $periodId,
+                'pkwt_id' => $pkwtId,
+                'total_pendapatan' => $totalPendapatan,
+                'total_potongan' => $totalPotongan,
+                'take_home_pay' => $thp,
+                'status_approval' => 'Pending',
+                'bpjs_kes_karyawan' => $calc['bpjs_kes_karyawan'],
+                'bpjs_kes_perusahaan' => $calc['bpjs_kes_perusahaan'],
+                'bpjs_jht_karyawan' => $calc['bpjs_jht_karyawan'],
+                'bpjs_jht_perusahaan' => $calc['bpjs_jht_perusahaan'],
+                'bpjs_jp_karyawan' => $calc['bpjs_jp_karyawan'],
+                'bpjs_jp_perusahaan' => $calc['bpjs_jp_perusahaan'],
+                'bpjs_jkk_perusahaan' => $calc['bpjs_jkk_perusahaan'],
+                'bpjs_jkm_perusahaan' => $calc['bpjs_jkm_perusahaan'],
+                'pph21' => $calc['pph21'],
+                'tax_allowance' => $calc['tax_allowance'],
+                'tax_method' => $calc['metode_pajak'],
+                'ptkp_status' => $ptkpStatus,
+                'gaji_pokok' => $row['gaji_pokok'],
+                'potongan_absen' => $row['potongan_absen'],
+                'jam_lembur' => $row['overtime_hours'],
+                'jam_lembur_biasa' => $row['overtime_hours'],
+                'jam_lembur_libur' => 0,
+                'lembur_pay' => $overtimePay,
+                'bonus_tambahan' => $row['bonus_tambahan'],
+                'early_arrival_minutes' => $earlyArrivalMinutes,
+                'early_arrival_pay' => $earlyArrivalPay,
+                'raw_components' => json_encode($components)
+            ];
+
+            if ($existingFinal) {
+                $this->db->table('payroll_final')->where('id', $existingFinal->id)->update($finalData);
+            } else {
+                $this->db->table('payroll_final')->insert($finalData);
+            }
+        }
+
+        $this->db->transComplete();
+
+        if ($this->db->transStatus() === false) {
+            return $this->fail('Gagal menyimpan atau memproses data upload gaji.');
+        }
+
+        $username = $this->request->getHeaderLine('X-User-Action') ?: 'Admin';
+        $periodName = $period ? $period->nama : "ID: $periodId";
+        $this->logActivity("Meng-upload gaji manual dari Excel untuk periode: " . $periodName . " oleh " . $username);
+
+        return $this->respond(['status' => 'success', 'message' => 'Gaji manual berhasil di-upload dan dikalkulasi otomatis.']);
+    }
+
     public function getSlipDetails($id)
     {
         // Get Final Result
@@ -5414,7 +5841,12 @@ class Api extends ResourceController
         }
         $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
         $endDateStr = date('Y-m-t', strtotime($startDateStr));
-        $stdWorkingDays = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
+        
+        $systemStandardDays = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($startDateStr)) : 22);
+
+        $stdWorkingDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
+            ? intval($emp->custom_standard_days)
+            : $systemStandardDays;
         
         if ($emp && !empty($emp->tgl_masuk)) {
             $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
@@ -5440,7 +5872,7 @@ class Api extends ResourceController
                 
                 $currMonthStart = sprintf('%04d-%02d-01', $tYear, $tMonth);
                 $currMonthEnd = date('Y-m-t', strtotime($currMonthStart));
-                $holdStdWorkingDays = $this->getStandardWorkingDaysInRange($currMonthStart, $currMonthEnd, $workDaysConfig);
+                $holdStdWorkingDays = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($currMonthStart)) : 22);
                 
                 $joinDateStr = date('Y-m-d', $joinTs);
                 $hasAnyLogsPrev = $this->db->table('attendance_logs')
@@ -6137,12 +6569,16 @@ class Api extends ResourceController
             'Min. Wage (UMP/UMK)',
             'Basic Salary', 
             'Overtime Pay',
-            'Bonus/Lainnya',
+            'Early Arrival',
+            'Rapel',
+            'Tunjangan Lainnya/Bonus',
             'Total Income (Pendapatan)', 
             'Absence Deduction',
-            'BPJS Ketenagakerjaan (Karyawan)',
-            'BPJS Kesehatan (Karyawan)',
+            'BPJS Kes (Karyawan)',
+            'BPJS JHT (Karyawan)',
+            'BPJS JP (Karyawan)',
             'Tax (PPh21)',
+            'Potongan Lainnya',
             'Total Deductions (Potongan)', 
             'Take Home Pay', 
             'Status'
@@ -6151,9 +6587,6 @@ class Api extends ResourceController
         // Write Data Rows
         $no = 1;
         foreach ($results as $row) {
-            $bpjsTK = (float)($row['bpjs_jht_karyawan'] ?? 0) + (float)($row['bpjs_jp_karyawan'] ?? 0);
-            $bpjsKes = (float)($row['bpjs_kes_karyawan'] ?? 0);
-            
             $placeDob = '';
             if (!empty($row['tempat_lahir']) && !empty($row['tanggal_lahir'])) {
                 $placeDob = $row['tempat_lahir'] . ', ' . $row['tanggal_lahir'];
@@ -6162,6 +6595,44 @@ class Api extends ResourceController
             } elseif (!empty($row['tanggal_lahir'])) {
                 $placeDob = $row['tanggal_lahir'];
             }
+            
+            $gp = floatval($row['gaji_pokok'] ?? 0);
+            $ot = floatval($row['lembur_pay'] ?? 0);
+            $ea = floatval($row['early_arrival_pay'] ?? 0);
+            $taxAllowance = floatval($row['tax_allowance'] ?? 0);
+            $totalPendapatan = floatval($row['total_pendapatan'] ?? 0);
+            
+            // Extract rapel
+            $rapelVal = 0.0;
+            if (!empty($row['raw_components'])) {
+                try {
+                    $comps = json_decode($row['raw_components'], true);
+                    if (is_array($comps)) {
+                        foreach ($comps as $c) {
+                            if (isset($c['nama']) && stripos($c['nama'], 'rapel') !== false) {
+                                $rapelVal += floatval($c['nilai'] ?? 0);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                }
+            }
+            
+            $tunjanganLainnya = $totalPendapatan - ($gp + $ot + $ea + $rapelVal + $taxAllowance);
+            if ($tunjanganLainnya < 0) $tunjanganLainnya = 0;
+            
+            $potAbsen = floatval($row['potongan_absen'] ?? 0);
+            $bpjsKes = floatval($row['bpjs_kes_karyawan'] ?? 0);
+            $bpjsJht = floatval($row['bpjs_jht_karyawan'] ?? 0);
+            $bpjsJp = floatval($row['bpjs_jp_karyawan'] ?? 0);
+            $pph21 = floatval($row['pph21'] ?? 0);
+            $totalPotongan = floatval($row['total_potongan'] ?? 0);
+            
+            $taxMethod = $row['tax_method'] ?? 'Gross';
+            $pajakDikurangi = ($taxMethod === 'Net') ? 0 : $pph21;
+            
+            $potonganLainnya = $totalPotongan - ($potAbsen + $bpjsKes + $bpjsJht + $bpjsJp + $pajakDikurangi);
+            if ($potonganLainnya < 0) $potonganLainnya = 0;
             
             fputcsv($output, [
                 $no++,
@@ -6175,15 +6646,19 @@ class Api extends ResourceController
                 $row['position_name'] ?? '-',
                 $row['location_name'] ?? '-',
                 isset($row['min_wage']) ? 'Rp ' . number_format((float)$row['min_wage'], 0, ',', '.') : '-',
-                'Rp ' . number_format((float)($row['gaji_pokok'] ?? 0), 0, ',', '.'),
-                'Rp ' . number_format((float)($row['lembur_pay'] ?? 0), 0, ',', '.'),
-                'Rp ' . number_format((float)($row['bonus_tambahan'] ?? 0), 0, ',', '.'),
-                'Rp ' . number_format((float)($row['total_pendapatan'] ?? 0), 0, ',', '.'),
-                'Rp ' . number_format((float)($row['potongan_absen'] ?? 0), 0, ',', '.'),
-                'Rp ' . number_format($bpjsTK, 0, ',', '.'),
+                'Rp ' . number_format($gp, 0, ',', '.'),
+                'Rp ' . number_format($ot, 0, ',', '.'),
+                'Rp ' . number_format($ea, 0, ',', '.'),
+                'Rp ' . number_format($rapelVal, 0, ',', '.'),
+                'Rp ' . number_format($tunjanganLainnya, 0, ',', '.'),
+                'Rp ' . number_format($totalPendapatan, 0, ',', '.'),
+                'Rp ' . number_format($potAbsen, 0, ',', '.'),
                 'Rp ' . number_format($bpjsKes, 0, ',', '.'),
-                'Rp ' . number_format((float)($row['pph21'] ?? 0), 0, ',', '.'),
-                'Rp ' . number_format((float)($row['total_potongan'] ?? 0), 0, ',', '.'),
+                'Rp ' . number_format($bpjsJht, 0, ',', '.'),
+                'Rp ' . number_format($bpjsJp, 0, ',', '.'),
+                'Rp ' . number_format($pph21, 0, ',', '.'),
+                'Rp ' . number_format($potonganLainnya, 0, ',', '.'),
+                'Rp ' . number_format($totalPotongan, 0, ',', '.'),
                 'Rp ' . number_format((float)($row['take_home_pay'] ?? 0), 0, ',', '.'),
                 $row['status_approval'] ?? 'Pending'
             ], ';');
@@ -7312,7 +7787,7 @@ class Api extends ResourceController
         // Define Headers
         $headers = [
             'No', 'NIK', 'Nama Karyawan', 'Tipe Perjanjian', 'Jabatan', 'Metode Pajak', 'Status PTKP',
-            'Gaji Pokok', 'Tunjangan Lembur', 'Bonus Tambahan', 'Tunjangan Lainnya',
+            'Gaji Pokok', 'Tunjangan Lembur', 'Early Arrival', 'Rapel', 'Bonus Tambahan', 'Tunjangan Lainnya',
             'Total Pendapatan', 'Potongan Absensi', 'BPJS Kes (Karyawan)', 'BPJS JHT (Karyawan)',
             'BPJS JP (Karyawan)', 'PPh 21', 'Potongan Lainnya', 'Total Potongan',
             'Take Home Pay (THP)', 'Nama Bank', 'No Rekening'
@@ -7327,8 +7802,25 @@ class Api extends ResourceController
             $taxAllowance = floatval($row['tax_allowance'] ?? 0);
             $totalPendapatan = floatval($row['total_pendapatan'] ?? 0);
             $gajiPokok = floatval($row['gaji_pokok'] ?? 0);
+            $ea = floatval($row['early_arrival_pay'] ?? 0);
             
-            $tunjanganLainnya = $totalPendapatan - ($gajiPokok + $lemburPay + $bonus + $taxAllowance);
+            // Extract rapel
+            $rapelVal = 0.0;
+            if (!empty($row['raw_components'])) {
+                try {
+                    $comps = json_decode($row['raw_components'], true);
+                    if (is_array($comps)) {
+                        foreach ($comps as $c) {
+                            if (isset($c['nama']) && stripos($c['nama'], 'rapel') !== false) {
+                                $rapelVal += floatval($c['nilai'] ?? 0);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                }
+            }
+            
+            $tunjanganLainnya = $totalPendapatan - ($gajiPokok + $lemburPay + $bonus + $ea + $rapelVal + $taxAllowance);
             if ($tunjanganLainnya < 0) $tunjanganLainnya = 0;
             
             // Compute Potongan Lainnya
@@ -7355,6 +7847,8 @@ class Api extends ResourceController
                 $row['ptkp_status'] ?? '-',
                 'Rp ' . number_format($gajiPokok, 0, ',', '.'),
                 'Rp ' . number_format($lemburPay, 0, ',', '.'),
+                'Rp ' . number_format($ea, 0, ',', '.'),
+                'Rp ' . number_format($rapelVal, 0, ',', '.'),
                 'Rp ' . number_format($bonus, 0, ',', '.'),
                 'Rp ' . number_format($tunjanganLainnya, 0, ',', '.'),
                 'Rp ' . number_format($totalPendapatan, 0, ',', '.'),
@@ -7907,6 +8401,12 @@ class Api extends ResourceController
         $pkwts = $pkwtQuery->get()->getResult();
 
         foreach ($pkwts as $pkwt) {
+            // Skip sync if client's payroll_type is 'Template' (manual Excel upload)
+            $cConfig = $this->db->table('client_payroll_configs')->where('client_id', $pkwt->client_id)->get()->getRow();
+            if ($cConfig && $cConfig->payroll_type === 'Template') {
+                continue;
+            }
+
             $emp = $this->db->table('employees')
                             ->where('client_id', $pkwt->client_id)
                             ->where('nama', $pkwt->employee_name)
@@ -7986,7 +8486,7 @@ class Api extends ResourceController
                     if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
                         $posHk = intval($emp->hari_kerja);
                     }
-                    $stdWorkingDays = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $posHk);
+                    $stdWorkingDays = ($posHk === 6) ? 26 : (($posHk === 7) ? date('t', strtotime($startDateStr)) : 22);
                     $hariKerjaVal = $stdWorkingDays;
                 }
             }
@@ -8045,7 +8545,7 @@ class Api extends ResourceController
                 if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
                     $posHk = intval($emp->hari_kerja);
                 }
-                $stdWorkingDays = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $posHk);
+                $stdWorkingDays = ($posHk === 6) ? 26 : (($posHk === 7) ? date('t', strtotime($startDateStr)) : 22);
                 $hariKerjaVal = $stdWorkingDays;
             }
 
@@ -8094,6 +8594,12 @@ class Api extends ResourceController
         $pkwts = $pkwtQuery->get()->getResult();
 
         foreach ($pkwts as $pkwt) {
+            // Skip sync if client's payroll_type is 'Template' (manual Excel upload)
+            $cConfig = $this->db->table('client_payroll_configs')->where('client_id', $pkwt->client_id)->get()->getRow();
+            if ($cConfig && $cConfig->payroll_type === 'Template') {
+                continue;
+            }
+
             $emp = $this->db->table('employees')
                             ->where('client_id', $pkwt->client_id)
                             ->where('nama', $pkwt->employee_name)

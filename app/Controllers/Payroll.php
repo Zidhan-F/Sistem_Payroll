@@ -128,14 +128,53 @@ class Payroll extends ResourceController
             $daysInMonth = date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun)));
             
             $resolveComponentDates = function($config, $component) use ($db, $bulan, $tahun, $daysInMonth) {
-                $prevMonth = intval($bulan) - 1;
-                $prevYear = intval($tahun);
-                if ($prevMonth == 0) {
-                    $prevMonth = 12;
-                    $prevYear--;
+                $startField = "cutoff_{$component}_start";
+                $endField = "cutoff_{$component}_end";
+                $refField = "cutoff_{$component}_schedule_ref";
+                
+                $start = ($config && isset($config->$startField)) ? intval($config->$startField) : null;
+                $end = ($config && isset($config->$endField)) ? intval($config->$endField) : null;
+                $refId = ($config && isset($config->$refField)) ? intval($config->$refField) : null;
+                
+                if ($refId) {
+                    $sched = $db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
+                    if ($sched) {
+                        $start = intval($sched->cutoff_start);
+                        $end = intval($sched->cutoff_end);
+                    }
                 }
-                $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
-                $endDateStr = date('Y-m-t', strtotime($startDateStr));
+                
+                if ($start === null) {
+                    if ($component === 'gaji_pokok' && $config && isset($config->cutoff_start)) {
+                        $start = intval($config->cutoff_start);
+                    } else {
+                        $start = 21;
+                    }
+                }
+                if ($end === null) {
+                    if ($component === 'gaji_pokok' && $config && isset($config->cutoff_end)) {
+                        $end = intval($config->cutoff_end);
+                    } else {
+                        $end = $start - 1;
+                        if ($end < 1) $end = $daysInMonth;
+                    }
+                }
+                
+                $bulan_start = intval($bulan);
+                $tahun_start = intval($tahun);
+                $bulan_end = $bulan_start;
+                $tahun_end = $tahun_start;
+                
+                if ($start > $end && $start > 1) {
+                    $bulan_start -= 1;
+                    if ($bulan_start < 1) {
+                        $bulan_start = 12;
+                        $tahun_start -= 1;
+                    }
+                }
+                
+                $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $start);
+                $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $end);
                 return [$startDateStr, $endDateStr];
             };
 
@@ -424,14 +463,53 @@ class Payroll extends ResourceController
         }
 
         $resolveComponentDates = function($config, $component) use ($db, $bulan, $tahun, $daysInMonth) {
-            $prevMonth = intval($bulan) - 1;
-            $prevYear = intval($tahun);
-            if ($prevMonth == 0) {
-                $prevMonth = 12;
-                $prevYear--;
+            $startField = "cutoff_{$component}_start";
+            $endField = "cutoff_{$component}_end";
+            $refField = "cutoff_{$component}_schedule_ref";
+            
+            $start = ($config && isset($config->$startField)) ? intval($config->$startField) : null;
+            $end = ($config && isset($config->$endField)) ? intval($config->$endField) : null;
+            $refId = ($config && isset($config->$refField)) ? intval($config->$refField) : null;
+            
+            if ($refId) {
+                $sched = $db->table('payroll_schedules')->where('id', $refId)->get()->getRow();
+                if ($sched) {
+                    $start = intval($sched->cutoff_start);
+                    $end = intval($sched->cutoff_end);
+                }
             }
-            $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
-            $endDateStr = date('Y-m-t', strtotime($startDateStr));
+            
+            if ($start === null) {
+                if ($component === 'gaji_pokok' && $config && isset($config->cutoff_start)) {
+                    $start = intval($config->cutoff_start);
+                } else {
+                    $start = 21;
+                }
+            }
+            if ($end === null) {
+                if ($component === 'gaji_pokok' && $config && isset($config->cutoff_end)) {
+                    $end = intval($config->cutoff_end);
+                } else {
+                    $end = $start - 1;
+                    if ($end < 1) $end = $daysInMonth;
+                }
+            }
+            
+            $bulan_start = intval($bulan);
+            $tahun_start = intval($tahun);
+            $bulan_end = $bulan_start;
+            $tahun_end = $tahun_start;
+            
+            if ($start > $end && $start > 1) {
+                $bulan_start -= 1;
+                if ($bulan_start < 1) {
+                    $bulan_start = 12;
+                    $tahun_start -= 1;
+                }
+            }
+            
+            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $start);
+            $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $end);
             return [$startDateStr, $endDateStr];
         };
 
@@ -950,8 +1028,8 @@ class Payroll extends ResourceController
                 $defaultDays = 22;
             }
 
-            // Standar hari kerja per bulan (default dari client config, fallback 22/26, or override per employee)
-            $systemStandardDays = ($empConfig && isset($empConfig->standard_work_days) && intval($empConfig->standard_work_days) > 0) ? intval($empConfig->standard_work_days) : $defaultDays;
+            // Standar hari kerja per bulan (selalu 22 untuk 5 hari kerja, 26 untuk 6 hari kerja)
+            $systemStandardDays = $defaultDays;
             $standardDays = isset($emp['custom_standard_days']) && intval($emp['custom_standard_days']) > 0 
                 ? intval($emp['custom_standard_days']) 
                 : $systemStandardDays;
@@ -972,7 +1050,7 @@ class Payroll extends ResourceController
                 
                 $currMonthStart = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
                 $currMonthEnd = date('Y-m-t', strtotime($currMonthStart));
-                $currStdWorkingDays = $this->getStandardWorkingDaysInRange($currMonthStart, $currMonthEnd, $workDaysConfigVal);
+                $currStdWorkingDays = ($workDaysConfigVal === 6) ? 26 : (($workDaysConfigVal === 7) ? date('t', strtotime($currMonthStart)) : 22);
                 
                 $joinDateStr = date('Y-m-d', $joinTs);
                 $hasAnyLogsPrev = $db->table('attendance_logs')

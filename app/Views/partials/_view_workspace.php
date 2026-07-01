@@ -184,9 +184,18 @@
                                                 <h4 id="activePeriodName" style="margin:0; color: var(--primary-color);">Select Period</h4>
                                                 <span id="activePeriodStatus" class="status-badge success">Open Period</span>
                                             </div>
-                                            <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color);">
-                                                <i class="fas fa-sync-alt"></i> Generate Salary
-                                            </button>
+                                            <div style="display: flex; gap: 8px; align-items: center;">
+                                                <button class="btn-save" onclick="downloadSalaryTemplate()" style="background: #27ae60; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; border: none; color: white; cursor: pointer;">
+                                                    <i class="fas fa-file-download"></i> Download Template
+                                                </button>
+                                                <button class="btn-save" onclick="bukaModalUploadManualSalary()" style="background: #2980b9; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; border: none; color: white; cursor: pointer;">
+                                                    <i class="fas fa-file-upload"></i> Upload Excel
+                                                </button>
+                                                <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color); border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                                                    <i class="fas fa-sync-alt"></i> Generate Salary
+                                                </button>
+                                                <input type="file" id="salaryExcelFile" accept=".xlsx, .xls" onchange="uploadSalaryExcel(event)" style="display: none;">
+                                            </div>
                                         </div>
                                         <div class="table-container">
                                             <table id="tabelCutOff">
@@ -242,10 +251,13 @@
                                                          <th>Gaji Pokok</th>
                                                          <th>Lembur</th>
                                                          <th>Early Arrival</th>
+                                                         <th>Rapel</th>
                                                          <th>Lainnya/Bonus</th>
                                                          <th>Total Earnings</th>
                                                          <th>Potongan Absen</th>
-                                                         <th>BPJS Karyawan</th>
+                                                         <th>BPJS Kes</th>
+                                                         <th>BPJS JHT</th>
+                                                         <th>BPJS JP</th>
                                                          <th>PPh 21</th>
                                                          <th>Potongan Lain</th>
                                                          <th>Total Deductions</th>

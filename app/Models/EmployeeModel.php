@@ -19,6 +19,7 @@ class EmployeeModel extends Model
     protected $useTimestamps    = true;
 
     protected $validationRules    = [
+        'id'    => 'permit_empty|is_natural_no_zero',
         'nik'   => 'required|is_unique[employees.nik,id,{id}]',
         'email' => 'permit_empty|valid_email|is_unique[employees.email,id,{id}]'
     ];

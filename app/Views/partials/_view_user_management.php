@@ -1,4 +1,54 @@
 <!-- Section: User Management (Admin CMS) -->
+<style>
+.custom-status-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+.custom-status-switch input {
+    display: none !important;
+}
+.custom-status-slider {
+    width: 48px;
+    height: 26px;
+    background-color: #cbd5e1;
+    border-radius: 13px;
+    position: relative;
+    transition: all 0.3s ease;
+    display: inline-block;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+.custom-status-slider::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+.custom-status-switch input:checked + .custom-status-slider {
+    background-color: #10b981;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05), 0 0 8px rgba(16, 185, 129, 0.3);
+}
+.custom-status-switch input:checked + .custom-status-slider::after {
+    transform: translateX(22px);
+}
+.custom-status-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ef4444; /* Default to Inactive (Red) */
+    transition: color 0.3s ease;
+}
+.custom-status-switch input:checked ~ .custom-status-label {
+    color: #10b981; /* Active (Green) */
+}
+</style>
 <div id="viewUserManagement" class="view-section">
     <div class="section-header">
         <h3><i class="fas fa-user-shield"></i> User Management</h3>
@@ -14,7 +64,7 @@
         <div class="card-header">
             <h4>All Users</h4>
             <div class="card-actions">
-                <input type="text" id="searchUsers" placeholder="Search users..." class="search-input" oninput="filterUsersTable()">
+                <input type="search" id="searchUsers" placeholder="Search users..." class="search-input" oninput="filterUsersTable()" autocomplete="off">
             </div>
         </div>
         <div class="table-responsive">
@@ -82,13 +132,15 @@
                 <option value="staff">Staff</option>
             </select>
         </div>
-        <div class="form-group">
-            <label>Status</label>
-            <label class="user-toggle-container">
-                <input type="checkbox" id="userFormActive" checked>
-                <span class="user-toggle-slider"></span>
-                <span class="toggle-label" id="userActiveLabel">Active</span>
-            </label>
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="font-weight: 600; margin-bottom: 8px; display: block; color: #475569; font-size: 14px;">Status</label>
+            <div style="display: flex; align-items: center; padding: 4px 0;">
+                <label class="custom-status-switch">
+                    <input type="checkbox" id="userFormActive" checked>
+                    <span class="custom-status-slider"></span>
+                    <span class="custom-status-label" id="userActiveLabel">Active</span>
+                </label>
+            </div>
         </div>
     </div>
     <div class="modal-footer">

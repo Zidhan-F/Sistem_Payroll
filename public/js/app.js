@@ -51,8 +51,8 @@ if (currentUser && document.getElementById('headerUserName')) {
 const ROLE_PERMISSIONS = {
     admin: ['*'], // Akses semua
     payroll: ['dashboard', 'klien', 'payroll', 'pajak', 'masterKompensasi', 'clientWorkspace'],
-    business_development: ['dashboard', 'klien', 'sto', 'clientWorkspace', 'payroll', 'masterKompensasi'],
-    recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'globalLokasiKerja', 'clientWorkspace'],
+    business_development: ['dashboard', 'klien', 'sto', 'clientWorkspace', 'payroll', 'masterKompensasi', 'pajak'],
+    recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace'],
     client_superior: ['dashboard', 'klien', 'clientWorkspace'],
     hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace'],
     staff: ['dashboard', 'klien', 'clientWorkspace']
@@ -118,8 +118,8 @@ function applyWorkspaceTabRestrictions() {
     const subTabProcessing = document.getElementById('subTabSalaryProcessing');
     const subTabResults = document.getElementById('subTabCalculationResults');
     
-    const canProcess = (role === 'admin' || role === 'payroll');
-    const canViewResults = (role === 'admin' || role === 'payroll' || role === 'client_superior' || role === 'staff');
+    const canProcess = (role === 'admin' || role === 'payroll' || role === 'hc_ops');
+    const canViewResults = (role === 'admin' || role === 'payroll' || role === 'client_superior' || role === 'staff' || role === 'hc_ops');
 
     if (subTabProcessing) subTabProcessing.style.display = canProcess ? '' : 'none';
     if (subTabResults) subTabResults.style.display = canViewResults ? '' : 'none';
@@ -175,7 +175,7 @@ function applyRoleRestrictions() {
     const subTambah = document.getElementById('submenuTambahKaryawan');
     const subShift = document.getElementById('submenuSkemaShift');
 
-    if (subLokasi) subLokasi.style.display = (isAdmin || ['recruiter', 'hc_ops'].includes(role)) ? '' : 'none';
+    if (subLokasi) subLokasi.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
     if (subTambah) subTambah.style.display = (isAdmin || role === 'recruiter') ? '' : 'none';
     if (subShift) subShift.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
 
@@ -198,6 +198,38 @@ function applyRoleRestrictions() {
         headerRoleBadge.style.background = color + '22';
         headerRoleBadge.style.color = color;
         headerRoleBadge.style.display = 'inline-block';
+    }
+
+    // Quick Actions Panel Detail Restrictions
+    const qaDashboard = document.getElementById('qaDashboard');
+    const qaAddClient = document.getElementById('qaAddClient');
+    const qaAddEmployee = document.getElementById('qaAddEmployee');
+    const qaAddStoGlobal = document.getElementById('qaAddStoGlobal');
+    const qaSalaryStructure = document.getElementById('qaSalaryStructure');
+    const qaBpjsTaxScheme = document.getElementById('qaBpjsTaxScheme');
+    const qaWorkLocation = document.getElementById('qaWorkLocation');
+    const qaUploadUmkUmp = document.getElementById('qaUploadUmkUmp');
+    const qaSchemeSettings = document.getElementById('qaSchemeSettings');
+
+    if (qaDashboard) qaDashboard.style.display = '';
+    if (qaAddClient) qaAddClient.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+    if (qaAddEmployee) qaAddEmployee.style.display = (isAdmin || role === 'recruiter') ? '' : 'none';
+    if (qaAddStoGlobal) qaAddStoGlobal.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+    if (qaSalaryStructure) qaSalaryStructure.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+    if (qaBpjsTaxScheme) qaBpjsTaxScheme.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+    if (qaWorkLocation) qaWorkLocation.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (qaUploadUmkUmp) qaUploadUmkUmp.style.display = (isAdmin || role === 'payroll') ? '' : 'none';
+    if (qaSchemeSettings) qaSchemeSettings.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+
+    // Work Location Recruiter Restrictions
+    const btnTambahLokasi = document.getElementById('btnTambahLokasiKerjaGlobal');
+    const thActionLokasi = document.getElementById('thActionLokasiKerjaGlobal');
+    if (role === 'recruiter') {
+        if (btnTambahLokasi) btnTambahLokasi.style.display = 'none';
+        if (thActionLokasi) thActionLokasi.style.display = 'none';
+    } else {
+        if (btnTambahLokasi) btnTambahLokasi.style.display = '';
+        if (thActionLokasi) thActionLokasi.style.display = '';
     }
 
     // Terapkan restriksi ke client workspace tabs

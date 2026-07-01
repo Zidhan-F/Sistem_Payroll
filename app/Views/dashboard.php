@@ -66,7 +66,7 @@
                     
                     <div class="quick-actions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
                         <!-- Action 0: Dashboard -->
-                        <div class="quick-action-card" onclick="quickAction('dashboard')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaDashboard" class="quick-action-card" onclick="quickAction('dashboard')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(63, 81, 181, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/1828/1828765.png" alt="Dashboard" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -77,7 +77,7 @@
                         </div>
 
                         <!-- Action 1: Tambah Klien -->
-                        <div class="quick-action-card" onclick="quickAction('tambah-klien')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaAddClient" class="quick-action-card" onclick="quickAction('tambah-klien')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(243, 156, 18, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/4300/4300058.png" alt="Klien" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -88,7 +88,7 @@
                         </div>
 
                         <!-- Action 2: Tambah Karyawan -->
-                        <div class="quick-action-card" onclick="quickAction('tambah-karyawan')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaAddEmployee" class="quick-action-card" onclick="quickAction('tambah-karyawan')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(52, 152, 219, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Karyawan" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -99,7 +99,7 @@
                         </div>
 
                         <!-- Action 8: Add STO Global -->
-                        <div class="quick-action-card" onclick="quickAction('add-sto-global')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaAddStoGlobal" class="quick-action-card" onclick="quickAction('add-sto-global')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(243, 156, 18, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/4205/4205934.png" alt="Add STO Global" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -110,7 +110,7 @@
                         </div>
 
                         <!-- Action 3: Struktur Gaji -->
-                        <div class="quick-action-card" onclick="quickAction('struktur-gaji')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaSalaryStructure" class="quick-action-card" onclick="quickAction('struktur-gaji')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(46, 204, 113, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/3135/3135706.png" alt="Struktur Gaji" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -123,7 +123,7 @@
 
 
                         <!-- Action 4: Pengaturan BPJS & Pajak -->
-                        <div class="quick-action-card" onclick="quickAction('pengaturan-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaBpjsTaxScheme" class="quick-action-card" onclick="quickAction('pengaturan-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(155, 89, 182, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/2040/2040504.png" alt="BPJS & Pajak" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -134,7 +134,7 @@
                         </div>
 
                         <!-- Action 5: Lokasi Kerja -->
-                        <div class="quick-action-card" onclick="quickAction('lokasi-kerja')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaWorkLocation" class="quick-action-card" onclick="quickAction('lokasi-kerja')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(26, 188, 156, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/1865/1865269.png" alt="Lokasi Kerja" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -145,7 +145,7 @@
                         </div>
 
                         <!-- Action 6: Upload UMK UMP -->
-                        <div class="quick-action-card" onclick="quickAction('upload-umk-ump')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaUploadUmkUmp" class="quick-action-card" onclick="quickAction('upload-umk-ump')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(231, 76, 60, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/1091/1091210.png" alt="Upload UMK UMP" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -156,7 +156,7 @@
                         </div>
 
                         <!-- Action 7: Setting Skema -->
-                        <div class="quick-action-card" onclick="quickAction('setting-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div id="qaSchemeSettings" class="quick-action-card" onclick="quickAction('setting-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(39, 174, 96, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/2489/2489756.png" alt="Setting Skema" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
@@ -257,7 +257,7 @@
                         <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Work Location Data</h3>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <input type="text" id="cariLokasiKerjaGlobal" placeholder="Search work location, province, city..." oninput="cariLokasiKerjaGlobalAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
-                            <button class="btn-add" onclick="bukaModalLokasiKerja()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                            <button id="btnTambahLokasiKerjaGlobal" class="btn-add" onclick="bukaModalLokasiKerja()" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
                                 <i class="fas fa-plus"></i> Add Work Location
                             </button>
                         </div>
@@ -272,7 +272,7 @@
                                     <th>Client / Company</th>
                                     <th>Province</th>
                                     <th>City/Regency</th>
-                                    <th>Action</th>
+                                    <th id="thActionLokasiKerjaGlobal">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="tabelGlobalLokasiKerjaBody">
@@ -582,9 +582,18 @@
                                                 <h4 id="activePeriodName" style="margin:0; color: var(--primary-color);">Select Period</h4>
                                                 <span id="activePeriodStatus" class="status-badge success">Open Period</span>
                                             </div>
-                                            <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color);">
-                                                <i class="fas fa-sync-alt"></i> Generate Salary
-                                            </button>
+                                            <div style="display: flex; gap: 8px; align-items: center;">
+                                                <button class="btn-save" onclick="downloadSalaryTemplate()" style="background: #27ae60; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; border: none; color: white; cursor: pointer;">
+                                                    <i class="fas fa-file-download"></i> Download Template
+                                                </button>
+                                                <button class="btn-save" onclick="bukaModalUploadManualSalary()" style="background: #2980b9; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; border: none; color: white; cursor: pointer;">
+                                                    <i class="fas fa-file-upload"></i> Upload Excel
+                                                </button>
+                                                <button class="btn-save" onclick="generateGaji()" style="background: var(--primary-color); border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; border: none; color: white; cursor: pointer;">
+                                                    <i class="fas fa-sync-alt"></i> Generate Salary
+                                                </button>
+                                                <input type="file" id="salaryExcelFile" accept=".xlsx, .xls" onchange="uploadSalaryExcel(event)" style="display: none;">
+                                            </div>
                                         </div>
                                         <div class="table-container">
                                             <table id="tabelCutOff">
@@ -640,10 +649,13 @@
                                                         <th>Gaji Pokok</th>
                                                         <th>Lembur</th>
                                                         <th>Early Arrival</th>
+                                                        <th>Rapel</th>
                                                         <th>Lainnya/Bonus</th>
                                                         <th>Total Earnings</th>
                                                         <th>Potongan Absen</th>
-                                                        <th>BPJS Karyawan</th>
+                                                        <th>BPJS Kes</th>
+                                                        <th>BPJS JHT</th>
+                                                        <th>BPJS JP</th>
                                                         <th>PPh 21</th>
                                                         <th>Potongan Lain</th>
                                                         <th>Total Deductions</th>

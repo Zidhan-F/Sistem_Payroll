@@ -603,6 +603,10 @@ async function bukaModalKaryawan(mode,id=null){
     
     const empEmployIdContainer = document.getElementById('empEmployIdContainer');
     const empNikNamaGrid = document.getElementById('empNikNamaGrid');
+    const modalTitleEl = document.getElementById('modalKaryawanTitle');
+    if (modalTitleEl) {
+        modalTitleEl.textContent = (mode === 'edit') ? 'Edit Employee Data' : 'Add Employee Data';
+    }
     if (mode === 'edit') {
         if (empEmployIdContainer) empEmployIdContainer.style.display = 'block';
         if (empNikNamaGrid) empNikNamaGrid.style.gridTemplateColumns = '1fr 2fr';
