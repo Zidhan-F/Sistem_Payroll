@@ -3258,6 +3258,8 @@ class Api extends ResourceController
                              ->where('pkwt_id', $pkwtId)
                              ->get()->getRow();
         
+        $data['is_manual'] = 1;
+
         if ($existing) {
             $this->db->table('payroll_attendance')->where('id', $existing->id)->update($data);
         } else {
@@ -3380,6 +3382,16 @@ class Api extends ResourceController
                     }
                 }
 
+                // Fetch holidays in range for absence counting
+                $holidaysList = [];
+                $holidayRowsForAlpa = $this->db->table('holiday_calendar')
+                                  ->where('tanggal >=', $startDateStr)
+                                  ->where('tanggal <=', $endDateStr)
+                                  ->get()->getResultArray();
+                foreach ($holidayRowsForAlpa as $h) {
+                    $holidaysList[$h['tanggal']] = true;
+                }
+
                 while ($currTime <= $endTime) {
                     $currDateStr = date('Y-m-d', $currTime);
                     $dayOfWeek = intval(date('w', $currTime)); // 0 = Sunday, 6 = Saturday
@@ -3391,14 +3403,16 @@ class Api extends ResourceController
                         continue;
                     }
 
-                    // Determine if it is a working day
+                    // Determine if it is a working day (exclude holidays)
                     $isWorkingDay = false;
-                    if ($workDaysConfig === 5) {
-                        $isWorkingDay = ($dayOfWeek !== 0 && $dayOfWeek !== 6);
-                    } elseif ($workDaysConfig === 6) {
-                        $isWorkingDay = ($dayOfWeek !== 0);
-                    } else {
-                        $isWorkingDay = true;
+                    if (!isset($holidaysList[$currDateStr])) {
+                        if ($workDaysConfig === 5) {
+                            $isWorkingDay = ($dayOfWeek !== 0 && $dayOfWeek !== 6);
+                        } elseif ($workDaysConfig === 6) {
+                            $isWorkingDay = ($dayOfWeek !== 0);
+                        } else {
+                            $isWorkingDay = true;
+                        }
                     }
                     
                     if ($isWorkingDay) {
@@ -3484,7 +3498,10 @@ class Api extends ResourceController
                     }
                 }
 
-                $divider = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($startDateStr)) : 22);
+                $divider = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
+                if ($divider <= 0) {
+                    $divider = ($workDaysConfig === 5) ? 22 : (($workDaysConfig === 6) ? 26 : 30);
+                }
                 $dendaAbsenPerDay = $gajiPokok / $divider;
                 $calculatedPotongan = $alpaCount * $dendaAbsenPerDay;
 
@@ -3558,7 +3575,7 @@ class Api extends ResourceController
                 }
 
                 if ($isJoinedPrevMonth || $isActiveRegularPrevMonth) {
-                    $hariKerja = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($startDateStr)) : 22);
+                    $hariKerja = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
                     $potonganAbsensi = 0.0;
                 }
 
@@ -3582,6 +3599,7 @@ class Api extends ResourceController
                 'early_arrival_minutes' => $earlyArrivalMinutes,
                 'potongan_absensi' => $potonganAbsensi,
                 'bonus_tambahan' => $record['bonus_tambahan'] ?? 0,
+                'is_manual' => 1
             ];
 
             if ($existing) {
@@ -3924,7 +3942,9 @@ class Api extends ResourceController
                     $workDaysConfig = intval($emp->position_hari_kerja);
                 }
             }
-            $systemStandardDays = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($startDateStr)) : 22);
+            $systemStandardDays = ($clientConfig && isset($clientConfig->standard_work_days) && intval($clientConfig->standard_work_days) > 0)
+                ? intval($clientConfig->standard_work_days)
+                : $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
             
             $stdWorkingDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
                 ? intval($emp->custom_standard_days)
@@ -3938,23 +3958,7 @@ class Api extends ResourceController
                 if ($joinDateStr >= $startDateStr && $joinDateStr <= $endDateStr) {
                     $effectiveStartDateStr = $joinDateStr;
                     // Calculate expected working days from join date to end date
-                    $expectedWorkingDays = 0;
-                    $startTs = strtotime($joinDateStr);
-                    $endTs = strtotime($endDateStr);
-                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
-                        $dayOfWeek = date('w', $curr);
-                        if ($workDaysConfig === 5) {
-                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
-                                $expectedWorkingDays++;
-                            }
-                        } elseif ($workDaysConfig === 6) {
-                            if ($dayOfWeek != 0) {
-                                $expectedWorkingDays++;
-                            }
-                        } else {
-                            $expectedWorkingDays++;
-                        }
-                    }
+                    $expectedWorkingDays = $this->getStandardWorkingDaysInRange($joinDateStr, $endDateStr, $workDaysConfig);
                 }
             }
             
@@ -4073,7 +4077,7 @@ class Api extends ResourceController
                     $workDaysConfig = intval($emp->position_hari_kerja);
                 }
                 
-                $prevStdWorkingDays = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($prevStartDateStr)) : 22);
+                $prevStdWorkingDays = $this->getStandardWorkingDaysInRange($prevStartDateStr, $prevEndDateStr, $workDaysConfig);
                 
                 $joinDateStr = date('Y-m-d', $joinTs);
                 $hasAnyLogsPrev = $this->db->table('attendance_logs')
@@ -4090,23 +4094,7 @@ class Api extends ResourceController
                                                  ->where('status', 'Hadir')
                                                  ->countAllResults();
                 } else {
-                    $actualDaysWorkedPrev = 0;
-                    $startTs = strtotime($joinDateStr);
-                    $endTs = strtotime($prevEndDateStr);
-                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
-                        $dayOfWeek = date('w', $curr);
-                        if ($workDaysConfig === 5) {
-                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
-                                $actualDaysWorkedPrev++;
-                            }
-                        } elseif ($workDaysConfig === 6) {
-                            if ($dayOfWeek != 0) {
-                                $actualDaysWorkedPrev++;
-                            }
-                        } else {
-                            $actualDaysWorkedPrev++;
-                        }
-                    }
+                    $actualDaysWorkedPrev = $this->getStandardWorkingDaysInRange($joinDateStr, $prevEndDateStr, $workDaysConfig);
                 }
                 
                 $prevMonthComponents = [];
@@ -4252,23 +4240,7 @@ class Api extends ResourceController
                                                  ->where('status', 'Hadir')
                                                  ->countAllResults();
                 } else {
-                    $actualDaysWorkedPrev = 0;
-                    $startTs = strtotime($joinDateStr);
-                    $endTs = strtotime($currMonthEnd);
-                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
-                        $dayOfWeek = date('w', $curr);
-                        if ($workDaysConfig === 5) {
-                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
-                                $actualDaysWorkedPrev++;
-                            }
-                        } elseif ($workDaysConfig === 6) {
-                            if ($dayOfWeek != 0) {
-                                $actualDaysWorkedPrev++;
-                            }
-                        } else {
-                            $actualDaysWorkedPrev++;
-                        }
-                    }
+                    $actualDaysWorkedPrev = $this->getStandardWorkingDaysInRange($joinDateStr, $currMonthEnd, $workDaysConfig);
                 }
                 
                 $rapelAmount = 0.0;
@@ -4549,29 +4521,15 @@ class Api extends ResourceController
                         $prevMonthEnd = date('Y-m-t', strtotime($prevMonthStart));
                         $prevCalendarStdDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
                             ? intval($emp->custom_standard_days)
-                            : ($workDaysConfig === 6 ? 26 : ($workDaysConfig === 7 ? date('t', strtotime($prevMonthStart)) : 22));
+                            : (($clientConfig && isset($clientConfig->standard_work_days) && intval($clientConfig->standard_work_days) > 0)
+                                ? intval($clientConfig->standard_work_days)
+                                : $this->getStandardWorkingDaysInRange($prevMonthStart, $prevMonthEnd, $workDaysConfig));
 
                         $expectedWorkingDaysCalendar = $prevCalendarStdDays;
                         if ($emp && !empty($emp->tgl_masuk)) {
                             $joinDateStr = date('Y-m-d', strtotime($emp->tgl_masuk));
                             if ($joinDateStr >= $prevMonthStart && $joinDateStr <= $prevMonthEnd) {
-                                $expectedWorkingDaysCalendar = 0;
-                                $startTs = strtotime($joinDateStr);
-                                $endTs = strtotime($prevMonthEnd);
-                                for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
-                                    $dayOfWeek = date('w', $curr);
-                                    if ($workDaysConfig === 5) {
-                                        if ($dayOfWeek != 0 && $dayOfWeek != 6) {
-                                            $expectedWorkingDaysCalendar++;
-                                        }
-                                    } elseif ($workDaysConfig === 6) {
-                                        if ($dayOfWeek != 0) {
-                                            $expectedWorkingDaysCalendar++;
-                                        }
-                                    } else {
-                                        $expectedWorkingDaysCalendar++;
-                                    }
-                                }
+                                $expectedWorkingDaysCalendar = $this->getStandardWorkingDaysInRange($joinDateStr, $prevMonthEnd, $workDaysConfig);
                             }
                         }
 
@@ -5377,7 +5335,8 @@ class Api extends ResourceController
                 'jam_lembur' => $row['overtime_hours'],
                 'early_arrival_minutes' => intval(($row['early_arrival_hours'] ?? 0) * 60),
                 'potongan_absensi' => $row['potongan_absen'],
-                'bonus_tambahan' => $row['bonus_tambahan']
+                'bonus_tambahan' => $row['bonus_tambahan'],
+                'is_manual' => 1
             ];
 
             if ($att) {
@@ -5842,7 +5801,9 @@ class Api extends ResourceController
         $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
         $endDateStr = date('Y-m-t', strtotime($startDateStr));
         
-        $systemStandardDays = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($startDateStr)) : 22);
+        $systemStandardDays = ($clientConfig && isset($clientConfig->standard_work_days) && intval($clientConfig->standard_work_days) > 0)
+            ? intval($clientConfig->standard_work_days)
+            : $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
 
         $stdWorkingDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
             ? intval($emp->custom_standard_days)
@@ -5872,7 +5833,7 @@ class Api extends ResourceController
                 
                 $currMonthStart = sprintf('%04d-%02d-01', $tYear, $tMonth);
                 $currMonthEnd = date('Y-m-t', strtotime($currMonthStart));
-                $holdStdWorkingDays = ($workDaysConfig === 6) ? 26 : (($workDaysConfig === 7) ? date('t', strtotime($currMonthStart)) : 22);
+                $holdStdWorkingDays = $this->getStandardWorkingDaysInRange($currMonthStart, $currMonthEnd, $workDaysConfig);
                 
                 $joinDateStr = date('Y-m-d', $joinTs);
                 $hasAnyLogsPrev = $this->db->table('attendance_logs')
@@ -5889,23 +5850,7 @@ class Api extends ResourceController
                                                  ->where('status', 'Hadir')
                                                  ->countAllResults();
                 } else {
-                    $holdActualDaysWorked = 0;
-                    $startTs = strtotime($joinDateStr);
-                    $endTs = strtotime($currMonthEnd);
-                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
-                        $dayOfWeek = date('w', $curr);
-                        if ($workDaysConfig === 5) {
-                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
-                                $holdActualDaysWorked++;
-                            }
-                        } elseif ($workDaysConfig === 6) {
-                            if ($dayOfWeek != 0) {
-                                $holdActualDaysWorked++;
-                            }
-                        } else {
-                            $holdActualDaysWorked++;
-                        }
-                    }
+                    $holdActualDaysWorked = $this->getStandardWorkingDaysInRange($joinDateStr, $currMonthEnd, $workDaysConfig);
                 }
             }
         }
@@ -7181,9 +7126,26 @@ class Api extends ResourceController
 
     private function getStandardWorkingDays(int $year, int $month, int $workDaysConfig): int
     {
+        $db = \Config\Database::connect();
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = date('Y-m-t', strtotime($startDate));
+        $holidays = [];
+        $holidayRows = $db->table('holiday_calendar')
+                          ->where('tanggal >=', $startDate)
+                          ->where('tanggal <=', $endDate)
+                          ->get()->getResultArray();
+        foreach ($holidayRows as $h) {
+            $holidays[$h['tanggal']] = true;
+        }
+
         $daysInMonth = date('t', mktime(0, 0, 0, $month, 1, $year));
         $stdDays = 0;
         for ($d = 1; $d <= $daysInMonth; $d++) {
+            $currDate = sprintf('%04d-%02d-%02d', $year, $month, $d);
+            if (isset($holidays[$currDate])) {
+                continue; // Skip holiday calendar dates
+            }
+
             $dayOfWeek = date('w', mktime(0, 0, 0, $month, $d, $year)); // 0 = Sunday, 6 = Saturday
             if ($workDaysConfig === 5) {
                 if ($dayOfWeek != 0 && $dayOfWeek != 6) {
@@ -7240,10 +7202,25 @@ class Api extends ResourceController
 
     private function getStandardWorkingDaysInRange(string $startDate, string $endDate, int $workDaysConfig): int
     {
+        $db = \Config\Database::connect();
+        $holidays = [];
+        $holidayRows = $db->table('holiday_calendar')
+                          ->where('tanggal >=', $startDate)
+                          ->where('tanggal <=', $endDate)
+                          ->get()->getResultArray();
+        foreach ($holidayRows as $h) {
+            $holidays[$h['tanggal']] = true;
+        }
+
         $startTs = strtotime($startDate);
         $endTs = strtotime($endDate);
         $stdDays = 0;
         for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+            $currDate = date('Y-m-d', $curr);
+            if (isset($holidays[$currDate])) {
+                continue; // Skip holiday calendar dates
+            }
+
             $dayOfWeek = date('w', $curr);
             if ($workDaysConfig === 5) {
                 if ($dayOfWeek != 0 && $dayOfWeek != 6) {
@@ -8277,6 +8254,10 @@ class Api extends ResourceController
                                      ->where('pkwt_id', $pkwt->id)
                                      ->get()->getRow();
 
+                if ($existing && intval($existing->is_manual ?? 0) === 1) {
+                    continue;
+                }
+
                 if ($existing) {
                     $this->db->table('payroll_attendance')
                              ->where('id', $existing->id)
@@ -8401,9 +8382,12 @@ class Api extends ResourceController
         $pkwts = $pkwtQuery->get()->getResult();
 
         foreach ($pkwts as $pkwt) {
-            // Skip sync if client's payroll_type is 'Template' (manual Excel upload)
-            $cConfig = $this->db->table('client_payroll_configs')->where('client_id', $pkwt->client_id)->get()->getRow();
-            if ($cConfig && $cConfig->payroll_type === 'Template') {
+            // Skip sync if manually overridden
+            $existing = $this->db->table('payroll_attendance')
+                                 ->where('period_id', $periodId)
+                                 ->where('pkwt_id', $pkwt->id)
+                                 ->get()->getRow();
+            if ($existing && intval($existing->is_manual ?? 0) === 1) {
                 continue;
             }
 
@@ -8486,7 +8470,7 @@ class Api extends ResourceController
                     if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
                         $posHk = intval($emp->hari_kerja);
                     }
-                    $stdWorkingDays = ($posHk === 6) ? 26 : (($posHk === 7) ? date('t', strtotime($startDateStr)) : 22);
+                    $stdWorkingDays = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $posHk);
                     $hariKerjaVal = $stdWorkingDays;
                 }
             }
@@ -8545,7 +8529,7 @@ class Api extends ResourceController
                 if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
                     $posHk = intval($emp->hari_kerja);
                 }
-                $stdWorkingDays = ($posHk === 6) ? 26 : (($posHk === 7) ? date('t', strtotime($startDateStr)) : 22);
+                $stdWorkingDays = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $posHk);
                 $hariKerjaVal = $stdWorkingDays;
             }
 
@@ -8594,9 +8578,12 @@ class Api extends ResourceController
         $pkwts = $pkwtQuery->get()->getResult();
 
         foreach ($pkwts as $pkwt) {
-            // Skip sync if client's payroll_type is 'Template' (manual Excel upload)
-            $cConfig = $this->db->table('client_payroll_configs')->where('client_id', $pkwt->client_id)->get()->getRow();
-            if ($cConfig && $cConfig->payroll_type === 'Template') {
+            // Skip sync if manually overridden
+            $existing = $this->db->table('payroll_attendance')
+                                 ->where('period_id', $periodId)
+                                 ->where('pkwt_id', $pkwt->id)
+                                 ->get()->getRow();
+            if ($existing && intval($existing->is_manual ?? 0) === 1) {
                 continue;
             }
 
@@ -8608,23 +8595,47 @@ class Api extends ResourceController
 
             $clientConfig = $this->resolveClientConfig($pkwt->client_id, $pkwt->position_name);
 
-            $prevMonth = intval($period->bulan) - 1;
-            $prevYear = intval($period->tahun);
-            if ($prevMonth == 0) {
-                $prevMonth = 12;
-                $prevYear--;
+            // Use cutoff dates from client config (consistent with getAttendance)
+            $cutoffStartEnd = $this->resolveCutoffStartEnd($clientConfig);
+            $cutoffStart = $cutoffStartEnd['start'];
+            $cutoffEnd = $cutoffStartEnd['end'];
+
+            $bulan_start = intval($period->bulan);
+            $tahun_start = intval($period->tahun);
+            $bulan_end = $bulan_start;
+            $tahun_end = $tahun_start;
+            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
+                $bulan_start -= 1;
+                if ($bulan_start < 1) {
+                    $bulan_start = 12;
+                    $tahun_start -= 1;
+                }
             }
-            $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
-            $endDateStr = date('Y-m-t', strtotime($startDateStr));
+            $daysInStartMonth = date('t', mktime(0, 0, 0, $bulan_start, 1, $tahun_start));
+            $daysInEndMonth = date('t', mktime(0, 0, 0, $bulan_end, 1, $tahun_end));
+            $effectiveCutoffStart = min($cutoffStart, $daysInStartMonth);
+            $effectiveCutoffEnd = min($cutoffEnd, $daysInEndMonth);
+            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $effectiveCutoffStart);
+            $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $effectiveCutoffEnd);
 
             $effectiveStartDateStr = !empty($emp->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $startDateStr;
+
+            // Also match by payroll_period column for records assigned to this period
+            $payoutPeriodStr = intval($period->bulan) . '-' . intval($period->tahun);
+            $payoutPeriodStrPadded = sprintf('%02d/%04d', intval($period->bulan), intval($period->tahun));
 
             $eaSumObj = $this->db->table('early_arrival')
                                  ->selectSum('eligible_minutes')
                                  ->where('employee_id', $emp->id)
-                                 ->where('date >=', $effectiveStartDateStr)
-                                 ->where('date <=', $endDateStr)
                                  ->where('status', 'APPROVED')
+                                 ->groupStart()
+                                     ->groupStart()
+                                         ->where('date >=', $effectiveStartDateStr)
+                                         ->where('date <=', $endDateStr)
+                                     ->groupEnd()
+                                     ->orWhere('payroll_period', $payoutPeriodStr)
+                                     ->orWhere('payroll_period', $payoutPeriodStrPadded)
+                                 ->groupEnd()
                                  ->get()->getRow();
             $eaSum = $eaSumObj ? intval($eaSumObj->eligible_minutes) : 0;
 

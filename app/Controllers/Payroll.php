@@ -1028,8 +1028,8 @@ class Payroll extends ResourceController
                 $defaultDays = 22;
             }
 
-            // Standar hari kerja per bulan (selalu 22 untuk 5 hari kerja, 26 untuk 6 hari kerja)
-            $systemStandardDays = $defaultDays;
+            // Standar hari kerja per bulan (default dari client config, fallback 22/26, or override per employee)
+            $systemStandardDays = ($empConfig && isset($empConfig->standard_work_days) && intval($empConfig->standard_work_days) > 0) ? intval($empConfig->standard_work_days) : $defaultDays;
             $standardDays = isset($emp['custom_standard_days']) && intval($emp['custom_standard_days']) > 0 
                 ? intval($emp['custom_standard_days']) 
                 : $systemStandardDays;
@@ -1050,7 +1050,7 @@ class Payroll extends ResourceController
                 
                 $currMonthStart = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
                 $currMonthEnd = date('Y-m-t', strtotime($currMonthStart));
-                $currStdWorkingDays = ($workDaysConfigVal === 6) ? 26 : (($workDaysConfigVal === 7) ? date('t', strtotime($currMonthStart)) : 22);
+                $currStdWorkingDays = $this->getStandardWorkingDaysInRange($currMonthStart, $currMonthEnd, $workDaysConfigVal);
                 
                 $joinDateStr = date('Y-m-d', $joinTs);
                 $hasAnyLogsPrev = $db->table('attendance_logs')
@@ -1067,23 +1067,7 @@ class Payroll extends ResourceController
                                                 ->where('status', 'Hadir')
                                                 ->countAllResults();
                 } else {
-                    $actualDaysWorkedPrev = 0;
-                    $startTs = strtotime($joinDateStr);
-                    $endTs = strtotime($currMonthEnd);
-                    for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
-                        $dayOfWeek = date('w', $curr);
-                        if ($workDaysConfigVal === 5) {
-                            if ($dayOfWeek != 0 && $dayOfWeek != 6) {
-                                $actualDaysWorkedPrev++;
-                            }
-                        } elseif ($workDaysConfigVal === 6) {
-                            if ($dayOfWeek != 0) {
-                                $actualDaysWorkedPrev++;
-                            }
-                        } else {
-                            $actualDaysWorkedPrev++;
-                        }
-                    }
+                    $actualDaysWorkedPrev = $this->getStandardWorkingDaysInRange($joinDateStr, $currMonthEnd, $workDaysConfigVal);
                 }
                 
                 $totalEarnings = 0.0;
@@ -1592,6 +1576,16 @@ class Payroll extends ResourceController
                 }
             }
 
+            // Fetch holidays in range to exclude them from working days
+            $holidaysList = [];
+            $holidayRows = $db->table('holiday_calendar')
+                              ->where('tanggal >=', $empStartDateStr)
+                              ->where('tanggal <=', $empEndDateStr)
+                              ->get()->getResultArray();
+            foreach ($holidayRows as $h) {
+                $holidaysList[$h['tanggal']] = true;
+            }
+
             while ($currTime <= $endTime) {
                 $currDateStr = date('Y-m-d', $currTime);
                 $dayOfWeek = intval(date('w', $currTime)); // 0 = Sunday, 6 = Saturday
@@ -1615,12 +1609,14 @@ class Payroll extends ResourceController
 
                 // Determine if it is a working day
                 $isWorkingDay = false;
-                if ($workDaysConfig === 5) {
-                    $isWorkingDay = ($dayOfWeek !== 0 && $dayOfWeek !== 6);
-                } elseif ($workDaysConfig === 6) {
-                    $isWorkingDay = ($dayOfWeek !== 0);
-                } else {
-                    $isWorkingDay = true;
+                if (!isset($holidaysList[$currDateStr])) {
+                    if ($workDaysConfig === 5) {
+                        $isWorkingDay = ($dayOfWeek !== 0 && $dayOfWeek !== 6);
+                    } elseif ($workDaysConfig === 6) {
+                        $isWorkingDay = ($dayOfWeek !== 0);
+                    } else {
+                        $isWorkingDay = true;
+                    }
                 }
                 
                 if ($isWorkingDay) {
@@ -2950,10 +2946,25 @@ class Payroll extends ResourceController
 
     private function getStandardWorkingDaysInRange(string $startDate, string $endDate, int $workDaysConfig): int
     {
+        $db = \Config\Database::connect();
+        $holidays = [];
+        $holidayRows = $db->table('holiday_calendar')
+                          ->where('tanggal >=', $startDate)
+                          ->where('tanggal <=', $endDate)
+                          ->get()->getResultArray();
+        foreach ($holidayRows as $h) {
+            $holidays[$h['tanggal']] = true;
+        }
+
         $startTs = strtotime($startDate);
         $endTs = strtotime($endDate);
         $stdDays = 0;
         for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+            $currDate = date('Y-m-d', $curr);
+            if (isset($holidays[$currDate])) {
+                continue; // Skip holiday calendar dates
+            }
+
             $dayOfWeek = date('w', $curr);
             if ($workDaysConfig === 5) {
                 if ($dayOfWeek != 0 && $dayOfWeek != 6) {

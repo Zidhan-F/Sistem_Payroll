@@ -453,13 +453,14 @@
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Overtime Hours</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Holiday</th>
                                 <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
+                                <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Periode Payroll</th>
                                 <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Verifier</th>
                                 <th style="width: 120px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="overtimeHistoryTableBody">
                             <tr>
-                                <td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
+                                <td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
                                     <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
                                     Please select a client first to display overtime data.
                                 </td>

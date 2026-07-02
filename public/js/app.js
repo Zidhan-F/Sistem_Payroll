@@ -118,8 +118,8 @@ function applyWorkspaceTabRestrictions() {
     const subTabProcessing = document.getElementById('subTabSalaryProcessing');
     const subTabResults = document.getElementById('subTabCalculationResults');
     
-    const canProcess = (role === 'admin' || role === 'payroll' || role === 'hc_ops');
-    const canViewResults = (role === 'admin' || role === 'payroll' || role === 'client_superior' || role === 'staff' || role === 'hc_ops');
+    const canProcess = (role === 'admin' || role === 'payroll');
+    const canViewResults = (role === 'admin' || role === 'payroll' || role === 'client_superior' || role === 'staff');
 
     if (subTabProcessing) subTabProcessing.style.display = canProcess ? '' : 'none';
     if (subTabResults) subTabResults.style.display = canViewResults ? '' : 'none';

@@ -3379,16 +3379,16 @@ body:not(.role-admin):not(.role-hc_ops) #panelScheduleOvertime .btn-add {
 }
 
 /* 8. Generate Gaji (Add & Edit: Payroll & Admin) */
-body:not(.role-admin):not(.role-payroll):not(.role-hc_ops) #panelSalaryProcessing button,
-body:not(.role-admin):not(.role-payroll):not(.role-hc_ops) #panelSalaryProcessing .btn-save,
-body:not(.role-admin):not(.role-payroll):not(.role-hc_ops) #panelSalaryProcessing .btn-add {
+body:not(.role-admin):not(.role-payroll) #panelSalaryProcessing button,
+body:not(.role-admin):not(.role-payroll) #panelSalaryProcessing .btn-save,
+body:not(.role-admin):not(.role-payroll) #panelSalaryProcessing .btn-add {
     display: none !important;
 }
 
 /* 9. Approval & Print Slip Gaji (Approval: Client/Superior & Admin) */
-body:not(.role-admin):not(.role-client_superior):not(.role-hc_ops) #btnApproveSelectedGaji,
-body:not(.role-admin):not(.role-client_superior):not(.role-hc_ops) #tabelReviewGajiBody td:first-child,
-body:not(.role-admin):not(.role-client_superior):not(.role-hc_ops) #viewProses table th:first-child {
+body:not(.role-admin):not(.role-client_superior) #btnApproveSelectedGaji,
+body:not(.role-admin):not(.role-client_superior) #tabelReviewGajiBody td:first-child,
+body:not(.role-admin):not(.role-client_superior) #viewProses table th:first-child {
     display: none !important;
 }
 

@@ -709,6 +709,10 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_attendance') AND name = 'early_arrival_minutes')
             ALTER TABLE payroll_attendance ADD early_arrival_minutes INT DEFAULT 0");
 
+        // Ensure is_manual column exists in payroll_attendance
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_attendance') AND name = 'is_manual')
+            ALTER TABLE payroll_attendance ADD is_manual INT DEFAULT 0");
+
         // 32. Tabel Dismissed Notifications
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'dismissed_notifications')
             CREATE TABLE dismissed_notifications (

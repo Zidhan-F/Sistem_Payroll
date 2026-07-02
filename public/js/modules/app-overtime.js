@@ -175,6 +175,7 @@ async function loadOvertimeLogs() {
                         <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
                     </td>
                     <td style="text-align:center;padding:12px;">${statusBadge}</td>
+                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.payout_period || '-'}</td>
                     <td style="padding:12px;">${approverDetails}</td>
                     <td style="text-align:center;padding:12px;">
                         <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
@@ -184,10 +185,10 @@ async function loadOvertimeLogs() {
         });
 
         pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending.</td></tr>`;
-        historyTbody.innerHTML = historyHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur.</td></tr>`;
+        historyTbody.innerHTML = historyHtml || `<tr><td colspan="12" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur.</td></tr>`;
     } catch (e) {
         pendingTbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
-        historyTbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
     }
 }
 
@@ -871,6 +872,7 @@ function filterOvertimeHistory() {
                 <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
             </td>
             <td style="text-align:center;padding:12px;">${statusBadge}</td>
+            <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.payout_period || '-'}</td>
             <td style="padding:12px;">${approverDetails}</td>
             <td style="text-align:center;padding:12px;">
                 <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
@@ -878,7 +880,7 @@ function filterOvertimeHistory() {
         </tr>`;
     });
 
-    historyTbody.innerHTML = historyHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur yang cocok dengan pencarian.</td></tr>`;
+    historyTbody.innerHTML = historyHtml || `<tr><td colspan="12" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur yang cocok dengan pencarian.</td></tr>`;
 }
 
 function filterOvertimePending() {
