@@ -56,10 +56,6 @@
                 <i class="fas fa-cog"></i>
                 <span>Scheme Settings</span>
             </li>
-            <li id="submenu_pajak" onclick="switchPayrollSub('pajak')">
-                <i class="fas fa-percent"></i>
-                <span>PPh 21 Tax Scheme</span>
-            </li>
 
     </ul>
     <li id="menuSchedule" onclick="switchView('schedule')">

@@ -122,18 +122,7 @@
 
 
 
-                         <!-- Action 4: Pengaturan Pajak -->
-                        <div id="qaBpjsTaxScheme" class="quick-action-card" onclick="quickAction('pengaturan-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                            <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(155, 89, 182, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/2040/2040504.png" alt="PPh 21 Tax Scheme" style="width: 32px; height: 32px; object-fit: contain;">
-                            </div>
-                            <div>
-                                <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">PPh 21 Tax Scheme</h4>
-                                <p style="font-size: 11px; color: var(--text-muted); margin: 0; line-height: 1.3;">Configure PPh 21 tax schemes.</p>
-                            </div>
-                        </div>
-
-                        <!-- Action 5: Lokasi Kerja -->
+                         <!-- Action 5: Lokasi Kerja -->
                         <div id="qaWorkLocation" class="quick-action-card" onclick="quickAction('lokasi-kerja')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(26, 188, 156, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                                 <img src="https://cdn-icons-png.flaticon.com/512/1865/1865269.png" alt="Lokasi Kerja" style="width: 32px; height: 32px; object-fit: contain;">

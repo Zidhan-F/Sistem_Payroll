@@ -2281,7 +2281,7 @@
                     </div>
                 </div>
 
-                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">NPWP</label>
                         <input type="text" id="empNpwp" placeholder="Example: 00.000.000.0-000.000" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
@@ -2293,6 +2293,19 @@
                             <option value="Belum">Single</option>
                             <option value="Sudah">Married</option>
                             <option value="Cerai">Divorced</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">PTKP Status</label>
+                        <select id="empPtkp" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background-color: white;">
+                            <option value="TK/0">Tidak Kawin Tanpa Tanggungan (TK/0)</option>
+                            <option value="TK/1">Tidak Kawin Tanggungan 1 Orang (TK/1)</option>
+                            <option value="TK/2">Tidak Kawin Tanggungan 2 Orang (TK/2)</option>
+                            <option value="TK/3">Tidak Kawin Tanggungan 3 Orang (TK/3)</option>
+                            <option value="K/0">Kawin Tanpa Tanggungan (K/0)</option>
+                            <option value="K/1">Kawin Tanggungan 1 Orang (K/1)</option>
+                            <option value="K/2">Kawin Tanggungan 2 Orang (K/2)</option>
+                            <option value="K/3">Kawin Tanggungan 3 Orang (K/3)</option>
                         </select>
                     </div>
                 </div>
@@ -2365,7 +2378,6 @@
                     <select id="empHariKerja" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         <option value="5">5 Days</option>
                         <option value="6">6 Days</option>
-                        <option value="7">7 Days</option>
                     </select>
                 </div>
 

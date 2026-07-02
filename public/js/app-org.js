@@ -708,6 +708,9 @@ async function bukaModalKaryawan(mode,id=null){
         document.getElementById('empTempatLahir').value = emp.tempat_lahir || '';
         document.getElementById('empTanggalLahir').value = emp.tanggal_lahir || '';
         document.getElementById('empNpwp').value = emp.npwp || '';
+        if (document.getElementById('empPtkp')) {
+            document.getElementById('empPtkp').value = emp.ptkp || 'TK/0';
+        }
         if (document.getElementById('empStatusPernikahan')) {
             let statusVal = emp.status_pernikahan || '';
             if (statusVal === 'Belum Kawin') statusVal = 'Belum';
@@ -825,6 +828,7 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         tanggal_lahir:document.getElementById('empTanggalLahir').value,
         npwp:document.getElementById('empNpwp').value,
         status_pernikahan:document.getElementById('empStatusPernikahan') ? document.getElementById('empStatusPernikahan').value : '',
+        ptkp: document.getElementById('empPtkp') ? document.getElementById('empPtkp').value : 'TK/0',
 
         jumlah_anak: parseInt(document.getElementById('empJumlahAnak')?.value || 0, 10),
         start_contract:document.getElementById('empStartContract').value,

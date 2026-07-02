@@ -259,6 +259,30 @@ class Migrasi extends BaseController
                 ALTER TABLE payroll_final ADD $col $definition");
         }
 
+        // Ensure new calculation columns exist in payrolls for older dbs
+        $payrollCols = [
+            'bpjs_kes_karyawan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_kes_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jht_karyawan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jht_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jp_karyawan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jp_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jkk_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'bpjs_jkm_perusahaan' => 'DECIMAL(15,2) DEFAULT 0',
+            'pph21' => 'DECIMAL(15,2) DEFAULT 0',
+            'tax_allowance' => 'DECIMAL(15,2) DEFAULT 0',
+            'tax_method' => "NVARCHAR(20) DEFAULT 'Gross'",
+            'ptkp_status' => "NVARCHAR(10) DEFAULT 'TK/0'",
+            'potongan_absen' => 'DECIMAL(15,2) DEFAULT 0',
+            'lembur_pay' => 'DECIMAL(15,2) DEFAULT 0',
+            'bonus_tambahan' => 'DECIMAL(15,2) DEFAULT 0'
+        ];
+        foreach ($payrollCols as $col => $definition) {
+            $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payrolls') AND name = '$col')
+                ALTER TABLE payrolls ADD $col $definition");
+        }
+
+
 
         // 8. Tabel UMP/UMK (Minimum Wages)
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'minimum_wages')

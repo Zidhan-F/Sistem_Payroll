@@ -2373,7 +2373,7 @@ class Payroll extends ResourceController
                 $bpjsWageBase = $empMinimumWage;
             }
 
-            $calc = $this->calculateBpjsAndTax($baseSalary, $bpjsWageBase, $pphWageBaseFinal, $schemeTemplate, $taxScheme, $empMinimumWage, $ptkpStatus, $bpjsScheme);
+            $calc = $this->calculateBpjsAndTax($baseSalary, $bpjsWageBase, $pphWageBaseFinal, $schemeTemplate, $taxScheme, $empMinimumWage, $ptkpStatus, $bpjsScheme, intval($bulan), intval($tahun), $emp['id']);
 
             $bpjsKesKaryawan = $calc['bpjs_kes_karyawan'];
             $bpjsJhtKaryawan = $calc['bpjs_jht_karyawan'];
@@ -2494,14 +2494,18 @@ class Payroll extends ResourceController
 
             // Simpan Detail standar
             if ($overtimePay > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Lembur', 'tipe' => 'Tunjangan', 'jumlah' => $overtimePay]);
-            if ($taxAllowance > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Tunjangan Pajak (Gross Up)', 'tipe' => 'Tunjangan', 'jumlah' => $taxAllowance]);
+            if ($taxAllowance > 0) {
+                $allowanceName = ($bulan == 12) ? 'Tunjangan Pajak (Gross Up Pasal 17)' : 'Tunjangan Pajak (Gross Up TER)';
+                $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => $allowanceName, 'tipe' => 'Tunjangan', 'jumlah' => $taxAllowance]);
+            }
             if ($bpjsKesKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Kesehatan (' . floatval($kesRateEmp) . '% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsKesKaryawan]);
             if ($bpjsJhtKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JHT (' . floatval($jhtRateEmp) . '% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsJhtKaryawan]);
             if ($bpjsJpKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JP (' . floatval($jpRateEmp) . '% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsJpKaryawan]);
             if ($potonganAlpa > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Alfa / Early Leave', 'tipe' => 'Potongan', 'jumlah' => $potonganAlpa]);
             if ($potonganLate > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Denda Keterlambatan', 'tipe' => 'Potongan', 'jumlah' => $potonganLate]);
             if ($pph21 > 0 && $curTaxMethod !== 'Net') {
-                $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Pajak PPh 21', 'tipe' => 'Potongan', 'jumlah' => $pph21]);
+                $taxName = ($bulan == 12) ? 'Pajak PPh 21 (Pasal 17)' : 'Pajak PPh 21 (TER)';
+                $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => $taxName, 'tipe' => 'Potongan', 'jumlah' => $pph21]);
             }
 
             // Simpan Detail Beban Perusahaan (Informasi)
@@ -2727,7 +2731,7 @@ class Payroll extends ResourceController
         ]);
     }
 
-    private function calculateBpjsAndTax($gajiPokok, $bpjsWageBase, $pphWageBase, $schemeTemplate, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme = null)
+    private function calculateBpjsAndTax($gajiPokok, $bpjsWageBase, $pphWageBase, $schemeTemplate, $taxScheme, $minimumWage, $ptkpStatus, $bpjsScheme = null, $bulan = null, $tahun = null, $employeeId = null)
     {
         $result = [
             'bpjs_kes_karyawan' => 0,
@@ -2804,6 +2808,19 @@ class Payroll extends ResourceController
         
         $ptkpCategory = $this->determineTerCategory($ptkpStatus);
 
+        // Rekonsiliasi Desember: gunakan tarif progresif Pasal 17
+        if ($bulan == 12 && $tahun && $employeeId) {
+            $decResult = $this->calculateDecemberTaxReconciliation(
+                $employeeId, $tahun, $pphWageBase, $bpjsCoPremiums,
+                $result['bpjs_jht_karyawan'], $result['bpjs_jp_karyawan'],
+                $ptkpStatus, $result['metode_pajak']
+            );
+            $result['pph21'] = $decResult['pph21'];
+            $result['tax_allowance'] = $decResult['tax_allowance'];
+            $result['ter_rate'] = 0; // Not applicable for December progressive
+            return $result;
+        }
+
         if ($result['metode_pajak'] === 'Gross Up') {
             // Iteration loop for Gross Up
             $allowance = 0;
@@ -2823,6 +2840,157 @@ class Payroll extends ResourceController
         }
 
         return $result;
+    }
+
+    /**
+     * Rekonsiliasi PPh 21 Desember - Tarif Progresif Pasal 17 UU HPP
+     * Menghitung PPh 21 terutang setahun dikurangi akumulasi PPh 21 Jan-Nov
+     */
+    private function calculateDecemberTaxReconciliation($employeeId, $tahun, $decPphWageBase, $decBpjsCoPremiums, $decJhtKaryawan, $decJpKaryawan, $ptkpStatus, $metodePajak)
+    {
+        $db = \Config\Database::connect();
+
+        // 1. Ambil data kumulatif Jan-Nov dari tabel payrolls
+        $prevPayrolls = $db->table('payrolls')
+            ->where('employee_id', $employeeId)
+            ->where('status_pembayaran', 'Approved')
+            ->where('tahun', $tahun)
+            ->where('bulan >=', 1)
+            ->where('bulan <=', 11)
+            ->get()->getResultArray();
+
+        $totalBrutoJanNov = 0;
+        $totalPph21JanNov = 0;
+        $totalJhtKaryawanJanNov = 0;
+        $totalJpKaryawanJanNov = 0;
+
+        foreach ($prevPayrolls as $pp) {
+            // Bruto = gaji_pokok + total_tunjangan - potongan_absen + bpjs perusahaan (kes+jkk+jkm)
+            $ppBruto = floatval($pp['gaji_pokok'] ?? 0)
+                     + floatval($pp['total_tunjangan'] ?? 0)
+                     - floatval($pp['potongan_absen'] ?? 0)
+                     + floatval($pp['bpjs_kes_perusahaan'] ?? 0)
+                     + floatval($pp['bpjs_jkk_perusahaan'] ?? 0)
+                     + floatval($pp['bpjs_jkm_perusahaan'] ?? 0);
+            $totalBrutoJanNov += $ppBruto;
+            $totalPph21JanNov += floatval($pp['pph21'] ?? 0);
+            $totalJhtKaryawanJanNov += floatval($pp['bpjs_jht_karyawan'] ?? 0);
+            $totalJpKaryawanJanNov += floatval($pp['bpjs_jp_karyawan'] ?? 0);
+        }
+
+        // 2. Hitung Bruto Desember
+        $brutoDesember = $decPphWageBase + $decBpjsCoPremiums;
+
+        // Untuk Gross Up, tambahkan tunjangan pajak iteratif
+        $taxAllowanceDec = 0;
+        if ($metodePajak === 'Gross Up') {
+            // Iterasi untuk menghitung tunjangan pajak Gross Up pada Desember
+            // Kita gunakan estimasi awal, lalu iterasi
+            for ($i = 0; $i < 10; $i++) {
+                $brutoSetahun = $totalBrutoJanNov + $brutoDesember + $taxAllowanceDec;
+                $biayaJabatanSetahun = min($brutoSetahun * 0.05, 6000000);
+                $iuranJhtJpSetahun = $totalJhtKaryawanJanNov + $decJhtKaryawan + $totalJpKaryawanJanNov + $decJpKaryawan;
+                $nettoSetahun = $brutoSetahun - $biayaJabatanSetahun - $iuranJhtJpSetahun;
+                $ptkpSetahun = $this->getPtkpAmount($ptkpStatus);
+                $pkpSetahun = max(0, floor(($nettoSetahun - $ptkpSetahun) / 1000) * 1000);
+                $pph21Setahun = $this->calculateProgressiveTax($pkpSetahun);
+                $pph21Desember = max(0, $pph21Setahun - $totalPph21JanNov);
+                $taxAllowanceDec = $pph21Desember;
+            }
+
+            return [
+                'pph21' => $taxAllowanceDec,
+                'tax_allowance' => $taxAllowanceDec
+            ];
+        }
+
+        // 3. Hitung Bruto Setahun (Gross / Nett)
+        $brutoSetahun = $totalBrutoJanNov + $brutoDesember;
+
+        // 4. Pengurang: Biaya Jabatan (5% dari bruto, max 6 juta/tahun)
+        $biayaJabatanSetahun = min($brutoSetahun * 0.05, 6000000);
+
+        // 5. Pengurang: Iuran JHT + JP Karyawan setahun
+        $iuranJhtJpSetahun = $totalJhtKaryawanJanNov + $decJhtKaryawan + $totalJpKaryawanJanNov + $decJpKaryawan;
+
+        // 6. Netto Setahun
+        $nettoSetahun = $brutoSetahun - $biayaJabatanSetahun - $iuranJhtJpSetahun;
+
+        // 7. PTKP Setahun
+        $ptkpSetahun = $this->getPtkpAmount($ptkpStatus);
+
+        // 8. PKP Setahun (dibulatkan ke ribuan ke bawah)
+        $pkpSetahun = max(0, floor(($nettoSetahun - $ptkpSetahun) / 1000) * 1000);
+
+        // 9. PPh 21 Terutang Setahun (Tarif Progresif Pasal 17)
+        $pph21Setahun = $this->calculateProgressiveTax($pkpSetahun);
+
+        // 10. PPh 21 Desember = PPh 21 Setahun - Total PPh 21 Jan-Nov
+        $pph21Desember = max(0, $pph21Setahun - $totalPph21JanNov);
+
+        return [
+            'pph21' => $pph21Desember,
+            'tax_allowance' => 0
+        ];
+    }
+
+    /**
+     * Mengembalikan nilai PTKP setahun berdasarkan status
+     */
+    private function getPtkpAmount($ptkpStatus)
+    {
+        $ptkpStatus = strtoupper(trim($ptkpStatus ?? 'TK/0'));
+        $ptkpMap = [
+            'TK/0' => 54000000,
+            'TK/1' => 58500000,
+            'K/0'  => 58500000,
+            'TK/2' => 63000000,
+            'K/1'  => 63000000,
+            'TK/3' => 67500000,
+            'K/2'  => 67500000,
+            'K/3'  => 72000000,
+        ];
+        return $ptkpMap[$ptkpStatus] ?? 54000000;
+    }
+
+    /**
+     * Menghitung PPh 21 dengan tarif progresif Pasal 17 UU HPP
+     */
+    private function calculateProgressiveTax($pkp)
+    {
+        if ($pkp <= 0) return 0;
+
+        $tax = 0;
+        // Lapisan 1: s/d 60 juta → 5%
+        if ($pkp > 0) {
+            $layer = min($pkp, 60000000);
+            $tax += $layer * 0.05;
+            $pkp -= $layer;
+        }
+        // Lapisan 2: >60 juta s/d 250 juta → 15%
+        if ($pkp > 0) {
+            $layer = min($pkp, 190000000);
+            $tax += $layer * 0.15;
+            $pkp -= $layer;
+        }
+        // Lapisan 3: >250 juta s/d 500 juta → 25%
+        if ($pkp > 0) {
+            $layer = min($pkp, 250000000);
+            $tax += $layer * 0.25;
+            $pkp -= $layer;
+        }
+        // Lapisan 4: >500 juta s/d 5 miliar → 30%
+        if ($pkp > 0) {
+            $layer = min($pkp, 4500000000);
+            $tax += $layer * 0.30;
+            $pkp -= $layer;
+        }
+        // Lapisan 5: >5 miliar → 35%
+        if ($pkp > 0) {
+            $tax += $pkp * 0.35;
+        }
+
+        return $tax;
     }
 
     private function determineTerCategory($ptkpStatus)
