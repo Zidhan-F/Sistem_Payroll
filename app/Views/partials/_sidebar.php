@@ -60,7 +60,7 @@
     </ul>
     <li id="menuSchedule" onclick="switchView('schedule')">
         <i class="fas fa-calendar-alt"></i>
-        <span>Schedule</span>
+        <span><?= (session()->get('role') === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule' ?></span>
     </li>
     <li id="menuUserManagement" onclick="switchView('userManagement')" style="display: none;">
         <i class="fas fa-user-shield"></i>

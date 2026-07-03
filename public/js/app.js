@@ -749,7 +749,11 @@ function switchView(view) {
     };
     const titleEl = document.getElementById('viewTitle');
     if (titleEl) {
-        titleEl.innerText = titles[view] || 'Employee Management';
+        let titleText = titles[view] || 'Employee Management';
+        if (view === 'schedule' && (typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin') === 'hc_ops') {
+            titleText = 'Setting Holiday Calendar';
+        }
+        titleEl.innerText = titleText;
     }
 
     // Auto load data based on view
