@@ -409,6 +409,11 @@
                     <button class="ws-tab" data-wtab="struktur" onclick="switchWorkspaceTab('struktur')">Org Structure</button>
                     <button class="ws-tab" data-wtab="kompensasi" onclick="switchWorkspaceTab('kompensasi')">Scheme Selections</button>
                     <button class="ws-tab" data-wtab="pkwt" onclick="switchWorkspaceTab('pkwt')">PKWT Contract</button>
+                    <?php if (session()->get('role') === 'hc_ops'): ?>
+                        <button class="ws-tab" data-wtab="attendance" onclick="switchWorkspaceTab('attendance')">Attendance</button>
+                        <button class="ws-tab" data-wtab="overtime" onclick="switchWorkspaceTab('overtime')">Overtime</button>
+                        <button class="ws-tab" data-wtab="earlyArrival" onclick="switchWorkspaceTab('earlyArrival')">Early Arrival</button>
+                    <?php endif; ?>
                     <button class="ws-tab" data-wtab="proses" onclick="switchWorkspaceTab('proses')">Process Payroll</button>
                 </div>
 
@@ -660,6 +665,23 @@
                                 </div>
                             </div>
                         </div>
+
+                        <?php if (session()->get('role') === 'hc_ops'): ?>
+                            <!-- Panel: Attendance -->
+                            <div id="viewAttendance" class="w-tab-panel">
+                                <?= view('partials/_view_attendance_panel') ?>
+                            </div>
+
+                            <!-- Panel: Overtime -->
+                            <div id="viewOvertime" class="w-tab-panel">
+                                <?= view('partials/_view_overtime_panel') ?>
+                            </div>
+
+                            <!-- Panel: Early Arrival -->
+                            <div id="viewEarlyArrival" class="w-tab-panel">
+                                <?= view('partials/_view_early_arrival_panel') ?>
+                            </div>
+                        <?php endif; ?>
 
                         <!-- Panel: Pilihan Skema -->
                         <div id="viewKompensasi" class="w-tab-panel">
