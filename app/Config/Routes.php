@@ -141,6 +141,7 @@ $routes->group('api', ['filter' => 'role'], function($routes) {
 // CLIENT CRUD — Admin, Payroll, HC Ops, Recruiter, and Business Development
 // =====================================================================
 $routes->group('api', ['filter' => 'role:payroll,hc_ops,recruiter,business_development'], function($routes) {
+    $routes->post('clients/bulk', 'Api::createClientBulk');
     $routes->post('clients', 'Api::createClient');
     $routes->put('clients/(:num)', 'Api::updateClient/$1');
     $routes->delete('clients/(:num)', 'Api::deleteClient/$1');

@@ -343,6 +343,106 @@ class Api extends ResourceController
         return $this->respondCreated(['message' => 'Klien berhasil ditambahkan']);
     }
 
+    public function createClientBulk()
+    {
+        $json = $this->request->getJSON(true);
+        if (empty($json) || !is_array($json)) {
+            return $this->fail('Data tidak valid atau kosong.');
+        }
+
+        // Start transaction
+        $this->db->transStart();
+
+        $insertedCount = 0;
+        $errors = [];
+
+        foreach ($json as $index => $row) {
+            $rowNum = $index + 2; // Assuming row 1 is header
+
+            $nama = trim($row['nama'] ?? '');
+            $sektor = trim($row['sektor'] ?? '');
+            $email = trim($row['email'] ?? '');
+            $telepon = trim($row['telepon'] ?? '');
+            $tgl_gabung = trim($row['tgl_gabung'] ?? '');
+            $alamat = trim($row['alamat'] ?? '');
+            $nib = trim($row['nib'] ?? '');
+            $npwp = trim($row['npwp'] ?? '');
+
+            // Basic validation
+            if (empty($nama)) {
+                $errors[] = "Baris {$rowNum}: Nama klien wajib diisi.";
+                continue;
+            }
+            if (empty($sektor)) {
+                $errors[] = "Baris {$rowNum}: Sektor klien wajib diisi.";
+                continue;
+            }
+            if (empty($email)) {
+                $errors[] = "Baris {$rowNum}: Email klien wajib diisi.";
+                continue;
+            }
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = "Baris {$rowNum}: Format email '{$email}' tidak valid.";
+                continue;
+            }
+            if (empty($tgl_gabung)) {
+                $errors[] = "Baris {$rowNum}: Tanggal bergabung wajib diisi.";
+                continue;
+            }
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $tgl_gabung)) {
+                $errors[] = "Baris {$rowNum}: Format tanggal '{$tgl_gabung}' harus YYYY-MM-DD.";
+                continue;
+            }
+
+            // Check if email already exists in DB
+            $existing = $this->db->table('clients')->where('email', $email)->get()->getRow();
+            if ($existing) {
+                $errors[] = "Baris {$rowNum}: Email '{$email}' sudah terdaftar.";
+                continue;
+            }
+
+            // Generate No Klien (Format: CLI-001)
+            $count = $this->db->table('clients')->countAllResults();
+            $no_klien = 'CLI-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+
+            $data = [
+                'no_klien' => $no_klien,
+                'nama' => $nama,
+                'sektor' => $sektor,
+                'email' => $email,
+                'telepon' => $telepon,
+                'tgl_gabung' => $tgl_gabung,
+                'alamat' => $alamat,
+                'nib' => $nib,
+                'npwp' => $npwp,
+                'status' => 'Aktif'
+            ];
+
+            $this->db->table('clients')->insert($data);
+            $insertedCount++;
+        }
+
+        if (!empty($errors)) {
+            $this->db->transRollback();
+            return $this->respond([
+                'status' => 'error',
+                'errors' => $errors
+            ], 400);
+        }
+
+        $this->db->transComplete();
+
+        if ($this->db->transStatus() === false) {
+            return $this->fail('Gagal melakukan penyimpanan massal data klien.');
+        }
+
+        $this->logActivity("Meng-upload massal {$insertedCount} klien baru dari Excel.");
+        return $this->respondCreated([
+            'status' => 'success',
+            'message' => "Berhasil menambahkan {$insertedCount} klien baru."
+        ]);
+    }
+
     public function updateClient($id)
     {
         $data = $this->request->getJSON(true);
