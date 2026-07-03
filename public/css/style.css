@@ -159,7 +159,7 @@ body {
 
 /* Adjust has-submenu wrapper so it doesn't show background/border directly */
 .sidebar-menu li.has-submenu {
-    display: block !important;
+    display: block;
     padding: 0 !important;
     border-left: none !important;
     background: none !important;

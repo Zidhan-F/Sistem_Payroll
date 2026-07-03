@@ -27,26 +27,38 @@ function escapeHtml(text) {
 function renderClientTableData(data) {
     const tbody = document.getElementById('tabelKlienBody');
     if (!tbody) return;
+    const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
+    const canOpenWorkspace = typeof hasPermission === 'function' ? hasPermission('clientWorkspace') : true;
+    const canEditDelete = (role !== 'staff' && role !== 'client_superior');
+
     tbody.innerHTML = data.map(client => {
         const dateJoined = client.tgl_gabung ? new Date(client.tgl_gabung).toLocaleDateString('id-ID', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
         }) : '-';
+        
+        const rowStyle = canOpenWorkspace ? 'cursor: pointer;' : 'cursor: default;';
+        const rowTitle = canOpenWorkspace ? `Click to open workspace for ${escapeHtml(client.nama)}` : '';
+        const rowClick = canOpenWorkspace ? `onclick="event.target.closest('button') ? null : selectClient(${client.id})"` : '';
+        const chevron = canOpenWorkspace ? ' <i class="fas fa-chevron-right client-arrow-icon"></i>' : '';
+        
+        const actionHtml = canEditDelete ? `
+            <div class="action-btns">
+                <button class="btn-icon btn-edit" onclick="bukaModal('edit', ${client.id})"><i class="fas fa-edit"></i></button>
+                <button class="btn-icon btn-delete" onclick="hapusKlien(${client.id})"><i class="fas fa-trash"></i></button>
+            </div>
+        ` : '-';
+
         return `
-            <tr style="cursor: pointer;" title="Click to open workspace for ${escapeHtml(client.nama)}" onclick="event.target.closest('button') ? null : selectClient(${client.id})">
-                <td class="client-name-td">${escapeHtml(client.nama)} <i class="fas fa-chevron-right client-arrow-icon"></i></td>
+            <tr style="${rowStyle}" title="${rowTitle}" ${rowClick}>
+                <td class="client-name-td">${escapeHtml(client.nama)}${chevron}</td>
                 <td>${escapeHtml(client.sektor)}</td>
                 <td>${client.npwp ? `'${escapeHtml(client.npwp)}'` : '-'}</td>
                 <td>${escapeHtml(client.nib) || '-'}</td>
                 <td>${dateJoined}</td>
                 <td>${escapeHtml(client.alamat)}</td>
-                <td>
-                    <div class="action-btns">
-                        <button class="btn-icon btn-edit" onclick="bukaModal('edit', ${client.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon btn-delete" onclick="hapusKlien(${client.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                </td>
+                <td>${actionHtml}</td>
             </tr>
         `;
     }).join('');

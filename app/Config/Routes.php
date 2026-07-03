@@ -30,7 +30,7 @@ $routes->group('api', function($routes) {
 // READ-ONLY API ROUTES — Any authenticated & active user
 // =====================================================================
 $routes->group('api', ['filter' => 'role'], function($routes) {
-    // Clients (read)
+    // Clients (read-only for all authenticated roles)
     $routes->get('clients', 'Api::getClients');
     $routes->get('clients', 'Client::index');
     $routes->get('clients/schema/(:num)', 'Client::getSchema/$1');
@@ -138,16 +138,22 @@ $routes->group('api', ['filter' => 'role'], function($routes) {
 });
 
 // =====================================================================
-// BUSINESS DEVELOPMENT — Client, Org, Scheme, Compensation management
+// CLIENT CRUD — Admin, Payroll, HC Ops, Recruiter, and Business Development
 // =====================================================================
-$routes->group('api', ['filter' => 'role:business_development'], function($routes) {
-    // Client CRUD
+$routes->group('api', ['filter' => 'role:payroll,hc_ops,recruiter,business_development'], function($routes) {
     $routes->post('clients', 'Api::createClient');
     $routes->put('clients/(:num)', 'Api::updateClient/$1');
     $routes->delete('clients/(:num)', 'Api::deleteClient/$1');
     $routes->post('clients', 'Client::create');
     $routes->put('clients/(:num)', 'Client::update/$1');
     $routes->delete('clients/(:num)', 'Client::delete/$1');
+});
+
+// =====================================================================
+// HC OPS — Manage Client Schema, Org, Scheme, Compensation
+// =====================================================================
+$routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
+    // Client Config Details (Schema & Components)
     $routes->post('clients/schema', 'Client::saveSchema');
     $routes->post('clients/components', 'Client::saveComponent');
     $routes->delete('clients/components/(:num)', 'Client::deleteComponent/$1');
@@ -168,7 +174,7 @@ $routes->group('api', ['filter' => 'role:business_development'], function($route
     $routes->delete('global-departments/(:num)', 'GlobalSto::deleteDepartment/$1');
     $routes->post('global-positions', 'GlobalSto::createPosition');
     $routes->put('global-positions/(:num)', 'GlobalSto::updatePosition/$1');
-    $routes->delete('global-positions/(:num)', 'GlobalSto::deletePosition/$1');
+    $routes->delete('global-positions/(:num)', 'GlobalSto::deleteDivision/$1');
 
     // Payroll Schemes CRUD
     $routes->post('payroll-schemes', 'Api::createPayrollScheme');

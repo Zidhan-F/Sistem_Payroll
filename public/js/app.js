@@ -51,10 +51,10 @@ if (currentUser && document.getElementById('headerUserName')) {
 const ROLE_PERMISSIONS = {
     admin: ['*'], // Akses semua
     payroll: ['dashboard', 'klien', 'payroll', 'pajak', 'masterKompensasi', 'clientWorkspace'],
-    business_development: ['dashboard', 'klien', 'sto', 'clientWorkspace', 'payroll', 'masterKompensasi', 'pajak'],
+    business_development: ['dashboard', 'klien'],
     recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace'],
     client_superior: ['dashboard', 'klien', 'clientWorkspace'],
-    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace'],
+    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak'],
     staff: ['dashboard', 'klien', 'clientWorkspace']
 };
 
@@ -97,10 +97,10 @@ function applyWorkspaceTabRestrictions() {
     const allowedTabs = {
         admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses'],
         payroll: ['proses'],
-        business_development: ['struktur', 'kompensasi'],
+        business_development: [],
         recruiter: ['karyawan', 'pkwt'],
         client_superior: ['proses'],
-        hc_ops: ['proses'],
+        hc_ops: ['proses', 'struktur', 'kompensasi'],
         staff: ['proses']
     };
 
@@ -186,9 +186,9 @@ function applyRoleRestrictions() {
     const subPajak = document.getElementById('submenu_pajak');
 
     if (subUploadUmr) subUploadUmr.style.display = (isAdmin || role === 'payroll') ? '' : 'none';
-    if (subKompensasi) subKompensasi.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
-    if (subSetting) subSetting.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
-    if (subPajak) subPajak.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+    if (subKompensasi) subKompensasi.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (subSetting) subSetting.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (subPajak) subPajak.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
 
     // Tampilkan role badge di header
     const headerRoleBadge = document.getElementById('headerRoleBadge');
@@ -214,12 +214,12 @@ function applyRoleRestrictions() {
     if (qaDashboard) qaDashboard.style.display = '';
     if (qaAddClient) qaAddClient.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
     if (qaAddEmployee) qaAddEmployee.style.display = (isAdmin || role === 'recruiter') ? '' : 'none';
-    if (qaAddStoGlobal) qaAddStoGlobal.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
-    if (qaSalaryStructure) qaSalaryStructure.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
-    if (qaBpjsTaxScheme) qaBpjsTaxScheme.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
-    if (qaWorkLocation) qaWorkLocation.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (qaAddStoGlobal) qaAddStoGlobal.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (qaSalaryStructure) qaSalaryStructure.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (qaBpjsTaxScheme) qaBpjsTaxScheme.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (qaWorkLocation) qaWorkLocation.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none'; // wait, it was originally `(isAdmin || role === 'hc_ops')`, which is already correct. But we can just replace what's needed.
     if (qaUploadUmkUmp) qaUploadUmkUmp.style.display = (isAdmin || role === 'payroll') ? '' : 'none';
-    if (qaSchemeSettings) qaSchemeSettings.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
+    if (qaSchemeSettings) qaSchemeSettings.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
 
     // Work Location Recruiter Restrictions
     const btnTambahLokasi = document.getElementById('btnTambahLokasiKerjaGlobal');
