@@ -1556,6 +1556,8 @@ class Api extends ResourceController
         $count = 0;
         $skippedCount = 0;
         $employeesById = [];
+        $clientId = null;
+        $payoutPeriod = null;
 
         if (!empty($logs)) {
             $firstLog = $logs[0];
@@ -1754,6 +1756,38 @@ class Api extends ResourceController
                 );
             }
             $count++;
+        }
+
+        // Trigger automatic recalculation of payroll summaries
+        if ($payoutPeriod && $clientId) {
+            $parts = explode('-', $payoutPeriod);
+            if (count($parts) === 2) {
+                $pMonth = intval($parts[0]);
+                $pYear = intval($parts[1]);
+                $period = $this->db->table('payroll_periods')
+                                   ->where('client_id', $clientId)
+                                   ->where('bulan', $pMonth)
+                                   ->where('tahun', $pYear)
+                                   ->get()->getRow();
+                if ($period) {
+                    // Reset is_manual = 0 for client employees in this period so that recalculation is allowed
+                    $pkwtIds = $this->db->table('pkwt')
+                                        ->select('id')
+                                        ->where('client_id', intval($clientId))
+                                        ->get()->getResultArray();
+                    $pkwtIdsList = array_column($pkwtIds, 'id');
+                    if (!empty($pkwtIdsList)) {
+                        $this->db->table('payroll_attendance')
+                                 ->where('period_id', $period->id)
+                                 ->whereIn('pkwt_id', $pkwtIdsList)
+                                 ->update(['is_manual' => 0]);
+                    }
+                    // Run the sync methods immediately to update payroll_attendance summaries
+                    $this->syncEmployeesToPKWT($clientId);
+                    $this->syncOvertimeToPayrollAttendance($period->id, $clientId);
+                    $this->syncEarlyArrivalToPayrollAttendance($period->id, $clientId);
+                }
+            }
         }
 
         $msg = "Berhasil menyimpan {$count} attendance logs.";
@@ -3575,7 +3609,9 @@ class Api extends ResourceController
                 }
 
                 if ($isJoinedPrevMonth || $isActiveRegularPrevMonth) {
-                    $hariKerja = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
+                    if ($hasAnyLogs === 0) {
+                        $hariKerja = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
+                    }
                     $potonganAbsensi = 0.0;
                 }
 
@@ -8685,18 +8721,20 @@ class Api extends ResourceController
             }
 
             if ($isJoinedPrevMonth || $isActiveRegularPrevMonth) {
-                $posHk = 5;
-                if ($emp->position_id) {
-                    $pos = $this->db->table('positions')->where('id', $emp->position_id)->get()->getRow();
-                    if ($pos && isset($pos->hari_kerja)) {
-                        $posHk = intval($pos->hari_kerja);
+                if ($actualHadir === 0 && $hasAnyClientLogs === 0) {
+                    $posHk = 5;
+                    if ($emp->position_id) {
+                        $pos = $this->db->table('positions')->where('id', $emp->position_id)->get()->getRow();
+                        if ($pos && isset($pos->hari_kerja)) {
+                            $posHk = intval($pos->hari_kerja);
+                        }
                     }
+                    if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
+                        $posHk = intval($emp->hari_kerja);
+                    }
+                    $stdWorkingDays = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $posHk);
+                    $hariKerjaVal = $stdWorkingDays;
                 }
-                if (isset($emp->hari_kerja) && intval($emp->hari_kerja) > 0) {
-                    $posHk = intval($emp->hari_kerja);
-                }
-                $stdWorkingDays = $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $posHk);
-                $hariKerjaVal = $stdWorkingDays;
             }
 
             $existing = $this->db->table('payroll_attendance')
