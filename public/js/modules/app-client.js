@@ -160,36 +160,6 @@ function switchWorkspaceTab(tab) {
                 switchPayrollProcessSubTab('processing');
             }
         }
-    } else if (tab === 'attendance') {
-        if (typeof loadAttendanceLogs === 'function') {
-            const selectEl = document.getElementById('attendanceClientSelect');
-            if (selectEl) {
-                selectEl.value = window.selectedClientId;
-                if (typeof syncCustomClientDropdown === 'function') {
-                    syncCustomClientDropdown();
-                }
-            }
-            loadAttendanceLogs();
-        }
-    } else if (tab === 'overtime') {
-        if (typeof loadOvertimeLogs === 'function') {
-            const selectEl = document.getElementById('overtimeClientSelect');
-            if (selectEl) {
-                selectEl.value = window.selectedClientId;
-            }
-            loadOvertimeLogs();
-        }
-    } else if (tab === 'earlyArrival') {
-        if (typeof loadEarlyArrivalLogs === 'function') {
-            const filterEl = document.getElementById('eaClientFilter');
-            if (filterEl) {
-                filterEl.value = window.selectedClientId;
-                if (typeof onEaClientChanged === 'function') {
-                    onEaClientChanged();
-                }
-            }
-            loadEarlyArrivalLogs();
-        }
     }
 }
 

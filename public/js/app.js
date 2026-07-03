@@ -100,14 +100,14 @@ function applyWorkspaceTabRestrictions() {
         business_development: ['struktur', 'kompensasi'],
         recruiter: ['karyawan', 'pkwt'],
         client_superior: ['proses'],
-        hc_ops: ['attendance', 'overtime', 'earlyArrival', 'proses'],
+        hc_ops: ['proses'],
         staff: ['proses']
     };
 
     const allowed = allowedTabs[role] || [];
     tabs.forEach(tabBtn => {
         const wtab = tabBtn.getAttribute('data-wtab');
-        if (allowed.includes(wtab)) {
+        if (role === 'admin' || allowed.includes(wtab)) {
             tabBtn.style.display = '';
         } else {
             tabBtn.style.display = 'none';
