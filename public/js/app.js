@@ -275,6 +275,13 @@ function applyRoleRestrictions() {
         }
     }
 
+    // Client Management Excel upload/download buttons for admin and business_development
+    const btnDownloadClientTemplate = document.getElementById('btnDownloadClientTemplate');
+    const btnUploadClientExcel = document.getElementById('btnUploadClientExcel');
+    const canManageClientExcel = (role === 'admin' || role === 'business_development');
+    if (btnDownloadClientTemplate) btnDownloadClientTemplate.style.display = canManageClientExcel ? 'inline-flex' : 'none';
+    if (btnUploadClientExcel) btnUploadClientExcel.style.display = canManageClientExcel ? 'inline-flex' : 'none';
+
     // Terapkan restriksi ke client workspace tabs
     applyWorkspaceTabRestrictions();
 }

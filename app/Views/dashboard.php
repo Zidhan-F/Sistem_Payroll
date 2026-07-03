@@ -170,15 +170,13 @@
                         <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Client Data</h3>
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <input type="text" id="cariKlienGlobal" placeholder="Search clients..." oninput="cariKlienAktif()" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
-                            <?php if (in_array(session()->get('role'), ['admin', 'business_development'])): ?>
-                                <button class="btn-add" onclick="downloadClientExcelTemplate()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; border: none; padding: 10px 16px; color: white; cursor: pointer; transition: all 0.3s;">
-                                    <i class="fas fa-download"></i> Download Template
-                                </button>
-                                <button class="btn-add" onclick="triggerClientExcelUpload()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; border: none; padding: 10px 16px; color: white; cursor: pointer; transition: all 0.3s;">
-                                    <i class="fas fa-upload"></i> Upload Excel
-                                </button>
-                                <input type="file" id="clientExcelInput" accept=".xlsx, .xls" style="display: none;" onchange="handleClientExcelUpload(event)">
-                            <?php endif; ?>
+                            <button id="btnDownloadClientTemplate" class="btn-add" onclick="downloadClientExcelTemplate()" style="background: #0284c7; display: none; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; border: none; padding: 10px 16px; color: white; cursor: pointer; transition: all 0.3s;">
+                                <i class="fas fa-download"></i> Download Template
+                            </button>
+                            <button id="btnUploadClientExcel" class="btn-add" onclick="triggerClientExcelUpload()" style="background: #27ae60; display: none; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; border: none; padding: 10px 16px; color: white; cursor: pointer; transition: all 0.3s;">
+                                <i class="fas fa-upload"></i> Upload Excel
+                            </button>
+                            <input type="file" id="clientExcelInput" accept=".xlsx, .xls" style="display: none;" onchange="handleClientExcelUpload(event)">
                             <button class="btn-add" onclick="bukaModal('tambah')" style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
                                 <i class="fas fa-plus"></i> Add
                             </button>
