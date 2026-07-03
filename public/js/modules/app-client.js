@@ -172,6 +172,33 @@ function switchWorkspaceTab(tab) {
                 switchPayrollProcessSubTab('processing');
             }
         }
+    } else if (tab === 'attendance') {
+        const selectEl = document.getElementById('attendanceClientSelect');
+        if (selectEl) {
+            selectEl.value = window.selectedClientId;
+            if (typeof syncCustomClientDropdown === 'function') {
+                syncCustomClientDropdown();
+            }
+        }
+        if (typeof loadAttendanceLogs === 'function') {
+            loadAttendanceLogs();
+        }
+    } else if (tab === 'overtime') {
+        const selectEl = document.getElementById('overtimeClientSelect');
+        if (selectEl) {
+            selectEl.value = window.selectedClientId;
+        }
+        if (typeof loadOvertimeLogs === 'function') {
+            loadOvertimeLogs();
+        }
+    } else if (tab === 'earlyArrival') {
+        const filterEl = document.getElementById('eaClientFilter');
+        if (filterEl) {
+            filterEl.value = window.selectedClientId;
+        }
+        if (typeof loadEarlyArrivalLogs === 'function') {
+            loadEarlyArrivalLogs();
+        }
     }
 }
 

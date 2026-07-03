@@ -95,19 +95,19 @@ function applyWorkspaceTabRestrictions() {
     if (!tabs.length) return;
 
     const allowedTabs = {
-        admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses'],
+        admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses', 'attendance', 'overtime', 'earlyArrival'],
         payroll: ['proses'],
         business_development: [],
         recruiter: ['karyawan', 'pkwt'],
         client_superior: ['proses'],
-        hc_ops: ['proses', 'struktur', 'kompensasi'],
+        hc_ops: ['proses', 'struktur', 'kompensasi', 'attendance', 'overtime', 'earlyArrival'],
         staff: ['proses']
     };
 
     const allowed = allowedTabs[role] || [];
     tabs.forEach(tabBtn => {
         const wtab = tabBtn.getAttribute('data-wtab');
-        if (role === 'admin' || allowed.includes(wtab)) {
+        if (allowed.includes(wtab)) {
             tabBtn.style.display = '';
         } else {
             tabBtn.style.display = 'none';
@@ -230,6 +230,15 @@ function applyRoleRestrictions() {
     } else {
         if (btnTambahLokasi) btnTambahLokasi.style.display = '';
         if (thActionLokasi) thActionLokasi.style.display = '';
+    }
+
+    // Rename Schedule to Setting Holiday Calendar for HC Ops role
+    const scheduleMenu = document.getElementById('menuSchedule');
+    if (scheduleMenu) {
+        const span = scheduleMenu.querySelector('span');
+        if (span) {
+            span.innerText = (role === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule';
+        }
     }
 
     // Terapkan restriksi ke client workspace tabs
@@ -749,7 +758,11 @@ function switchView(view) {
     };
     const titleEl = document.getElementById('viewTitle');
     if (titleEl) {
-        titleEl.innerText = titles[view] || 'Employee Management';
+        let titleText = titles[view] || 'Employee Management';
+        if (view === 'schedule' && (typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin') === 'hc_ops') {
+            titleText = 'Setting Holiday Calendar';
+        }
+        titleEl.innerText = titleText;
     }
 
     // Auto load data based on view

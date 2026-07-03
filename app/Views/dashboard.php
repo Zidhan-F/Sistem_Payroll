@@ -410,6 +410,9 @@
                     <button class="ws-tab" data-wtab="kompensasi" onclick="switchWorkspaceTab('kompensasi')">Scheme Selections</button>
                     <button class="ws-tab" data-wtab="pkwt" onclick="switchWorkspaceTab('pkwt')">PKWT Contract</button>
                     <button class="ws-tab" data-wtab="proses" onclick="switchWorkspaceTab('proses')">Process Payroll</button>
+                    <button class="ws-tab" data-wtab="attendance" onclick="switchWorkspaceTab('attendance')">Attendance</button>
+                    <button class="ws-tab" data-wtab="overtime" onclick="switchWorkspaceTab('overtime')">Overtime</button>
+                    <button class="ws-tab" data-wtab="earlyArrival" onclick="switchWorkspaceTab('earlyArrival')">Early Arrival</button>
                 </div>
 
                 <!-- Content Panels -->
@@ -659,6 +662,21 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Panel: Attendance -->
+                        <div id="viewAttendance" class="w-tab-panel">
+                            <?= view('partials/_view_attendance_panel') ?>
+                        </div>
+
+                        <!-- Panel: Overtime -->
+                        <div id="viewOvertime" class="w-tab-panel">
+                            <?= view('partials/_view_overtime_panel') ?>
+                        </div>
+
+                        <!-- Panel: Early Arrival -->
+                        <div id="viewEarlyArrival" class="w-tab-panel">
+                            <?= view('partials/_view_early_arrival_panel') ?>
                         </div>
 
                         <!-- Panel: Pilihan Skema -->
