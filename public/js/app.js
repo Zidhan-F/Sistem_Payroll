@@ -240,16 +240,36 @@ function applyRoleRestrictions() {
             span.innerText = (role === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule';
         }
 
-        // Rearrange DOM order: Schedule goes below Employee Management for HC Ops
-        const employeeMenu = document.getElementById('menuManajemenKaryawan');
-        const payrollMenu = document.getElementById('menuPayroll');
-        if (role === 'hc_ops') {
-            if (employeeMenu) {
-                employeeMenu.parentNode.insertBefore(scheduleMenu, employeeMenu.nextSibling);
-            }
-        } else {
-            if (payrollMenu) {
-                payrollMenu.parentNode.insertBefore(scheduleMenu, payrollMenu.nextSibling);
+        // Rearrange DOM order of sidebar menus
+        const sidebar = document.querySelector('.sidebar-menu');
+        const db = document.getElementById('menuDashboard');
+        const klien = document.getElementById('menuKlien');
+        const sto = document.getElementById('menuSto');
+        const karyawan = document.getElementById('menuManajemenKaryawan');
+        const payroll = document.getElementById('menuPayroll');
+        const subPayroll = document.getElementById('submenuPayroll');
+        const userMgt = document.getElementById('menuUserManagement');
+
+        if (sidebar) {
+            if (role === 'hc_ops') {
+                if (db) sidebar.appendChild(db);
+                if (klien) sidebar.appendChild(klien);
+                if (karyawan) sidebar.appendChild(karyawan);
+                if (sto) sidebar.appendChild(sto);
+                if (payroll) sidebar.appendChild(payroll);
+                if (subPayroll) sidebar.appendChild(subPayroll);
+                if (scheduleMenu) sidebar.appendChild(scheduleMenu);
+                if (userMgt) sidebar.appendChild(userMgt);
+            } else {
+                // Default order
+                if (db) sidebar.appendChild(db);
+                if (klien) sidebar.appendChild(klien);
+                if (sto) sidebar.appendChild(sto);
+                if (karyawan) sidebar.appendChild(karyawan);
+                if (payroll) sidebar.appendChild(payroll);
+                if (subPayroll) sidebar.appendChild(subPayroll);
+                if (scheduleMenu) sidebar.appendChild(scheduleMenu);
+                if (userMgt) sidebar.appendChild(userMgt);
             }
         }
     }
