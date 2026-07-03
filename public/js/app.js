@@ -107,6 +107,7 @@ function applyWorkspaceTabRestrictions() {
     const allowed = allowedTabs[role] || [];
     tabs.forEach(tabBtn => {
         const wtab = tabBtn.getAttribute('data-wtab');
+        if (!wtab) return; // Skip non-workspace tabs (e.g. STO tabs)
         if (allowed.includes(wtab)) {
             tabBtn.style.display = '';
         } else {
