@@ -232,6 +232,15 @@ function applyRoleRestrictions() {
         if (thActionLokasi) thActionLokasi.style.display = '';
     }
 
+    // Rename Schedule to Setting Holiday Calendar for HC Ops role
+    const scheduleMenu = document.getElementById('menuSchedule');
+    if (scheduleMenu) {
+        const span = scheduleMenu.querySelector('span');
+        if (span) {
+            span.innerText = (role === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule';
+        }
+    }
+
     // Terapkan restriksi ke client workspace tabs
     applyWorkspaceTabRestrictions();
 }
