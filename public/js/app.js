@@ -239,6 +239,19 @@ function applyRoleRestrictions() {
         if (span) {
             span.innerText = (role === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule';
         }
+
+        // Rearrange DOM order: Schedule goes below Employee Management for HC Ops
+        const employeeMenu = document.getElementById('menuManajemenKaryawan');
+        const payrollMenu = document.getElementById('menuPayroll');
+        if (role === 'hc_ops') {
+            if (employeeMenu) {
+                employeeMenu.parentNode.insertBefore(scheduleMenu, employeeMenu.nextSibling);
+            }
+        } else {
+            if (payrollMenu) {
+                payrollMenu.parentNode.insertBefore(scheduleMenu, payrollMenu.nextSibling);
+            }
+        }
     }
 
     // Terapkan restriksi ke client workspace tabs
