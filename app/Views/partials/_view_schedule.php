@@ -4,6 +4,11 @@
     <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
         <button class="sub-tab-btn" id="subTabScheduleMaster" onclick="switchScheduleSubTab('master')" style="display: none;">Master Schedule</button>
         <button class="sub-tab-btn active" id="subTabScheduleHoliday" onclick="switchScheduleSubTab('holiday')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Holiday Calendar</button>
+        <?php if (($_COOKIE['user_role'] ?? '') === 'admin'): ?>
+        <button class="sub-tab-btn" id="subTabScheduleAttendance" onclick="switchScheduleSubTab('attendance')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Attendance</button>
+        <button class="sub-tab-btn" id="subTabScheduleOvertime" onclick="switchScheduleSubTab('overtime')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Overtime</button>
+        <button class="sub-tab-btn" id="subTabScheduleEarlyArrival" onclick="switchScheduleSubTab('earlyArrival')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Early Arrival</button>
+        <?php endif; ?>
     </div>
 
     <!-- Panel 1: Master Schedule -->
@@ -181,5 +186,22 @@
             </div>
         </div>
     </div>
+
+    <?php if (($_COOKIE['user_role'] ?? '') === 'admin'): ?>
+    <!-- Panel 3: Attendance -->
+    <div id="panelScheduleAttendance" class="schedule-subpanel" style="display: none;">
+        <?= view('partials/_view_attendance') ?>
+    </div>
+
+    <!-- Panel 4: Overtime -->
+    <div id="panelScheduleOvertime" class="schedule-subpanel" style="display: none;">
+        <?= view('partials/_view_overtime') ?>
+    </div>
+
+    <!-- Panel 5: Early Arrival -->
+    <div id="panelScheduleEarlyArrival" class="schedule-subpanel" style="display: none;">
+        <?= view('partials/_view_early_arrival_panel') ?>
+    </div>
+    <?php endif; ?>
 
 </div>

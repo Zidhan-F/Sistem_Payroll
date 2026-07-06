@@ -1,3 +1,6 @@
+<?php
+$userRole = $_COOKIE['user_role'] ?? '';
+?>
 <!-- Sidebar -->
 <div class="sidebar">
     <div class="sidebar-brand" style="display: flex; align-items: center; gap: 10px; padding: 20px 15px;">
@@ -9,10 +12,17 @@
             <i class="fas fa-chart-line"></i>
             <span>Dashboard</span>
         </li>
+        <?php if ($userRole === 'staff'): ?>
+        <li id="menuMySalary" onclick="if(window.selectedClientId && typeof selectClient === 'function'){ selectClient(window.selectedClientId, window.selectedClientName, window.selectedClientSektor); } else { showToast('Data gaji Anda sedang dimuat. Silakan tunggu sebentar...', 'info'); }">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <span>My Payslip</span>
+        </li>
+        <?php else: ?>
         <li id="menuKlien" onclick="switchView('klien')">
             <i class="fas fa-users"></i>
             <span>Client Management</span>
         </li>
+        <?php endif; ?>
         <li id="menuSto" onclick="switchView('sto')">
             <i class="fas fa-sitemap"></i>
             <span>STO (Org Structure)</span>

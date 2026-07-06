@@ -1,5 +1,5 @@
 <!-- Section: Attendance Management -->
-<div id="viewAttendance" class="view-section">
+<div id="viewAttendance">
     <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
         <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
             <div>

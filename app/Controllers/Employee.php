@@ -162,16 +162,27 @@ class Employee extends ResourceController
             
             $userExists = $dbUser->table('users')->where('username', $username)->countAllResults();
             if ($userExists === 0) {
-                $dbUser->table('users')->insert([
-                    'username'   => $username,
-                    'email'      => $email,
-                    'password'   => $username, // Password default menggunakan NIK agar mudah diingat
-                    'role'       => $assignedRole,
-                    'full_name'  => $fullName,
-                    'is_active'  => 1,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ]);
+                $existingUserByEmail = $dbUser->table('users')->where('email', $email)->get()->getRow();
+                if ($existingUserByEmail) {
+                    $dbUser->table('users')
+                           ->where('id', $existingUserByEmail->id)
+                           ->update([
+                               'username'  => $username,
+                               'role'      => $assignedRole,
+                               'full_name' => $fullName,
+                           ]);
+                } else {
+                    $dbUser->table('users')->insert([
+                        'username'   => $username,
+                        'email'      => $email,
+                        'password'   => $username, // Password default menggunakan NIK agar mudah diingat
+                        'role'       => $assignedRole,
+                        'full_name'  => $fullName,
+                        'is_active'  => 1,
+                        'created_at' => date('Y-m-d H:i:s'),
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                }
             }
 
             // Assign shift scheme if provided
@@ -302,16 +313,32 @@ class Employee extends ResourceController
                        ->where('username', $username)
                        ->update(['role' => $userRole]);
                 } else {
-                    $db->table('users')->insert([
-                        'username'   => $username,
-                        'email'      => !empty($data['email']) ? $data['email'] : (!empty($oldEmp['email']) ? $oldEmp['email'] : ($username . '@bipayroll.internal')),
-                        'password'   => $username,
-                        'role'       => $userRole,
-                        'full_name'  => $data['nama'] ?? $oldEmp['nama'] ?? '',
-                        'is_active'  => 1,
-                        'created_at' => date('Y-m-d H:i:s'),
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ]);
+                    $emailToCheck = !empty($data['email']) ? $data['email'] : (!empty($oldEmp['email']) ? $oldEmp['email'] : null);
+                    $existingUserByEmail = null;
+                    if ($emailToCheck) {
+                        $existingUserByEmail = $db->table('users')->where('email', $emailToCheck)->get()->getRow();
+                    }
+
+                    if ($existingUserByEmail) {
+                        $db->table('users')
+                           ->where('id', $existingUserByEmail->id)
+                           ->update([
+                               'username'  => $username,
+                               'role'      => $userRole,
+                               'full_name' => $data['nama'] ?? $oldEmp['nama'] ?? $existingUserByEmail->full_name,
+                           ]);
+                    } else {
+                        $db->table('users')->insert([
+                            'username'   => $username,
+                            'email'      => $emailToCheck ?? ($username . '@bipayroll.internal'),
+                            'password'   => $username,
+                            'role'       => $userRole,
+                            'full_name'  => $data['nama'] ?? $oldEmp['nama'] ?? '',
+                            'is_active'  => 1,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'updated_at' => date('Y-m-d H:i:s')
+                        ]);
+                    }
                 }
             }
 

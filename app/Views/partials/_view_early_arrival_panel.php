@@ -11,7 +11,16 @@
 
             <!-- Filters -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-bottom: 25px; align-items: end;">
+                <?php if (($_COOKIE['user_role'] ?? '') === 'admin'): ?>
+                <div>
+                    <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Client</label>
+                    <select id="eaClientFilter" onchange="onEaClientChanged()" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-size: 13px; outline: none; font-weight: 600; color: #334155; cursor: pointer;">
+                        <option value="">-- Pilih Client --</option>
+                    </select>
+                </div>
+                <?php else: ?>
                 <input type="hidden" id="eaClientFilter" value="">
+                <?php endif; ?>
                 
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Month</label>

@@ -540,32 +540,37 @@
                         <!-- Panel: Proses Payroll -->
                         <div id="viewProses" class="w-tab-panel">
                             <!-- Sub Tabs for Process Payroll -->
-                            <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
-                                <button class="sub-tab-btn active" id="subTabSalaryProcessing" onclick="switchPayrollProcessSubTab('processing')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Monthly Salary Processing</button>
-                                <button class="sub-tab-btn" id="subTabCalculationResults" onclick="switchPayrollProcessSubTab('results')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Salary Calculation Results</button>
+                            <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="sub-tab-btn active" id="subTabSalaryProcessing" onclick="switchPayrollProcessSubTab('processing')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Monthly Salary Processing</button>
+                                    <button class="sub-tab-btn" id="subTabCalculationResults" onclick="switchPayrollProcessSubTab('results')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Salary Calculation Results</button>
+                                </div>
+                                
+                                <!-- Payroll Period Selectors (Common to both tabs) -->
+                                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-size: 13px; font-weight: 600; color: #64748b;">Payroll Period:</span>
+                                    <select id="processMonthSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 130px;">
+                                        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                                        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                                        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                                        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                    </select>
+                                    <select id="processYearSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 100px;">
+                                        <?php 
+                                        $currentYear = intval(date('Y'));
+                                        for ($y = $currentYear - 2; $y <= $currentYear + 3; $y++) {
+                                            $selected = ($y === $currentYear) ? 'selected' : '';
+                                            echo "<option value=\"$y\" $selected>$y</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
                             </div>
 
                             <!-- Sub Panel 1: Monthly Salary Processing -->
                             <div id="panelSalaryProcessing" class="client-proses-subpanel">
                                 <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                                     <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Monthly Salary Processing</h3>
-                                    <div style="display: flex; gap: 12px; align-items: center;">
-                                        <select id="processMonthSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 130px;">
-                                            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
-                                            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
-                                            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
-                                            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
-                                        </select>
-                                        <select id="processYearSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 100px;">
-                                            <?php 
-                                            $currentYear = intval(date('Y'));
-                                            for ($y = $currentYear - 2; $y <= $currentYear + 3; $y++) {
-                                                $selected = ($y === $currentYear) ? 'selected' : '';
-                                                echo "<option value=\"$y\" $selected>$y</option>";
-                                            }
-                                            ?>
-                                        </select>
-                                    </div>
                                 </div>
 
                                 <div class="content-card">
@@ -641,6 +646,7 @@
                                                     <tr>
                                                         <th style="width: 40px; text-align: center; vertical-align: middle;"><input type="checkbox" id="selectAllReviewGaji" style="transform: scale(1.2); cursor: pointer;"></th>
                                                         <th>Employee</th>
+                                                        <th>Client</th>
                                                         <th>Division</th>
                                                         <th>Department</th>
                                                         <th>Position</th>
@@ -671,6 +677,7 @@
                             </div>
                         </div>
 
+                        <?php if (($_COOKIE['user_role'] ?? '') !== 'admin'): ?>
                         <!-- Panel: Attendance -->
                         <div id="viewAttendance" class="w-tab-panel">
                             <?= view('partials/_view_attendance_panel') ?>
@@ -685,6 +692,7 @@
                         <div id="viewEarlyArrival" class="w-tab-panel">
                             <?= view('partials/_view_early_arrival_panel') ?>
                         </div>
+                        <?php endif; ?>
 
                         <!-- Panel: Pilihan Skema -->
                         <div id="viewKompensasi" class="w-tab-panel">

@@ -248,14 +248,22 @@ async function renderReviewGajiTable() {
         const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
         if (role === 'staff') {
             displayData = data.filter(row => {
-                const currentFullName = (currentUser && currentUser.full_name) ? currentUser.full_name.toLowerCase() : '';
-                const currentUsername = (currentUser && currentUser.username) ? currentUser.username.toLowerCase() : '';
-                const empName = (row.employee_name || '').toLowerCase();
+                const currentFullName = (currentUser && currentUser.full_name) ? currentUser.full_name.toLowerCase().trim() : '';
+                const currentUsername = (currentUser && currentUser.username) ? currentUser.username.toLowerCase().trim() : '';
+                const empName = (row.employee_name || '').toLowerCase().trim();
                 return empName === currentFullName || empName === currentUsername;
             });
-            // Staff hanya menerima slip gaji setelah disetujui (Approved)
-            displayData = displayData.filter(row => row.status_approval === 'Approved');
+            // Staff can view payslip status whether Approved, Pending, or Hold
+            displayData = displayData.filter(row => ['Approved', 'Pending', 'Hold'].includes(row.status_approval));
         }
+
+        document.querySelectorAll('#selectAllReviewGaji').forEach(input => {
+            const th = input.closest('th');
+            if (th) th.style.display = (role === 'staff') ? 'none' : '';
+        });
+        document.querySelectorAll('#btnApproveSelectedGaji').forEach(btn => {
+            btn.style.display = (role === 'staff') ? 'none' : '';
+        });
 
         if (displayData.length > 0) {
             section.style.display = 'block';
@@ -297,6 +305,7 @@ async function renderReviewGajiTable() {
                             <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" data-is-rapel="${row.is_new_hire_rapel ? 'true' : 'false'}" ${(row.status_approval === 'Approved' || row.status_approval === 'Hold') ? 'disabled' : ''} ${row.status_approval === 'Approved' ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
                         </td>
                         <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? (row.is_new_hire_rapel ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Gaji dirapel ke bulan depan)</span>' : '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen setelah cut-off)</span>') : ''}${row.is_new_hire_rapel ? ` <span class="status-badge warning" style="font-size:10px; margin-left:5px; padding:2px 6px; background-color:#fff3cd; color:#856404; border:1px solid #ffeeba; font-weight:600; border-radius:4px;">Dirapel ke ${row.rapel_payout_period || ''}</span>` : ''}</td>
+                        <td>${row.client_name || '-'}</td>
                         <td>${row.division_name || '-'}</td>
                         <td>${row.department_name || '-'}</td>
                         <td>${row.position_name || '-'}</td>
@@ -324,6 +333,14 @@ async function renderReviewGajiTable() {
                     </tr>
                 `;
             }).join('');
+
+            // Hide the checkbox cells for staff role to avoid column shifting
+            if (role === 'staff') {
+                tbody.querySelectorAll('.review-gaji-checkbox').forEach(input => {
+                    const td = input.closest('td');
+                    if (td) td.style.display = 'none';
+                });
+            }
         } else { 
             section.style.display = 'block';
             tbody.innerHTML = `<tr><td colspan="22" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;

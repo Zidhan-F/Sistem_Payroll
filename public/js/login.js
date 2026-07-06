@@ -106,6 +106,7 @@ if (loginForm) {
             if (response.ok) {
                 showToast('Login successful! Redirecting...', 'success', 2000);
                 localStorage.setItem('user', JSON.stringify(data.user));
+                document.cookie = "user_role=" + data.user.role + "; path=/; max-age=31536000";
                 
                 setTimeout(() => {
                     window.location.href = BASE_URL + 'index.php/dashboard';

@@ -34,7 +34,53 @@ window.fetch = async function(...args) {
 // Cek Login
 const currentUser = JSON.parse(localStorage.getItem('user'));
 if (!currentUser) {
+    document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
     window.location.href = BASE_URL + 'index.php/login';
+} else if (currentUser.role) {
+    document.cookie = "user_role=" + currentUser.role + "; path=/; max-age=31536000";
+}
+
+// Automatically resolve client for staff role
+if (currentUser && currentUser.role === 'staff') {
+    const fetchStaffClient = async () => {
+        try {
+            const res = await fetch(`${API_URL}/employees`);
+            if (res.ok) {
+                const data = await res.json();
+                const currentFullName = (currentUser.full_name || '').toLowerCase();
+                const currentUsername = (currentUser.username || '').toLowerCase();
+                const matchedEmp = data.find(emp => {
+                    const empName = (emp.nama || '').toLowerCase();
+                    const empNik = (emp.nik || '').toLowerCase();
+                    return empName === currentFullName || empName === currentUsername || empNik === currentUsername;
+                });
+                if (matchedEmp) {
+                    window.selectedClientId = matchedEmp.client_id;
+                    window.selectedClientName = matchedEmp.nama_klien;
+                    window.selectedClientSektor = matchedEmp.sektor || 'Retail';
+                    localStorage.setItem('selectedClientId', matchedEmp.client_id);
+                    localStorage.setItem('selectedClientName', matchedEmp.nama_klien);
+                    localStorage.setItem('selectedClientSektor', matchedEmp.sektor || 'Retail');
+                    
+                    const wsTitle = document.getElementById('clientWorkspaceTitle');
+                    const wsSektor = document.getElementById('clientWorkspaceSektor');
+                    if (wsTitle) wsTitle.innerText = matchedEmp.nama_klien;
+                    if (wsSektor) wsSektor.innerText = matchedEmp.sektor || 'Retail';
+
+                    // Update header client info
+                    const headerClientInfo = document.getElementById('headerClientInfo');
+                    if (headerClientInfo) {
+                        headerClientInfo.style.display = 'block';
+                        const headerClientName = document.getElementById('headerClientName');
+                        if (headerClientName) headerClientName.innerText = matchedEmp.nama_klien;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching staff employee details:", err);
+        }
+    };
+    fetchStaffClient();
 }
 
 // API URL is now declared globally in _scripts.php
@@ -55,7 +101,7 @@ const ROLE_PERMISSIONS = {
     recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace'],
     client_superior: ['dashboard', 'klien', 'clientWorkspace'],
     hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak'],
-    staff: ['dashboard', 'klien', 'clientWorkspace']
+    staff: ['dashboard', 'clientWorkspace']
 };
 
 const ROLE_LABELS = {
@@ -95,7 +141,7 @@ function applyWorkspaceTabRestrictions() {
     if (!tabs.length) return;
 
     const allowedTabs = {
-        admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses', 'attendance', 'overtime', 'earlyArrival'],
+        admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses'],
         payroll: ['proses'],
         business_development: [],
         recruiter: ['karyawan', 'pkwt'],
@@ -200,6 +246,22 @@ function applyRoleRestrictions() {
         headerRoleBadge.style.color = color;
         headerRoleBadge.style.display = 'inline-block';
     }
+
+    // Hide stats-container on dashboard for staff role
+    const statsContainer = document.querySelector('.stats-container');
+    if (statsContainer) {
+        statsContainer.style.display = (role === 'staff') ? 'none' : 'grid';
+    }
+
+    // Control Schedule sub-tabs visibility (only show for Admin)
+    const subTabScheduleAttendance = document.getElementById('subTabScheduleAttendance');
+    const subTabScheduleOvertime = document.getElementById('subTabScheduleOvertime');
+    const subTabScheduleEarlyArrival = document.getElementById('subTabScheduleEarlyArrival');
+    
+    const showAdminScheduleTabs = (role === 'admin');
+    if (subTabScheduleAttendance) subTabScheduleAttendance.style.display = showAdminScheduleTabs ? '' : 'none';
+    if (subTabScheduleOvertime) subTabScheduleOvertime.style.display = showAdminScheduleTabs ? '' : 'none';
+    if (subTabScheduleEarlyArrival) subTabScheduleEarlyArrival.style.display = showAdminScheduleTabs ? '' : 'none';
 
     // Quick Actions Panel Detail Restrictions
     const qaDashboard = document.getElementById('qaDashboard');
@@ -448,6 +510,7 @@ function showConfirm(message, title = 'Confirmation', okText = 'Yes, Delete', ca
 
 function logout() {
     localStorage.removeItem('user');
+    document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
     window.location.href = BASE_URL + 'index.php/login';
 }
 
@@ -700,6 +763,12 @@ function switchView(view) {
             switchWorkspaceTab(targetTab);
             return;
         } else {
+            const role = getCurrentRole();
+            if (role === 'staff') {
+                showToast('Memuat data gaji Anda...', 'info');
+                setTimeout(() => switchView(view), 500);
+                return;
+            }
             switchView('klien');
             showToast('Please select a client first!', 'info');
             return;
@@ -710,7 +779,7 @@ function switchView(view) {
     document.querySelectorAll('.sidebar-menu li').forEach(l => l.classList.remove('active'));
     document.querySelectorAll('.sidebar-submenu li').forEach(l => l.classList.remove('active'));
 
-    if (view !== 'clientWorkspace') {
+    if (view !== 'clientWorkspace' && getCurrentRole() !== 'staff') {
         window.selectedClientId = null;
     }
 
@@ -737,6 +806,9 @@ function switchView(view) {
         if (item) item.classList.add('active');
     } else if (view === 'klien') {
         const item = document.getElementById('menuKlien');
+        if (item) item.classList.add('active');
+    } else if (view === 'clientWorkspace' && getCurrentRole() === 'staff') {
+        const item = document.getElementById('menuMySalary');
         if (item) item.classList.add('active');
     } else if (view === 'sto') {
         const item = document.getElementById('menuSto');

@@ -244,6 +244,7 @@
                                                      <tr>
                                                          <th style="width: 40px; text-align: center; vertical-align: middle;"><input type="checkbox" id="selectAllReviewGaji" style="transform: scale(1.2); cursor: pointer;"></th>
                                                           <th>Employee</th>
+                                                          <th>Client</th>
                                                          <th>Division</th>
                                                          <th>Department</th>
                                                          <th>Position</th>

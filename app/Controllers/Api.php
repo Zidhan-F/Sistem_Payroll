@@ -5194,11 +5194,13 @@ class Api extends ResourceController
                              pkwt.tipe_perjanjian, 
                              pkwt.position_name as pkwt_position_name,
                              pkwt.client_id,
+                             clients.nama as client_name,
                              divisions.nama as division_name,
                              departments.nama as department_name,
                              positions.nama as position_name
                          ')
                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
+                         ->join('clients', 'clients.id = pkwt.client_id', 'left')
                          ->join('employees', 'employees.nama = pkwt.employee_name AND employees.client_id = pkwt.client_id', 'left')
                          ->join('positions', 'positions.id = employees.position_id', 'left')
                          ->join('departments', 'departments.id = positions.department_id', 'left')
