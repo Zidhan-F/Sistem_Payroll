@@ -4,9 +4,11 @@
                 <div class="workspace-header" style="margin-bottom: 25px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
                         <div style="display: flex; align-items: center; gap: 15px;">
+                            <?php if (($_COOKIE['user_role'] ?? '') !== 'staff'): ?>
                             <button class="btn-back" onclick="backToClientList()">
                                 <i class="fas fa-arrow-left"></i> Back
                             </button>
+                            <?php endif; ?>
                             <h2 id="clientWorkspaceTitle" style="font-size: 22px; font-weight: 700; color: var(--secondary-color); margin: 0;">🏢 -</h2>
                         </div>
                         <div id="clientWorkspaceMeta" style="font-size: 14px; color: var(--text-muted); font-weight: 500;">
@@ -16,6 +18,7 @@
                 </div>
 
                 <!-- Workspace Tabs (Horizontal below client name) -->
+                <?php if (($_COOKIE['user_role'] ?? '') !== 'staff'): ?>
                 <div class="workspace-tabs">
                     <button class="ws-tab active" data-wtab="karyawan" onclick="switchWorkspaceTab('karyawan')">Employee</button>
                     <button class="ws-tab" data-wtab="struktur" onclick="switchWorkspaceTab('struktur')">Organization Structure</button>
@@ -23,6 +26,7 @@
                     <button class="ws-tab" data-wtab="pkwt" onclick="switchWorkspaceTab('pkwt')">PKWT Contract</button>
                     <button class="ws-tab" data-wtab="proses" onclick="switchWorkspaceTab('proses')">Process Payroll</button>
                 </div>
+                <?php endif; ?>
 
                 <!-- Content Panels -->
                 <div class="workspace-content">
@@ -302,13 +306,12 @@
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Position</th>
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Payroll Scheme</th>
                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">BPJS Scheme</th>
-                                                         <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">PPh 21 Scheme</th>
                                                         <th style="padding: 15px; text-align: center; font-weight: 600; font-size: 13px;">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tabelPilihanSkemaKlien">
                                                     <tr>
-                                                        <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                                        <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
                                                             <i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                                                             No payroll schemes registered yet. Click the "Add Scheme" button to configure.
                                                         </td>

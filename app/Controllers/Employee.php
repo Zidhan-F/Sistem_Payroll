@@ -65,9 +65,6 @@ class Employee extends ResourceController
         $isRequesterAdmin = $requester && $requester->role === 'admin';
 
         $assignedRole = 'staff';
-        if ($isRequesterAdmin && !empty($userRole)) {
-            $assignedRole = $userRole;
-        }
 
         if (!empty($data['npwp'])) {
             $digitsOnly = preg_replace('/\D/', '', $data['npwp']);

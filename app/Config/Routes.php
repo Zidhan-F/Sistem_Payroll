@@ -175,7 +175,7 @@ $routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
     $routes->delete('global-departments/(:num)', 'GlobalSto::deleteDepartment/$1');
     $routes->post('global-positions', 'GlobalSto::createPosition');
     $routes->put('global-positions/(:num)', 'GlobalSto::updatePosition/$1');
-    $routes->delete('global-positions/(:num)', 'GlobalSto::deleteDivision/$1');
+    $routes->delete('global-positions/(:num)', 'GlobalSto::deletePosition/$1');
 
     // Payroll Schemes CRUD
     $routes->post('payroll-schemes', 'Api::createPayrollScheme');
@@ -311,13 +311,3 @@ $routes->group('api', ['filter' => 'role:client_superior'], function($routes) {
     $routes->delete('payroll/reject/(:num)', 'Payroll::reject/$1');
 });
 
-// =====================================================================
-// ADMIN ONLY — User Management
-// =====================================================================
-$routes->group('api', ['filter' => 'role:admin'], function($routes) {
-    $routes->get('users', 'UserManagement::getUsers');
-    $routes->post('users', 'UserManagement::createUser');
-    $routes->put('users/(:num)', 'UserManagement::updateUser/$1');
-    $routes->delete('users/(:num)', 'UserManagement::deleteUser/$1');
-    $routes->get('roles', 'UserManagement::getRoles');
-});

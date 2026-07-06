@@ -112,7 +112,9 @@ function selectClient(id, name, sektor) {
     const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
     if (role === 'business_development') {
         defaultTab = 'struktur';
-    } else if (['payroll', 'client_superior', 'hc_ops', 'staff'].includes(role)) {
+    } else if (role === 'hc_ops') {
+        defaultTab = 'attendance';
+    } else if (['payroll', 'client_superior', 'staff'].includes(role)) {
         defaultTab = 'proses';
     }
     switchWorkspaceTab(defaultTab);

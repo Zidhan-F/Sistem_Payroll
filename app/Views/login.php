@@ -83,6 +83,9 @@
                             <div class="input-wrapper">
                                 <i class="fas fa-lock text-muted-icon"></i>
                                 <input type="password" id="password" placeholder="Masukkan kata sandi" required autocomplete="current-password">
+                                <button type="button" class="btn-eye" onclick="togglePasswordInput('password', this)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="remember-forgot">

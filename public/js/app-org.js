@@ -569,7 +569,11 @@ async function bukaModalKaryawan(mode,id=null){
     if (empUserRoleSelect) {
         empUserRoleSelect.value = 'staff';
         const currentLoggedRole = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
-        empUserRoleSelect.disabled = (currentLoggedRole !== 'admin');
+        if (mode === 'tambah') {
+            empUserRoleSelect.disabled = true;
+        } else {
+            empUserRoleSelect.disabled = (currentLoggedRole !== 'admin');
+        }
     }
 
     // Load Shift Schemes dropdown

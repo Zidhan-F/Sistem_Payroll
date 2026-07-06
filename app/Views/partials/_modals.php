@@ -1978,8 +1978,8 @@
                         </div>
                     </div>
 
-                    <!-- Tax Scheme -->
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <!-- Tax Scheme Hidden -->
+                    <div style="display: none; align-items: center; justify-content: space-between;">
                         <div style="display: flex; flex-direction: column;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-weight: 600; color: #475569;"><i class="fas fa-percent" style="margin-right: 8px;"></i>PPh 21 Scheme</span>
@@ -1989,7 +1989,7 @@
                             </div>
                             <small style="color: #64748b; font-size: 11px;">Calculation method for PPh 21 tax deductions.</small>
                         </div>
-                        <select id="modalPilihanSkemaPajak" onchange="handleModalPilihanSkemaPajakChange(this.value)" required style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                        <select id="modalPilihanSkemaPajak" onchange="handleModalPilihanSkemaPajakChange(this.value)" style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
                             <option value="">-- Select Tax Scheme --</option>
                         </select>
                     </div>

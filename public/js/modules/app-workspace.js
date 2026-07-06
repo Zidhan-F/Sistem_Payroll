@@ -345,7 +345,7 @@ async function loadSchemaMappingTable() {
     try {
         const tbody = document.getElementById('tabelPilihanSkemaKlien');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const res = await fetch(`${API_URL}/client-configs-mapping/${window.selectedClientId}`);
         const mappings = await res.json();
@@ -353,7 +353,7 @@ async function loadSchemaMappingTable() {
         if (!tbody) return;
         
         if (!mappings || mappings.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color: #94a3b8;"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>No payroll schemes registered yet. Click the "Add Scheme" button to configure.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #94a3b8;"><i class="fas fa-inbox" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>No payroll schemes registered yet. Click the "Add Scheme" button to configure.</td></tr>';
             return;
         }
         
@@ -365,7 +365,6 @@ async function loadSchemaMappingTable() {
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || 'Global'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.bpjs_scheme_name || '-'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.tax_scheme_name || '-'}</td>
                     <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0;">
                         <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
                             <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#94a3b8; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>

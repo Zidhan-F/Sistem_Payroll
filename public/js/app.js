@@ -74,6 +74,12 @@ if (currentUser && currentUser.role === 'staff') {
                         const headerClientName = document.getElementById('headerClientName');
                         if (headerClientName) headerClientName.innerText = matchedEmp.nama_klien;
                     }
+                    
+                    // Enforce redirect to workspace and processes tab
+                    switchView('clientWorkspace');
+                    if (typeof switchWorkspaceTab === 'function') {
+                        switchWorkspaceTab('proses');
+                    }
                 }
             }
         } catch (err) {
@@ -101,7 +107,7 @@ const ROLE_PERMISSIONS = {
     recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace'],
     client_superior: ['dashboard', 'klien', 'clientWorkspace'],
     hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak'],
-    staff: ['dashboard', 'clientWorkspace']
+    staff: ['clientWorkspace']
 };
 
 const ROLE_LABELS = {
@@ -146,7 +152,7 @@ function applyWorkspaceTabRestrictions() {
         business_development: [],
         recruiter: ['karyawan', 'pkwt'],
         client_superior: ['proses'],
-        hc_ops: ['proses', 'struktur', 'kompensasi', 'attendance', 'overtime', 'earlyArrival'],
+        hc_ops: ['struktur', 'kompensasi', 'attendance', 'overtime', 'earlyArrival'],
         staff: ['proses']
     };
 
@@ -188,18 +194,14 @@ function applyRoleRestrictions() {
         'menuSto': 'sto',
         'menuManajemenKaryawan': 'manajemenKaryawan',
         'menuPayroll': 'payroll',
-        'menuSchedule': 'schedule',
-        'menuUserManagement': 'userManagement'
+        'menuSchedule': 'schedule'
     };
 
     Object.entries(menuMapping).forEach(([menuId, view]) => {
         const el = document.getElementById(menuId);
         if (!el) return;
 
-        if (menuId === 'menuUserManagement') {
-            // User Management hanya untuk admin
-            el.style.display = isAdmin ? '' : 'none';
-        } else if (menuId === 'menuManajemenKaryawan') {
+        if (menuId === 'menuManajemenKaryawan') {
             // Cek akses ke submenu karyawan
             const hasAny = isAdmin || 
                 perms.includes('manajemenKaryawan') || 
@@ -311,7 +313,6 @@ function applyRoleRestrictions() {
         const karyawan = document.getElementById('menuManajemenKaryawan');
         const payroll = document.getElementById('menuPayroll');
         const subPayroll = document.getElementById('submenuPayroll');
-        const userMgt = document.getElementById('menuUserManagement');
 
         if (sidebar) {
             if (role === 'hc_ops') {
@@ -322,7 +323,6 @@ function applyRoleRestrictions() {
                 if (payroll) sidebar.appendChild(payroll);
                 if (subPayroll) sidebar.appendChild(subPayroll);
                 if (scheduleMenu) sidebar.appendChild(scheduleMenu);
-                if (userMgt) sidebar.appendChild(userMgt);
             } else {
                 // Default order
                 if (db) sidebar.appendChild(db);
@@ -332,7 +332,6 @@ function applyRoleRestrictions() {
                 if (payroll) sidebar.appendChild(payroll);
                 if (subPayroll) sidebar.appendChild(subPayroll);
                 if (scheduleMenu) sidebar.appendChild(scheduleMenu);
-                if (userMgt) sidebar.appendChild(userMgt);
             }
         }
     }
@@ -509,7 +508,7 @@ function showConfirm(message, title = 'Confirmation', okText = 'Yes, Delete', ca
 }
 
 function logout() {
-    localStorage.removeItem('user');
+    localStorage.clear();
     document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
     window.location.href = BASE_URL + 'index.php/login';
 }
@@ -753,7 +752,7 @@ function switchView(view) {
                 business_development: ['struktur', 'kompensasi'],
                 recruiter: ['karyawan', 'pkwt'],
                 client_superior: ['proses'],
-                hc_ops: ['proses'],
+                hc_ops: ['attendance', 'overtime', 'earlyArrival', 'struktur', 'kompensasi'],
                 staff: ['proses']
             };
             const allowed = allowedTabs[role] || [];
@@ -810,14 +809,14 @@ function switchView(view) {
     } else if (view === 'clientWorkspace' && getCurrentRole() === 'staff') {
         const item = document.getElementById('menuMySalary');
         if (item) item.classList.add('active');
+        if (typeof switchWorkspaceTab === 'function') {
+            switchWorkspaceTab('proses');
+        }
     } else if (view === 'sto') {
         const item = document.getElementById('menuSto');
         if (item) item.classList.add('active');
     } else if (view === 'schedule') {
         const item = document.getElementById('menuSchedule');
-        if (item) item.classList.add('active');
-    } else if (view === 'userManagement') {
-        const item = document.getElementById('menuUserManagement');
         if (item) item.classList.add('active');
     } else if (view === 'globalLokasiKerja' || view === 'manajemenKaryawan' || view === 'skemaShift') {
         const parent = document.getElementById('menuManajemenKaryawan');
@@ -866,8 +865,7 @@ function switchView(view) {
         pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme',
         schedule: 'Schedule',
-        skemaShift: 'Employee Management',
-        userManagement: 'User Management'
+        skemaShift: 'Employee Management'
     };
     const titleEl = document.getElementById('viewTitle');
     if (titleEl) {
@@ -895,7 +893,6 @@ function switchView(view) {
     }
     if (view === 'pajak') renderTaxSchemes();
     if (view === 'masterKompensasi') renderMasterKompensasi();
-    if (view === 'userManagement') { if (typeof loadUsers === 'function') loadUsers(); }
     
     if (view === 'schedule') {
         // Initialize default filters to current month/year if not initialized
@@ -946,7 +943,7 @@ function switchView(view) {
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal(keepSidebarOpen = false) {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalDetailPph21', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema', 'modalSchedule', 'modalUploadAbsensi', 'attendanceModal', 'overtimeModal', 'modalUserForm', 'modalDeleteUser'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalDetailPph21', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema', 'modalSchedule', 'modalUploadAbsensi', 'attendanceModal', 'overtimeModal'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     
     // Clean up TomSelect instances from modalPilihanSkema if it was open
@@ -1440,7 +1437,13 @@ function restoreAppState() {
         if (wsSektor) wsSektor.innerText = savedClientSektor || '-';
     }
 
-    const savedView = localStorage.getItem('activeView') || 'dashboard';
+    let savedView = localStorage.getItem('activeView') || 'dashboard';
+    if (getCurrentRole() === 'staff') {
+        savedView = 'clientWorkspace';
+        localStorage.setItem('activeWorkspaceTab', 'proses');
+    } else if (savedView === 'clientWorkspace' && !savedClientId) {
+        savedView = 'dashboard';
+    }
     
     if (savedView === 'clientWorkspace' && savedClientId) {
         switchView('clientWorkspace');

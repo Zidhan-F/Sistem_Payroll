@@ -399,9 +399,11 @@
                 <div class="workspace-header" style="margin-bottom: 25px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
                         <div style="display: flex; align-items: center; gap: 15px;">
+                            <?php if (($_COOKIE['user_role'] ?? '') !== 'staff'): ?>
                             <button class="btn-back" onclick="backToClientList()">
                                 <i class="fas fa-arrow-left"></i> Back
                             </button>
+                            <?php endif; ?>
                             <h2 id="clientWorkspaceTitle" style="font-size: 22px; font-weight: 700; color: var(--secondary-color); margin: 0;">🏢 -</h2>
                         </div>
                         <div id="clientWorkspaceMeta" style="font-size: 14px; color: var(--text-muted); font-weight: 500;">
@@ -411,6 +413,7 @@
                 </div>
 
                 <!-- Workspace Tabs (Horizontal below client name) -->
+                <?php if (($_COOKIE['user_role'] ?? '') !== 'staff'): ?>
                 <div class="workspace-tabs">
                     <button class="ws-tab active" data-wtab="karyawan" onclick="switchWorkspaceTab('karyawan')">Employees</button>
                     <button class="ws-tab" data-wtab="struktur" onclick="switchWorkspaceTab('struktur')">Org Structure</button>
@@ -421,6 +424,7 @@
                     <button class="ws-tab" data-wtab="overtime" onclick="switchWorkspaceTab('overtime')">Overtime</button>
                     <button class="ws-tab" data-wtab="earlyArrival" onclick="switchWorkspaceTab('earlyArrival')">Early Arrival</button>
                 </div>
+                <?php endif; ?>
 
                 <!-- Content Panels -->
                 <div class="workspace-content">
@@ -1020,7 +1024,6 @@
         <!-- Section: Log Aktivitas Removed -->
     </div>
 
-    <?= view('partials/_view_user_management') ?>
     <?= view('partials/_modals') ?>
     <?= view('partials/_scripts') ?>
 </body>

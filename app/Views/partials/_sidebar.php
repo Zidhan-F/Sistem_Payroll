@@ -8,10 +8,12 @@ $userRole = $_COOKIE['user_role'] ?? '';
         <h3 style="margin: 0; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 20px; color: var(--secondary-color); letter-spacing: -0.5px;">BiPayroll</h3>
     </div>
     <ul class="sidebar-menu">
+        <?php if ($userRole !== 'staff'): ?>
         <li id="menuDashboard" class="active" onclick="switchView('dashboard')">
             <i class="fas fa-chart-line"></i>
             <span>Dashboard</span>
         </li>
+        <?php endif; ?>
         <?php if ($userRole === 'staff'): ?>
         <li id="menuMySalary" onclick="if(window.selectedClientId && typeof selectClient === 'function'){ selectClient(window.selectedClientId, window.selectedClientName, window.selectedClientSektor); } else { showToast('Data gaji Anda sedang dimuat. Silakan tunggu sebentar...', 'info'); }">
             <i class="fas fa-file-invoice-dollar"></i>
@@ -71,10 +73,6 @@ $userRole = $_COOKIE['user_role'] ?? '';
     <li id="menuSchedule" onclick="switchView('schedule')">
         <i class="fas fa-calendar-alt"></i>
         <span><?= (session()->get('role') === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule' ?></span>
-    </li>
-    <li id="menuUserManagement" onclick="switchView('userManagement')" style="display: none;">
-        <i class="fas fa-user-shield"></i>
-        <span>User Management</span>
     </li>
     </ul>
 </div>
