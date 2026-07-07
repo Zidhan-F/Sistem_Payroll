@@ -237,16 +237,22 @@ $routes->group('api', ['filter' => 'role:recruiter,hc_ops'], function($routes) {
 });
 
 // =====================================================================
-// PAYROLL — Generate salary, manage minimum wages & periods
+// PAYROLL & HC OPS — Manage periods and save attendance logs
+// =====================================================================
+$routes->group('api', ['filter' => 'role:payroll,hc_ops'], function($routes) {
+    $routes->post('periods', 'Api::createPeriod');
+    $routes->post('attendance', 'Api::saveAttendance');
+    $routes->post('attendance-bulk', 'Api::saveAttendanceBulk');
+});
+
+// =====================================================================
+// PAYROLL ONLY — Generate salary, manage minimum wages
 // =====================================================================
 $routes->group('api', ['filter' => 'role:payroll'], function($routes) {
     // Minimum Wages
     $routes->post('minimum-wages', 'Api::saveMinimumWages');
 
     // Payroll Processing
-    $routes->post('periods', 'Api::createPeriod');
-    $routes->post('attendance', 'Api::saveAttendance');
-    $routes->post('attendance-bulk', 'Api::saveAttendanceBulk');
     $routes->post('generate-payroll/(:num)', 'Api::generatePayroll/$1');
     $routes->post('payroll/process-bulk', 'Payroll::processBulk');
     $routes->post('upload-manual-payroll', 'Api::uploadManualPayroll');
