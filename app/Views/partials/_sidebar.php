@@ -1,5 +1,5 @@
 <?php
-$userRole = $_COOKIE['user_role'] ?? '';
+$userRole = session()->get('role') ?? $_COOKIE['user_role'] ?? '';
 ?>
 <!-- Sidebar -->
 <div class="sidebar">
@@ -14,6 +14,12 @@ $userRole = $_COOKIE['user_role'] ?? '';
             <span>Dashboard</span>
         </li>
         <?php endif; ?>
+        <?php if ($userRole === 'payroll'): ?>
+        <li id="menuUploadUmrPayroll" onclick="switchPayrollSub('uploadUmr')">
+            <i class="fas fa-file-upload"></i>
+            <span>Upload UMP and UMK</span>
+        </li>
+        <?php endif; ?>
         <?php if ($userRole === 'staff'): ?>
         <li id="menuMySalary" onclick="if(window.selectedClientId && typeof selectClient === 'function'){ selectClient(window.selectedClientId, window.selectedClientName, window.selectedClientSektor); } else { showToast('Data gaji Anda sedang dimuat. Silakan tunggu sebentar...', 'info'); }">
             <i class="fas fa-file-invoice-dollar"></i>
@@ -22,14 +28,14 @@ $userRole = $_COOKIE['user_role'] ?? '';
         <?php else: ?>
         <li id="menuKlien" onclick="switchView('klien')">
             <i class="fas fa-users"></i>
-            <span>Client Management</span>
+            <span><?= ($userRole === 'payroll') ? 'Generate salary' : 'Client Management' ?></span>
         </li>
         <?php endif; ?>
-        <li id="menuSto" onclick="switchView('sto')">
+        <li id="menuSto" onclick="switchView('sto')" <?= (!in_array($userRole, ['admin', 'hc_ops'])) ? 'style="display: none;"' : '' ?>>
             <i class="fas fa-sitemap"></i>
-            <span>STO (Org Structure)</span>
+            <span><?= ($userRole === 'hc_ops') ? 'Master STO' : 'STO (Org Structure)' ?></span>
         </li>
-        <li id="menuManajemenKaryawan" class="has-submenu">
+        <li id="menuManajemenKaryawan" class="has-submenu" <?= (!in_array($userRole, ['admin', 'recruiter'])) ? 'style="display: none;"' : '' ?>>
             <div class="menu-item-header" onclick="toggleSubmenu(event, 'submenuKaryawan')">
                 <i class="fas fa-user-friends"></i>
                 <span>Employee Management</span>
@@ -50,7 +56,7 @@ $userRole = $_COOKIE['user_role'] ?? '';
                 </li>
             </ul>
         </li>
-        <li id="menuPayroll" onclick="togglePayrollSubmenu()">
+        <li id="menuPayroll" onclick="togglePayrollSubmenu()" <?= (!in_array($userRole, ['admin', 'hc_ops'])) ? 'style="display: none;"' : '' ?>>
             <i class="fas fa-file-invoice-dollar"></i>
             <span>Master Payroll Scheme</span>
             <i class="fas fa-chevron-down submenu-arrow"></i>
@@ -70,9 +76,9 @@ $userRole = $_COOKIE['user_role'] ?? '';
             </li>
 
     </ul>
-    <li id="menuSchedule" onclick="switchView('schedule')">
+    <li id="menuSchedule" onclick="switchView('schedule')" <?= (!in_array($userRole, ['admin', 'hc_ops'])) ? 'style="display: none;"' : '' ?>>
         <i class="fas fa-calendar-alt"></i>
-        <span><?= (session()->get('role') === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule' ?></span>
+        <span><?= ($userRole === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule' ?></span>
     </li>
     </ul>
 </div>

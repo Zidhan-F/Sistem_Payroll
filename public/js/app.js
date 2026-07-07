@@ -203,16 +203,16 @@ function applyRoleRestrictions() {
 
         if (menuId === 'menuManajemenKaryawan') {
             // Cek akses ke submenu karyawan
-            const hasAny = isAdmin || 
+            const hasAny = (isAdmin || 
                 perms.includes('manajemenKaryawan') || 
                 perms.includes('globalLokasiKerja') || 
-                perms.includes('skemaShift');
+                perms.includes('skemaShift')) && role !== 'hc_ops';
             el.style.display = hasAny ? '' : 'none';
         } else if (menuId === 'menuPayroll') {
-            const hasAny = isAdmin || 
+            const hasAny = (isAdmin || 
                 perms.includes('payroll') || 
                 perms.includes('pajak') || 
-                perms.includes('masterKompensasi');
+                perms.includes('masterKompensasi')) && role !== 'payroll';
             el.style.display = hasAny ? '' : 'none';
         } else {
             el.style.display = (isAdmin || perms.includes(view)) ? '' : 'none';
@@ -304,35 +304,57 @@ function applyRoleRestrictions() {
         if (span) {
             span.innerText = (role === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule';
         }
+    }
 
-        // Rearrange DOM order of sidebar menus
-        const sidebar = document.querySelector('.sidebar-menu');
-        const db = document.getElementById('menuDashboard');
-        const klien = document.getElementById('menuKlien');
-        const sto = document.getElementById('menuSto');
-        const karyawan = document.getElementById('menuManajemenKaryawan');
-        const payroll = document.getElementById('menuPayroll');
-        const subPayroll = document.getElementById('submenuPayroll');
+    // Rename STO to Master STO for HC Ops role
+    const stoMenu = document.getElementById('menuSto');
+    if (stoMenu) {
+        const span = stoMenu.querySelector('span');
+        if (span) {
+            span.innerText = (role === 'hc_ops') ? 'Master STO' : 'STO (Org Structure)';
+        }
+    }
 
-        if (sidebar) {
-            if (role === 'hc_ops') {
-                if (db) sidebar.appendChild(db);
-                if (klien) sidebar.appendChild(klien);
-                if (karyawan) sidebar.appendChild(karyawan);
-                if (sto) sidebar.appendChild(sto);
-                if (payroll) sidebar.appendChild(payroll);
-                if (subPayroll) sidebar.appendChild(subPayroll);
-                if (scheduleMenu) sidebar.appendChild(scheduleMenu);
-            } else {
-                // Default order
-                if (db) sidebar.appendChild(db);
-                if (klien) sidebar.appendChild(klien);
-                if (sto) sidebar.appendChild(sto);
-                if (karyawan) sidebar.appendChild(karyawan);
-                if (payroll) sidebar.appendChild(payroll);
-                if (subPayroll) sidebar.appendChild(subPayroll);
-                if (scheduleMenu) sidebar.appendChild(scheduleMenu);
-            }
+    // Rename Client Management to Generate salary for Payroll role
+    const klienMenu = document.getElementById('menuKlien');
+    if (klienMenu) {
+        const span = klienMenu.querySelector('span');
+        if (span) {
+            span.innerText = (role === 'payroll') ? 'Generate salary' : 'Client Management';
+        }
+    }
+
+    // Rearrange DOM order of sidebar menus
+    const sidebar = document.querySelector('.sidebar-menu');
+    const db = document.getElementById('menuDashboard');
+    const klien = document.getElementById('menuKlien');
+    const sto = document.getElementById('menuSto');
+    const karyawan = document.getElementById('menuManajemenKaryawan');
+    const payroll = document.getElementById('menuPayroll');
+    const subPayroll = document.getElementById('submenuPayroll');
+    const uploadUmrPayroll = document.getElementById('menuUploadUmrPayroll');
+
+    if (sidebar) {
+        if (role === 'hc_ops') {
+            if (db) sidebar.appendChild(db);
+            if (sto) sidebar.appendChild(sto);
+            if (klien) sidebar.appendChild(klien);
+            if (payroll) sidebar.appendChild(payroll);
+            if (subPayroll) sidebar.appendChild(subPayroll);
+            if (scheduleMenu) sidebar.appendChild(scheduleMenu);
+        } else if (role === 'payroll') {
+            if (db) sidebar.appendChild(db);
+            if (uploadUmrPayroll) sidebar.appendChild(uploadUmrPayroll);
+            if (klien) sidebar.appendChild(klien);
+        } else {
+            // Default order
+            if (db) sidebar.appendChild(db);
+            if (klien) sidebar.appendChild(klien);
+            if (sto) sidebar.appendChild(sto);
+            if (karyawan) sidebar.appendChild(karyawan);
+            if (payroll) sidebar.appendChild(payroll);
+            if (subPayroll) sidebar.appendChild(subPayroll);
+            if (scheduleMenu) sidebar.appendChild(scheduleMenu);
         }
     }
 
@@ -832,26 +854,31 @@ function switchView(view) {
         const subItem = document.getElementById(subItemId);
         if (subItem) subItem.classList.add('active');
     } else if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
-        const parent = document.getElementById('menuPayroll');
-        if (parent) parent.classList.add('active');
-        if (submenuPayroll) submenuPayroll.style.display = 'block';
-        if (arrowPayroll) arrowPayroll.style.transform = 'rotate(180deg)';
+        if (getCurrentRole() === 'payroll') {
+            const item = document.getElementById('menuUploadUmrPayroll');
+            if (item) item.classList.add('active');
+        } else {
+            const parent = document.getElementById('menuPayroll');
+            if (parent) parent.classList.add('active');
+            if (submenuPayroll) submenuPayroll.style.display = 'block';
+            if (arrowPayroll) arrowPayroll.style.transform = 'rotate(180deg)';
 
-        let subItemId = 'submenu_setting'; // Default
-        if (view === 'payroll') {
-            const sub = localStorage.getItem('activePayrollSub') || 'setting';
-            subItemId = 'submenu_' + sub;
-            currentPayrollSub = sub; // sync global state
-        } else if (view === 'masterKompensasi') {
-            subItemId = 'submenu_kompensasi';
-            currentPayrollSub = 'kompensasi'; // sync global state
-        } else if (view === 'pajak') {
-            subItemId = 'submenu_pajak';
-            currentPayrollSub = 'pajak'; // sync global state
+            let subItemId = 'submenu_setting'; // Default
+            if (view === 'payroll') {
+                const sub = localStorage.getItem('activePayrollSub') || 'setting';
+                subItemId = 'submenu_' + sub;
+                currentPayrollSub = sub; // sync global state
+            } else if (view === 'masterKompensasi') {
+                subItemId = 'submenu_kompensasi';
+                currentPayrollSub = 'kompensasi'; // sync global state
+            } else if (view === 'pajak') {
+                subItemId = 'submenu_pajak';
+                currentPayrollSub = 'pajak'; // sync global state
+            }
+
+            const subItem = document.getElementById(subItemId);
+            if (subItem) subItem.classList.add('active');
         }
-
-        const subItem = document.getElementById(subItemId);
-        if (subItem) subItem.classList.add('active');
     }
 
     const titles = {
