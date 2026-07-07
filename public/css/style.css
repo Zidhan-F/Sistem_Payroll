@@ -780,6 +780,11 @@ tbody tr:hover td:first-child {
 }
 
 /* Prevent double scrollbar when a modal or overlay is active */
+html:has(.modal-skema[style*="display: block"]),
+html:has(.modal-skema[style*="display:block"]),
+html:has(#overlay[style*="display: block"]),
+html:has(#overlay[style*="display:block"]),
+html:has(#overlay:not([style*="display: none"]):not([style*="display:none"])),
 body:has(.modal-skema[style*="display: block"]),
 body:has(.modal-skema[style*="display:block"]),
 body:has(#overlay[style*="display: block"]),
