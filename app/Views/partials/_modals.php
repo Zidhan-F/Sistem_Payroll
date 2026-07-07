@@ -2298,14 +2298,14 @@
                     <div class="form-group">
                         <label style="font-weight: 600; margin-bottom: 6px; display: block;">PTKP Status</label>
                         <select id="empPtkp" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background-color: white;">
-                            <option value="TK/0">Tidak Kawin Tanpa Tanggungan (TK/0)</option>
-                            <option value="TK/1">Tidak Kawin Tanggungan 1 Orang (TK/1)</option>
-                            <option value="TK/2">Tidak Kawin Tanggungan 2 Orang (TK/2)</option>
-                            <option value="TK/3">Tidak Kawin Tanggungan 3 Orang (TK/3)</option>
-                            <option value="K/0">Kawin Tanpa Tanggungan (K/0)</option>
-                            <option value="K/1">Kawin Tanggungan 1 Orang (K/1)</option>
-                            <option value="K/2">Kawin Tanggungan 2 Orang (K/2)</option>
-                            <option value="K/3">Kawin Tanggungan 3 Orang (K/3)</option>
+                            <option value="TK/0">TK/0</option>
+                            <option value="TK/1">TK/1</option>
+                            <option value="TK/2">TK/2</option>
+                            <option value="TK/3">TK/3</option>
+                            <option value="K/0">K/0</option>
+                            <option value="K/1">K/1</option>
+                            <option value="K/2">K/2</option>
+                            <option value="K/3">K/3</option>
                         </select>
                     </div>
                 </div>

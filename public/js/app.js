@@ -206,7 +206,7 @@ function applyRoleRestrictions() {
             const hasAny = (isAdmin || 
                 perms.includes('manajemenKaryawan') || 
                 perms.includes('globalLokasiKerja') || 
-                perms.includes('skemaShift')) && role !== 'hc_ops';
+                perms.includes('skemaShift'));
             el.style.display = hasAny ? '' : 'none';
         } else if (menuId === 'menuPayroll') {
             const hasAny = (isAdmin || 
@@ -339,6 +339,7 @@ function applyRoleRestrictions() {
             if (db) sidebar.appendChild(db);
             if (sto) sidebar.appendChild(sto);
             if (klien) sidebar.appendChild(klien);
+            if (karyawan) sidebar.appendChild(karyawan);
             if (payroll) sidebar.appendChild(payroll);
             if (subPayroll) sidebar.appendChild(subPayroll);
             if (scheduleMenu) sidebar.appendChild(scheduleMenu);

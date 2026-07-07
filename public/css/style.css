@@ -3333,18 +3333,18 @@ body:not(.role-admin):not(.role-business_development) #viewKlien td:last-child {
     display: none !important;
 }
 
-/* 2. Organization Structure (Add & Edit: BD & Admin) */
-body:not(.role-admin):not(.role-business_development) #viewStruktur .btn-add,
-body:not(.role-admin):not(.role-business_development) #viewStruktur .org-actions,
-body:not(.role-admin):not(.role-business_development) #viewStruktur .btn-icon {
+/* 2. Organization Structure (Add & Edit: HC Ops & Admin) */
+body:not(.role-admin):not(.role-hc_ops) #viewStruktur .btn-add,
+body:not(.role-admin):not(.role-hc_ops) #viewStruktur .org-actions,
+body:not(.role-admin):not(.role-hc_ops) #viewStruktur .btn-icon {
     display: none !important;
 }
 
-/* 3. Scheme Choices / Compensation (Add & Edit: BD & Admin) */
-body:not(.role-admin):not(.role-business_development) #viewKompensasi button:not(.ws-tab),
-body:not(.role-admin):not(.role-business_development) #viewKompensasi .btn-save,
-body:not(.role-admin):not(.role-business_development) #viewKompensasi .btn-add,
-body:not(.role-admin):not(.role-business_development) #viewKompensasi .action-btns {
+/* 3. Scheme Choices / Compensation (Add & Edit: HC Ops & Admin) */
+body:not(.role-admin):not(.role-hc_ops) #viewKompensasi button:not(.ws-tab),
+body:not(.role-admin):not(.role-hc_ops) #viewKompensasi .btn-save,
+body:not(.role-admin):not(.role-hc_ops) #viewKompensasi .btn-add,
+body:not(.role-admin):not(.role-hc_ops) #viewKompensasi .action-btns {
     display: none !important;
 }
 

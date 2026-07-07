@@ -35,7 +35,7 @@ $userRole = session()->get('role') ?? $_COOKIE['user_role'] ?? '';
             <i class="fas fa-sitemap"></i>
             <span><?= ($userRole === 'hc_ops') ? 'Master STO' : 'STO (Org Structure)' ?></span>
         </li>
-        <li id="menuManajemenKaryawan" class="has-submenu" <?= (!in_array($userRole, ['admin', 'recruiter'])) ? 'style="display: none;"' : '' ?>>
+        <li id="menuManajemenKaryawan" class="has-submenu" <?= (!in_array($userRole, ['admin', 'recruiter', 'hc_ops'])) ? 'style="display: none;"' : '' ?>>
             <div class="menu-item-header" onclick="toggleSubmenu(event, 'submenuKaryawan')">
                 <i class="fas fa-user-friends"></i>
                 <span>Employee Management</span>
