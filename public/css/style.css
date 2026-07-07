@@ -3348,10 +3348,10 @@ body:not(.role-admin):not(.role-hc_ops) #viewKompensasi .action-btns {
     display: none !important;
 }
 
-/* 4. Employee Management (Add & Edit: Recruiter & Admin) */
-body:not(.role-admin):not(.role-recruiter) #viewKaryawan .btn-add,
-body:not(.role-admin):not(.role-recruiter) #viewKaryawan table th:last-child,
-body:not(.role-admin):not(.role-recruiter) #viewKaryawan table td:last-child {
+/* 4. Employee Management (Add & Edit: Recruiter, HC Ops, & Admin) */
+body:not(.role-admin):not(.role-recruiter):not(.role-hc_ops) #viewKaryawan .btn-add,
+body:not(.role-admin):not(.role-recruiter):not(.role-hc_ops) #viewKaryawan table th:last-child,
+body:not(.role-admin):not(.role-recruiter):not(.role-hc_ops) #viewKaryawan table td:last-child {
     display: none !important;
 }
 

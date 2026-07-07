@@ -221,9 +221,9 @@ $routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
 });
 
 // =====================================================================
-// RECRUITER — Employee & Contract management
+// RECRUITER & HC OPS — Employee & Contract management
 // =====================================================================
-$routes->group('api', ['filter' => 'role:recruiter'], function($routes) {
+$routes->group('api', ['filter' => 'role:recruiter,hc_ops'], function($routes) {
     $routes->post('employees', 'Employee::create');
     $routes->put('employees/(:num)', 'Employee::update/$1');
     $routes->delete('employees/(:num)', 'Employee::delete/$1');

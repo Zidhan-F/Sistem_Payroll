@@ -225,7 +225,7 @@ function applyRoleRestrictions() {
     const subShift = document.getElementById('submenuSkemaShift');
 
     if (subLokasi) subLokasi.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
-    if (subTambah) subTambah.style.display = (isAdmin || role === 'recruiter') ? '' : 'none';
+    if (subTambah) subTambah.style.display = (isAdmin || role === 'recruiter' || role === 'hc_ops') ? '' : 'none';
     if (subShift) subShift.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
 
     // Submenu Payroll detail restrictions
