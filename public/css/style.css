@@ -779,6 +779,15 @@ tbody tr:hover td:first-child {
     animation: overlayFadeIn 0.3s ease forwards;
 }
 
+/* Prevent double scrollbar when a modal or overlay is active */
+body:has(.modal-skema[style*="display: block"]),
+body:has(.modal-skema[style*="display:block"]),
+body:has(#overlay[style*="display: block"]),
+body:has(#overlay[style*="display:block"]),
+body:has(#overlay:not([style*="display: none"]):not([style*="display:none"])) {
+    overflow: hidden !important;
+}
+
 @keyframes overlayFadeIn {
     from {
         opacity: 0;
