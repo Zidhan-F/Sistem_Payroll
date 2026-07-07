@@ -15,8 +15,7 @@
             <div class="brand-overlay"></div>
             <div class="brand-content">
                 <div class="brand-logo" style="display: flex; align-items: center; gap: 12px;">
-                    <img src="<?= base_url('images/logo.png') ?>" alt="BiPayroll Logo" style="width: 46px; height: 46px; object-fit: contain; background: white; border-radius: 50%; padding: 3px;">
-                    <span>BiPayroll</span>
+                    <img src="<?= base_url('images/logo.png') ?>" alt="BiPayroll Logo" style="width: 48px; height: 48px; object-fit: contain; background: white; border-radius: 50%; padding: 4px; border: 1px solid rgba(226, 232, 240, 0.8); box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);">
                 </div>
                 
                 <div class="brand-heading">

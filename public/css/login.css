@@ -34,16 +34,16 @@ body {
     height: 100vh;
     width: 100vw;
 }
-
-/* ----- LEFT PANEL: Brand & Illustration ----- */
+/* ----- LEFT PANEL: Brand & Illustration (Light Theme) ----- */
 .brand-panel {
     flex: 1.2;
-    background: radial-gradient(circle at 10% 20%, #1e293b 0%, #0f172a 100%);
+    background: radial-gradient(circle at 10% 20%, #fef3c7 0%, #fff7ed 60%, #f8fafc 100%);
     position: relative;
     display: flex;
     padding: 60px;
     align-items: center;
     overflow: hidden;
+    border-right: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 /* Decorative background glowing spots */
@@ -55,7 +55,7 @@ body {
     width: 400px;
     height: 400px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(243, 156, 18, 0.15) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(243, 156, 18, 0.12) 0%, transparent 70%);
     z-index: 1;
 }
 
@@ -67,7 +67,7 @@ body {
     width: 400px;
     height: 400px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
     z-index: 1;
 }
 
@@ -79,7 +79,7 @@ body {
     justify-content: space-between;
     height: 100%;
     width: 100%;
-    color: #ffffff;
+    color: var(--secondary-color);
 }
 
 .brand-logo {
@@ -90,7 +90,7 @@ body {
     font-weight: 800;
     font-size: 28px;
     letter-spacing: -0.5px;
-    color: #ffffff;
+    color: var(--secondary-color);
 }
 
 .brand-heading {
@@ -105,7 +105,7 @@ body {
     line-height: 1.2;
     margin-bottom: 20px;
     letter-spacing: -1px;
-    color: #ffffff;
+    color: var(--secondary-color);
 }
 
 .brand-heading h1 span {
@@ -116,7 +116,7 @@ body {
 
 .brand-heading p {
     font-size: 16px;
-    color: #94a3b8;
+    color: var(--slate-600);
     line-height: 1.6;
 }
 
@@ -132,11 +132,11 @@ body {
     display: flex;
     gap: 16px;
     align-items: flex-start;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(226, 232, 240, 0.8);
     padding: 18px 20px;
     border-radius: 16px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     transition: all 0.3s ease;
@@ -144,16 +144,17 @@ body {
 
 .feature-item:hover {
     transform: translateY(-2px);
-    border-color: rgba(243, 156, 18, 0.3);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(243, 156, 18, 0.4);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 10px 25px -5px rgba(243, 156, 18, 0.08), 0 8px 10px -6px rgba(243, 156, 18, 0.08);
 }
 
 .feature-icon {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(243, 156, 18, 0.15) 0%, rgba(211, 84, 0, 0.15) 100%);
-    border: 1px solid rgba(243, 156, 18, 0.3);
+    background: linear-gradient(135deg, rgba(243, 156, 18, 0.1) 0%, rgba(211, 84, 0, 0.1) 100%);
+    border: 1px solid rgba(243, 156, 18, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -165,21 +166,20 @@ body {
 .feature-text h4 {
     font-size: 16px;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--secondary-color);
     margin-bottom: 4px;
 }
 
 .feature-text p {
     font-size: 13px;
-    color: #94a3b8;
+    color: var(--slate-600);
     line-height: 1.5;
 }
 
 .brand-footer p {
     font-size: 13px;
-    color: #64748b;
+    color: var(--slate-600);
 }
-
 /* ----- RIGHT PANEL: Modern Forms ----- */
 .form-panel {
     flex: 0.8;
