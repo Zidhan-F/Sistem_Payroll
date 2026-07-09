@@ -6575,7 +6575,7 @@ class Api extends ResourceController
                     $ptkpCategory = $this->determineTerCategory($final['ptkp_status'] ?? 'TK/0');
                     
                     // Re-calculate bruto to get TER rate
-                    $taxableEarnings = floatval($final['gaji_pokok'] ?? 0);
+                    $taxableEarnings = 0;
                     if (isset($earnings)) {
                         foreach ($earnings as $earn) {
                             if ($earn['nama'] !== 'Tunjangan Pajak (Gross Up TER)' && $earn['nama'] !== 'Tunjangan Pajak (Gross Up Pasal 17)') {
