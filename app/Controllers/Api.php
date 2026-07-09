@@ -6567,8 +6567,38 @@ class Api extends ResourceController
 
             if (floatval($final['pph21']) > 0) {
                 $isDecember = (intval($final['bulan'] ?? 0) === 12);
-                $allowanceLabel = $isDecember ? 'Tunjangan Pajak (Gross Up Pasal 17)' : 'Tunjangan Pajak (Gross Up TER)';
-                $taxLabel = $isDecember ? 'Potongan Pajak PPh 21 (Pasal 17)' : 'Potongan Pajak PPh 21 (TER)';
+                
+                if ($isDecember) {
+                    $allowanceLabel = 'Tunjangan Pajak (Gross Up Pasal 17)';
+                    $taxLabel = 'Potongan Pajak PPh 21 (Pasal 17)';
+                } else {
+                    $ptkpCategory = $this->determineTerCategory($final['ptkp_status'] ?? 'TK/0');
+                    
+                    // Re-calculate bruto to get TER rate
+                    $taxableEarnings = floatval($final['gaji_pokok'] ?? 0);
+                    if (isset($earnings)) {
+                        foreach ($earnings as $earn) {
+                            if ($earn['nama'] !== 'Tunjangan Pajak (Gross Up TER)' && $earn['nama'] !== 'Tunjangan Pajak (Gross Up Pasal 17)') {
+                                $taxableEarnings += floatval($earn['nilai']);
+                            }
+                        }
+                    }
+                    if (isset($final['potongan_absen'])) {
+                        $taxableEarnings -= floatval($final['potongan_absen']);
+                    }
+                    
+                    $bpjsCoPremiums = floatval($final['bpjs_kes_perusahaan'] ?? 0) + floatval($final['bpjs_jkk_perusahaan'] ?? 0) + floatval($final['bpjs_jkm_perusahaan'] ?? 0);
+                    $brutoPajak = $taxableEarnings + $bpjsCoPremiums;
+                    
+                    if ($final['tax_method'] === 'Gross Up') {
+                        $brutoPajak += floatval($final['tax_allowance'] ?? 0);
+                    }
+                    
+                    $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
+                    
+                    $allowanceLabel = 'Tunjangan Pajak (Gross Up TER Kategori ' . $ptkpCategory . ' - ' . floatval($terRate) . '%)';
+                    $taxLabel = 'Potongan Pajak PPh 21 (TER Kategori ' . $ptkpCategory . ' - ' . floatval($terRate) . '%)';
+                }
 
                 if ($final['tax_method'] === 'Gross Up') {
                     $earnings[] = ['nama' => $allowanceLabel, 'nilai' => floatval($final['tax_allowance'])];

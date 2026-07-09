@@ -2495,7 +2495,10 @@ class Payroll extends ResourceController
             // Simpan Detail standar
             if ($overtimePay > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Lembur', 'tipe' => 'Tunjangan', 'jumlah' => $overtimePay]);
             if ($taxAllowance > 0) {
-                $allowanceName = ($bulan == 12) ? 'Tunjangan Pajak (Gross Up Pasal 17)' : 'Tunjangan Pajak (Gross Up TER)';
+                $ptkpCategory = $this->determineTerCategory($ptkpStatus);
+                $allowanceName = ($bulan == 12) 
+                    ? 'Tunjangan Pajak (Gross Up Pasal 17)' 
+                    : 'Tunjangan Pajak (Gross Up TER Kategori ' . $ptkpCategory . ' - ' . floatval($calc['ter_rate']) . '%)';
                 $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => $allowanceName, 'tipe' => 'Tunjangan', 'jumlah' => $taxAllowance]);
             }
             if ($bpjsKesKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Kesehatan (' . floatval($kesRateEmp) . '% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsKesKaryawan]);
@@ -2504,7 +2507,10 @@ class Payroll extends ResourceController
             if ($potonganAlpa > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Alfa / Early Leave', 'tipe' => 'Potongan', 'jumlah' => $potonganAlpa]);
             if ($potonganLate > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Denda Keterlambatan', 'tipe' => 'Potongan', 'jumlah' => $potonganLate]);
             if ($pph21 > 0 && $curTaxMethod !== 'Net') {
-                $taxName = ($bulan == 12) ? 'Pajak PPh 21 (Pasal 17)' : 'Pajak PPh 21 (TER)';
+                $ptkpCategory = $this->determineTerCategory($ptkpStatus);
+                $taxName = ($bulan == 12) 
+                    ? 'Potongan Pajak PPh 21 (Pasal 17)' 
+                    : 'Potongan Pajak PPh 21 (TER Kategori ' . $ptkpCategory . ' - ' . floatval($calc['ter_rate']) . '%)';
                 $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => $taxName, 'tipe' => 'Potongan', 'jumlah' => $pph21]);
             }
 
