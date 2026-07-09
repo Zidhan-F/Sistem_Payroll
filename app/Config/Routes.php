@@ -305,6 +305,7 @@ $routes->group('api', ['filter' => 'role:client_superior'], function($routes) {
     $routes->delete('overtime-logs/(:num)', 'Api::deleteOvertimeLog/$1');
     $routes->post('overtime-logs/approve/(:num)', 'Api::approveOvertimeLog/$1');
     $routes->post('overtime-logs/reject/(:num)', 'Api::rejectOvertimeLog/$1');
+    $routes->post('overtime-logs/reset/(:num)', 'Api::resetOvertimeLog/$1');
     $routes->post('overtime-logs/bulk-approve', 'Api::bulkApproveOvertimeLogs');
     $routes->post('overtime-logs/bulk-reject', 'Api::bulkRejectOvertimeLogs');
     $routes->post('overtime-logs/import', 'Api::importOvertimeLogs');

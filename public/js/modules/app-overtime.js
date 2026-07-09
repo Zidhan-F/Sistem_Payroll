@@ -361,10 +361,8 @@ async function rejectOvertimeLog(id) {
 async function resetOvertimeLog(id) {
     if (!await showConfirm('Are you sure you want to reset this overtime status to Pending?', 'Reset Status', 'Yes, Reset', 'Cancel', 'primary')) return;
     try {
-        const res = await fetch(`${API_URL}/overtime-logs/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
+        const res = await fetch(`${API_URL}/overtime-logs/reset/${id}`, {
+            method: 'POST'
         });
         const data = await res.json();
         if (res.ok) {

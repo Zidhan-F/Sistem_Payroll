@@ -2505,6 +2505,17 @@ class Api extends ResourceController
         return $this->respond(['message' => 'Overtime log rejected successfully.']);
     }
 
+    public function resetOvertimeLog($id)
+    {
+        $this->db->table('overtime_logs')->where('id', $id)->update([
+            'status' => 'Pending',
+            'approved_by' => null,
+            'approved_at' => null
+        ]);
+        $this->syncPayrollAttendanceOvertimeForLog($id);
+        return $this->respond(['message' => 'Overtime log reset to pending successfully.']);
+    }
+
     public function bulkApproveOvertimeLogs()
     {
         $json = $this->request->getJSON(true);
