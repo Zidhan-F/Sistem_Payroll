@@ -1019,6 +1019,14 @@ function filterOvertimePending() {
     pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending yang cocok dengan pencarian.</td></tr>`;
 }
 
+function approveSelectedOvertime() {
+    bulkApproveOvertime();
+}
+
+function rejectSelectedOvertime() {
+    bulkRejectOvertime();
+}
+
 Object.assign(window, {
     loadOvertimeClients,
     loadOvertimeLogs,
@@ -1032,6 +1040,8 @@ Object.assign(window, {
     onOvertimeCheckboxChange,
     bulkApproveOvertime,
     bulkRejectOvertime,
+    approveSelectedOvertime,
+    rejectSelectedOvertime,
     bukaModalUploadLembur,
     tutupModalUploadLembur,
     onLemburClientChanged,
