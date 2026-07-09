@@ -153,20 +153,20 @@ function simpanShiftScheme(event) {
     })
     .catch(err => {
         console.error(err);
-        showToast('Gagal menyimpan skema shift', 'error');
+        showToast('Failed to save shift scheme', 'error');
     });
 }
 
 function hapusShiftScheme(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus skema shift ini?')) {
+    if (confirm('Are you sure you want to delete this shift scheme?')) {
         fetch(`${API_URL}/shift-schemes/${id}`, { method: 'DELETE' })
             .then(res => {
                 if (res.ok) {
-                    showToast('Skema shift berhasil dihapus', 'success');
+                    showToast('Shift scheme deleted successfully', 'success');
                     loadShiftSchemes();
                 } else {
                     res.json().then(data => {
-                        showToast(data.messages?.error || 'Gagal menghapus skema shift', 'error');
+                        showToast(data.messages?.error || 'Failed to delete shift scheme', 'error');
                     });
                 }
             })
@@ -174,7 +174,7 @@ function hapusShiftScheme(id) {
     }
 }
 
-// --- ALOKASI SHIFT KARYAWAN ---
+// --- EMPLOYEE SHIFT ALLOCATION ---
 function loadShiftEmployeesDropdown() {
     fetch(`${API_URL}/employees`)
         .then(res => res.json())
@@ -184,7 +184,7 @@ function loadShiftEmployeesDropdown() {
 
             if (filterSelect) {
                 const currentVal = filterSelect.value;
-                filterSelect.innerHTML = '<option value="">Semua Karyawan</option>';
+                filterSelect.innerHTML = '<option value="">All Employees</option>';
                 // Handle different wrapper responses (e.g. data or direct array)
                 const employees = data.data || data;
                 employees.forEach(e => {
@@ -194,7 +194,7 @@ function loadShiftEmployeesDropdown() {
             }
 
             if (assignSelect) {
-                assignSelect.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+                assignSelect.innerHTML = '<option value="">-- Select Employee --</option>';
                 const employees = data.data || data;
                 employees.forEach(e => {
                     assignSelect.innerHTML += `<option value="${e.id}">${e.nama}</option>`;
@@ -214,7 +214,7 @@ function loadEmployeeShifts(employeeId = '') {
         })
         .catch(err => {
             console.error(err);
-            showToast('Gagal memuat alokasi shift', 'error');
+            showToast('Failed to load shift allocations', 'error');
         });
 }
 
@@ -227,7 +227,7 @@ function renderEmployeeShiftsTable() {
             <tr>
                 <td colspan="7" style="text-align: center; padding: 30px; color: #64748b;">
                     <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
-                    Belum ada alokasi shift karyawan yang terdaftar.
+                    No employee shift allocations registered yet.
                 </td>
             </tr>
         `;
@@ -244,7 +244,7 @@ function renderEmployeeShiftsTable() {
             statusBadge = '<span style="background:#dcfce7;color:#166534;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;">Active</span>';
         }
 
-        const endDateText = es.end_date ? es.end_date : '<span style="color:#94a3b8;font-style:italic;">Seterusnya</span>';
+        const endDateText = es.end_date ? es.end_date : '<span style="color:#94a3b8;font-style:italic;">Indefinite</span>';
 
         tbody.innerHTML += `
             <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -255,7 +255,7 @@ function renderEmployeeShiftsTable() {
                 <td style="text-align: center; padding: 12px; font-weight: 600; color: #475569;">${endDateText}</td>
                 <td style="text-align: center; padding: 12px;">${statusBadge}</td>
                 <td style="text-align: center; padding: 12px;">
-                    <button onclick="hapusEmployeeShift(${es.id})" style="background:#ef4444;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;"><i class="fas fa-trash-alt"></i> Hapus</button>
+                    <button onclick="hapusEmployeeShift(${es.id})" style="background:#ef4444;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;"><i class="fas fa-trash-alt"></i> Delete</button>
                 </td>
             </tr>
         `;
@@ -294,25 +294,25 @@ function simpanAssignShift(event) {
     })
     .then(res => res.json())
     .then(res => {
-        showToast(res.message || 'Sukses menugaskan shift', 'success');
+        showToast(res.message || 'Shift assigned successfully', 'success');
         tutupModalAssignShift();
         loadEmployeeShifts(document.getElementById('shiftEmployeeFilterSelect').value);
     })
     .catch(err => {
         console.error(err);
-        showToast('Gagal menugaskan shift', 'error');
+        showToast('Failed to assign shift', 'error');
     });
 }
 
 function hapusEmployeeShift(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus alokasi shift ini?')) {
+    if (confirm('Are you sure you want to delete this shift allocation?')) {
         fetch(`${API_URL}/employee-shifts/${id}`, { method: 'DELETE' })
             .then(res => {
                 if (res.ok) {
-                    showToast('Alokasi shift berhasil dihapus', 'success');
+                    showToast('Shift allocation deleted successfully', 'success');
                     loadEmployeeShifts(document.getElementById('shiftEmployeeFilterSelect').value);
                 } else {
-                    showToast('Gagal menghapus alokasi shift', 'error');
+                    showToast('Failed to delete shift allocation', 'error');
                 }
             })
             .catch(err => console.error(err));

@@ -812,7 +812,7 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
     if (emailVal) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(emailVal)) {
-            showToast('Format email tidak valid!', 'error');
+            showToast('Invalid email format!', 'error');
             document.getElementById('empEmail').focus();
             return;
         }
@@ -860,10 +860,10 @@ document.getElementById('formKaryawan')?.addEventListener('submit',async(e)=>{
         if(typeof renderManajemenKaryawan === 'function'){
             renderManajemenKaryawan();
         }
-        showToast('Data karyawan berhasil disimpan');
+        showToast('Employee data saved successfully');
     } else {
         const err = await r.json().catch(() => ({}));
-        let msg = 'Gagal menyimpan data karyawan';
+        let msg = 'Failed to save data karyawan';
         if (err.messages) msg = Object.values(err.messages).join(', ');
         else if (err.message) msg = err.message;
         showToast(msg, 'error');
@@ -877,7 +877,7 @@ function tutupModalKaryawan(){
     }
 }
 async function hapusKaryawan(id){
-    if(!await showConfirm('Yakin ingin menghapus karyawan ini?'))return;
+    if(!await showConfirm('Are you sure you want to delete this employee?'))return;
     const r=await fetch(`${API}/employees/${id}`,{method:'DELETE'});
     if(r.ok){if(selectedClientId){renderTableKaryawanClient();renderClientOrg(selectedClientId);}showToast('Karyawan dihapus');}
 }

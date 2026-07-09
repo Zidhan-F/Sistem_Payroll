@@ -89,7 +89,7 @@ if (loginForm) {
         // Email format validation check if input contains '@'
         if (usernameOrEmail.includes('@')) {
             if (!isValidEmail(usernameOrEmail)) {
-                showToast('Format email tidak valid. Gunakan format nama@domain.com', 'error');
+                showToast('Invalid email format. Use format name@domain.com', 'error');
                 return;
             }
         }
@@ -132,7 +132,7 @@ if (forgotForm) {
         const email = document.getElementById('forgotEmail').value.trim();
         
         if (!isValidEmail(email)) {
-            showToast('Format email tidak valid', 'error');
+            showToast('Invalid email format', 'error');
             return;
         }
         
@@ -146,20 +146,20 @@ if (forgotForm) {
             const data = await response.json();
             
             if (response.ok && data.success) {
-                // Tampilkan simulasi OTP dengan toast khusus yang besar & lama
+                // Display simulated OTP with a special large & long-lasting toast
                 showToast(
                     `<strong>OTP Sent! (SIMULATION)</strong><br>Check email: <strong>${data.otp}</strong>`,
                     'success',
-                    15000 // 15 detik agar user mudah membaca OTP simulasi
+                    15000 // 15 seconds so user can easily read the simulated OTP
                 );
 
-                // Masukkan email ke form reset hidden input
+                // Insert email into reset form hidden input
                 document.getElementById('resetEmailHidden').value = email;
                 document.getElementById('resetOTP').value = '';
                 document.getElementById('resetPassword').value = '';
                 document.getElementById('resetConfirmPassword').value = '';
                 
-                // Pindah ke kartu reset password
+                // Switch to reset password card
                 setTimeout(() => showCard('resetCard'), 1000);
             } else {
                 showToast(data.message || data.messages?.error || 'Failed to request OTP', 'error');
@@ -184,17 +184,17 @@ if (resetForm) {
         const confirmPassword = document.getElementById('resetConfirmPassword').value;
         
         if (!token || token.length !== 6) {
-            showToast('Kode OTP harus 6 digit angka', 'error');
+            showToast('OTP code must be 6 digits', 'error');
             return;
         }
 
         if (password.length < 6) {
-            showToast('Password baru minimal harus 6 karakter', 'error');
+            showToast('New password must be at least 6 characters', 'error');
             return;
         }
 
         if (password !== confirmPassword) {
-            showToast('Konfirmasi password baru tidak cocok', 'error');
+            showToast('New password confirmation does not match', 'error');
             return;
         }
         
@@ -240,22 +240,22 @@ if (registerForm) {
         const confirmPassword = document.getElementById('regConfirmPassword').value;
         
         if (username.length < 3) {
-            showToast('Username minimal 3 karakter', 'error');
+            showToast('Username must be at least 3 characters', 'error');
             return;
         }
 
         if (!isValidEmail(email)) {
-            showToast('Format email tidak valid', 'error');
+            showToast('Invalid email format', 'error');
             return;
         }
 
         if (password.length < 6) {
-            showToast('Password minimal harus 6 karakter', 'error');
+            showToast('Password must be at least 6 characters', 'error');
             return;
         }
 
         if (password !== confirmPassword) {
-            showToast('Konfirmasi password tidak cocok', 'error');
+            showToast('Password confirmation does not match', 'error');
             return;
         }
         
@@ -275,11 +275,11 @@ if (registerForm) {
             const data = await response.json();
             
             if (response.ok && data.success) {
-                showToast(data.message || 'Pendaftaran berhasil!', 'success', 6000);
-                // Kembalikan ke panel login
+                showToast(data.message || 'Registration successful!', 'success', 6000);
+                // Return to login panel
                 setTimeout(() => showCard('loginCard'), 1500);
             } else {
-                showToast(data.message || data.messages?.error || 'Pendaftaran gagal', 'error');
+                showToast(data.message || data.messages?.error || 'Registration failed', 'error');
             }
         } catch (err) {
             console.error('Error:', err);

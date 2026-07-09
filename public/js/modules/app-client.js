@@ -504,7 +504,7 @@ function handleClientExcelUpload(event) {
                 renderTable();
             } else {
                 if (resData.errors && Array.isArray(resData.errors)) {
-                    alert('Gagal mengunggah klien:\n\n' + resData.errors.join('\n'));
+                    alert('Failed to upload clients:\n\n' + resData.errors.join('\n'));
                 } else {
                     showToast(resData.message || resData.error || 'Failed to import clients.', 'error');
                 }

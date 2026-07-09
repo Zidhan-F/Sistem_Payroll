@@ -68,7 +68,7 @@ class PayrollScheme extends ResourceController
                               ->find($id);
 
         if (!$scheme) {
-            return $this->failNotFound('Skema tidak ditemukan');
+            return $this->failNotFound('Scheme not found');
         }
 
         return $this->respond($scheme);
@@ -115,7 +115,7 @@ class PayrollScheme extends ResourceController
         $oldScheme = $this->model->find($id);
 
         if (!$oldScheme) {
-            return $this->failNotFound('Skema tidak ditemukan');
+            return $this->failNotFound('Scheme not found');
         }
 
         // Convert empty strings to null for foreign keys
@@ -151,7 +151,7 @@ class PayrollScheme extends ResourceController
         $scheme = $this->model->find($id);
 
         if (!$scheme) {
-            return $this->failNotFound('Skema tidak ditemukan');
+            return $this->failNotFound('Scheme not found');
         }
 
         if ($this->model->delete($id)) {
@@ -165,7 +165,7 @@ class PayrollScheme extends ResourceController
                 session()->get('user_id') ?? 1
             );
 
-            return $this->respondDeleted(['message' => 'Skema berhasil dihapus']);
+            return $this->respondDeleted(['message' => 'Scheme deleted successfully']);
         }
 
         return $this->fail('Gagal menghapus skema');
@@ -179,7 +179,7 @@ class PayrollScheme extends ResourceController
         $scheme = $this->model->find($id);
 
         if (!$scheme) {
-            return $this->failNotFound('Skema tidak ditemukan');
+            return $this->failNotFound('Scheme not found');
         }
 
         $newStatus = $scheme['is_active'] == 1 ? 0 : 1;

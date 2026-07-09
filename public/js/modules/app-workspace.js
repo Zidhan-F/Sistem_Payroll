@@ -209,7 +209,7 @@ async function bukaModalSetup(clientId, clientName) {
             });
             if (res.ok) {
                 tutupSemuaModal();
-                showToast('Setup Payroll berhasil disimpan!', 'success');
+                showToast('Payroll setup saved successfully!', 'success');
                 if (window.selectedClientId) {
                     loadWorkspaceSetup();
                 } else {
@@ -1146,6 +1146,6 @@ async function simpanKonfigAbsen(showToastOnSuccess = true) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        if (res.ok && showToastOnSuccess) { showToast('Konfigurasi absen berhasil disimpan!', 'success'); }
+        if (res.ok && showToastOnSuccess) { showToast('Attendance configuration saved successfully!', 'success'); }
     } catch (err) { console.error(err); if (showToastOnSuccess) showToast('Gagal menyimpan konfigurasi', 'error'); }
 }

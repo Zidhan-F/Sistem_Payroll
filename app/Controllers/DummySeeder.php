@@ -313,7 +313,7 @@ class DummySeeder extends Controller
 
         return $this->response->setJSON([
             'status'  => 'success',
-            'message' => 'Dummy data berhasil di-seed!',
+            'message' => 'Dummy data seeded successfully!',
             'summary' => [
                 'clients'        => count($clientIds),
                 'divisions'      => count($divisionIds),

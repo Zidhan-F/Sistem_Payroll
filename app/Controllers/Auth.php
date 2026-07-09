@@ -60,7 +60,7 @@ class Auth extends ResourceController
 
             return $this->respond([
                 'success' => true,
-                'message' => 'Login berhasil',
+                'message' => 'Login successful',
                 'user'    => [
                     'username'  => $user['username'],
                     'email'     => $user['email'],
@@ -111,7 +111,7 @@ class Auth extends ResourceController
         // Cek jika email sudah terpakai
         $existingEmail = $this->model->where('email', $email)->first();
         if ($existingEmail) {
-            return $this->fail('Email sudah terdaftar');
+            return $this->fail('Email is already registered');
         }
 
         // Simpan user baru dengan role 'pending'
@@ -126,7 +126,7 @@ class Auth extends ResourceController
 
         return $this->respond([
             'success' => true,
-            'message' => 'Pendaftaran berhasil! Akun Anda sedang menunggu persetujuan dan pemberian role oleh Administrator.'
+            'message' => 'Registration successful! Your account is pending approval and role assignment by the Administrator.'
         ]);
     }
 
@@ -171,7 +171,7 @@ class Auth extends ResourceController
 
         return $this->respond([
             'success' => true,
-            'message' => 'Kode OTP berhasil dibuat (Simulasi)',
+            'message' => 'OTP code generated successfully (Simulation)',
             'email'   => $email,
             'otp'     => $otp // Mengembalikan OTP untuk simulasi frontend toast
         ]);
@@ -230,7 +230,7 @@ class Auth extends ResourceController
 
         return $this->respond([
             'success' => true,
-            'message' => 'Password berhasil diperbarui. Silakan login kembali.'
+            'message' => 'Password updated successfully. Please log in again.'
         ]);
     }
 }

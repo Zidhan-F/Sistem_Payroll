@@ -3402,7 +3402,7 @@ body:not(.role-admin):not(.role-payroll) #panelSalaryProcessing .btn-add {
 /* 9. Approval & Print Slip Gaji (Approval: Client/Superior & Admin) */
 body:not(.role-admin):not(.role-client_superior) #btnApproveSelectedGaji,
 body:not(.role-admin):not(.role-client_superior) #tabelReviewGajiBody td:first-child,
-body:not(.role-admin):not(.role-client_superior) #viewProses table th:first-child {
+body:not(.role-admin):not(.role-client_superior) #tabelReviewGaji th:first-child {
     display: none !important;
 }
 

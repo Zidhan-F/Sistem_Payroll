@@ -6,7 +6,7 @@
         <button class="sub-tab-btn" id="subTabShiftAllocation" onclick="switchShiftSubTab('allocation')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Employee Shift Allocation</button>
     </div>
 
-    <!-- Panel 1: Master Skema Shift -->
+    <!-- Panel 1: Shift Scheme Master -->
     <div id="panelShiftMaster" class="shift-subpanel">
         <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
             <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
@@ -41,7 +41,7 @@
         </div>
     </div>
 
-    <!-- Panel 2: Alokasi Shift Karyawan -->
+    <!-- Panel 2: Employee Shift Allocation -->
     <div id="panelShiftAllocation" class="shift-subpanel" style="display: none;">
         <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
             <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">

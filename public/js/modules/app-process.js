@@ -223,7 +223,7 @@ async function renderCutOffTable() {
         console.error(err); 
         const tbody = document.getElementById('tabelCutOffBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat data cut-off: ${err.message || err}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Failed to load data cut-off: ${err.message || err}</td></tr>`;
         }
     }
 }
@@ -343,7 +343,7 @@ async function renderReviewGajiTable() {
             }
         } else { 
             section.style.display = 'block';
-            tbody.innerHTML = `<tr><td colspan="22" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>Belum ada data gaji yang di-generate untuk periode ini.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="22" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>No data yet gaji yang di-generate untuk periode ini.</td></tr>`;
         }
     } catch (err) { 
         console.error(err); 
@@ -367,7 +367,7 @@ document.addEventListener('change', function(e) {
 async function approveSelectedGaji() {
     const checkboxes = document.querySelectorAll('.review-gaji-checkbox:checked:not(:disabled)');
     if (checkboxes.length === 0) {
-        showToast('Pilih minimal satu data gaji yang berstatus Pending!', 'warning');
+        showToast('Select at least one salary record with Pending status!', 'warning');
         return;
     }
 
@@ -415,7 +415,7 @@ async function approveSelectedGaji() {
     const confirmMsg = `Apakah Anda yakin ingin menyetujui ${ids.length} data gaji yang dipilih?`;
     let confirmed = false;
     if (typeof showConfirm === 'function') {
-        confirmed = await showConfirm(confirmMsg, 'Konfirmasi Persetujuan', 'Ya, Setujui', 'Batal', 'primary');
+        confirmed = await showConfirm(confirmMsg, 'Confirm Approval', 'Yes, Approve', 'Cancel', 'primary');
     } else {
         confirmed = confirm(confirmMsg);
     }
@@ -432,7 +432,7 @@ async function approveSelectedGaji() {
         });
 
         if (res.ok) {
-            showToast('Semua data gaji terpilih berhasil disetujui!', 'success');
+            showToast('All selected salary data approved successfully!', 'success');
             const selectAll = document.getElementById('selectAllReviewGaji');
             if (selectAll) selectAll.checked = false;
             renderReviewGajiTable();
@@ -1196,7 +1196,7 @@ function bukaModalPeriode() {
     }
 
     if (!window.selectedClientId) {
-        showToast('Silakan pilih client terlebih dahulu!', 'warning');
+        showToast('Please select a client first!', 'warning');
         return;
     }
 

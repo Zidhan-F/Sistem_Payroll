@@ -237,7 +237,7 @@ class Api extends ResourceController
         if ($isEmail) {
             // Validasi email
             if (!filter_var($usernameOrEmail, FILTER_VALIDATE_EMAIL)) {
-                return $this->fail('Format email tidak valid');
+                return $this->fail('Format email is invalid');
             }
             $query->where('email', $usernameOrEmail);
         } else {
@@ -259,7 +259,7 @@ class Api extends ResourceController
 
             $this->logActivity("User login berhasil", $user->username);
             return $this->respond([
-                'message' => 'Login berhasil',
+                'message' => 'Login successful',
                 'user' => [
                     'id'        => $user->id,
                     'username'  => $user->username,
@@ -317,7 +317,7 @@ class Api extends ResourceController
             $this->db->table('minimum_wages')->insert($item);
         }
         
-        return $this->respondCreated(['message' => 'Data gaji minimum berhasil disimpan']);
+        return $this->respondCreated(['message' => 'Minimum wage data saved successfully']);
     }
 
     // --- CLIENTS ---
@@ -340,7 +340,7 @@ class Api extends ResourceController
         }
         $this->db->table('clients')->insert($data);
         $this->logActivity("Membuat klien baru: " . ($data['nama'] ?? ''));
-        return $this->respondCreated(['message' => 'Klien berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Client added successfully']);
     }
 
     public function createClientBulk()
@@ -451,7 +451,7 @@ class Api extends ResourceController
         }
         $this->db->table('clients')->where('id', $id)->update($data);
         $this->logActivity("Mengupdate klien ID: " . $id . " (" . ($data['nama'] ?? '') . ")");
-        return $this->respond(['message' => 'Klien berhasil diupdate']);
+        return $this->respond(['message' => 'Client updated successfully']);
     }
 
     public function deleteClient($id)
@@ -460,7 +460,7 @@ class Api extends ResourceController
         $clientName = $client ? $client->nama : 'Unknown';
         $this->db->table('clients')->where('id', $id)->delete();
         $this->logActivity("Menghapus klien ID: " . $id . " (" . $clientName . ")");
-        return $this->respondDeleted(['message' => 'Klien berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Client deleted successfully']);
     }
 
     // --- ORGANISASI ---
@@ -493,21 +493,21 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('divisions')->insert($data);
-        return $this->respondCreated(['message' => 'Divisi berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Division added successfully']);
     }
 
     public function createDepartment()
     {
         $data = $this->request->getJSON(true);
         $this->db->table('departments')->insert($data);
-        return $this->respondCreated(['message' => 'Department berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Department added successfully']);
     }
 
     public function createPosition()
     {
         $data = $this->request->getJSON(true);
         $this->db->table('positions')->insert($data);
-        return $this->respondCreated(['message' => 'Posisi berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Position added successfully']);
     }
 
     public function updateOrg($type, $id)
@@ -520,9 +520,9 @@ class Api extends ResourceController
 
         if ($table) {
             $this->db->table($table)->where('id', $id)->update($data);
-            return $this->respond(['message' => 'Data berhasil diupdate']);
+            return $this->respond(['message' => 'Data updated successfully']);
         }
-        return $this->fail('Tipe organisasi tidak valid');
+        return $this->fail('Tipe organisasi is invalid');
     }
 
     public function deleteOrg($type, $id)
@@ -534,9 +534,9 @@ class Api extends ResourceController
 
         if ($table) {
             $this->db->table($table)->where('id', $id)->delete();
-            return $this->respondDeleted(['message' => 'Data berhasil dihapus']);
+            return $this->respondDeleted(['message' => 'Data deleted successfully']);
         }
-        return $this->fail('Tipe organisasi tidak valid');
+        return $this->fail('Tipe organisasi is invalid');
     }
 
     // --- PAYROLL ---
@@ -616,7 +616,7 @@ class Api extends ResourceController
         }
         
         $this->logActivity("Membuat skema payroll baru: " . ($schemeData['nama'] ?? ''));
-        return $this->respondCreated(['message' => 'Skema berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Scheme added successfully']);
     }
 
     public function updatePayrollScheme($id)
@@ -693,7 +693,7 @@ class Api extends ResourceController
         }
         
         $this->logActivity("Mengupdate skema payroll ID: " . $id . " (" . ($schemeData['nama'] ?? '') . ")");
-        return $this->respond(['message' => 'Skema berhasil diupdate']);
+        return $this->respond(['message' => 'Scheme updated successfully']);
     }
 
     public function deletePayrollScheme($id)
@@ -703,27 +703,27 @@ class Api extends ResourceController
         $this->db->table('payroll_components')->where('scheme_id', $id)->delete();
         $this->db->table('payroll_schemes')->where('id', $id)->delete();
         $this->logActivity("Menghapus skema payroll ID: " . $id . " (" . $schemeName . ")");
-        return $this->respondDeleted(['message' => 'Skema berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Scheme deleted successfully']);
     }
 
     public function createPayrollComponent()
     {
         $data = $this->request->getJSON(true);
         $this->db->table('payroll_components')->insert($data);
-        return $this->respondCreated(['message' => 'Komponen berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Component added successfully']);
     }
 
     public function updatePayrollComponent($id)
     {
         $data = $this->request->getJSON(true);
         $this->db->table('payroll_components')->where('id', $id)->update($data);
-        return $this->respond(['message' => 'Komponen berhasil diupdate']);
+        return $this->respond(['message' => 'Component updated successfully']);
     }
 
     public function deletePayrollComponent($id)
     {
         $this->db->table('payroll_components')->where('id', $id)->delete();
-        return $this->respondDeleted(['message' => 'Komponen berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Component deleted successfully']);
     }
 
     // --- TAX SCHEMES ---
@@ -740,7 +740,7 @@ class Api extends ResourceController
         $id = $this->db->insertID();
         return $this->respondCreated([
             'status' => 'success',
-            'message' => 'Skema pajak berhasil ditambahkan',
+            'message' => 'Tax scheme added successfully',
             'id' => $id
         ]);
     }
@@ -749,13 +749,13 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('tax_schemes')->where('id', $id)->update($data);
-        return $this->respond(['message' => 'Skema pajak berhasil diupdate']);
+        return $this->respond(['message' => 'Tax scheme updated successfully']);
     }
 
     public function deleteTaxScheme($id)
     {
         $this->db->table('tax_schemes')->where('id', $id)->delete();
-        return $this->respondDeleted(['message' => 'Skema pajak berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Tax scheme deleted successfully']);
     }
 
     // --- COMPENSATION SCHEMES ---
@@ -800,7 +800,7 @@ class Api extends ResourceController
         $this->db->table('compensation_components')->insert($componentData);
         
         $this->logActivity("Membuat skema kompensasi baru: " . ($schemeData['nama'] ?? ''));
-        return $this->respondCreated(['message' => 'Skema kompensasi berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Compensation scheme added successfully']);
     }
 
     public function updateCompensationScheme($id)
@@ -837,7 +837,7 @@ class Api extends ResourceController
         }
         
         $this->logActivity("Mengupdate skema kompensasi ID: " . $id . " (" . ($schemeData['nama'] ?? '') . ")");
-        return $this->respond(['message' => 'Skema kompensasi berhasil diupdate']);
+        return $this->respond(['message' => 'Compensation scheme updated successfully']);
     }
 
     public function deleteCompensationScheme($id)
@@ -847,7 +847,7 @@ class Api extends ResourceController
         $this->db->table('compensation_schemes')->where('id', $id)->delete();
         $this->db->table('compensation_components')->where('scheme_id', $id)->delete(); // Cascade
         $this->logActivity("Menghapus skema kompensasi ID: " . $id . " (" . $schemeName . ")");
-        return $this->respondDeleted(['message' => 'Skema kompensasi berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Compensation scheme deleted successfully']);
     }
 
     // --- SCHEDULE TEMPLATES ---
@@ -876,7 +876,7 @@ class Api extends ResourceController
 
         $this->db->table('payroll_schedules')->insert($insertData);
         $this->logActivity("Membuat master schedule baru: " . ($insertData['nama'] ?? ''));
-        return $this->respondCreated(['message' => 'Schedule template berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Schedule template added successfully']);
     }
 
     public function updateScheduleTemplate($id)
@@ -893,7 +893,7 @@ class Api extends ResourceController
 
         $this->db->table('payroll_schedules')->where('id', $id)->update($updateData);
         $this->logActivity("Mengupdate master schedule ID: " . $id . " (" . ($updateData['nama'] ?? '') . ")");
-        return $this->respond(['message' => 'Schedule template berhasil diupdate']);
+        return $this->respond(['message' => 'Schedule template updated successfully']);
     }
 
     public function deleteScheduleTemplate($id)
@@ -902,7 +902,7 @@ class Api extends ResourceController
         $name = $schedule ? $schedule->nama : 'Unknown';
         $this->db->table('payroll_schedules')->where('id', $id)->delete();
         $this->logActivity("Menghapus master schedule ID: " . $id . " (" . $name . ")");
-        return $this->respondDeleted(['message' => 'Schedule template berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Schedule template deleted successfully']);
     }
 
     private function resolveClientConfigForEmployee($employeeId)
@@ -1603,7 +1603,7 @@ class Api extends ResourceController
                 $calc['payout_period']
             );
             return $this->respond([
-                'message' => 'Attendance log berhasil diupdate',
+                'message' => 'Attendance log updated successfully',
                 'payout_period' => $calc['payout_period']
             ]);
         }
@@ -1643,7 +1643,7 @@ class Api extends ResourceController
             $calc['payout_period']
         );
         return $this->respondCreated([
-            'message' => 'Attendance log berhasil ditambahkan',
+            'message' => 'Attendance log added successfully',
             'payout_period' => $calc['payout_period']
         ]);
     }
@@ -1902,7 +1902,7 @@ class Api extends ResourceController
         $data = $this->request->getJSON(true);
         $old = $this->db->table('attendance_logs')->where('id', $id)->get()->getRow();
         if (!$old) {
-            return $this->fail('Attendance log tidak ditemukan');
+            return $this->fail('Attendance log not found');
         }
 
         $empInfo = $this->db->table('employees')
@@ -1962,7 +1962,7 @@ class Api extends ResourceController
             $calc['payout_period']
         );
         return $this->respond([
-            'message' => 'Attendance log berhasil diupdate',
+            'message' => 'Attendance log updated successfully',
             'payout_period' => $calc['payout_period']
         ]);
     }
@@ -1980,7 +1980,7 @@ class Api extends ResourceController
         // Clean up early arrival log
         $this->db->table('early_arrival')->where('attendance_id', $id)->delete();
         $this->db->table('attendance_logs')->where('id', $id)->delete();
-        return $this->respondDeleted(['message' => 'Attendance log berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Attendance log deleted successfully']);
     }
 
     // --- OVERTIME LOGS ---
@@ -2093,7 +2093,7 @@ class Api extends ResourceController
                 'approved_at' => null
             ]);
             $this->syncPayrollAttendanceOvertimeForLog($existing->id);
-            return $this->respond(['message' => 'Overtime log berhasil diupdate']);
+            return $this->respond(['message' => 'Overtime log updated successfully']);
         }
 
         $insertData = [
@@ -2109,7 +2109,7 @@ class Api extends ResourceController
 
         $this->db->table('overtime_logs')->insert($insertData);
         $this->syncPayrollAttendanceOvertime($insertData['employee_id'], $insertData['tanggal']);
-        return $this->respondCreated(['message' => 'Overtime log berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Overtime log added successfully']);
     }
 
     public function importOvertimeLogs()
@@ -2166,7 +2166,7 @@ class Api extends ResourceController
             $nominal = floatval($row['nominal'] ?? 0);
 
             if (empty($tanggal) || $nominal <= 0 || (empty($nik) && empty($nama))) {
-                $errorLogs[] = "Baris " . ($index + 1) . ": Data tidak lengkap atau nominal <= 0.";
+                $errorLogs[] = "Baris " . ($index + 1) . ": Incomplete data atau nominal <= 0.";
                 continue;
             }
 
@@ -2464,7 +2464,7 @@ class Api extends ResourceController
 
         $this->db->table('overtime_logs')->where('id', $id)->update($updateData);
         $this->syncPayrollAttendanceOvertimeForLog($id);
-        return $this->respond(['message' => 'Overtime log berhasil diupdate']);
+        return $this->respond(['message' => 'Overtime log updated successfully']);
     }
 
     public function deleteOvertimeLog($id)
@@ -2478,7 +2478,7 @@ class Api extends ResourceController
         } else {
             $this->db->table('overtime_logs')->where('id', $id)->delete();
         }
-        return $this->respondDeleted(['message' => 'Overtime log berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Overtime log deleted successfully']);
     }
 
     public function approveOvertimeLog($id)
@@ -2490,7 +2490,7 @@ class Api extends ResourceController
             'approved_at' => date('Y-m-d H:i:s')
         ]);
         $this->syncPayrollAttendanceOvertimeForLog($id);
-        return $this->respond(['message' => 'Overtime log berhasil disetujui.']);
+        return $this->respond(['message' => 'Overtime log approved successfully.']);
     }
 
     public function rejectOvertimeLog($id)
@@ -2502,7 +2502,7 @@ class Api extends ResourceController
             'approved_at' => date('Y-m-d H:i:s')
         ]);
         $this->syncPayrollAttendanceOvertimeForLog($id);
-        return $this->respond(['message' => 'Overtime log berhasil ditolak.']);
+        return $this->respond(['message' => 'Overtime log rejected successfully.']);
     }
 
     public function bulkApproveOvertimeLogs()
@@ -2605,7 +2605,7 @@ class Api extends ResourceController
             'approved_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ]);
-        return $this->respond(['message' => 'Early arrival log berhasil disetujui.']);
+        return $this->respond(['message' => 'Early arrival log approved successfully.']);
     }
 
     public function rejectEarlyArrivalLog($id)
@@ -2617,7 +2617,7 @@ class Api extends ResourceController
             'approved_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ]);
-        return $this->respond(['message' => 'Early arrival log berhasil ditolak.']);
+        return $this->respond(['message' => 'Early arrival log rejected successfully.']);
     }
 
     public function bulkApproveEarlyArrivalLogs()
@@ -2666,7 +2666,7 @@ class Api extends ResourceController
             'approved_at' => null,
             'updated_at' => date('Y-m-d H:i:s')
         ]);
-        return $this->respond(['message' => 'Early arrival log berhasil dikembalikan ke pending.']);
+        return $this->respond(['message' => 'Early arrival log reset to pending successfully.']);
     }
 
     private function syncEarlyArrival($attendanceId, $employeeId, $tanggal, $checkIn, $shiftSchemeId = null, $payoutPeriod = null)
@@ -2799,7 +2799,7 @@ class Api extends ResourceController
 
         $this->db->table('holiday_calendar')->insert($insertData);
         $this->logActivity("Menambahkan hari libur: " . $data['deskripsi'] . " (" . $data['tanggal'] . ")");
-        return $this->respondCreated(['message' => 'Hari libur berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Holiday added successfully']);
     }
 
     public function syncGoogleHolidays()
@@ -2909,7 +2909,7 @@ class Api extends ResourceController
         }
 
         $this->db->table('holiday_calendar')->where('id', $id)->update($updateData);
-        return $this->respond(['message' => 'Hari libur berhasil diupdate']);
+        return $this->respond(['message' => 'Holiday updated successfully']);
     }
 
     public function deleteHoliday($id)
@@ -2918,27 +2918,27 @@ class Api extends ResourceController
         $desc = $holiday ? $holiday->deskripsi : 'Unknown';
         $this->db->table('holiday_calendar')->where('id', $id)->delete();
         $this->logActivity("Menghapus hari libur: " . $desc);
-        return $this->respondDeleted(['message' => 'Hari libur berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Holiday deleted successfully']);
     }
 
     public function createCompensationComponent()
     {
         $data = $this->request->getJSON(true);
         $this->db->table('compensation_components')->insert($data);
-        return $this->respondCreated(['message' => 'Komponen kompensasi berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Komponen kompensasi added successfully']);
     }
 
     public function updateCompensationComponent($id)
     {
         $data = $this->request->getJSON(true);
         $this->db->table('compensation_components')->where('id', $id)->update($data);
-        return $this->respond(['message' => 'Komponen kompensasi berhasil diupdate']);
+        return $this->respond(['message' => 'Komponen kompensasi updated successfully']);
     }
 
     public function deleteCompensationComponent($id)
     {
         $this->db->table('compensation_components')->where('id', $id)->delete();
-        return $this->respondDeleted(['message' => 'Komponen kompensasi berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Komponen kompensasi deleted successfully']);
     }
 
     // --- CLIENT PAYROLL CONFIGS ---
@@ -3041,7 +3041,7 @@ class Api extends ResourceController
             $this->db->table('client_payroll_configs')->insert($data);
         }
 
-        return $this->respond(['status' => 'success', 'message' => 'Pilihan skema berhasil disimpan']);
+        return $this->respond(['status' => 'success', 'message' => 'Pilihan skema saved successfully']);
     }
 
     public function getClientConfigMappings($clientId)
@@ -3076,7 +3076,7 @@ class Api extends ResourceController
     public function deleteClientConfig($id)
     {
         $this->db->table('client_payroll_configs')->where('id', $id)->delete();
-        return $this->respondDeleted(['id' => $id, 'message' => 'Mapping skema berhasil dihapus']);
+        return $this->respondDeleted(['id' => $id, 'message' => 'Mapping skema deleted successfully']);
     }
 
     // --- PKWT ---
@@ -3146,7 +3146,7 @@ class Api extends ResourceController
         $this->syncPKWTComponents($pkwtId, $basicSalary);
 
         $this->logActivity("Membuat PKWT baru untuk karyawan: " . ($data['employee_name'] ?? ''));
-        return $this->respondCreated(['message' => 'PKWT berhasil dibuat dan gaji telah tergenerate']);
+        return $this->respondCreated(['message' => 'PKWT dibuat dan gaji telah tergenerate']);
     }
 
     public function deletePKWT($id)
@@ -3155,7 +3155,7 @@ class Api extends ResourceController
         $employeeName = $pkwt ? $pkwt->employee_name : 'Unknown';
         $this->db->table('pkwt')->where('id', $id)->delete();
         $this->logActivity("Menghapus PKWT karyawan: " . $employeeName . " (ID: " . $id . ")");
-        return $this->respondDeleted(['message' => 'PKWT berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'PKWT deleted successfully']);
     }
 
     public function syncEmployeesPKWTEndpoint()
@@ -3399,7 +3399,7 @@ class Api extends ResourceController
         } else {
             $this->db->table('payroll_attendance')->insert($data);
         }
-        return $this->respond(['message' => 'Data cut-off berhasil disimpan']);
+        return $this->respond(['message' => 'Data cut-off saved successfully']);
     }
 
     public function saveAttendanceBulk()
@@ -3757,7 +3757,7 @@ class Api extends ResourceController
         $this->syncOvertimeToPayrollAttendance($periodId, $clientId);
         $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
         if (!$period) {
-            return $this->failNotFound('Periode tidak ditemukan');
+            return $this->failNotFound('Periode not found');
         }
 
         // Reset early arrival records for this period back to NOT_PROCESSED
@@ -4079,7 +4079,7 @@ class Api extends ResourceController
                 }
             }
             $systemStandardDays = ($clientConfig && isset($clientConfig->standard_work_days) && intval($clientConfig->standard_work_days) > 0)
-                ? intval($clientConfig->standard_work_days)
+                ? max(1, intval($clientConfig->standard_work_days) - $this->getWeekdayHolidaysCount($startDateStr, $endDateStr, $workDaysConfig))
                 : $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
             
             $stdWorkingDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
@@ -4646,7 +4646,12 @@ class Api extends ResourceController
 
                 if (!$isAbsenTidakPotong) {
                     $potongan_absen = floatval($att->potongan_absensi);
-                    if ($potongan_absen == 0 && !$isJoinedPrevMonth && !$isActiveRegularPrevMonth) {
+                    $hasDailyLogs = $this->db->table('attendance_logs')
+                                             ->where('employee_id', $emp->id)
+                                             ->where('log_date >=', $startDateStr)
+                                             ->where('log_date <=', $endDateStr)
+                                             ->countAllResults() > 0;
+                    if ($potongan_absen == 0 && !$hasDailyLogs && !$isJoinedPrevMonth && !$isActiveRegularPrevMonth) {
                         $prevMonth = intval($period->bulan) - 1;
                         $prevYear = intval($period->tahun);
                         if ($prevMonth == 0) {
@@ -4658,7 +4663,7 @@ class Api extends ResourceController
                         $prevCalendarStdDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
                             ? intval($emp->custom_standard_days)
                             : (($clientConfig && isset($clientConfig->standard_work_days) && intval($clientConfig->standard_work_days) > 0)
-                                ? intval($clientConfig->standard_work_days)
+                                ? max(1, intval($clientConfig->standard_work_days) - $this->getWeekdayHolidaysCount($prevMonthStart, $prevMonthEnd, $workDaysConfig))
                                 : $this->getStandardWorkingDaysInRange($prevMonthStart, $prevMonthEnd, $workDaysConfig));
 
                         $expectedWorkingDaysCalendar = $prevCalendarStdDays;
@@ -5324,7 +5329,7 @@ class Api extends ResourceController
                         ->get()
                         ->getRow();
         if (!$row) {
-            return $this->failNotFound('Data gaji tidak ditemukan');
+            return $this->failNotFound('Data gaji not found');
         }
         
         if ($row->status_approval === 'Hold') {
@@ -5409,7 +5414,7 @@ class Api extends ResourceController
             $this->logActivity("Menyetujui payroll karyawan: " . $final->employee_name . " (Payroll ID: " . $final->id . ")");
         }
         
-        return $this->respond(['status' => 'success', 'message' => 'Semua data gaji terpilih berhasil disetujui']);
+        return $this->respond(['status' => 'success', 'message' => 'Semua data gaji terpilih approved successfully']);
     }
 
     public function uploadManualPayroll()
@@ -5827,7 +5832,7 @@ class Api extends ResourceController
         $this->db->transComplete();
 
         if ($this->db->transStatus() === false) {
-            return $this->fail('Gagal menyimpan atau memproses data upload gaji.');
+            return $this->fail('Failed to save atau memproses data upload gaji.');
         }
 
         $username = $this->request->getHeaderLine('X-User-Action') ?: 'Admin';
@@ -5850,7 +5855,7 @@ class Api extends ResourceController
                           ->get()
                           ->getRowArray();
         
-        if (!$final) return $this->failNotFound('Data tidak ditemukan');
+        if (!$final) return $this->failNotFound('Data not found');
 
         $months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
         $final['period_name'] = ($months[intval($final['bulan'] ?? 1) - 1] ?? '') . " " . ($final['tahun'] ?? '');
@@ -5940,7 +5945,7 @@ class Api extends ResourceController
         $endDateStr = date('Y-m-t', strtotime($startDateStr));
         
         $systemStandardDays = ($clientConfig && isset($clientConfig->standard_work_days) && intval($clientConfig->standard_work_days) > 0)
-            ? intval($clientConfig->standard_work_days)
+            ? max(1, intval($clientConfig->standard_work_days) - $this->getWeekdayHolidaysCount($startDateStr, $endDateStr, $workDaysConfig))
             : $this->getStandardWorkingDaysInRange($startDateStr, $endDateStr, $workDaysConfig);
 
         $stdWorkingDays = ($emp && isset($emp->custom_standard_days) && intval($emp->custom_standard_days) > 0)
@@ -6438,13 +6443,20 @@ class Api extends ResourceController
             } else if (!$isAbsenTidakPotong) {
                 $potongan_absen = floatval($att['potongan_absensi']);
                 if ($potongan_absen == 0) {
-                    $missingDays = max(0, $stdWorkingDays - intval($att['hari_kerja']));
-                    if ($missingDays > 0) {
-                        if ($isProrate) {
-                            $potongan_absen = $unproratedGajiPokok * ($missingDays / $stdWorkingDays);
-                        } else {
-                            $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
-                            $potongan_absen = $missingDays * $nominalPotongan;
+                    $hasDailyLogs = $this->db->table('attendance_logs')
+                                             ->where('employee_id', $emp->id)
+                                             ->where('log_date >=', $startDateStr)
+                                             ->where('log_date <=', $endDateStr)
+                                             ->countAllResults() > 0;
+                    if (!$hasDailyLogs) {
+                        $missingDays = max(0, $stdWorkingDays - intval($att['hari_kerja']));
+                        if ($missingDays > 0) {
+                            if ($isProrate) {
+                                $potongan_absen = $unproratedGajiPokok * ($missingDays / $stdWorkingDays);
+                            } else {
+                                $nominalPotongan = ($nominalPotonganAbsen > 0) ? $nominalPotonganAbsen : (($absenceConfig && isset($absenceConfig->nominal_potongan)) ? floatval($absenceConfig->nominal_potongan) : 0);
+                                $potongan_absen = $missingDays * $nominalPotongan;
+                            }
                         }
                     }
                 }
@@ -6786,7 +6798,7 @@ class Api extends ResourceController
     {
         $data = $this->request->getJSON(true);
         $this->db->table('client_compensations')->insert($data);
-        return $this->respondCreated(['message' => 'Komponen kompensasi berhasil ditambahkan']);
+        return $this->respondCreated(['message' => 'Komponen kompensasi added successfully']);
     }
 
     public function updateCompensation($id)
@@ -6794,13 +6806,13 @@ class Api extends ResourceController
         $data = $this->request->getJSON(true);
         unset($data['id']);
         $this->db->table('client_compensations')->where('id', $id)->update($data);
-        return $this->respond(['message' => 'Komponen kompensasi berhasil diupdate']);
+        return $this->respond(['message' => 'Komponen kompensasi updated successfully']);
     }
 
     public function deleteCompensation($id)
     {
         $this->db->table('client_compensations')->where('id', $id)->delete();
-        return $this->respondDeleted(['message' => 'Komponen kompensasi berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Komponen kompensasi deleted successfully']);
     }
 
     // --- CLIENT ABSENCE CONFIG ---
@@ -6830,7 +6842,7 @@ class Api extends ResourceController
         }
 
         $this->logActivity("Menyimpan konfigurasi absensi klien ID: " . $clientId);
-        return $this->respond(['message' => 'Konfigurasi absensi berhasil disimpan']);
+        return $this->respond(['message' => 'Konfigurasi absensi saved successfully']);
     }
 
     // --- LOGS ---
@@ -7056,7 +7068,7 @@ class Api extends ResourceController
         }
 
         if (!$config) {
-            return $this->respond(['status' => 'error', 'message' => 'Skema tidak ditemukan']);
+            return $this->respond(['status' => 'error', 'message' => 'Skema not found']);
         }
 
         $effectivePayrollType = $config->payroll_type;
@@ -7377,6 +7389,31 @@ class Api extends ResourceController
             }
         }
         return $stdDays;
+    }
+
+    private function getWeekdayHolidaysCount(string $startDate, string $endDate, int $workDaysConfig): int
+    {
+        $db = \Config\Database::connect();
+        $holidayRows = $db->table('holiday_calendar')
+                          ->where('tanggal >=', $startDate)
+                          ->where('tanggal <=', $endDate)
+                          ->get()->getResultArray();
+        $numHolidays = 0;
+        foreach ($holidayRows as $h) {
+            $dayOfWeek = date('w', strtotime($h['tanggal']));
+            if ($workDaysConfig === 5) {
+                if ($dayOfWeek != 0 && $dayOfWeek != 6) {
+                    $numHolidays++;
+                }
+            } elseif ($workDaysConfig === 6) {
+                if ($dayOfWeek != 0) {
+                    $numHolidays++;
+                }
+            } else {
+                $numHolidays++;
+            }
+        }
+        return $numHolidays;
     }
 
 
@@ -8370,7 +8407,7 @@ class Api extends ResourceController
 
         $this->db->table('shift_schemes')->insert($insertData);
         $this->logActivity("Membuat skema shift baru: " . $data['name']);
-        return $this->respondCreated(['message' => 'Skema shift berhasil dibuat']);
+        return $this->respondCreated(['message' => 'Shift scheme dibuat']);
     }
 
     public function updateShiftScheme($id)
@@ -8407,7 +8444,7 @@ class Api extends ResourceController
 
         $this->db->table('shift_schemes')->where('id', $id)->update($updateData);
         $this->logActivity("Mengubah skema shift ID: " . $id);
-        return $this->respond(['message' => 'Skema shift berhasil diupdate']);
+        return $this->respond(['message' => 'Skema shift updated successfully']);
     }
 
     public function deleteShiftScheme($id)
@@ -8419,7 +8456,7 @@ class Api extends ResourceController
 
         $this->db->table('shift_schemes')->where('id', $id)->delete();
         $this->logActivity("Menghapus skema shift ID: " . $id);
-        return $this->respondDeleted(['message' => 'Skema shift berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Skema shift deleted successfully']);
     }
 
     // --- EMPLOYEE SHIFTS ---
@@ -8491,7 +8528,7 @@ class Api extends ResourceController
     {
         $this->db->table('employee_shifts')->where('id', $id)->delete();
         $this->logActivity("Menghapus alokasi shift karyawan ID: " . $id);
-        return $this->respondDeleted(['message' => 'Alokasi shift berhasil dihapus']);
+        return $this->respondDeleted(['message' => 'Alokasi shift deleted successfully']);
     }
 
     private function syncPayrollAttendanceOvertime($employeeId, $date)

@@ -13,7 +13,7 @@ async function loadHolidays() {
         renderHolidayView();
     } catch (e) {
         console.error('Error fetching holidays:', e);
-        showToast('Gagal memuat data hari libur: ' + e.message, 'error');
+        showToast('Failed to load data hari libur: ' + e.message, 'error');
     }
 }
 
@@ -303,7 +303,7 @@ function renderListTable(allHolidaysData) {
             <td style="padding:14px;color:#475569;">${dayName}</td>
             <td style="padding:14px;color:#475569;">${h.deskripsi || '-'}</td>
             <td style="text-align:center;padding:14px;">
-                <button onclick="confirmDeleteHoliday(${h.id}, '${h.tanggal}', '${h.deskripsi}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+                <button onclick="confirmDeleteHoliday(${h.id}, '${h.tanggal}', '${h.deskripsi}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -408,7 +408,7 @@ async function simpanHoliday(e) {
             showToast(data.messages?.error || 'Gagal menyimpan!', 'error');
             return;
         }
-        showToast(data.message || 'Hari libur berhasil disimpan!', 'success');
+        showToast(data.message || 'Holiday saved successfully!', 'success');
         closeModal('holidayModal');
         loadHolidays();
     } catch (e) {
@@ -422,10 +422,10 @@ async function deleteHoliday(id) {
 
 async function confirmDeleteHoliday(id, tanggal, deskripsi) {
     const dateInfo = tanggal ? ` pada tanggal ${tanggal}` : '';
-    if (!await showConfirm(`Yakin ingin menghapus hari libur "${deskripsi}"${dateInfo}?`)) return;
+    if (!await showConfirm(`Are you sure you want to delete the holiday "${deskripsi}"${dateInfo}?`)) return;
     try {
         await fetch(`${API_URL}/holidays/${id}`, { method: 'DELETE' });
-        showToast('Hari libur berhasil dihapus!', 'success');
+        showToast('Holiday deleted successfully!', 'success');
         loadHolidays();
     } catch (e) {
         showToast('Error: ' + e.message, 'error');
@@ -452,7 +452,7 @@ async function syncGoogleCalendar() {
             throw new Error(data.message || 'Gagal melakukan sinkronisasi.');
         }
 
-        showToast(data.message || 'Sinkronisasi berhasil!', 'success');
+        showToast(data.message || 'Synchronization successful!', 'success');
         loadHolidays();
     } catch (e) {
         showToast('Error: ' + e.message, 'error');

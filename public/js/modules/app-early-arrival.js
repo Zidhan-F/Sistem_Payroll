@@ -12,7 +12,7 @@ async function loadEarlyArrivalClients() {
     try {
         const res = await fetch(`${API_URL}/clients`);
         const clients = await res.json();
-        select.innerHTML = '<option value="">-- Pilih Client --</option>';
+        select.innerHTML = '<option value="">-- Select Client --</option>';
         clients.forEach(c => {
             select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
         });
@@ -86,11 +86,11 @@ async function loadEarlyArrivalLogs() {
     if (!clientId) {
         const noClientHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
-            Silakan pilih client terlebih dahulu untuk menampilkan data persetujuan.</td></tr>`;
+            Please select a client first untuk menampilkan data persetujuan.</td></tr>`;
         pendingTbody.innerHTML = noClientHtml;
         historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
-            Silakan pilih client terlebih dahulu untuk menampilkan data riwayat.</td></tr>`;
+            Please select a client first untuk menampilkan data riwayat.</td></tr>`;
         
         const summaryContainer = document.getElementById('eaSummaryContainer');
         if (summaryContainer) summaryContainer.style.display = 'none';
@@ -104,10 +104,10 @@ async function loadEarlyArrivalLogs() {
     }
 
     const loadingHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
-        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
+        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
     pendingTbody.innerHTML = loadingHtml;
     historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
-        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
+        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
 
     try {
         let url = `${API_URL}/early-arrival?client_id=${clientId}&bulan=${bulan}&tahun=${tahun}`;
@@ -180,9 +180,9 @@ async function loadEarlyArrivalLogs() {
 
     } catch (e) {
         console.error('Error loading early arrival logs:', e);
-        const errorHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        const errorHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
         pendingTbody.innerHTML = errorHtml;
-        historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
     }
 }
 
@@ -388,13 +388,13 @@ async function bulkApproveEarlyArrival() {
     const ids = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
     
     if (ids.length === 0) {
-        showToast('Pilih setidaknya satu log Early Arrival untuk disetujui.', 'error');
+        showToast('Select at least one Early Arrival log to approve.', 'error');
         return;
     }
 
     const confirmMsg = `Apakah Anda yakin ingin menyetujui ${ids.length} log Early Arrival terpilih?`;
     if (typeof showConfirm === 'function') {
-        const approved = await showConfirm(confirmMsg, 'Persetujuan Massal', 'Setujui', 'Batal', 'success');
+        const approved = await showConfirm(confirmMsg, 'Bulk Approval', 'Approve', 'Cancel', 'success');
         if (!approved) return;
     } else {
         if (!confirm(confirmMsg)) return;
@@ -408,7 +408,7 @@ async function bulkApproveEarlyArrival() {
         });
         const data = await res.json();
         if (res.ok) {
-            showToast(data.message || 'Log Early Arrival berhasil disetujui.', 'success');
+            showToast(data.message || 'Early Arrival log approved successfully.', 'success');
             loadEarlyArrivalLogs();
         } else {
             showToast(data.message || 'Gagal menyetujui log Early Arrival.', 'error');
@@ -424,13 +424,13 @@ async function bulkRejectEarlyArrival() {
     const ids = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
     
     if (ids.length === 0) {
-        showToast('Pilih setidaknya satu log Early Arrival untuk ditolak.', 'error');
+        showToast('Select at least one Early Arrival log to reject.', 'error');
         return;
     }
 
     const confirmMsg = `Apakah Anda yakin ingin menolak ${ids.length} log Early Arrival terpilih?`;
     if (typeof showConfirm === 'function') {
-        const rejected = await showConfirm(confirmMsg, 'Penolakan Massal', 'Tolak', 'Batal', 'danger');
+        const rejected = await showConfirm(confirmMsg, 'Bulk Rejection', 'Reject', 'Cancel', 'danger');
         if (!rejected) return;
     } else {
         if (!confirm(confirmMsg)) return;
@@ -444,7 +444,7 @@ async function bulkRejectEarlyArrival() {
         });
         const data = await res.json();
         if (res.ok) {
-            showToast(data.message || 'Log Early Arrival berhasil ditolak.', 'success');
+            showToast(data.message || 'Early Arrival log rejected successfully.', 'success');
             loadEarlyArrivalLogs();
         } else {
             showToast(data.message || 'Gagal menolak log Early Arrival.', 'error');
@@ -458,7 +458,7 @@ async function bulkRejectEarlyArrival() {
 async function approveEarlyArrivalLog(id) {
     const confirmMsg = 'Apakah Anda yakin ingin menyetujui kedatangan awal ini?';
     if (typeof showConfirm === 'function') {
-        const approved = await showConfirm(confirmMsg, 'Setujui Pengajuan', 'Setujui', 'Batal', 'success');
+        const approved = await showConfirm(confirmMsg, 'Approve Request', 'Approve', 'Cancel', 'success');
         if (!approved) return;
     } else {
         if (!confirm(confirmMsg)) return;
@@ -481,7 +481,7 @@ async function approveEarlyArrivalLog(id) {
 async function rejectEarlyArrivalLog(id) {
     const confirmMsg = 'Apakah Anda yakin ingin menolak kedatangan awal ini?';
     if (typeof showConfirm === 'function') {
-        const rejected = await showConfirm(confirmMsg, 'Tolak Pengajuan', 'Tolak', 'Batal', 'danger');
+        const rejected = await showConfirm(confirmMsg, 'Reject Request', 'Reject', 'Cancel', 'danger');
         if (!rejected) return;
     } else {
         if (!confirm(confirmMsg)) return;
@@ -504,7 +504,7 @@ async function rejectEarlyArrivalLog(id) {
 async function resetEarlyArrivalLog(id) {
     const confirmMsg = 'Apakah Anda yakin ingin mengembalikan log kedatangan awal ini ke status Pending?';
     if (typeof showConfirm === 'function') {
-        const reset = await showConfirm(confirmMsg, 'Reset Status', 'Kembalikan ke Pending', 'Batal', 'primary');
+        const reset = await showConfirm(confirmMsg, 'Reset Status', 'Reset to Pending', 'Cancel', 'primary');
         if (!reset) return;
     } else {
         if (!confirm(confirmMsg)) return;

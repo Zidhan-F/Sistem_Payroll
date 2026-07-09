@@ -76,10 +76,10 @@
                             </div>
                         </div>
 
-                        <!-- Action 1: Tambah Klien -->
+                        <!-- Action 1: Add Client -->
                         <div id="qaAddClient" class="quick-action-card" onclick="quickAction('tambah-klien')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(243, 156, 18, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/4300/4300058.png" alt="Klien" style="width: 32px; height: 32px; object-fit: contain;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/4300/4300058.png" alt="Client" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
                                 <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Add Client</h4>
@@ -87,10 +87,10 @@
                             </div>
                         </div>
 
-                        <!-- Action 2: Tambah Karyawan -->
+                        <!-- Action 2: Add Employee -->
                         <div id="qaAddEmployee" class="quick-action-card" onclick="quickAction('tambah-karyawan')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(52, 152, 219, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Karyawan" style="width: 32px; height: 32px; object-fit: contain;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Employee" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
                                 <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Add Employee</h4>
@@ -144,10 +144,10 @@
                             </div>
                         </div>
 
-                        <!-- Action 7: Setting Skema -->
+                        <!-- Action 7: Scheme Settings -->
                         <div id="qaSchemeSettings" class="quick-action-card" onclick="quickAction('setting-skema')" style="background: var(--white); border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
                             <div class="quick-action-icon-wrapper" style="width: 50px; height: 50px; border-radius: 10px; background: rgba(39, 174, 96, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <img src="https://cdn-icons-png.flaticon.com/512/2489/2489756.png" alt="Setting Skema" style="width: 32px; height: 32px; object-fit: contain;">
+                                <img src="https://cdn-icons-png.flaticon.com/512/2489/2489756.png" alt="Scheme Settings" style="width: 32px; height: 32px; object-fit: contain;">
                             </div>
                             <div>
                                 <h4 style="font-size: 14px; font-weight: 700; color: var(--secondary-color); margin: 0 0 2px 0;">Scheme Settings</h4>
@@ -163,7 +163,7 @@
 
             </div>
 
-            <!-- Section: Klien -->
+            <!-- Section: Client -->
             <div id="viewKlien" class="view-section">
                 <div class="content-card">
                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
@@ -204,7 +204,7 @@
                 </div>
             </div>
 
-            <!-- Section: Manajemen Karyawan (Global) -->
+            <!-- Section: Employee Management (Global) -->
             <div id="viewManajemenKaryawan" class="view-section">
                 <div class="content-card">
                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
@@ -428,9 +428,9 @@
 
                 <!-- Content Panels -->
                 <div class="workspace-content">
-                        <!-- Panel: Karyawan -->
+                        <!-- Panel: Employee -->
                         <div id="viewKaryawan" class="w-tab-panel active">
-                            <!-- Sub Tabs for Workspace Karyawan -->
+                            <!-- Sub Tabs for Workspace Employee -->
                             <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
                                 <button class="sub-tab-btn active" id="subTabLokasiKerja" onclick="switchClientKaryawanSubTab('lokasi_kerja')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Work Location</button>
                                 <button class="sub-tab-btn" id="subTabKaryawanData" onclick="switchClientKaryawanSubTab('karyawan_data')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Employee Data</button>
@@ -460,7 +460,7 @@
                                 </div>
                             </div>
 
-                            <!-- Sub Panel 2: Data Karyawan -->
+                            <!-- Sub Panel 2: Employee Data -->
                             <div id="panelKaryawanData" class="client-karyawan-subpanel" style="display: none;">
                                 <div class="content-card">
                                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
@@ -645,7 +645,7 @@
                                              </div>
                                         </div>
                                         <div class="table-container">
-                                            <table>
+                                            <table id="tabelReviewGaji">
                                                 <thead>
                                                     <tr>
                                                         <th style="width: 40px; text-align: center; vertical-align: middle;"><input type="checkbox" id="selectAllReviewGaji" style="transform: scale(1.2); cursor: pointer;"></th>
@@ -655,8 +655,8 @@
                                                         <th>Department</th>
                                                         <th>Position</th>
                                                         <th>Scheme</th>
-                                                        <th>Gaji Pokok</th>
-                                                        <th>Lembur</th>
+                                                        <th>Basic Salary</th>
+                                                        <th>Overtime</th>
                                                         <th>Early Arrival</th>
                                                         <th>Rapel</th>
                                                         <th>Lainnya/Bonus</th>
@@ -698,13 +698,13 @@
                         </div>
                         <?php endif; ?>
 
-                        <!-- Panel: Pilihan Skema -->
+                        <!-- Panel: Scheme Selection -->
                         <div id="viewKompensasi" class="w-tab-panel">
                             <div class="content-card" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
 
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
                                     
-                                    <!-- Section: Daftar Skema Payroll Klien -->
+                                    <!-- Section: Client Payroll Scheme List -->
                                     <div style="margin-bottom: 30px;">
                                         <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                                             <div>
@@ -774,9 +774,9 @@
                     </div>
             </div>
 
-            <!-- Section: Skema Payroll (Master) -->
+            <!-- Section: Payroll Scheme Master -->
             <div id="viewPayroll" class="view-section">
-                <!-- Custom Sub-Tabs for Skema Payroll & UMP/UMK -->
+                <!-- Custom Sub-Tabs for Payroll Scheme & UMP/UMK -->
                 <div class="payroll-main-tabs" style="display: none; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; background: #f8fafc; padding: 10px 10px 0 10px; border-radius: 8px 8px 0 0;">
                     <button id="subTabSkema" class="payroll-subtab-btn active" onclick="switchPayrollSubTab('skema')" style="background: white; border: 1px solid #e2e8f0; border-bottom: 1px solid white; padding: 12px 24px; font-weight: 600; font-size: 14px; cursor: pointer; color: #0d6efd; margin-bottom: -1px; border-radius: 6px 6px 0 0; z-index: 2; display: flex; align-items: center; gap: 8px; outline: none;">
                         <i class="fas fa-file-invoice-dollar"></i> Payroll Scheme
@@ -786,7 +786,7 @@
                     </button>
                 </div>
 
-                <!-- Sub-tab 1: Skema Payroll Container -->
+                <!-- Sub-tab 1: Payroll Scheme Container -->
                 <div id="payrollSkemaContainer">
                     <div class="section-header" style="margin-bottom: 20px;">
                         <h3 style="font-size: 16px; color: var(--secondary-color);">Master Payroll Scheme</h3>

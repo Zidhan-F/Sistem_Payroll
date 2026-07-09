@@ -144,7 +144,7 @@ async function tambahPeriodeTahunan() {
     if (!yearStr) return;
     const year = parseInt(yearStr);
     if (isNaN(year) || year < 2000 || year > 2100) {
-        showToast("Input tahun tidak valid!", "error");
+        showToast("Invalid year input!", "error");
         return;
     }
     if (scheduleYears.includes(year)) {
@@ -238,16 +238,16 @@ function tutupModalSchedule() {
 }
 
 async function hapusScheduleTemplate(id) {
-    if (!await showConfirm('Apakah Anda yakin ingin menghapus schedule template ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this schedule template?')) return;
     try {
         const res = await fetch(`${API_URL}/schedule-templates/${id}`, {
             method: 'DELETE'
         });
         if (res.ok) {
-            showToast('Schedule template berhasil dihapus', 'success');
+            showToast('Schedule template deleted successfully', 'success');
             renderMasterSchedule();
         } else {
-            showToast('Gagal menghapus schedule template', 'error');
+            showToast('Failed to delete schedule template', 'error');
         }
     } catch (err) {
         console.error(err);
@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Simple validation
             if (payDate < 1 || payDate > 31 || cutoffStart < 1 || cutoffStart > 31 || cutoffEnd < 1 || cutoffEnd > 31) {
-                showToast('Tanggal harus berada dalam rentang 1-31!', 'error');
+                showToast('Date must be between 1-31!', 'error');
                 return;
             }
 
@@ -304,11 +304,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (res.ok) {
-                    showToast(id ? 'Schedule template berhasil diupdate!' : 'Schedule template berhasil disimpan!', 'success');
+                    showToast(id ? 'Schedule template updated successfully!' : 'Schedule template saved successfully!', 'success');
                     tutupModalSchedule();
                     renderMasterSchedule();
                 } else {
-                    showToast('Gagal menyimpan schedule template!', 'error');
+                    showToast('Failed to save schedule template!', 'error');
                 }
             } catch (err) {
                 console.error(err);

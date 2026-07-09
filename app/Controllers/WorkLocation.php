@@ -76,7 +76,7 @@ class WorkLocation extends ResourceController
     public function delete($id = null)
     {
         if ($this->model->delete($id)) {
-            return $this->respondDeleted(['message' => 'Lokasi kerja berhasil dihapus']);
+            return $this->respondDeleted(['message' => 'Work location deleted successfully']);
         }
         return $this->fail('Gagal menghapus lokasi kerja');
     }

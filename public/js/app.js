@@ -151,8 +151,8 @@ function applyWorkspaceTabRestrictions() {
         payroll: ['proses'],
         business_development: [],
         recruiter: ['karyawan', 'pkwt'],
-        client_superior: ['proses'],
-        hc_ops: ['struktur', 'kompensasi', 'attendance', 'overtime', 'earlyArrival'],
+        client_superior: ['proses', 'overtime', 'earlyArrival'],
+        hc_ops: ['struktur', 'kompensasi', 'attendance'],
         staff: ['proses']
     };
 
@@ -750,9 +750,9 @@ function switchView(view) {
         return;
     }
 
-    // RBAC: Cek permission sebelum switch view
+    // RBAC: Check permission before switching view
     if (!hasPermission(view)) {
-        showToast('Anda tidak memiliki akses ke halaman ini', 'error');
+        showToast('You do not have access to this page', 'error');
         return;
     }
 
@@ -766,7 +766,7 @@ function switchView(view) {
         if (window.selectedClientId) {
             switchView('clientWorkspace');
             
-            // Pilih tab yang diizinkan untuk role saat ini
+            // Select the allowed tab for the current role
             let targetTab = view.toLowerCase();
             const role = getCurrentRole();
             const allowedTabs = {
@@ -774,8 +774,8 @@ function switchView(view) {
                 payroll: ['proses'],
                 business_development: ['struktur', 'kompensasi'],
                 recruiter: ['karyawan', 'pkwt'],
-                client_superior: ['proses'],
-                hc_ops: ['attendance', 'overtime', 'earlyArrival', 'struktur', 'kompensasi'],
+                client_superior: ['proses', 'overtime', 'earlyArrival'],
+                hc_ops: ['attendance', 'struktur', 'kompensasi'],
                 staff: ['proses']
             };
             const allowed = allowedTabs[role] || [];
@@ -787,7 +787,7 @@ function switchView(view) {
         } else {
             const role = getCurrentRole();
             if (role === 'staff') {
-                showToast('Memuat data gaji Anda...', 'info');
+                showToast('Loading your salary data...', 'info');
                 setTimeout(() => switchView(view), 500);
                 return;
             }
@@ -1242,7 +1242,7 @@ async function bukaDetailBpjsModal(type, id) {
         document.getElementById('modalDetailBpjs').style.display = 'block';
     } catch (err) {
         console.error('Error opening BPJS detail modal:', err);
-        showToast('Gagal memuat rincian perhitungan BPJS', 'error');
+        showToast('Failed to load BPJS calculation details', 'error');
     }
 }
 
@@ -1272,10 +1272,10 @@ async function fetchNotifications() {
         if (count > 0) {
             badge.innerText = count;
             badge.style.display = 'block';
-            countText.innerText = `${count} Peringatan`;
+            countText.innerText = `${count} Alerts`;
         } else {
             badge.style.display = 'none';
-            countText.innerText = '0 Peringatan';
+            countText.innerText = '0 Alerts';
         }
 
         // Render List
@@ -1283,7 +1283,7 @@ async function fetchNotifications() {
             list.innerHTML = `
                 <div class="notifications-empty">
                     <i class="fas fa-bell-slash"></i>
-                    Tidak ada peringatan baru
+                    No new alerts
                 </div>`;
             return;
         }
@@ -1304,7 +1304,7 @@ async function fetchNotifications() {
                         <div class="notification-item-title">${item.title}</div>
                         <div class="notification-item-message">${item.message}</div>
                     </div>
-                    <button class="notification-dismiss-btn" onclick="dismissNotification(event, '${itemId}')" style="position: absolute; right: 12px; top: 12px; border: none; background: transparent; color: #94a3b8; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; z-index: 10;" onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='#fee2e2';" onmouseout="this.style.color='#94a3b8'; this.style.backgroundColor='transparent';" title="Hapus Notifikasi">
+                    <button class="notification-dismiss-btn" onclick="dismissNotification(event, '${itemId}')" style="position: absolute; right: 12px; top: 12px; border: none; background: transparent; color: #94a3b8; cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; z-index: 10;" onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='#fee2e2';" onmouseout="this.style.color='#94a3b8'; this.style.backgroundColor='transparent';" title="Dismiss Notification">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>`;
@@ -1315,7 +1315,7 @@ async function fetchNotifications() {
         list.innerHTML = `
             <div class="notifications-empty">
                 <i class="fas fa-exclamation-circle"></i>
-                Gagal memuat notifikasi
+                Failed to load notifications
             </div>`;
     }
 }

@@ -53,7 +53,7 @@ class Contract extends ResourceController
 
         $data['id'] = $id;
         return $this->respondCreated([
-            'message' => 'PKWT berhasil dibuat. Gaji karyawan disesuaikan dengan skema.',
+            'message' => 'PKWT created successfully. Employee salary adjusted to scheme.',
             'contract' => $data
         ]);
     }
@@ -76,7 +76,7 @@ class Contract extends ResourceController
                     ]);
                 }
             }
-            return $this->respond(['message' => 'PKWT berhasil diperbarui']);
+            return $this->respond(['message' => 'PKWT updated successfully']);
         }
         return $this->fail($this->model->errors());
     }
@@ -88,7 +88,7 @@ class Contract extends ResourceController
     {
         $contract = $this->model->find($id);
         if (!$contract) {
-            return $this->failNotFound('Kontrak tidak ditemukan');
+            return $this->failNotFound('Contract not found');
         }
 
         $this->model->update($id, [
@@ -96,7 +96,7 @@ class Contract extends ResourceController
             'tgl_berakhir'  => date('Y-m-d')
         ]);
 
-        return $this->respond(['message' => 'Kontrak berhasil diakhiri']);
+        return $this->respond(['message' => 'Contract terminated successfully']);
     }
 
     /**

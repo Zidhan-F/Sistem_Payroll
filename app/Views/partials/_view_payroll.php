@@ -1,6 +1,6 @@
-            <!-- Section: Skema Payroll (Master) -->
+            <!-- Section: Payroll Scheme Master -->
             <div id="viewPayroll" class="view-section">
-                <!-- Custom Sub-Tabs for Skema Payroll & UMP/UMK -->
+                <!-- Custom Sub-Tabs for Payroll Scheme & UMP/UMK -->
                 <div class="payroll-main-tabs" style="display: none; gap: 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 25px; background: #f8fafc; padding: 10px 10px 0 10px; border-radius: 8px 8px 0 0;">
                     <button id="subTabSkema" class="payroll-subtab-btn active" onclick="switchPayrollSubTab('skema')" style="background: white; border: 1px solid #e2e8f0; border-bottom: 1px solid white; padding: 12px 24px; font-weight: 600; font-size: 14px; cursor: pointer; color: #0d6efd; margin-bottom: -1px; border-radius: 6px 6px 0 0; z-index: 2; display: flex; align-items: center; gap: 8px; outline: none;">
                         <i class="fas fa-file-invoice-dollar"></i> Payroll Scheme
@@ -10,7 +10,7 @@
                     </button>
                 </div>
 
-                <!-- Sub-tab 1: Skema Payroll Container -->
+                <!-- Sub-tab 1: Payroll Scheme Container -->
                 <div id="payrollSkemaContainer">
                     <div class="section-header" style="margin-bottom: 20px;">
                         <h3 style="font-size: 16px; color: var(--secondary-color);">Master Payroll Scheme</h3>

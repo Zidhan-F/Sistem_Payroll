@@ -6,7 +6,7 @@ async function loadOvertimeClients() {
     try {
         const res = await fetch(`${API_URL}/clients`);
         const clients = await res.json();
-        select.innerHTML = '<option value="">-- Pilih Client --</option>';
+        select.innerHTML = '<option value="">-- Select Client --</option>';
         clients.forEach(c => {
             select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
         });
@@ -30,7 +30,7 @@ async function loadOvertimeLogs() {
     if (!clientId) {
         const noClientHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
-            Silakan pilih client terlebih dahulu untuk menampilkan data lembur.</td></tr>`;
+            Please select a client first to display overtime data.</td></tr>`;
         pendingTbody.innerHTML = noClientHtml;
         historyTbody.innerHTML = noClientHtml;
         document.getElementById('otSummaryContainer').style.display = 'none';
@@ -38,7 +38,7 @@ async function loadOvertimeLogs() {
     }
 
     const loadingHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
-        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
+        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
     pendingTbody.innerHTML = loadingHtml;
     historyTbody.innerHTML = loadingHtml;
 
@@ -110,13 +110,13 @@ async function loadOvertimeLogs() {
                 const statusBadge = `<span style="background:#fffbeb;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-clock"></i> Pending</span>`;
                 
                 const actionButtons = `
-                    <button onclick="approveOvertimeLog(${o.id})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Setujui (Approve)">
+                    <button onclick="approveOvertimeLog(${o.id})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Approve">
                         <i class="fas fa-check"></i>
                     </button>
-                    <button onclick="rejectOvertimeLog(${o.id})" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Tolak (Reject)">
+                    <button onclick="rejectOvertimeLog(${o.id})" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Reject">
                         <i class="fas fa-times"></i>
                     </button>
-                    <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+                    <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 `;
@@ -158,7 +158,7 @@ async function loadOvertimeLogs() {
                     <button onclick="resetOvertimeLog(${o.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Kembalikan ke Pending">
                         <i class="fas fa-undo"></i>
                     </button>
-                    <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+                    <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 `;
@@ -187,8 +187,8 @@ async function loadOvertimeLogs() {
         pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending.</td></tr>`;
         historyTbody.innerHTML = historyHtml || `<tr><td colspan="12" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur.</td></tr>`;
     } catch (e) {
-        pendingTbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
-        historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        pendingTbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
+        historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
     }
 }
 
@@ -217,7 +217,7 @@ async function bulkApproveOvertime() {
     const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
     if (ids.length === 0) return;
 
-    if (!await showConfirm(`Yakin ingin menyetujui (Approve) ${ids.length} data lembur terpilih?`, 'Konfirmasi Persetujuan', 'Ya, Setujui', 'Batal', 'success')) return;
+    if (!await showConfirm(`Are you sure you want to approve ${ids.length} selected overtime records?`, 'Confirm Approval', 'Yes, Approve', 'Cancel', 'success')) return;
 
     try {
         const res = await fetch(`${API_URL}/overtime-logs/bulk-approve`, {
@@ -227,10 +227,10 @@ async function bulkApproveOvertime() {
         });
         const data = await res.json();
         if (res.ok) {
-            showToast(data.message || 'Lembur berhasil disetujui!', 'success');
+            showToast(data.message || 'Overtime approved successfully!', 'success');
             loadOvertimeLogs();
         } else {
-            showToast(data.message || 'Gagal menyetujui lembur', 'error');
+            showToast(data.message || 'Failed to approve overtime', 'error');
         }
     } catch(e) {
         showToast('Error: ' + e.message, 'error');
@@ -242,7 +242,7 @@ async function bulkRejectOvertime() {
     const ids = Array.from(checkboxes).map(cb => parseInt(cb.value));
     if (ids.length === 0) return;
 
-    if (!await showConfirm(`Yakin ingin menolak (Reject) ${ids.length} data lembur terpilih?`, 'Konfirmasi Penolakan', 'Ya, Tolak', 'Batal', 'danger')) return;
+    if (!await showConfirm(`Are you sure you want to reject ${ids.length} selected overtime records?`, 'Confirm Rejection', 'Yes, Reject', 'Cancel', 'danger')) return;
 
     try {
         const res = await fetch(`${API_URL}/overtime-logs/bulk-reject`, {
@@ -252,10 +252,10 @@ async function bulkRejectOvertime() {
         });
         const data = await res.json();
         if (res.ok) {
-            showToast(data.message || 'Lembur berhasil ditolak!', 'success');
+            showToast(data.message || 'Overtime rejected successfully!', 'success');
             loadOvertimeLogs();
         } else {
-            showToast(data.message || 'Gagal menolak lembur', 'error');
+            showToast(data.message || 'Failed to reject overtime', 'error');
         }
     } catch(e) {
         showToast('Error: ' + e.message, 'error');
@@ -267,10 +267,10 @@ async function approveOvertimeLog(id) {
         const res = await fetch(`${API_URL}/overtime-logs/approve/${id}`, { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
-            showToast('Lembur disetujui', 'success');
+            showToast('Overtime approved', 'success');
             loadOvertimeLogs();
         } else {
-            showToast(data.message || 'Gagal menyetujui lembur', 'error');
+            showToast(data.message || 'Failed to approve overtime', 'error');
         }
     } catch(e) { console.error(e); }
 }
@@ -280,16 +280,16 @@ async function rejectOvertimeLog(id) {
         const res = await fetch(`${API_URL}/overtime-logs/reject/${id}`, { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
-            showToast('Lembur ditolak', 'success');
+            showToast('Overtime rejected', 'success');
             loadOvertimeLogs();
         } else {
-            showToast(data.message || 'Gagal menolak lembur', 'error');
+            showToast(data.message || 'Failed to reject overtime', 'error');
         }
     } catch(e) { console.error(e); }
 }
 
 async function resetOvertimeLog(id) {
-    if (!await showConfirm('Yakin ingin mengembalikan status lembur ini ke Pending?', 'Reset Status', 'Ya, Reset', 'Batal', 'primary')) return;
+    if (!await showConfirm('Are you sure you want to reset this overtime status to Pending?', 'Reset Status', 'Yes, Reset', 'Cancel', 'primary')) return;
     try {
         const res = await fetch(`${API_URL}/overtime-logs/${id}`, {
             method: 'PUT',
@@ -301,7 +301,7 @@ async function resetOvertimeLog(id) {
             showToast('Status lembur dikembalikan ke Pending', 'success');
             loadOvertimeLogs();
         } else {
-            showToast(data.message || 'Gagal mereset status', 'error');
+            showToast(data.message || 'Failed to reset status', 'error');
         }
     } catch(e) { console.error(e); }
 }
@@ -310,12 +310,12 @@ async function loadOvertimeEmployees() {
     const select = document.getElementById('overtimeEmployeeSelect');
     if (!select) return;
     const clientId = document.getElementById('overtimeClientSelect')?.value;
-    if (!clientId) { select.innerHTML = '<option value="">-- Pilih Karyawan --</option>'; return; }
+    if (!clientId) { select.innerHTML = '<option value="">-- Select Employee --</option>'; return; }
 
     try {
         const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
         const emps = await res.json();
-        select.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+        select.innerHTML = '<option value="">-- Select Employee --</option>';
         (emps.data || emps).forEach(e => {
             select.innerHTML += `<option value="${e.id}">${e.nama}</option>`;
         });
@@ -324,7 +324,7 @@ async function loadOvertimeEmployees() {
 
 function bukaModalOvertime() {
     const clientId = document.getElementById('overtimeClientSelect')?.value;
-    if (!clientId) { showToast('Pilih client terlebih dahulu!', 'error'); return; }
+    if (!clientId) { showToast('Please select a client first!', 'error'); return; }
     document.getElementById('overtimeForm')?.reset();
     document.getElementById('overtimeModalTitle').innerText = 'Input Lembur';
     
@@ -365,10 +365,10 @@ async function simpanOvertime(e) {
         });
         const data = await res.json();
         if (!res.ok) {
-            showToast(data.messages?.error || 'Gagal menyimpan!', 'error');
+            showToast(data.messages?.error || 'Failed to save!', 'error');
             return;
         }
-        showToast(data.message || 'Lembur berhasil disimpan!', 'success');
+        showToast(data.message || 'Overtime saved successfully!', 'success');
         closeModal('overtimeModal');
 
         // Auto-update filter dropdowns to the month and year of the saved log
@@ -389,10 +389,10 @@ async function simpanOvertime(e) {
 }
 
 async function deleteOvertimeLog(id) {
-    if (!await showConfirm('Yakin ingin menghapus log lembur ini?', 'Hapus Log Lembur', 'Ya, Hapus', 'Batal', 'danger')) return;
+    if (!await showConfirm('Are you sure you want to delete this overtime log?', 'Delete Overtime Log', 'Yes, Delete', 'Cancel', 'danger')) return;
     try {
         await fetch(`${API_URL}/overtime-logs/${id}`, { method: 'DELETE' });
-        showToast('Log lembur berhasil dihapus!', 'success');
+        showToast('Overtime log deleted successfully!', 'success');
         loadOvertimeLogs();
     } catch (e) {
         showToast('Error: ' + e.message, 'error');
@@ -465,7 +465,7 @@ async function bukaModalUploadLembur() {
         }
     } catch(e) {
         console.error(e);
-        showToast('Gagal memuat client list', 'error');
+        showToast('Failed to load client list', 'error');
     }
 
     document.getElementById('modalUploadLembur').style.display = 'block';
@@ -855,7 +855,7 @@ function filterOvertimeHistory() {
             <button onclick="resetOvertimeLog(${o.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Kembalikan ke Pending">
                 <i class="fas fa-undo"></i>
             </button>
-            <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+            <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Delete">
                 <i class="fas fa-trash"></i>
             </button>
         `;
@@ -914,13 +914,13 @@ function filterOvertimePending() {
         const statusBadge = `<span style="background:#fffbeb;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-clock"></i> Pending</span>`;
         
         const actionButtons = `
-            <button onclick="approveOvertimeLog(${o.id})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Setujui (Approve)">
+            <button onclick="approveOvertimeLog(${o.id})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Approve">
                 <i class="fas fa-check"></i>
             </button>
-            <button onclick="rejectOvertimeLog(${o.id})" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Tolak (Reject)">
+            <button onclick="rejectOvertimeLog(${o.id})" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Reject">
                 <i class="fas fa-times"></i>
             </button>
-            <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+            <button onclick="deleteOvertimeLog(${o.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Delete">
                 <i class="fas fa-trash"></i>
             </button>
         `;

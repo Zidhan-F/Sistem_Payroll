@@ -274,23 +274,6 @@ $routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
     $routes->put('attendance-logs/(:num)', 'Api::updateAttendanceLog/$1');
     $routes->delete('attendance-logs/(:num)', 'Api::deleteAttendanceLog/$1');
 
-    // Overtime Logs
-    $routes->post('overtime-logs', 'Api::createOvertimeLog');
-    $routes->put('overtime-logs/(:num)', 'Api::updateOvertimeLog/$1');
-    $routes->delete('overtime-logs/(:num)', 'Api::deleteOvertimeLog/$1');
-    $routes->post('overtime-logs/approve/(:num)', 'Api::approveOvertimeLog/$1');
-    $routes->post('overtime-logs/reject/(:num)', 'Api::rejectOvertimeLog/$1');
-    $routes->post('overtime-logs/bulk-approve', 'Api::bulkApproveOvertimeLogs');
-    $routes->post('overtime-logs/bulk-reject', 'Api::bulkRejectOvertimeLogs');
-    $routes->post('overtime-logs/import', 'Api::importOvertimeLogs');
-
-    // Early Arrival Logs
-    $routes->post('early-arrival/approve/(:num)', 'Api::approveEarlyArrivalLog/$1');
-    $routes->post('early-arrival/reject/(:num)', 'Api::rejectEarlyArrivalLog/$1');
-    $routes->post('early-arrival/reset/(:num)', 'Api::resetEarlyArrivalLog/$1');
-    $routes->post('early-arrival/bulk-approve', 'Api::bulkApproveEarlyArrivalLogs');
-    $routes->post('early-arrival/bulk-reject', 'Api::bulkRejectEarlyArrivalLogs');
-
     // Shift Schemes
     $routes->post('shift-schemes', 'Api::createShiftScheme');
     $routes->put('shift-schemes/(:num)', 'Api::updateShiftScheme/$1');
@@ -315,5 +298,22 @@ $routes->group('api', ['filter' => 'role:client_superior'], function($routes) {
     $routes->post('payroll/approve/(:num)', 'Payroll::approve/$1');
     $routes->post('payroll/approve-all', 'Payroll::approveAll');
     $routes->delete('payroll/reject/(:num)', 'Payroll::reject/$1');
+
+    // Overtime Logs
+    $routes->post('overtime-logs', 'Api::createOvertimeLog');
+    $routes->put('overtime-logs/(:num)', 'Api::updateOvertimeLog/$1');
+    $routes->delete('overtime-logs/(:num)', 'Api::deleteOvertimeLog/$1');
+    $routes->post('overtime-logs/approve/(:num)', 'Api::approveOvertimeLog/$1');
+    $routes->post('overtime-logs/reject/(:num)', 'Api::rejectOvertimeLog/$1');
+    $routes->post('overtime-logs/bulk-approve', 'Api::bulkApproveOvertimeLogs');
+    $routes->post('overtime-logs/bulk-reject', 'Api::bulkRejectOvertimeLogs');
+    $routes->post('overtime-logs/import', 'Api::importOvertimeLogs');
+
+    // Early Arrival Logs
+    $routes->post('early-arrival/approve/(:num)', 'Api::approveEarlyArrivalLog/$1');
+    $routes->post('early-arrival/reject/(:num)', 'Api::rejectEarlyArrivalLog/$1');
+    $routes->post('early-arrival/reset/(:num)', 'Api::resetEarlyArrivalLog/$1');
+    $routes->post('early-arrival/bulk-approve', 'Api::bulkApproveEarlyArrivalLogs');
+    $routes->post('early-arrival/bulk-reject', 'Api::bulkRejectEarlyArrivalLogs');
 });
 

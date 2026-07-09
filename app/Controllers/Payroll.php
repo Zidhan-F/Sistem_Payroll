@@ -2528,7 +2528,7 @@ class Payroll extends ResourceController
             }
         }
 
-        return $this->respondCreated(['message' => 'Payroll berhasil di-generate dan masuk tahap Pengecekan']);
+        return $this->respondCreated(['message' => 'Payroll generated successfully and entered Verification stage']);
     }
 
     /**

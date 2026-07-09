@@ -19,31 +19,31 @@
         </div>
     </div>
 
-    <!-- Modal Detail Perhitungan BPJS -->
+    <!-- BPJS Calculation Detail Modal -->
     <div id="modalDetailBpjs" class="modal-skema" style="display: none; width: 750px; max-width: 95%; z-index: 2005;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
-            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: white;">Rincian Perhitungan BPJS</h3>
+            <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: white;">BPJS Calculation Details</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupDetailBpjsModal()"></i>
         </div>
         <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
             <div style="margin-bottom: 20px; font-size: 14px; color: #475569; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <div><strong>Nama Karyawan:</strong> <span id="bpjsModalEmployeeName" style="color: #1e293b; font-weight: 600;">-</span></div>
-                <div style="text-align: right;"><strong>Periode:</strong> <span id="bpjsModalPeriod" style="color: #1e293b; font-weight: 600;">-</span></div>
+                <div><strong>Employee Name:</strong> <span id="bpjsModalEmployeeName" style="color: #1e293b; font-weight: 600;">-</span></div>
+                <div style="text-align: right;"><strong>Period:</strong> <span id="bpjsModalPeriod" style="color: #1e293b; font-weight: 600;">-</span></div>
             </div>
             <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 20px;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
                     <thead>
                         <tr style="background: #e2e8f0; border-bottom: 2px solid #cbd5e1; color: #475569; font-weight: 700;">
                             <th style="padding: 12px 10px;">Program BPJS</th>
-                            <th style="padding: 12px 10px; text-align: right;">Upah Basis</th>
-                            <th style="padding: 12px 10px; text-align: right;">Beban Karyawan</th>
-                            <th style="padding: 12px 10px; text-align: right;">Beban Perusahaan</th>
-                            <th style="padding: 12px 10px; text-align: right;">Total Iuran</th>
+                            <th style="padding: 12px 10px; text-align: right;">Basis Wage</th>
+                            <th style="padding: 12px 10px; text-align: right;">Employee Contribution</th>
+                            <th style="padding: 12px 10px; text-align: right;">Company Contribution</th>
+                            <th style="padding: 12px 10px; text-align: right;">Total Contribution</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr style="border-bottom: 1px solid #e2e8f0;">
-                            <td style="padding: 12px 10px; font-weight: 600; color: #1e293b;">BPJS Kesehatan</td>
+                            <td style="padding: 12px 10px; font-weight: 600; color: #1e293b;">BPJS Health</td>
                             <td style="padding: 12px 10px; text-align: right; font-variant-numeric: tabular-nums;" id="bpjsKesBase">Rp 0</td>
                             <td style="padding: 12px 10px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;" id="bpjsKesEmp">Rp 0 (1%)</td>
                             <td style="padding: 12px 10px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;" id="bpjsKesCo">Rp 0 (4%)</td>
@@ -80,7 +80,7 @@
                     </tbody>
                     <tfoot>
                         <tr style="background: #f8fafc; font-weight: 700; color: #0f172a; border-top: 2px solid #cbd5e1;">
-                            <td style="padding: 12px 10px;">Total Keseluruhan</td>
+                            <td style="padding: 12px 10px;">Grand Total</td>
                             <td style="padding: 12px 10px; text-align: right;">-</td>
                             <td style="padding: 12px 10px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;" id="bpjsGrandEmp">Rp 0</td>
                             <td style="padding: 12px 10px; text-align: right; color: #3b82f6; font-variant-numeric: tabular-nums;" id="bpjsGrandCo">Rp 0</td>
@@ -91,17 +91,17 @@
             </div>
             
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; font-size: 12px; color: #1e40af; line-height: 1.6;">
-                <h5 style="margin: 0 0 8px 0; font-weight: 700; font-size: 13px;"><i class="fas fa-info-circle"></i> Catatan Peraturan BPJS:</h5>
+                <h5 style="margin: 0 0 8px 0; font-weight: 700; font-size: 13px;"><i class="fas fa-info-circle"></i> BPJS Regulation Notes:</h5>
                 <ul style="margin: 0; padding-left: 18px;">
-                    <li><strong>BPJS Kesehatan:</strong> Batas upah maksimum Rp 12.000.000 (total iuran 5%: 4% perusahaan, 1% karyawan).</li>
-                    <li><strong>BPJS Ketenagakerjaan (JP):</strong> Batas upah maksimum Rp 10.024.600 (total iuran 3%: 2% perusahaan, 1% karyawan).</li>
-                    <li><strong>BPJS Ketenagakerjaan (JKK & JKM):</strong> 100% ditanggung oleh perusahaan (JKK 0.24%, JKM 0.30% dari upah basis).</li>
-                    <li>Beban BPJS Perusahaan bersifat sebagai informasi tambahan dan tidak memotong upah bersih (Take Home Pay) karyawan.</li>
+                    <li><strong>BPJS Health:</strong> Maximum wage limit Rp 12,000,000 (total contribution 5%: 4% company, 1% employee).</li>
+                    <li><strong>BPJS Employment (JP):</strong> Maximum wage limit Rp 10,024,600 (total contribution 3%: 2% company, 1% employee).</li>
+                    <li><strong>BPJS Employment (JKK & JKM):</strong> 100% covered by company (JKK 0.24%, JKM 0.30% of basis wage).</li>
+                    <li>Company BPJS contributions are informational and do not deduct from employee Take Home Pay.</li>
                 </ul>
             </div>
         </div>
         <div class="modal-footer" style="padding: 15px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
-            <button type="button" class="btn-cancel" onclick="tutupDetailBpjsModal()" style="margin: 0; padding: 10px 20px;">Tutup</button>
+            <button type="button" class="btn-cancel" onclick="tutupDetailBpjsModal()" style="margin: 0; padding: 10px 20px;">Close</button>
         </div>
     </div>
 
@@ -294,7 +294,7 @@
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #fffbeb; border-radius: 8px; border: 1px solid #fef3c7;">
                                             <i class="fas fa-exclamation-circle" style="color: #d97706; font-size: 11px;"></i>
-                                            <span style="font-size: 11px; color: #92400e; font-weight: 500;">Maks. 3 Jam Lembur / Hari</span>
+                                            <span style="font-size: 11px; color: #92400e; font-weight: 500;">Max 3 Overtime Hours / Day</span>
                                         </div>
                                     </div>
                                 </div>
@@ -306,7 +306,7 @@
                                 <div>
                                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                                         <i class="fas fa-calendar-minus" style="color: #ef4444; font-size: 13px;"></i>
-                                        <span style="font-weight: 700; font-size: 12px; color: #b91c1c;">Hari Libur (Sabtu, Minggu & Tanggal Merah)</span>
+                                        <span style="font-weight: 700; font-size: 12px; color: #b91c1c;">Holidays (Saturday, Sunday & Public Holidays)</span>
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 6px;">
                                         <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: white; border-radius: 8px; border: 1px solid #fee2e2;">
@@ -323,7 +323,7 @@
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 6px; padding: 4px 6px; font-size: 11px; color: #64748b;">
                                             <i class="fas fa-info-circle" style="color: #64748b;"></i>
-                                            <span>Sabtu (jika 5 hari kerja), Minggu, & Libur Nasional</span>
+                                            <span>Saturday (if 5-day work week), Sunday, & National Holidays</span>
                                         </div>
                                     </div>
                                 </div>
@@ -356,7 +356,7 @@
                                 <!-- Nominal Input -->
                                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
                                     <label id="labelLumpsumNominal" style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 6px;">
-                                        Nominal Upah Lembur Per Jam (Rp)
+                                        Hourly Overtime Rate (Rp)
                                     </label>
                                     <div style="position: relative;">
                                         <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 600; color: #94a3b8;">Rp</span>
@@ -405,8 +405,8 @@
                         <option value="insentif">Incentive</option>
                         <option value="lembur">Overtime</option>
                         <option value="absensi">Attendance Deduction</option>
-                        <option value="bpjs_kesehatan">BPJS Kesehatan</option>
-                        <option value="bpjs_ketenagakerjaan">BPJS Ketenagakerjaan</option>
+                        <option value="bpjs_kesehatan">BPJS Health</option>
+                        <option value="bpjs_ketenagakerjaan">BPJS Employment</option>
                         <option value="lainnya">Others</option>
                     </select>
                 </div>
@@ -559,9 +559,9 @@
                     <input type="text" id="bpjsNama" placeholder="Example: Standard BPJS Scheme" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px;">
                 </div>
 
-                <!-- BPJS Kesehatan -->
+                <!-- BPJS Health -->
                 <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc;">
-                    <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-hand-holding-medical" style="color: var(--primary-color);"></i> BPJS Kesehatan</h5>
+                    <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-hand-holding-medical" style="color: var(--primary-color);"></i> BPJS Health</h5>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
                         <div>
                             <label style="font-size: 11px; font-weight: 600; color: #64748b;">Employee Share (%)</label>
@@ -573,14 +573,14 @@
                         </div>
                     </div>
                     <div>
-                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">BPJS Kesehatan Max Salary Limit (IDR)</label>
+                        <label style="font-size: 11px; font-weight: 600; color: #64748b;">BPJS Health Max Salary Limit (IDR)</label>
                         <input type="text" id="bpjsKesMaxSalary" value="12.000.000" onkeyup="formatRupiahInput(this)" required style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px; height: 36px;">
                     </div>
                 </div>
 
-                <!-- BPJS Ketenagakerjaan (JHT & JP) -->
+                <!-- BPJS Employment (JHT & JP) -->
                 <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: #f8fafc;">
-                    <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-shield-alt" style="color: var(--info);"></i> BPJS Ketenagakerjaan</h5>
+                    <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;"><i class="fas fa-shield-alt" style="color: var(--info);"></i> BPJS Employment</h5>
                     
                     <!-- JHT -->
                     <div style="border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px; margin-bottom: 8px;">
@@ -660,13 +660,13 @@
                     
                     <div class="form-group" style="margin: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">Metode / Kategori Pajak PPh 21</label>
+                            <label style="font-weight: 600; font-size: 13px; color: #475569; margin: 0;">PPh 21 Tax Method / Category</label>
                             <span id="btnShowFormRef" onclick="toggleFormReference()" style="cursor: pointer; font-size: 12px; color: #3b82f6; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
                                 <i class="fas fa-eye"></i> Lihat Detail
                             </span>
                         </div>
                         <select id="pph21Metode" required onchange="handlePph21MetodeChange()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white; height: 42px;">
-                            <option value="" disabled selected>-- Pilih Kategori PPh 21 --</option>
+                            <option value="" disabled selected>-- Select PPh 21 Category --</option>
                             <option value="Kategori Penerima">Kategori Penerima Penghasilan</option>
                             <option value="TER">Tarif Efektif Rata-Rata (TER) Bulanan</option>
                             <option value="Progresif">Tarif Progresif Pasal 17 UU PPh</option>
@@ -708,7 +708,7 @@
                     <div id="pph21FormRefPlaceholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 300px; text-align: center; color: #64748b;">
                         <i class="fas fa-file-invoice-dollar" style="font-size: 54px; color: #cbd5e1; margin-bottom: 16px;"></i>
                         <h4 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 700; color: #475569;">Detail Referensi Peraturan</h4>
-                        <p style="font-size: 12px; margin: 0; max-width: 320px; line-height: 1.5; color: #94a3b8;">Silakan pilih metode/kategori PPh 21 pada dropdown di sebelah kiri untuk melihat detail peraturan perpajakan di sini.</p>
+                        <p style="font-size: 12px; margin: 0; max-width: 320px; line-height: 1.5; color: #94a3b8;">Please select PPh 21 method/category from the left dropdown to view tax regulation details here.</p>
                     </div>
 
                     <!-- Panel 1: Kategori Penerima -->
@@ -716,7 +716,7 @@
                         <h4 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #dbeafe; padding-bottom: 10px;">
                             <i class="fas fa-users" style="color: #2563eb;"></i> Kategori Penerima Penghasilan PPh 21
                         </h4>
-                        <p style="margin: 0 0 14px 0; font-size: 12px; color: #64748b; line-height: 1.5;">Pajak PPh 21 dipotong dari berbagai kategori penerima penghasilan sehubungan dengan pekerjaan, jasa, atau kegiatan:</p>
+                        <p style="margin: 0 0 14px 0; font-size: 12px; color: #64748b; line-height: 1.5;">PPh 21 tax is deducted from various categories of income recipients in connection with employment, services, or activities:</p>
                         
                         <div style="display: flex; flex-direction: column; gap: 8px;">
                             <div id="formRec1" style="display: flex; gap: 12px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
@@ -849,7 +849,7 @@
                             <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                                 <thead style="background: #fef2f2;">
                                     <tr>
-                                        <th style="padding: 8px 10px; text-align: left; color: #991b1b; font-weight: 700; border-bottom: 1px solid #fecaca;">Lapisan Penghasilan Kena Pajak (PKP)</th>
+                                        <th style="padding: 8px 10px; text-align: left; color: #991b1b; font-weight: 700; border-bottom: 1px solid #fecaca;">Taxable Income Bracket (PKP)</th>
                                         <th style="padding: 8px 10px; text-align: center; color: #991b1b; font-weight: 700; border-bottom: 1px solid #fecaca; width: 80px;">Tarif</th>
                                     </tr>
                                 </thead>
@@ -874,8 +874,8 @@
                                 <thead style="background: #f0fdf4;">
                                     <tr>
                                         <th style="padding: 6px 8px; text-align: left; color: #166534; font-weight: 700;">Status</th>
-                                        <th style="padding: 6px 8px; text-align: left; color: #166534; font-weight: 700;">Keterangan</th>
-                                        <th style="padding: 6px 8px; text-align: right; color: #166534; font-weight: 700;">Jumlah</th>
+                                        <th style="padding: 6px 8px; text-align: left; color: #166534; font-weight: 700;">Description</th>
+                                        <th style="padding: 6px 8px; text-align: right; color: #166534; font-weight: 700;">Amount</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -907,7 +907,7 @@
                 <i class="fas fa-file-invoice-dollar" style="font-size: 20px; color: white;"></i>
                 <div>
                     <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: white;" id="detailPph21Title">Referensi Lengkap PPh 21</h3>
-                    <p style="margin: 2px 0 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.85); font-weight: 400;">PP No. 58 Tahun 2023 &amp; PMK No. 168/2023 — Pilih topik di bawah untuk melihat detail</p>
+                    <p style="margin: 2px 0 0 0; font-size: 12px; color: rgba(255, 255, 255, 0.85); font-weight: 400;">PP No. 58 Year 2023 &amp; PMK No. 168/2023 — Select a topic below to view details</p>
                 </div>
             </div>
             <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 16px; padding: 4px;" onclick="tutupDetailPph21Modal()"></i>
@@ -917,11 +917,11 @@
             <!-- Scheme Info Card (top) -->
             <div id="detailPph21SchemeInfoBar" style="display: none; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
                 <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center;">
-                    <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Nama Skema</div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Scheme Name</div>
                     <div style="font-size: 14px; font-weight: 700; color: #1e293b;" id="detailPph21SchemeName">-</div>
                 </div>
                 <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center;">
-                    <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Metode Pajak</div>
+                    <div style="font-size: 10px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Tax Method</div>
                     <div style="font-size: 14px; font-weight: 700; color: #f59e0b;" id="detailPph21Method">-</div>
                 </div>
                 <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center;">
@@ -965,7 +965,7 @@
                     </div>
                     <div>
                         <div style="font-weight: 700; font-size: 14px; color: #1e293b; margin-bottom: 3px;">4. Batasan PTKP Setahun</div>
-                        <div style="font-size: 12px; color: #64748b; line-height: 1.4;">TK/0 s.d K/3 — Penghasilan Tidak Kena Pajak per tahun</div>
+                        <div style="font-size: 12px; color: #64748b; line-height: 1.4;">TK/0 to K/3 — Annual Non-Taxable Income (PTKP)</div>
                     </div>
                 </div>
             </div>
@@ -976,7 +976,7 @@
                     <h4 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 12px;">
                         <i class="fas fa-users" style="color: #2563eb;"></i> Kategori Penerima Penghasilan PPh 21
                     </h4>
-                    <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Pajak PPh 21 dipotong dari berbagai kategori penerima penghasilan sehubungan dengan pekerjaan, jasa, atau kegiatan yang dilakukan oleh orang pribadi subjek pajak dalam negeri:</p>
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">PPh 21 tax is deducted from various categories of income recipients in connection with employment, services, or activities performed by domestic individual tax subjects:</p>
 
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <div id="detailRec1" style="display: flex; gap: 14px; align-items: flex-start; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
@@ -1031,7 +1031,7 @@
                     <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 12px;">
                         <i class="fas fa-percentage" style="color: #3b82f6;"></i> Tarif Efektif Rata-Rata (TER) Bulanan
                     </h4>
-                    <p style="margin: 0 0 14px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Digunakan untuk pemotongan PPh 21 masa <strong>Januari s.d. November</strong>. DJP membagi wajib pajak ke dalam 3 Kategori TER berdasarkan status PTKP.</p>
+                    <p style="margin: 0 0 14px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Used for PPh 21 deductions from <strong>January to November</strong>. DJP classifies taxpayers into 3 TER categories based on PTKP status.</p>
                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #1e40af; font-weight: 600;">
                         <i class="fas fa-calculator" style="margin-right: 6px;"></i> Rumus: PPh 21 Bulanan = Penghasilan Bruto Sebulan × % TER
                     </div>
@@ -1242,7 +1242,7 @@
                     <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 12px;">
                         <i class="fas fa-layer-group" style="color: #3b82f6;"></i> Tarif Progresif Pasal 17 UU PPh
                     </h4>
-                    <p style="margin: 0 0 14px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Digunakan pada <strong>masa pajak terakhir (Desember)</strong> atau saat pegawai resign/berhenti. PPh 21 dihitung ulang secara akumulatif menggunakan Tarif Progresif Pasal 17 ayat (1) huruf a UU PPh setelah dikurangi PTKP setahun.</p>
+                    <p style="margin: 0 0 14px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Used in the <strong>final tax period (December)</strong> or when employees resign/terminate. PPh 21 is recalculated cumulatively using Progressive Rates under Article 17 Paragraph (1) Letter a of PPh Law after deducting the annual PTKP.</p>
                     <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #1e40af; font-weight: 600;">
                         <i class="fas fa-calculator" style="margin-right: 6px;"></i> Rumus: PKP = Penghasilan Bruto Setahun − Biaya Jabatan − Iuran Pensiun − PTKP
                     </div>
@@ -1251,7 +1251,7 @@
                         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                             <thead>
                                 <tr style="background: #f1f5f9;">
-                                    <th style="padding: 14px 18px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Lapisan Penghasilan Kena Pajak (PKP) per Tahun</th>
+                                    <th style="padding: 14px 18px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Taxable Income Bracket (PKP) per Tahun</th>
                                     <th style="padding: 14px 18px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; width: 140px;">Tarif</th>
                                 </tr>
                             </thead>
@@ -1293,8 +1293,8 @@
                         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px;">
                             <div style="font-weight: 700; font-size: 13px; color: #166534; margin-bottom: 6px;"><i class="fas fa-piggy-bank" style="margin-right: 6px;"></i>Iuran Pensiun / THT</div>
                             <div style="font-size: 12px; color: #14532d; line-height: 1.7;">
-                                <div>• Iuran JP: <strong>1%</strong> karyawan</div>
-                                <div>• Iuran JHT: <strong>2%</strong> karyawan</div>
+                                <div>• Iuran JP: <strong>1%</strong> employee</div>
+                                <div>• Iuran JHT: <strong>2%</strong> employee</div>
                                 <div>• Dikurangkan sebelum dihitung PKP</div>
                             </div>
                         </div>
@@ -1306,16 +1306,16 @@
             <div id="pph21Panel4" style="display: none;">
                 <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
                     <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #dbeafe; padding-bottom: 12px;">
-                        <i class="fas fa-user-shield" style="color: #3b82f6;"></i> Batasan PTKP (Penghasilan Tidak Kena Pajak) Setahun
+                        <i class="fas fa-user-shield" style="color: #3b82f6;"></i> Annual Non-Taxable Income (PTKP) Limits
                     </h4>
-                    <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Jumlah pendapatan setahun yang dibebaskan dari pajak PPh 21. Tanggungan maksimal 3 orang (sedarah/semenda dalam garis keturunan lurus, satu derajat).</p>
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Amount of annual income exempted from PPh 21 tax. Maximum dependents of 3 people (family/relatives in direct lineage, one degree).</p>
 
                     <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 16px;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                             <thead>
                                 <tr style="background: #f1f5f9;">
                                     <th style="padding: 12px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Status PTKP</th>
-                                    <th style="padding: 12px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Keterangan</th>
+                                    <th style="padding: 12px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Description</th>
                                     <th style="padding: 12px 14px; text-align: right; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Jumlah (per Tahun)</th>
                                     <th style="padding: 12px 14px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Kategori TER</th>
                                 </tr>
@@ -1377,7 +1377,7 @@
                     <div style="background: linear-gradient(135deg, #eef2ff, #f0f9ff); border: 1px solid #c7d2fe; border-radius: 10px; padding: 16px;">
                         <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #1e293b;"><i class="fas fa-calculator" style="color: #6366f1; margin-right: 6px;"></i>Cara Menghitung PTKP</h5>
                         <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #334155; line-height: 1.6;">
-                            <div>• <strong>Wajib Pajak Sendiri:</strong> Rp 54.000.000</div>
+                            <div>• <strong>Taxpayer Self:</strong> Rp 54,000,000</div>
                             <div>• <strong>Tambahan Status Kawin:</strong> + Rp 4.500.000</div>
                             <div>• <strong>Tambahan per Tanggungan:</strong> + Rp 4.500.000 (maks 3 orang)</div>
                             <div style="margin-top: 6px; background: white; border: 1px solid #c7d2fe; border-radius: 8px; padding: 10px 14px;">
@@ -1390,7 +1390,7 @@
 
         </div>
         <div class="modal-footer" style="padding: 15px 24px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
-            <button type="button" class="btn-cancel" onclick="tutupDetailPph21Modal()" style="margin: 0; padding: 10px 24px;">Tutup</button>
+            <button type="button" class="btn-cancel" onclick="tutupDetailPph21Modal()" style="margin: 0; padding: 10px 24px;">Close</button>
         </div>
     </div>
     <div id="modalDetailPph21" class="modal-skema" style="display: none; width: 900px; max-width: 95%; z-index: 2005;">
@@ -1409,11 +1409,11 @@
             <!-- Scheme Info Card -->
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px;">
                 <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: center;">
-                    <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Nama Skema</div>
+                    <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Scheme Name</div>
                     <div style="font-size: 15px; font-weight: 700; color: #1e293b;" id="detailPph21SchemeName">-</div>
                 </div>
                 <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: center;">
-                    <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Metode Pajak</div>
+                    <div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Tax Method</div>
                     <div style="font-size: 15px; font-weight: 700; color: #f59e0b;" id="detailPph21Method">-</div>
                 </div>
                 <div style="background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: center;">
@@ -1422,10 +1422,10 @@
                 </div>
             </div>
 
-            <!-- 1. Penjelasan Metode Pajak -->
+            <!-- 1. Tax Method Explanation -->
             <div id="detailPph21MethodExplanation" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
                 <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-info-circle" style="color: #3b82f6;"></i> Penjelasan Metode Pajak
+                    <i class="fas fa-info-circle" style="color: #3b82f6;"></i> Tax Method Explanation
                 </h4>
                 <div id="detailPph21MethodDesc" style="font-size: 13px; color: #475569; line-height: 1.7;"></div>
             </div>
@@ -1433,16 +1433,16 @@
             <!-- 2. PTKP (Penghasilan Tidak Kena Pajak) -->
             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
                 <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-user-shield" style="color: #10b981;"></i> PTKP (Penghasilan Tidak Kena Pajak) per Tahun
+                    <i class="fas fa-user-shield" style="color: #10b981;"></i> Annual PTKP (Non-Taxable Income)
                 </h4>
                 <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                         <thead>
                             <tr style="background: #f1f5f9;">
-                                <th style="padding: 10px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Status PTKP</th>
-                                <th style="padding: 10px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Keterangan</th>
-                                <th style="padding: 10px 14px; text-align: right; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Jumlah (per Tahun)</th>
-                                <th style="padding: 10px 14px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Kategori TER</th>
+                                <th style="padding: 10px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">PTKP Status</th>
+                                <th style="padding: 10px 14px; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Description</th>
+                                <th style="padding: 10px 14px; text-align: right; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">Amount (per Year)</th>
+                                <th style="padding: 10px 14px; text-align: center; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0;">TER Category</th>
                             </tr>
                         </thead>
                         <tbody id="detailPtkpTableBody">
@@ -1499,14 +1499,14 @@
                 </div>
                 <div style="margin-top: 10px; font-size: 11px; color: #64748b; display: flex; align-items: center; gap: 6px;">
                     <i class="fas fa-info-circle"></i>
-                    <span>PTKP = Penghasilan yang dikecualikan dari pengenaan pajak. Tanggungan maksimal 3 orang (sedarah/semenda dalam garis keturunan lurus).</span>
+                    <span>PTKP = Income exempted from tax. Maximum 3 dependents (blood relations/in-laws in direct lineage).</span>
                 </div>
             </div>
 
             <!-- 3. TER (Tarif Efektif Rata-rata) Bulanan -->
             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
                 <h4 style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-percentage" style="color: #8b5cf6;"></i> Tarif Efektif Rata-Rata (TER) Bulanan
+                    <i class="fas fa-percentage" style="color: #8b5cf6;"></i> Monthly Average Effective Tax Rate (TER)
                 </h4>
                 <p style="margin: 0 0 14px 0; font-size: 12px; color: #64748b;">Digunakan untuk pemotongan PPh 21 masa Januari s.d. November. Rumus: <strong>PPh 21 = Penghasilan Bruto × % TER</strong></p>
 
@@ -1696,18 +1696,18 @@
                 </div>
             </div>
 
-            <!-- 4. Tarif Progresif Pasal 17 (Desember / Tahunan) -->
+            <!-- 4. Article 17 Progressive Rates (December / Annual) -->
             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
                 <h4 style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-layer-group" style="color: #ef4444;"></i> Tarif Progresif Pasal 17 UU PPh (Masa Pajak Desember / Tahunan)
+                    <i class="fas fa-layer-group" style="color: #ef4444;"></i> Article 17 Progressive Rates of PPh Law (December Tax Period / Annual)
                 </h4>
-                <p style="margin: 0 0 12px 0; font-size: 12px; color: #64748b;">Digunakan untuk menghitung ulang PPh 21 pada masa pajak terakhir (Desember) atau saat pegawai resign. <strong>Rumus: PKP = (Penghasilan Bruto Setahun − Biaya Jabatan − Iuran Pensiun − PTKP)</strong></p>
+                <p style="margin: 0 0 12px 0; font-size: 12px; color: #64748b;">Used to recalculate PPh 21 in the final tax period (December) or when employees resign. <strong>Formula: PKP = (Annual Gross Income - Position Fee - Pension Contribution - PTKP)</strong></p>
 
                 <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                         <thead>
                             <tr style="background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);">
-                                <th style="padding: 12px 14px; text-align: left; font-weight: 700; color: #991b1b; border-bottom: 2px solid #fecaca;">Lapisan Penghasilan Kena Pajak (PKP) per Tahun</th>
+                                <th style="padding: 12px 14px; text-align: left; font-weight: 700; color: #991b1b; border-bottom: 2px solid #fecaca;">Taxable Income Bracket (PKP) per Tahun</th>
                                 <th style="padding: 12px 14px; text-align: center; font-weight: 700; color: #991b1b; border-bottom: 2px solid #fecaca; width: 120px;">Tarif</th>
                             </tr>
                         </thead>
@@ -1764,8 +1764,8 @@
                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 14px;">
                         <div style="font-weight: 700; font-size: 13px; color: #166534; margin-bottom: 6px;"><i class="fas fa-piggy-bank" style="margin-right: 6px;"></i>Iuran Pensiun / THT</div>
                         <div style="font-size: 12px; color: #14532d; line-height: 1.7;">
-                            <div>• Iuran Jaminan Pensiun (JP): <strong>1%</strong> karyawan</div>
-                            <div>• Iuran JHT: <strong>2%</strong> karyawan</div>
+                            <div>• Iuran Jaminan Pensiun (JP): <strong>1%</strong> employee</div>
+                            <div>• Iuran JHT: <strong>2%</strong> employee</div>
                             <div>• Dikurangkan dari Penghasilan Bruto sebelum dihitung PKP</div>
                         </div>
                     </div>
@@ -1788,7 +1788,7 @@
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">3</span>
-                        <span style="font-size: 13px; color: #334155;"><strong>Kurangi:</strong> Biaya Jabatan (5%, maks Rp 6 jt/thn) + Iuran Pensiun/JHT karyawan</span>
+                        <span style="font-size: 13px; color: #334155;"><strong>Kurangi:</strong> Biaya Jabatan (5%, maks Rp 6 jt/thn) + Iuran Pensiun/JHT employee</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="background: #6366f1; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0;">4</span>
@@ -1807,7 +1807,7 @@
 
         </div>
         <div class="modal-footer" style="padding: 15px 24px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
-            <button type="button" class="btn-cancel" onclick="tutupDetailPph21Modal()" style="margin: 0; padding: 10px 24px;">Tutup</button>
+            <button type="button" class="btn-cancel" onclick="tutupDetailPph21Modal()" style="margin: 0; padding: 10px 24px;">Close</button>
         </div>
     </div>
 
@@ -1893,7 +1893,7 @@
                     <!-- BPJS Scheme (Hidden from user, defaults to tambah_skema) -->
                     <div style="display: none;">
                         <select id="modalPilihanSkemaBpjs" onchange="handleModalPilihanSkemaBpjsChange(this.value)" required>
-                            <option value="tambah_skema">Tambah Skema</option>
+                            <option value="tambah_skema">Add Scheme</option>
                         </select>
                     </div>
 
@@ -1906,14 +1906,14 @@
                         </p>
                         
                         <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 5px;">
-                            <!-- BPJS Kesehatan -->
+                            <!-- BPJS Health -->
                             <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
                                 <div style="display: flex; align-items: center; gap: 12px;">
                                     <div style="width: 36px; height: 36px; border-radius: 6px; background: #e0f2fe; display: flex; align-items: center; justify-content: center; color: #0284c7;">
                                         <i class="fas fa-hand-holding-medical" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">BPJS Kesehatan</div>
+                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">BPJS Health</div>
                                         <div style="font-size: 11px; color: #64748b;" id="mClientBpjsKesDesc">Default: Karyawan 1%, Perusahaan 4%</div>
                                     </div>
                                 </div>
@@ -2676,9 +2676,9 @@
                         </div>
                     </div>
 
-                    <!-- BPJS Kesehatan -->
+                    <!-- BPJS Health -->
                     <div style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                        <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">BPJS Kesehatan</h5>
+                        <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">BPJS Health</h5>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
                             <div>
                                 <span style="font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">Employee Portion</span>
@@ -2690,14 +2690,14 @@
                             </div>
                         </div>
                         <div>
-                            <span style="font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">BPJS Kesehatan Max Salary Limit</span>
+                            <span style="font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">BPJS Health Max Salary Limit</span>
                             <strong style="font-size: 14px; color: #334155;" id="dtlPajakBpjsKesMaxSalary">Rp 12.000.000</strong>
                         </div>
                     </div>
 
-                    <!-- BPJS Ketenagakerjaan -->
+                    <!-- BPJS Employment -->
                     <div style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">
-                        <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">BPJS Ketenagakerjaan</h5>
+                        <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">BPJS Employment</h5>
                         <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 15px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #e2e8f0;">
                             <div>
                                 <span style="font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 4px;">JHT Employee / Company</span>
@@ -2980,7 +2980,7 @@
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; background: white;">
-                            <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;">BPJS Kesehatan (%)</h5>
+                            <h5 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 700; color: #334155;">BPJS Health (%)</h5>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                                 <div>
                                     <label style="font-size: 11px; font-weight: 600; color: #64748b;">Employee</label>
@@ -3094,7 +3094,7 @@
                 </div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Deskripsi</label>
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Description</label>
                     <textarea id="scheduleDeskripsi" placeholder="Describe this schedule..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 80px; resize: vertical; font-family: inherit;"></textarea>
                 </div>
             </div>
@@ -3258,7 +3258,7 @@
     <!-- Holiday Modal -->
     <div id="holidayModal" class="modal-skema" style="width: 480px; max-width: 95%; display: none; z-index: 2000;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
-            <h3 id="holidayModalTitle">Tambah Hari Libur</h3>
+            <h3 id="holidayModalTitle">Add Holiday</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeModal('holidayModal')"></i>
         </div>
         <div class="modal-body" style="padding: 25px;">
@@ -3273,8 +3273,8 @@
                     <input type="text" id="holidayDeskripsi" placeholder="Contoh: Hari Raya Idul Fitri" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-                    <button type="button" class="btn-cancel" onclick="closeModal('holidayModal')" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
-                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('holidayModal')" style="padding: 10px 20px; border-radius: 8px;">Cancel</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save</button>
                 </div>
             </form>
         </div>
@@ -3291,7 +3291,7 @@
                 <div class="form-group" style="margin-bottom: 18px;">
                     <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Karyawan <span style="color: #ef4444;">*</span></label>
                     <select id="attendanceEmployeeSelect" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                        <option value="">-- Pilih Karyawan --</option>
+                        <option value="">-- Select Employee --</option>
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom: 18px;">
@@ -3310,21 +3310,21 @@
                 </div>
                 <div style="display: flex; gap: 12px; margin-bottom: 18px;">
                     <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Masuk</label>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Clock In</label>
                         <input type="time" id="attendanceJamMasuk" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                     </div>
                     <div style="flex: 1;">
-                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Keluar</label>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Clock Out</label>
                         <input type="time" id="attendanceJamKeluar" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 18px;">
-                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Keterangan</label>
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Description</label>
                     <input type="text" id="attendanceKeterangan" placeholder="Opsional" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-                    <button type="button" class="btn-cancel" onclick="closeModal('attendanceModal')" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
-                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('attendanceModal')" style="padding: 10px 20px; border-radius: 8px;">Cancel</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save</button>
                 </div>
             </form>
         </div>
@@ -3341,7 +3341,7 @@
                 <div class="form-group" style="margin-bottom: 18px;">
                     <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Karyawan <span style="color: #ef4444;">*</span></label>
                     <select id="overtimeEmployeeSelect" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
-                        <option value="">-- Pilih Karyawan --</option>
+                        <option value="">-- Select Employee --</option>
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom: 18px;">
@@ -3361,12 +3361,12 @@
                     <small style="color: #94a3b8; font-size: 12px; margin-left: 28px;">Otomatis terdeteksi dari Holiday Calendar & weekend.</small>
                 </div>
                 <div class="form-group" style="margin-bottom: 18px;">
-                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Keterangan</label>
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Description</label>
                     <input type="text" id="overtimeKeterangan" placeholder="Opsional" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
-                    <button type="button" class="btn-cancel" onclick="closeModal('overtimeModal')" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
-                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal('overtimeModal')" style="padding: 10px 20px; border-radius: 8px;">Cancel</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save</button>
                 </div>
             </form>
         </div>
@@ -3402,8 +3402,8 @@
                     <input type="number" id="shiftSchemeGraceEarly" value="0">
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                    <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
-                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan</button>
+                    <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Cancel</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save</button>
                 </div>
             </form>
         </div>
@@ -3412,7 +3412,7 @@
     <!-- Modal: Alokasi Shift Karyawan -->
     <div id="modalAssignShift" class="modal-skema" style="width: 500px; max-width: 95%; display: none; z-index: 2000;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
-            <h3 id="modalAssignShiftTitle">Tugaskan Shift Karyawan</h3>
+            <h3 id="modalAssignShiftTitle">Assign Employee Shift</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalAssignShift()"></i>
         </div>
         <div class="modal-body" style="padding: 25px;">
@@ -3420,7 +3420,7 @@
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Pilih Karyawan <span style="color: #ef4444;">*</span></label>
                     <select id="assignShiftEmployeeId" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background: white;">
-                        <option value="">-- Pilih Karyawan --</option>
+                        <option value="">-- Select Employee --</option>
                     </select>
                 </div>
                 <div class="form-group" style="margin-bottom: 15px;">
@@ -3440,7 +3440,7 @@
                     </div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                    <button type="button" class="btn-cancel" onclick="tutupModalAssignShift()" style="padding: 10px 20px; border-radius: 8px;">Batal</button>
+                    <button type="button" class="btn-cancel" onclick="tutupModalAssignShift()" style="padding: 10px 20px; border-radius: 8px;">Cancel</button>
                     <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Tugaskan</button>
                 </div>
             </form>

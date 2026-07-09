@@ -4,7 +4,7 @@
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; width: 100%;">
                     <div>
                         <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Persetujuan & Log Early Arrival</h3>
-                        <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola, verifikasi, setujui (Approve), atau tolak (Reject) jam kedatangan awal (early arrival) karyawan.</p>
+                        <p style="color: #64748b; font-size: 13px; margin: 0;">Manage, verify, approve, or reject employee early arrival hours.</p>
                     </div>
                 </div>
             </div>
@@ -15,7 +15,7 @@
                 <div>
                     <label style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 6px;">Client</label>
                     <select id="eaClientFilter" onchange="onEaClientChanged()" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: white; font-size: 13px; outline: none; font-weight: 600; color: #334155; cursor: pointer;">
-                        <option value="">-- Pilih Client --</option>
+                        <option value="">-- Select Client --</option>
                     </select>
                 </div>
                 <?php else: ?>
@@ -102,7 +102,7 @@
                         <tr>
                             <td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
                                 <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
-                                Silakan pilih client terlebih dahulu untuk menampilkan data riwayat.
+                                Please select a client first to display history data.
                             </td>
                         </tr>
                     </tbody>

@@ -4,7 +4,7 @@
         <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
             <div>
                 <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Holiday Calendar</h3>
-                <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola hari libur nasional dan tanggal libur khusus.</p>
+                <p style="color: #64748b; font-size: 13px; margin: 0;">Manage national holidays and custom holiday dates.</p>
             </div>
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -16,7 +16,7 @@
                     </select>
                 </div>
                 <button class="btn-add" onclick="bukaModalHoliday()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
-                    <i class="fas fa-plus"></i> Tambah Hari Libur
+                    <i class="fas fa-plus"></i> Add Holiday
                 </button>
             </div>
         </div>

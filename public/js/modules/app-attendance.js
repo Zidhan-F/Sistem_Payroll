@@ -10,7 +10,7 @@ async function loadAttendanceClients() {
     try {
         const res = await fetch(`${API_URL}/clients`);
         const clients = await res.json();
-        select.innerHTML = '<option value="">-- Pilih Client --</option>';
+        select.innerHTML = '<option value="">-- Select Client --</option>';
         clients.forEach(c => {
             select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
         });
@@ -50,7 +50,7 @@ async function loadAttendanceLogs() {
     window.selectedClientId = clientId;
 
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
-        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Memuat data...</td></tr>`;
+        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
 
     try {
         const res = await fetch(`${API_URL}/attendance-logs?client_id=${clientId}&bulan=${bulan}&tahun=${tahun}`);
@@ -197,14 +197,14 @@ async function loadAttendanceLogs() {
                     <button onclick="editAttendanceLog(${a.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button onclick="deleteAttendanceLog(${a.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Hapus">
+                    <button onclick="deleteAttendanceLog(${a.id})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>`;
         }).join('');
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#ef4444;">Gagal memuat data: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
     }
 }
 
@@ -212,12 +212,12 @@ async function loadAttendanceEmployees() {
     const select = document.getElementById('attendanceEmployeeSelect');
     if (!select) return;
     const clientId = document.getElementById('attendanceClientSelect')?.value;
-    if (!clientId) { select.innerHTML = '<option value="">-- Pilih Karyawan --</option>'; return; }
+    if (!clientId) { select.innerHTML = '<option value="">-- Select Employee --</option>'; return; }
 
     try {
         const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
         const emps = await res.json();
-        select.innerHTML = '<option value="">-- Pilih Karyawan --</option>';
+        select.innerHTML = '<option value="">-- Select Employee --</option>';
         (emps.data || emps).forEach(e => {
             select.innerHTML += `<option value="${e.id}">${e.nama}</option>`;
         });
@@ -226,7 +226,7 @@ async function loadAttendanceEmployees() {
 
 function bukaModalAttendance() {
     const clientId = document.getElementById('attendanceClientSelect')?.value;
-    if (!clientId) { showToast('Pilih client terlebih dahulu!', 'error'); return; }
+    if (!clientId) { showToast('Please select a client first!', 'error'); return; }
     document.getElementById('attendanceForm')?.reset();
     document.getElementById('attendanceModalTitle').innerText = 'Input Kehadiran';
     editingAttendanceLogId = null;
@@ -303,7 +303,7 @@ async function checkExistingAttendance() {
             // Beralih ke mode edit
             editingAttendanceLogId = existing.id;
             document.getElementById('attendanceModalTitle').innerText = 'Edit Kehadiran (Data Ditemukan)';
-            showToast('Data kehadiran ditemukan, form telah diisi otomatis.', 'info');
+            showToast('Attendance data found, form has been auto-filled.', 'info');
         } else {
             // Reset ke mode tambah baru
             editingAttendanceLogId = null;
@@ -355,10 +355,10 @@ async function simpanAttendance(e) {
             } else if (data.messages && typeof data.messages === 'string') {
                 errorMsg = data.messages;
             }
-            showToast(errorMsg || 'Gagal menyimpan kehadiran!', 'error');
+            showToast(errorMsg || 'Failed to save attendance!', 'error');
             return;
         }
-        showToast(data.message || 'Kehadiran berhasil disimpan!', 'success');
+        showToast(data.message || 'Attendance saved successfully!', 'success');
         closeModal('attendanceModal');
 
         // Auto-update filter dropdowns to the payout period of the saved log
@@ -391,10 +391,10 @@ async function simpanAttendance(e) {
 }
 
 async function deleteAttendanceLog(id) {
-    if (!await showConfirm('Yakin ingin menghapus log kehadiran ini?')) return;
+    if (!await showConfirm('Are you sure you want to delete this attendance log?')) return;
     try {
         await fetch(`${API_URL}/attendance-logs/${id}`, { method: 'DELETE' });
-        showToast('Log kehadiran berhasil dihapus!', 'success');
+        showToast('Attendance log deleted successfully!', 'success');
         loadAttendanceLogs();
     } catch (e) {
         showToast('Error: ' + e.message, 'error');
@@ -539,7 +539,7 @@ async function downloadMainAbsensiTemplate() {
 
         const filename = `Attendance_Template_${activePeriod.nama.replace(/\s+/g, '_')}.xlsx`;
         XLSX.writeFile(workbook, filename);
-        showToast('Template berhasil didownload!', 'success');
+        showToast('Template downloaded successfully!', 'success');
     } catch (err) {
         console.error(err);
         showToast('Gagal memuat template: ' + err.message, 'error');

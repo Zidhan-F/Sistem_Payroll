@@ -30,9 +30,9 @@
 
                 <!-- Content Panels -->
                 <div class="workspace-content">
-                        <!-- Panel: Karyawan -->
+                        <!-- Panel: Employee -->
                         <div id="viewKaryawan" class="w-tab-panel active">
-                            <!-- Sub Tabs for Workspace Karyawan -->
+                            <!-- Sub Tabs for Workspace Employee -->
                             <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
                                 <button class="sub-tab-btn active" id="subTabLokasiKerja" onclick="switchClientKaryawanSubTab('lokasi_kerja')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Work Location</button>
                                 <button class="sub-tab-btn" id="subTabKaryawanData" onclick="switchClientKaryawanSubTab('karyawan_data')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Employee Data</button>
@@ -62,7 +62,7 @@
                                 </div>
                             </div>
 
-                            <!-- Sub Panel 2: Data Karyawan -->
+                            <!-- Sub Panel 2: Employee Data -->
                             <div id="panelKaryawanData" class="client-karyawan-subpanel" style="display: none;">
                                 <div class="content-card">
                                     <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
@@ -113,7 +113,7 @@
                                 </div>
 
                                 <div id="clientOrgContainer" class="org-tree">
-                                    <!-- Hierarki organisasi akan di-render di sini -->
+                                    <!-- Organization hierarchy will be rendered here -->
                                 </div>
                             </div>
                         </div>
@@ -243,7 +243,7 @@
                                             </div>
                                         </div>
                                         <div class="table-container">
-                                            <table>
+                                            <table id="tabelReviewGaji">
                                                 <thead>
                                                      <tr>
                                                          <th style="width: 40px; text-align: center; vertical-align: middle;"><input type="checkbox" id="selectAllReviewGaji" style="transform: scale(1.2); cursor: pointer;"></th>
@@ -253,8 +253,8 @@
                                                          <th>Department</th>
                                                          <th>Position</th>
                                                          <th>Scheme</th>
-                                                         <th>Gaji Pokok</th>
-                                                         <th>Lembur</th>
+                                                         <th>Basic Salary</th>
+                                                         <th>Overtime</th>
                                                          <th>Early Arrival</th>
                                                          <th>Rapel</th>
                                                          <th>Lainnya/Bonus</th>
@@ -279,13 +279,13 @@
                             </div>
                         </div>
 
-                                                <!-- Panel: Pilihan Skema -->
+                                                <!-- Panel: Scheme Selection -->
                                                 <div id="viewKompensasi" class="w-tab-panel">
                             <div class="content-card" style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
 
                                 <div style="display: flex; flex-direction: column; gap: 20px;">
                                     
-                                    <!-- Section: Daftar Skema Payroll Klien -->
+                                    <!-- Section: Client Payroll Scheme List -->
                                     <div style="margin-bottom: 30px;">
                                         <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                                             <div>

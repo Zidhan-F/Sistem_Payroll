@@ -21,7 +21,7 @@ $userRole = session()->get('role') ?? $_COOKIE['user_role'] ?? '';
         </li>
         <?php endif; ?>
         <?php if ($userRole === 'staff'): ?>
-        <li id="menuMySalary" onclick="if(window.selectedClientId && typeof selectClient === 'function'){ selectClient(window.selectedClientId, window.selectedClientName, window.selectedClientSektor); } else { showToast('Data gaji Anda sedang dimuat. Silakan tunggu sebentar...', 'info'); }">
+        <li id="menuMySalary" onclick="if(window.selectedClientId && typeof selectClient === 'function'){ selectClient(window.selectedClientId, window.selectedClientName, window.selectedClientSektor); } else { showToast('Your salary data is loading. Please wait a moment...', 'info'); }">
             <i class="fas fa-file-invoice-dollar"></i>
             <span>My Payslip</span>
         </li>

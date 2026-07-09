@@ -5,16 +5,16 @@
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; width: 100%;">
                 <div>
                     <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0; display: inline-flex; align-items: center; gap: 8px;">
-                        Persetujuan & Log Lembur
-                        <button onclick="bukaModalOvertime()" style="background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.transform='scale(1.15)'; this.style.background='var(--primary-dark)';" onmouseout="this.style.transform='scale(1)'; this.style.background='var(--primary-color)';" title="Input Lembur Manual">
+                        Approval & Overtime Log
+                        <button onclick="bukaModalOvertime()" style="background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1);" onmouseover="this.style.transform='scale(1.15)'; this.style.background='var(--primary-dark)';" onmouseout="this.style.transform='scale(1)'; this.style.background='var(--primary-color)';" title="Manual Overtime Input">
                             <i class="fas fa-plus" style="font-size: 11px; color: white !important;"></i>
                         </button>
                     </h3>
-                    <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola, verifikasi, setujui (Approve), atau tolak (Reject) jam lembur harian karyawan.</p>
+                    <p style="color: #64748b; font-size: 13px; margin: 0;">Manage, verify, approve (Approve), or reject (Reject) daily employee overtime hours.</p>
                 </div>
                 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                     <select id="overtimeClientSelect" onchange="loadOvertimeLogs()" style="padding: 10px 16px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer; min-width: 200px;">
-                        <option value="">-- Pilih Client --</option>
+                        <option value="">-- Select Client --</option>
                     </select>
                     <select id="overtimeMonthSelect" onchange="loadOvertimeLogs()" style="padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1; outline: none; font-size: 14px; color: #334155; background: white; font-weight: 600; cursor: pointer;">
                         <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
@@ -28,9 +28,9 @@
                         <option value="2027">2027</option>
                     </select>
                     <button class="btn-add" onclick="bukaModalUploadLembur()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
-                        <i class="fas fa-upload"></i> Upload Lembur
+                        <i class="fas fa-upload"></i> Upload Overtime
                     </button>
-                    <button class="btn-add" onclick="downloadLemburTemplateMain()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;" title="Download Template Excel Lembur">
+                    <button class="btn-add" onclick="downloadLemburTemplateMain()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;" title="Download Overtime Excel Template">
                         <i class="fas fa-download"></i> Download Template
                     </button>
                 </div>
@@ -90,10 +90,10 @@
                             <input type="checkbox" id="overtimeSelectAll" onchange="toggleSelectAllOvertime(this)" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-color);">
                         </th>
                         <th style="width: 50px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">No</th>
-                        <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Karyawan</th>
+                        <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Employee</th>
                         <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Tanggal</th>
-                        <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Jam Lembur</th>
-                        <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Hari Libur</th>
+                        <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Overtime Hours</th>
+                        <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Holiday</th>
                         <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Keterangan</th>
                         <th style="text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Status</th>
                         <th style="text-align: left; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 13px;">Verifikator</th>
