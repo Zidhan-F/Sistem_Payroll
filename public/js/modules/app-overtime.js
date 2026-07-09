@@ -17,7 +17,8 @@ async function loadOvertimeClients() {
 async function loadOvertimeLogs() {
     const pendingTbody = document.getElementById('overtimePendingTableBody');
     const historyTbody = document.getElementById('overtimeHistoryTableBody');
-    if (!pendingTbody || !historyTbody) return;
+    const mainTbody = document.getElementById('overtimeTableBody');
+    if (!pendingTbody && !historyTbody && !mainTbody) return;
 
     const clientId = document.getElementById('overtimeClientSelect')?.value;
     const bulan = document.getElementById('overtimeMonthSelect')?.value;
@@ -25,22 +26,35 @@ async function loadOvertimeLogs() {
 
     const selectAllCheckbox = document.getElementById('overtimeSelectAll');
     if (selectAllCheckbox) selectAllCheckbox.checked = false;
-    document.getElementById('overtimeBulkActions').style.display = 'none';
+    const bulkActions = document.getElementById('overtimeBulkActions');
+    if (bulkActions) bulkActions.style.display = 'none';
 
     if (!clientId) {
         const noClientHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
             Please select a client first to display overtime data.</td></tr>`;
-        pendingTbody.innerHTML = noClientHtml;
-        historyTbody.innerHTML = noClientHtml;
-        document.getElementById('otSummaryContainer').style.display = 'none';
+        if (pendingTbody) pendingTbody.innerHTML = noClientHtml;
+        if (historyTbody) historyTbody.innerHTML = noClientHtml;
+        if (mainTbody) {
+            const cols = mainTbody.closest('table')?.querySelectorAll('thead th')?.length || 9;
+            mainTbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;padding:40px;color:#94a3b8;">
+                <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
+                Please select a client first to display overtime data.</td></tr>`;
+        }
+        const otSummary = document.getElementById('otSummaryContainer');
+        if (otSummary) otSummary.style.display = 'none';
         return;
     }
 
     const loadingHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
-    pendingTbody.innerHTML = loadingHtml;
-    historyTbody.innerHTML = loadingHtml;
+    if (pendingTbody) pendingTbody.innerHTML = loadingHtml;
+    if (historyTbody) historyTbody.innerHTML = loadingHtml;
+    if (mainTbody) {
+        const cols = mainTbody.closest('table')?.querySelectorAll('thead th')?.length || 9;
+        mainTbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;padding:40px;color:#94a3b8;">
+            <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
+    }
 
     try {
         const res = await fetch(`${API_URL}/overtime-logs?client_id=${clientId}&bulan=${bulan}&tahun=${tahun}`);
@@ -59,9 +73,16 @@ async function loadOvertimeLogs() {
             const noDataHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
                 <i class="fas fa-clock" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
                 Belum ada data lembur untuk periode ini.</td></tr>`;
-            pendingTbody.innerHTML = noDataHtml;
-            historyTbody.innerHTML = noDataHtml;
-            document.getElementById('otSummaryContainer').style.display = 'none';
+            if (pendingTbody) pendingTbody.innerHTML = noDataHtml;
+            if (historyTbody) historyTbody.innerHTML = noDataHtml;
+            if (mainTbody) {
+                const cols = mainTbody.closest('table')?.querySelectorAll('thead th')?.length || 9;
+                mainTbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;padding:40px;color:#94a3b8;">
+                    <i class="fas fa-clock" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
+                    Belum ada data lembur untuk periode ini.</td></tr>`;
+            }
+            const otSummary = document.getElementById('otSummaryContainer');
+            if (otSummary) otSummary.style.display = 'none';
             return;
         }
 
@@ -85,17 +106,24 @@ async function loadOvertimeLogs() {
             }
         });
 
-        document.getElementById('otSummaryPending').innerText = `${pendingHrs.toFixed(1)} Jam (${pendingLogs} data)`;
-        document.getElementById('otSummaryApproved').innerText = `${approvedHrs.toFixed(1)} Jam (${approvedLogs} data)`;
-        document.getElementById('otSummaryRejected').innerText = `${rejectedHrs.toFixed(1)} Jam (${rejectedLogs} data)`;
-        document.getElementById('otSummaryContainer').style.display = 'grid';
+        const otPending = document.getElementById('otSummaryPending');
+        if (otPending) otPending.innerText = `${pendingHrs.toFixed(1)} Jam (${pendingLogs} data)`;
+        const otApproved = document.getElementById('otSummaryApproved');
+        if (otApproved) otApproved.innerText = `${approvedHrs.toFixed(1)} Jam (${approvedLogs} data)`;
+        const otRejected = document.getElementById('otSummaryRejected');
+        if (otRejected) otRejected.innerText = `${rejectedHrs.toFixed(1)} Jam (${rejectedLogs} data)`;
+        const otSummary = document.getElementById('otSummaryContainer');
+        if (otSummary) otSummary.style.display = 'grid';
 
         let pendingIndex = 1;
         let historyIndex = 1;
         let pendingHtml = '';
         let historyHtml = '';
+        let mainHtml = '';
 
-        data.forEach(o => {
+        const hasVerifierCol = mainTbody ? mainTbody.closest('table').querySelectorAll('thead th').length >= 10 : false;
+
+        data.forEach((o, i) => {
             const d = new Date(o.tanggal);
             const tanggalFormatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
             const isHoliday = parseInt(o.is_holiday);
@@ -105,11 +133,12 @@ async function loadOvertimeLogs() {
                 : 'background:#dcfce7;color:#166534;';
 
             const statusVal = String(o.status || 'Pending');
+            let statusBadge = '';
+            let actionButtons = '';
 
             if (statusVal === 'Pending') {
-                const statusBadge = `<span style="background:#fffbeb;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-clock"></i> Pending</span>`;
-                
-                const actionButtons = `
+                statusBadge = `<span style="background:#fffbeb;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-clock"></i> Pending</span>`;
+                actionButtons = `
                     <button onclick="approveOvertimeLog(${o.id})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Approve">
                         <i class="fas fa-check"></i>
                     </button>
@@ -121,27 +150,28 @@ async function loadOvertimeLogs() {
                     </button>
                 `;
 
-                pendingHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="text-align:center;padding:12px;">
-                        <input type="checkbox" class="overtime-row-checkbox" value="${o.id}" onchange="onOvertimeCheckboxChange()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary-color);">
-                    </td>
-                    <td style="text-align:center;padding:12px;color:#64748b;">${pendingIndex++}</td>
-                    <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_masuk)}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_keluar)}</td>
-                    <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
-                    <td style="text-align:center;padding:12px;">
-                        <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
-                    </td>
-                    <td style="text-align:center;padding:12px;">${statusBadge}</td>
-                    <td style="text-align:center;padding:12px;">
-                        <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
-                    </td>
-                </tr>`;
+                if (pendingTbody) {
+                    pendingHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="text-align:center;padding:12px;">
+                            <input type="checkbox" class="overtime-row-checkbox" value="${o.id}" onchange="onOvertimeCheckboxChange()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary-color);">
+                        </td>
+                        <td style="text-align:center;padding:12px;color:#64748b;">${pendingIndex++}</td>
+                        <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_masuk)}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_keluar)}</td>
+                        <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
+                        <td style="text-align:center;padding:12px;">
+                            <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
+                        </td>
+                        <td style="text-align:center;padding:12px;">${statusBadge}</td>
+                        <td style="text-align:center;padding:12px;">
+                            <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
+                        </td>
+                    </tr>`;
+                }
             } else {
-                let statusBadge = '';
                 if (statusVal === 'Approved') {
                     statusBadge = `<span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-check-circle"></i> Approved</span>`;
                 } else if (statusVal === 'Rejected') {
@@ -154,7 +184,7 @@ async function loadOvertimeLogs() {
                     approverDetails = `<span style="font-size:12px;font-weight:600;color:#334155;">${o.approved_by}</span><br><span style="font-size:10px;color:#94a3b8;">${appDate}</span>`;
                 }
 
-                const actionButtons = `
+                actionButtons = `
                     <button onclick="resetOvertimeLog(${o.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;margin-right:4px;" title="Kembalikan ke Pending">
                         <i class="fas fa-undo"></i>
                     </button>
@@ -163,20 +193,49 @@ async function loadOvertimeLogs() {
                     </button>
                 `;
 
-                historyHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="text-align:center;padding:12px;color:#64748b;">${historyIndex++}</td>
+                if (historyTbody) {
+                    historyHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="text-align:center;padding:12px;color:#64748b;">${historyIndex++}</td>
+                        <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_masuk)}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_keluar)}</td>
+                        <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
+                        <td style="text-align:center;padding:12px;">
+                            <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
+                        </td>
+                        <td style="text-align:center;padding:12px;">${statusBadge}</td>
+                        <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.payout_period || '-'}</td>
+                        <td style="padding:12px;">${approverDetails}</td>
+                        <td style="text-align:center;padding:12px;">
+                            <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
+                        </td>
+                    </tr>`;
+                }
+            }
+
+            if (mainTbody) {
+                let approverDetails = '-';
+                if (o.approved_by) {
+                    const appDate = o.approved_at ? new Date(o.approved_at).toLocaleDateString('id-ID', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '';
+                    approverDetails = `<span style="font-size:12px;font-weight:600;color:#334155;">${o.approved_by}</span><br><span style="font-size:10px;color:#94a3b8;">${appDate}</span>`;
+                }
+
+                mainHtml += `<tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="text-align:center;padding:12px;">
+                        <input type="checkbox" class="overtime-row-checkbox" value="${o.id}" onchange="onOvertimeCheckboxChange()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary-color);">
+                    </td>
+                    <td style="text-align:center;padding:12px;color:#64748b;">${i + 1}</td>
                     <td style="padding:12px;font-weight:600;color:#1e293b;">${o.employee_name || '-'}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-size:12px;">${o.employee_nik || '-'}</td>
                     <td style="text-align:center;padding:12px;color:#475569;">${tanggalFormatted}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_masuk)}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${formatTimeHM(o.jam_keluar)}</td>
                     <td style="text-align:center;padding:12px;font-weight:700;color:#1e293b;">${parseFloat(o.jam_lembur)} jam</td>
                     <td style="text-align:center;padding:12px;">
                         <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;${tipeStyle}">${tipeLabel}</span>
                     </td>
+                    <td style="padding:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="${o.keterangan || ''}">${o.keterangan || '-'}</td>
                     <td style="text-align:center;padding:12px;">${statusBadge}</td>
-                    <td style="text-align:center;padding:12px;color:#475569;font-weight:600;">${o.payout_period || '-'}</td>
-                    <td style="padding:12px;">${approverDetails}</td>
+                    ${hasVerifierCol ? `<td style="padding:12px;">${approverDetails}</td>` : ''}
                     <td style="text-align:center;padding:12px;">
                         <div style="display:inline-flex;align-items:center;">${actionButtons}</div>
                     </td>
@@ -184,11 +243,22 @@ async function loadOvertimeLogs() {
             }
         });
 
-        pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending.</td></tr>`;
-        historyTbody.innerHTML = historyHtml || `<tr><td colspan="12" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur.</td></tr>`;
+        if (pendingTbody) {
+            pendingTbody.innerHTML = pendingHtml || `<tr><td colspan="11" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada data lembur pending.</td></tr>`;
+        }
+        if (historyTbody) {
+            historyTbody.innerHTML = historyHtml || `<tr><td colspan="12" style="text-align:center;padding:30px;color:#94a3b8;">Tidak ada riwayat lembur.</td></tr>`;
+        }
+        if (mainTbody) {
+            mainTbody.innerHTML = mainHtml || `<tr><td colspan="${hasVerifierCol ? 10 : 9}" style="text-align:center;padding:30px;color:#94a3b8;">Belum ada data lembur untuk periode ini.</td></tr>`;
+        }
     } catch (e) {
-        pendingTbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
-        historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
+        if (pendingTbody) pendingTbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
+        if (historyTbody) historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
+        if (mainTbody) {
+            const cols = mainTbody.closest('table')?.querySelectorAll('thead th')?.length || 9;
+            mainTbody.innerHTML = `<tr><td colspan="${cols}" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
+        }
     }
 }
 

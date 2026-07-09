@@ -31,6 +31,10 @@ async function loadEarlyArrivalClients() {
             yearFilter.value = currentYear;
         }
 
+        if (window.selectedClientId && clients.some(c => c.id == window.selectedClientId)) {
+            select.value = window.selectedClientId;
+        }
+
         onEaClientChanged();
     } catch (e) {
         console.error('Error loading early arrival clients:', e);
@@ -40,6 +44,10 @@ async function loadEarlyArrivalClients() {
 async function onEaClientChanged() {
     const clientId = document.getElementById('eaClientFilter')?.value;
     const empSelect = document.getElementById('eaEmployeeFilter');
+
+    if (clientId) {
+        window.selectedClientId = clientId;
+    }
 
     if (!clientId) {
         if (empSelect) empSelect.innerHTML = '<option value="">-- All Employees --</option>';
@@ -70,44 +78,54 @@ async function onEaClientChanged() {
 async function loadEarlyArrivalLogs() {
     const pendingTbody = document.getElementById('eaPendingTableBody');
     const historyTbody = document.getElementById('eaHistoryTableBody');
-    if (!pendingTbody || !historyTbody) return;
+    const mainTbody = document.getElementById('eaTableBody');
+    if (!pendingTbody && !historyTbody && !mainTbody) return;
 
     const clientId = document.getElementById('eaClientFilter')?.value;
     const bulan = document.getElementById('eaMonthFilter')?.value;
     const tahun = document.getElementById('eaYearFilter')?.value;
     const employeeId = document.getElementById('eaEmployeeFilter')?.value;
 
-    const selectAllCheckbox = document.getElementById('chkEaSelectAll');
+    const selectAllCheckbox = document.getElementById('chkEaSelectAll') || document.getElementById('selectAllEa');
     if (selectAllCheckbox) selectAllCheckbox.checked = false;
     
-    const bulkActions = document.getElementById('earlyArrivalBulkActions');
+    const bulkActions = document.getElementById('earlyArrivalBulkActions') || document.getElementById('eaBulkActions');
     if (bulkActions) bulkActions.style.display = 'none';
 
     if (!clientId) {
         const noClientHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
             <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
-            Please select a client first untuk menampilkan data persetujuan.</td></tr>`;
-        pendingTbody.innerHTML = noClientHtml;
-        historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
-            <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
-            Please select a client first untuk menampilkan data riwayat.</td></tr>`;
+            Please select a client first untuk menampilkan data.</td></tr>`;
+        if (pendingTbody) pendingTbody.innerHTML = noClientHtml;
+        if (historyTbody) historyTbody.innerHTML = noClientHtml;
+        if (mainTbody) {
+            mainTbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
+                <i class="fas fa-info-circle" style="font-size:32px;margin-bottom:8px;display:block;color:#f39c12;"></i>
+                Please select a client first to display history data.</td></tr>`;
+        }
         
         const summaryContainer = document.getElementById('eaSummaryContainer');
         if (summaryContainer) summaryContainer.style.display = 'none';
         
-        // Reset summary elements
-        document.getElementById('eaSummaryPending').innerText = '0 Menit (0 requests)';
-        document.getElementById('eaSummaryApproved').innerText = '0 Menit (0 logs)';
-        document.getElementById('eaSummaryRejected').innerText = '0 Menit (0 logs)';
-        document.getElementById('eaSummaryProcessed').innerText = '0 Menit (0 logs)';
+        const otPending = document.getElementById('eaSummaryPending');
+        if (otPending) otPending.innerText = '0 Menit (0 requests)';
+        const otApproved = document.getElementById('eaSummaryApproved');
+        if (otApproved) otApproved.innerText = '0 Menit (0 logs)';
+        const otRejected = document.getElementById('eaSummaryRejected');
+        if (otRejected) otRejected.innerText = '0 Menit (0 logs)';
+        const otProcessed = document.getElementById('eaSummaryProcessed');
+        if (otProcessed) otProcessed.innerText = '0 Menit (0 logs)';
         return;
     }
 
     const loadingHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
         <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
-    pendingTbody.innerHTML = loadingHtml;
-    historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
-        <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
+    if (pendingTbody) pendingTbody.innerHTML = loadingHtml;
+    if (historyTbody) historyTbody.innerHTML = loadingHtml;
+    if (mainTbody) {
+        mainTbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
+            <i class="fas fa-spinner fa-spin" style="font-size:24px;margin-bottom:8px;display:block;"></i>Loading data...</td></tr>`;
+    }
 
     try {
         let url = `${API_URL}/early-arrival?client_id=${clientId}&bulan=${bulan}&tahun=${tahun}`;
@@ -132,15 +150,22 @@ async function loadEarlyArrivalLogs() {
             const noDataHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#94a3b8;">
                 <i class="fas fa-clock" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
                 Tidak ada data Early Arrival untuk periode ini.</td></tr>`;
-            pendingTbody.innerHTML = noDataHtml;
-            historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#94a3b8;">
-                <i class="fas fa-clock" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
-                Tidak ada data Early Arrival untuk periode ini.</td></tr>`;
+            if (pendingTbody) pendingTbody.innerHTML = noDataHtml;
+            if (historyTbody) historyTbody.innerHTML = noDataHtml;
+            if (mainTbody) {
+                mainTbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
+                    <i class="fas fa-clock" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
+                    Tidak ada data Early Arrival untuk periode ini.</td></tr>`;
+            }
             
-            document.getElementById('eaSummaryPending').innerText = '0 Menit (0 requests)';
-            document.getElementById('eaSummaryApproved').innerText = '0 Menit (0 logs)';
-            document.getElementById('eaSummaryRejected').innerText = '0 Menit (0 logs)';
-            document.getElementById('eaSummaryProcessed').innerText = '0 Menit (0 logs)';
+            const otPending = document.getElementById('eaSummaryPending');
+            if (otPending) otPending.innerText = '0 Menit (0 requests)';
+            const otApproved = document.getElementById('eaSummaryApproved');
+            if (otApproved) otApproved.innerText = '0 Menit (0 logs)';
+            const otRejected = document.getElementById('eaSummaryRejected');
+            if (otRejected) otRejected.innerText = '0 Menit (0 logs)';
+            const otProcessed = document.getElementById('eaSummaryProcessed');
+            if (otProcessed) otProcessed.innerText = '0 Menit (0 logs)';
             return;
         }
 
@@ -169,20 +194,90 @@ async function loadEarlyArrivalLogs() {
             }
         });
 
-        document.getElementById('eaSummaryPending').innerText = `${pendingMins} Menit (${pendingCount} requests)`;
-        document.getElementById('eaSummaryApproved').innerText = `${approvedMins} Menit (${approvedCount} logs)`;
-        document.getElementById('eaSummaryRejected').innerText = `${rejectedMins} Menit (${rejectedCount} logs)`;
-        document.getElementById('eaSummaryProcessed').innerText = `${processedMins} Menit (${processedCount} logs)`;
+        const otPending = document.getElementById('eaSummaryPending');
+        if (otPending) otPending.innerText = `${pendingMins} Menit (${pendingCount} requests)`;
+        const otApproved = document.getElementById('eaSummaryApproved');
+        if (otApproved) otApproved.innerText = `${approvedMins} Menit (${approvedCount} logs)`;
+        const otRejected = document.getElementById('eaSummaryRejected');
+        if (otRejected) otRejected.innerText = `${rejectedMins} Menit (${rejectedCount} logs)`;
+        const otProcessed = document.getElementById('eaSummaryProcessed');
+        if (otProcessed) otProcessed.innerText = `${processedMins} Menit (${processedCount} logs)`;
 
-        // Render both panels
-        filterEaPending();
-        filterEaHistory();
+        // Render panels
+        if (pendingTbody || historyTbody) {
+            filterEaPending();
+            filterEaHistory();
+        }
+
+        if (mainTbody) {
+            const activeStatusFilter = document.getElementById('eaStatusFilter')?.value || '';
+            const filtered = data.filter(item => {
+                const status = String(item.status).toUpperCase();
+                if (activeStatusFilter && status !== activeStatusFilter.toUpperCase()) return false;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                mainTbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8;">
+                    <i class="fas fa-clock" style="font-size:32px;margin-bottom:8px;display:block;color:#cbd5e1;"></i>
+                    Tidak ada data Early Arrival untuk kriteria ini.</td></tr>`;
+            } else {
+                let html = '';
+                let index = 1;
+                filtered.forEach(item => {
+                    const d = new Date(item.date);
+                    const dateFormatted = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
+                    const status = String(item.status).toUpperCase();
+                    let statusBadge = '';
+                    let actionButtons = '';
+
+                    if (status === 'PENDING') {
+                        statusBadge = `<span style="background:#fffbeb;color:#d97706;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-clock"></i> Pending</span>`;
+                        actionButtons = `
+                            <button onclick="approveEarlyArrivalLog(${item.id})" style="background:#dcfce7;color:#166534;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin-right: 4px;" title="Setujui">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            <button onclick="rejectEarlyArrivalLog(${item.id})" style="background:#fee2e2;color:#991b1b;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;" title="Tolak">
+                                <i class="fas fa-times"></i>
+                            </button>`;
+                    } else if (status === 'APPROVED') {
+                        statusBadge = `<span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-check-circle"></i> Approved</span>`;
+                        actionButtons = `<button onclick="resetEarlyArrivalLog(${item.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:4px;transition: all 0.2s;" title="Kembalikan ke pending"><i class="fas fa-undo"></i> Reset</button>`;
+                    } else if (status === 'REJECTED') {
+                        statusBadge = `<span style="background:#fee2e2;color:#b91c1c;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-times-circle"></i> Rejected</span>`;
+                        actionButtons = `<button onclick="resetEarlyArrivalLog(${item.id})" style="background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:4px;transition: all 0.2s;" title="Kembalikan ke pending"><i class="fas fa-undo"></i> Reset</button>`;
+                    } else if (status === 'PROCESSED') {
+                        statusBadge = `<span style="background:#eff6ff;color:#1d4ed8;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;"><i class="fas fa-file-invoice-dollar"></i> Processed</span>`;
+                        actionButtons = `<span style="font-size:12px;color:#94a3b8;font-style:italic;"><i class="fas fa-lock"></i> Terkunci (Payroll)</span>`;
+                    }
+
+                    html += `<tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="text-align:center;padding:16px;">
+                            <input type="checkbox" class="ea-row-checkbox" value="${item.id}" onchange="onEaCheckboxChange()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary-color);">
+                        </td>
+                        <td style="text-align:center;padding:16px;color:#64748b;">${index++}</td>
+                        <td style="padding:16px;font-weight:600;color:#1e293b;">
+                            <i class="fas fa-user-clock" style="margin-right: 8px; opacity: 0.6; color: var(--primary-color);"></i>${item.employee_name || '-'} (${item.employee_nik || '-'})
+                        </td>
+                        <td style="text-align:center;padding:16px;color:#475569;">${dateFormatted}</td>
+                        <td style="text-align:center;padding:16px;color:#475569;font-weight:600;">${item.shift_start_time || '-'} / ${item.check_in_time || '-'}</td>
+                        <td style="text-align:center;padding:16px;color:#475569;">${formatMinsToHours(item.early_minutes)} (Eligible: ${formatMinsToHours(item.eligible_minutes)})</td>
+                        <td style="padding:16px;color:#475569;">${item.keterangan || '-'}</td>
+                        <td style="text-align:center;padding:16px;">${statusBadge}</td>
+                        <td style="text-align:center;padding:16px;">${actionButtons}</td>
+                    </tr>`;
+                });
+                mainTbody.innerHTML = html;
+            }
+        }
 
     } catch (e) {
         console.error('Error loading early arrival logs:', e);
         const errorHtml = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
-        pendingTbody.innerHTML = errorHtml;
-        historyTbody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
+        if (pendingTbody) pendingTbody.innerHTML = errorHtml;
+        if (historyTbody) historyTbody.innerHTML = errorHtml;
+        if (mainTbody) mainTbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:#ef4444;">Failed to load data: ${e.message}</td></tr>`;
     }
 }
 
@@ -365,12 +460,12 @@ function onEaCheckboxChange() {
     const checkboxes = document.querySelectorAll('.ea-row-checkbox:not(:disabled)');
     const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
     
-    const selectAllCheckbox = document.getElementById('chkEaSelectAll');
+    const selectAllCheckbox = document.getElementById('chkEaSelectAll') || document.getElementById('selectAllEa');
     if (selectAllCheckbox) {
         selectAllCheckbox.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
     }
 
-    const bulkActions = document.getElementById('earlyArrivalBulkActions');
+    const bulkActions = document.getElementById('earlyArrivalBulkActions') || document.getElementById('eaBulkActions');
     const selectedCountSpan = document.getElementById('eaSelectedCount');
     
     if (bulkActions) {
@@ -524,6 +619,18 @@ async function resetEarlyArrivalLog(id) {
     }
 }
 
+function toggleSelectAllEa(checkbox) {
+    toggleEaSelectAll(checkbox);
+}
+
+function approveSelectedEarlyArrival() {
+    bulkApproveEarlyArrival();
+}
+
+function rejectSelectedEarlyArrival() {
+    bulkRejectEarlyArrival();
+}
+
 Object.assign(window, {
     loadEarlyArrivalClients,
     onEaClientChanged,
@@ -537,5 +644,8 @@ Object.assign(window, {
     resetEarlyArrivalLog,
     switchEaSubPanel,
     filterEaPending,
-    filterEaHistory
+    filterEaHistory,
+    toggleSelectAllEa,
+    approveSelectedEarlyArrival,
+    rejectSelectedEarlyArrival
 });
