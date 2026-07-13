@@ -1002,8 +1002,9 @@ async function bukaSlipGaji(id) {
             });
         }
 
-        const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival + jkk + jkm + jhtc + bpjsCompany + jpCompany;
-        const totalDeduction = iuranWajib + shopDeduction + tax + jhte + bpjsEmployee + jpEmployee + jkk + jkm + jhtc + bpjsCompany + jpCompany;
+        const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival;
+        const totalDeduction = iuranWajib + shopDeduction + tax + jhte + bpjsEmployee + jpEmployee;
+        const totalCompanyBpjs = jkk + jkm + jhtc + bpjsCompany + jpCompany;
         const hasBpjs = jkk > 0 || jkm > 0 || jhtc > 0 || bpjsCompany > 0 || jpCompany > 0 || bpjsEmployee > 0 || jhte > 0 || jpEmployee > 0;
 
         document.getElementById('slipContent').innerHTML = `
@@ -1041,35 +1042,27 @@ async function bukaSlipGaji(id) {
                 <tr>
                     <!-- Left Column: INCOME -->
                     <td style="width: 50%; vertical-align: top; border: none; padding: 0 15px 0 0;">
+                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">EARNINGS (PENDAPATAN)</div>
                         <table style="width: 100%; border: none; border-collapse: collapse;">
                             <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">BASIC SALARY</td><td style="padding: 4px 0; text-align: right; width: 40%;">${formatRupiah(basicSalary)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TRANSPORT ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(transportAlw)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SPECIAL ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(specialAlw)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">OVERTIME</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(overtime)}</td></tr>
                             ${earlyArrival > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">EARLY ARRIVAL</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(earlyArrival)}</td></tr>` : ''}
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKK</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jkk)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKM</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jkm)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JHTC</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jhtc)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS by Company</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(bpjsCompany)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JAMINAN PENSIUN COMP</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jpCompany)}</td></tr>
                         </table>
                     </td>
                     <!-- Vertical Divider -->
                     <td style="width: 1px; border-left: 1px solid #000; padding: 0;"></td>
                     <!-- Right Column: DEDUCTION -->
                     <td style="width: 50%; vertical-align: top; border: none; padding: 0 0 0 15px;">
+                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; color: #e74c3c;">DEDUCTIONS (POTONGAN)</div>
                         <table style="width: 100%; border: none; border-collapse: collapse;">
                             <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">IURAN WAJIB</td><td style="padding: 4px 0; text-align: right; color: #e74c3c; width: 40%;">${formatRupiah(iuranWajib)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SHOP DEDUCTION</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(shopDeduction)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TAX</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JHTE</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhte)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS by Employee</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(bpjsEmployee)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JAMINAN PENSIUN EMP</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jpEmployee)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKK</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jkk)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKM</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jkm)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JHTC</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhtc)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS by Company</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(bpjsCompany)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JAMINAN PENSIUN COMP</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jpCompany)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TAX (PPH 21)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JHT (JHTE)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhte)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS KESEHATAN (EMP)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(bpjsEmployee)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JP (EMP)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jpEmployee)}</td></tr>
                         </table>
                     </td>
                 </tr>
@@ -1081,13 +1074,13 @@ async function bukaSlipGaji(id) {
                 <tr>
                     <td style="width: 50%; vertical-align: middle; border: none; padding: 0 15px 0 0;">
                         <table style="width: 100%; border: none; border-collapse: collapse;">
-                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL INCOME</td><td style="padding: 4px 0; text-align: right; font-weight: bold; width: 40%;">${formatRupiah(totalIncome)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL CASH INCOME</td><td style="padding: 4px 0; text-align: right; font-weight: bold; width: 40%;">${formatRupiah(totalIncome)}</td></tr>
                         </table>
                     </td>
                     <td style="width: 1px; border-left: 1px solid #000; padding: 0;"></td>
                     <td style="width: 50%; vertical-align: middle; border: none; padding: 0 0 0 15px;">
                         <table style="width: 100%; border: none; border-collapse: collapse;">
-                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL DEDUCTION</td><td style="padding: 4px 0; text-align: right; font-weight: bold; color: #e74c3c; width: 40%;">${formatRupiah(totalDeduction)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL CASH DEDUCTION</td><td style="padding: 4px 0; text-align: right; font-weight: bold; color: #e74c3c; width: 40%;">${formatRupiah(totalDeduction)}</td></tr>
                         </table>
                     </td>
                 </tr>
@@ -1095,12 +1088,27 @@ async function bukaSlipGaji(id) {
             
             <hr style="border: none; border-top: 1px solid #000; margin: 15px 0;">
             
-            <table style="width: 100%; border: none; border-collapse: collapse; font-size: 12px; font-weight: bold; background-color: #fafafa; border: 1px solid #eee;">
+            <table style="width: 100%; border: none; border-collapse: collapse; font-size: 12px; font-weight: bold; background-color: #fafafa; border: 1px solid #eee; margin-bottom: 15px;">
                 <tr>
-                    <td style="padding: 12px 15px; text-transform: uppercase; width: 50%;">TOTAL INCOME THP</td>
+                    <td style="padding: 12px 15px; text-transform: uppercase; width: 50%;">TAKE HOME PAY (THP)</td>
                     <td style="padding: 12px 15px; text-align: right; color: var(--success); font-size: 14px; width: 50%;">${formatRupiah(info.take_home_pay)}</td>
                 </tr>
             </table>
+
+            ${totalCompanyBpjs > 0 ? `
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 11px;">
+                <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; color: #475569; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">COMPANY BENEFITS (BPJS DIBAYAR PERUSAHAAN)</div>
+                <table style="width: 100%; border: none; border-collapse: collapse; color: #64748b;">
+                    <tr><td style="padding: 3px 0; width: 60%;">BPJS Kesehatan (4%)</td><td style="padding: 3px 0; text-align: right; width: 40%; font-weight: 500;">${formatRupiah(bpjsCompany)}</td></tr>
+                    <tr><td style="padding: 3px 0;">BPJS JHT (JHTC) (3.7%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jhtc)}</td></tr>
+                    <tr><td style="padding: 3px 0;">BPJS JP (Company) (2%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jpCompany)}</td></tr>
+                    <tr><td style="padding: 3px 0;">BPJS JKK (0.24%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jkk)}</td></tr>
+                    <tr><td style="padding: 3px 0;">BPJS JKM (0.3%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jkm)}</td></tr>
+                    <tr style="border-top: 1px dashed #cbd5e1; font-weight: bold; color: #475569;"><td style="padding: 4px 0; padding-top: 6px;">Total Tunjangan BPJS Perusahaan</td><td style="padding: 4px 0; padding-top: 6px; text-align: right;">${formatRupiah(totalCompanyBpjs)}</td></tr>
+                </table>
+                <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Komponen di atas dibayarkan oleh perusahaan langsung ke BPJS Kesehatan dan BPJS Ketenagakerjaan (tidak memotong atau menambah jumlah uang tunai yang Anda terima).</div>
+            </div>
+            ` : ''}
         </div>
         `;
 
