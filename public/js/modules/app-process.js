@@ -956,6 +956,8 @@ async function bukaSlipGaji(id) {
         let specialAlw = 0;
         let overtime = 0;
         let earlyArrival = 0;
+        let taxAllowance = 0;
+        let taxAllowanceLabel = '';
         
         if (data.earnings && data.earnings.length > 0) {
             data.earnings.forEach(e => {
@@ -968,6 +970,9 @@ async function bukaSlipGaji(id) {
                     overtime += parseFloat(e.nilai) || 0;
                 } else if (nameLower.includes('early arrival')) {
                     earlyArrival += parseFloat(e.nilai) || 0;
+                } else if (nameLower.includes('tunjangan pajak') || nameLower.includes('tax allowance')) {
+                    taxAllowance = parseFloat(e.nilai) || 0;
+                    taxAllowanceLabel = e.nama;
                 } else {
                     specialAlw += parseFloat(e.nilai) || 0;
                 }
@@ -1002,7 +1007,18 @@ async function bukaSlipGaji(id) {
             });
         }
 
-        const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival;
+        let taxLabel = 'TAX (PPH 21)';
+        if (data.deductions && data.deductions.length > 0) {
+            const taxItem = data.deductions.find(d => {
+                const nameLower = d.nama.toLowerCase();
+                return nameLower.includes('pajak') || nameLower.includes('pph') || nameLower.includes('tax');
+            });
+            if (taxItem) {
+                taxLabel = taxItem.nama;
+            }
+        }
+
+        const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival + taxAllowance;
         const totalDeduction = iuranWajib + shopDeduction + tax + jhte + bpjsEmployee + jpEmployee;
         const totalCompanyBpjs = jkk + jkm + jhtc + bpjsCompany + jpCompany;
         const hasBpjs = jkk > 0 || jkm > 0 || jhtc > 0 || bpjsCompany > 0 || jpCompany > 0 || bpjsEmployee > 0 || jhte > 0 || jpEmployee > 0;
@@ -1057,6 +1073,7 @@ async function bukaSlipGaji(id) {
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SPECIAL ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(specialAlw)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">OVERTIME</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(overtime)}</td></tr>
                             ${earlyArrival > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">EARLY ARRIVAL</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(earlyArrival)}</td></tr>` : ''}
+                            ${taxAllowance > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${taxAllowanceLabel}</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(taxAllowance)}</td></tr>` : ''}
                         </table>
                     </td>
                     <!-- Vertical Divider -->
@@ -1067,7 +1084,7 @@ async function bukaSlipGaji(id) {
                         <table style="width: 100%; border: none; border-collapse: collapse;">
                             <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">IURAN WAJIB</td><td style="padding: 4px 0; text-align: right; color: #e74c3c; width: 40%;">${formatRupiah(iuranWajib)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SHOP DEDUCTION</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(shopDeduction)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TAX (PPH 21)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${taxLabel}</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JHT (JHTE)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhte)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS KESEHATAN (EMP)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(bpjsEmployee)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JP (EMP)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jpEmployee)}</td></tr>
