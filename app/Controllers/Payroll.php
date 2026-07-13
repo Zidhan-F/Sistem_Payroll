@@ -3155,7 +3155,6 @@ class Payroll extends ResourceController
         }
         return 0.0;
     }
-    }
 
     private function getStandardWorkingDaysInRange(string $startDate, string $endDate, int $workDaysConfig): int
     {

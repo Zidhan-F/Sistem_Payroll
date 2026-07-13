@@ -7855,7 +7855,6 @@ class Api extends ResourceController
         }
         return 0.0;
     }
-    }
 
     private function resolveClientConfig($clientId, $positionName = null)
     {
