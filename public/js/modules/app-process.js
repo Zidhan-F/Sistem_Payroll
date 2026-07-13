@@ -1008,6 +1008,14 @@ async function bukaSlipGaji(id) {
         const hasBpjs = jkk > 0 || jkm > 0 || jhtc > 0 || bpjsCompany > 0 || jpCompany > 0 || bpjsEmployee > 0 || jhte > 0 || jpEmployee > 0;
 
         document.getElementById('slipContent').innerHTML = `
+        <style>
+            #slipContent table tbody tr:hover {
+                background: transparent !important;
+            }
+            #slipContent table tbody tr:hover td:first-child {
+                box-shadow: none !important;
+            }
+        </style>
         <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; line-height: 1.4; padding: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
                 <span style="font-size: 16px; font-weight: bold; text-transform: uppercase;">
