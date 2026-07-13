@@ -1180,11 +1180,11 @@ async function bukaDetailBpjsModal(type, id) {
                 const comp = d.nama_komponen;
                 const val = parseFloat(d.jumlah) || 0;
                 if (comp.includes('BPJS Kesehatan') && comp.includes('1%')) kes_emp = val;
-                if (comp.includes('BPJS Kesehatan') && (comp.includes('4%') || comp.includes('Beban Perusahaan'))) kes_co = val;
+                if (comp.includes('BPJS Kesehatan') && (comp.includes('4%') || comp.includes('Beban Perusahaan') || comp.includes('Tanggungan Perusahaan'))) kes_co = val;
                 if (comp.includes('JHT') && comp.includes('2%')) jht_emp = val;
-                if (comp.includes('JHT') && (comp.includes('3.7%') || comp.includes('Beban Perusahaan'))) jht_co = val;
+                if (comp.includes('JHT') && (comp.includes('3.7%') || comp.includes('Beban Perusahaan') || comp.includes('Tanggungan Perusahaan'))) jht_co = val;
                 if (comp.includes('JP') && comp.includes('1%')) jp_emp = val;
-                if (comp.includes('JP') && (comp.includes('2%') || comp.includes('Beban Perusahaan'))) jp_co = val;
+                if (comp.includes('JP') && (comp.includes('2%') || comp.includes('Beban Perusahaan') || comp.includes('Tanggungan Perusahaan'))) jp_co = val;
                 if (comp.includes('JKK')) jkk_co = val;
                 if (comp.includes('JKM')) jkm_co = val;
             });

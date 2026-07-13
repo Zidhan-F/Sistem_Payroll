@@ -2514,12 +2514,12 @@ class Payroll extends ResourceController
                 $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => $taxName, 'tipe' => 'Potongan', 'jumlah' => $pph21]);
             }
 
-            // Simpan Detail Beban Perusahaan (Informasi)
-            if ($calc['bpjs_kes_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Kesehatan (' . floatval($kesRateComp) . '% Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_kes_perusahaan']]);
-            if ($calc['bpjs_jht_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JHT (' . floatval($jhtRateComp) . '% Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_jht_perusahaan']]);
-            if ($calc['bpjs_jp_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JP (' . floatval($jpRateComp) . '% Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_jp_perusahaan']]);
-            if ($calc['bpjs_jkk_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JKK (' . floatval($jkkRateComp) . '% Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_jkk_perusahaan']]);
-            if ($calc['bpjs_jkm_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JKM (' . floatval($jkmRateComp) . '% Beban Perusahaan)', 'tipe' => 'Beban Perusahaan', 'jumlah' => $calc['bpjs_jkm_perusahaan']]);
+            // Simpan Detail Tanggungan Perusahaan (Informasi)
+            if ($calc['bpjs_kes_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS Kesehatan (' . floatval($kesRateComp) . '% Tanggungan Perusahaan)', 'tipe' => 'Tanggungan Perusahaan', 'jumlah' => $calc['bpjs_kes_perusahaan']]);
+            if ($calc['bpjs_jht_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JHT (' . floatval($jhtRateComp) . '% Tanggungan Perusahaan)', 'tipe' => 'Tanggungan Perusahaan', 'jumlah' => $calc['bpjs_jht_perusahaan']]);
+            if ($calc['bpjs_jp_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JP (' . floatval($jpRateComp) . '% Tanggungan Perusahaan)', 'tipe' => 'Tanggungan Perusahaan', 'jumlah' => $calc['bpjs_jp_perusahaan']]);
+            if ($calc['bpjs_jkk_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JKK (' . floatval($jkkRateComp) . '% Tanggungan Perusahaan)', 'tipe' => 'Tanggungan Perusahaan', 'jumlah' => $calc['bpjs_jkk_perusahaan']]);
+            if ($calc['bpjs_jkm_perusahaan'] > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JKM (' . floatval($jkmRateComp) . '% Tanggungan Perusahaan)', 'tipe' => 'Tanggungan Perusahaan', 'jumlah' => $calc['bpjs_jkm_perusahaan']]);
 
             // Simpan Detail custom
             foreach ($customDetails as $cd) {
@@ -2720,7 +2720,11 @@ class Payroll extends ResourceController
         $details = $detailModel->where('payroll_id', $id)->findAll();
 
         $employeeModel = new EmployeeModel();
-        $emp = $employeeModel->find($payroll['employee_id']);
+        $emp = $employeeModel->select('employees.*, positions.nama as position_name, departments.nama as department_name, clients.nama as client_name')
+                             ->join('positions', 'positions.id = employees.position_id', 'left')
+                             ->join('departments', 'departments.id = positions.department_id', 'left')
+                             ->join('clients', 'clients.id = employees.client_id', 'left')
+                             ->find($payroll['employee_id']);
 
         // Get period info for payDate
         $periodModel = new PayrollPeriodModel();

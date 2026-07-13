@@ -260,70 +260,162 @@ async function viewSlip(id){
     const r=await fetch(`${API}/payroll/slip/${id}`);const data=await r.json();
     const slip=data.payroll,emp=data.employee,details=data.details,period=data.period;
     
-    const companyBurdens = details.filter(d => d.tipe === 'Beban Perusahaan');
+    // Extract values
+    const basicSalary = parseFloat(slip.gaji_pokok) || 0;
+    let transportAlw = 0;
+    let specialAlw = 0;
+    let overtime = 0;
+    let earlyArrival = 0;
+    
+    details.filter(d => d.tipe === 'Tunjangan' || d.tipe === 'Allowance').forEach(d => {
+        const nameLower = d.nama_komponen.toLowerCase();
+        if (nameLower.includes('transport')) {
+            transportAlw += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('lembur') || nameLower.includes('overtime')) {
+            overtime += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('early arrival')) {
+            earlyArrival += parseFloat(d.jumlah) || 0;
+        } else {
+            specialAlw += parseFloat(d.jumlah) || 0;
+        }
+    });
+    
+    let jkk = 0, jkm = 0, jhtc = 0, bpjsCompany = 0, jpCompany = 0;
+    details.filter(d => d.tipe === 'Beban Perusahaan' || d.tipe === 'Tanggungan Perusahaan').forEach(d => {
+        const nameLower = d.nama_komponen.toLowerCase();
+        if (nameLower.includes('jkk')) {
+            jkk += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('jkm')) {
+            jkm += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('jht')) {
+            jhtc += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('kesehatan') || nameLower.includes('bpjs kes')) {
+            bpjsCompany += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('jp') || nameLower.includes('pensiun')) {
+            jpCompany += parseFloat(d.jumlah) || 0;
+        }
+    });
+    
+    let tax = 0, jhte = 0, bpjsEmployee = 0, jpEmployee = 0;
+    let iuranWajib = 0, shopDeduction = 0;
+    
+    details.filter(d => d.tipe === 'Potongan' || d.tipe === 'Deduction').forEach(d => {
+        const nameLower = d.nama_komponen.toLowerCase();
+        if (nameLower.includes('pph') || nameLower.includes('pajak')) {
+            tax += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('jht')) {
+            jhte += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('kesehatan') || nameLower.includes('bpjs kes')) {
+            bpjsEmployee += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('jp') || nameLower.includes('pensiun')) {
+            jpEmployee += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('wajib') || nameLower.includes('iuran')) {
+            iuranWajib += parseFloat(d.jumlah) || 0;
+        } else {
+            shopDeduction += parseFloat(d.jumlah) || 0;
+        }
+    });
+
+    const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival + jkk + jkm + jhtc + bpjsCompany + jpCompany;
+    const totalDeduction = iuranWajib + shopDeduction + tax + jhte + bpjsEmployee + jpEmployee + jkk + jkm + jhtc + bpjsCompany + jpCompany;
     const hasBpjs = details.some(d => d.nama_komponen.includes('BPJS'));
 
-    const totalEarnings = parseFloat(slip.gaji_pokok || 0) + details.filter(d => d.tipe === 'Tunjangan' || d.tipe === 'Allowance').reduce((sum, d) => sum + parseFloat(d.jumlah || 0), 0);
-    const totalDeductions = details.filter(d => d.tipe === 'Potongan' || d.tipe === 'Deduction').reduce((sum, d) => sum + parseFloat(d.jumlah || 0), 0);
-
-    document.getElementById('slipContent').innerHTML=`
-        <div style="text-align:center;border-bottom:2px solid #eee;padding-bottom:15px;margin-bottom:20px;">
-            <h2 style="color:var(--primary-color); margin: 0;">SALARY SLIP</h2>
-            <p style="font-size:13px;color:#666; margin: 5px 0 0 0;">Period: ${slip.bulan}/${slip.tahun}${period&&period.pay_date?' • Pay Date: '+period.pay_date:''}</p>
-        </div>
-        <table style="width:100%; border:none; margin-bottom:20px; font-size:14px; line-height:1.5; border-collapse:collapse;">
-            <tr>
-                <td style="width:60%; vertical-align:top; padding:0; border:none;">
-                    <p style="margin: 4px 0;"><strong>Name:</strong> ${emp.nama}</p>
-                    <p style="margin: 4px 0;"><strong>NIK:</strong> ${emp.nik || '-'}</p>
-                </td>
-                <td style="width:40%; text-align:right; vertical-align:top; padding:0; border:none;">
-                    <p style="margin: 4px 0;"><strong>Status:</strong> ${slip.status_pembayaran}</p>
-                    <p style="margin: 4px 0;"><strong>Account:</strong> ${emp.no_rekening || '-'}</p>
-                </td>
-            </tr>
-        </table>
-        <table style="width:100%;font-size:14px;border-collapse:collapse;margin-bottom:20px;">
-            <thead>
-                <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Earnings</th></tr>
-            </thead>
-            <tbody>
-                <tr><td style="padding:8px 10px;">Basic Salary</td><td style="text-align:right;padding:8px 10px;">${formatRupiah(slip.gaji_pokok)}</td></tr>
-                ${details.filter(d=>d.tipe==='Tunjangan' || d.tipe==='Allowance').map(d=>`<tr><td style="padding:8px 10px;">${d.nama_komponen}</td><td style="text-align:right;padding:8px 10px;">${formatRupiah(d.jumlah)}</td></tr>`).join('')}
-                <tr style="border-top: 1px solid #eee; font-weight: bold; background: #fafafa;">
-                    <td style="padding:8px 10px;">Total Earnings</td>
-                    <td style="text-align:right;padding:8px 10px;">${formatRupiah(totalEarnings)}</td>
-                </tr>
-            </tbody>
-            <thead>
-                <tr style="background:#f8f9fa;"><th colspan="2" style="text-align:left;padding:8px 10px;border-bottom:1px solid #eee;">Deductions</th></tr>
-            </thead>
-            <tbody>
-                ${details.filter(d=>d.tipe==='Potongan' || d.tipe==='Deduction').map(d=>`<tr><td style="padding:8px 10px;">${d.nama_komponen}</td><td style="text-align:right;color:#e74c3c;padding:8px 10px;">- ${formatRupiah(d.jumlah)}</td></tr>`).join('')}
-                <tr style="border-top: 1px solid #eee; font-weight: bold; background: #fafafa;">
-                    <td style="padding:8px 10px;">Total Deductions</td>
-                    <td style="text-align:right;color:#e74c3c;padding:8px 10px;">- ${formatRupiah(totalDeductions)}</td>
-                </tr>
-            </tbody>
-            <tfoot>
-                <tr style="border-top:2px solid #eee;">
-                    <th style="padding:15px 10px;font-size:16px;text-align:left;">NET SALARY</th>
-                    <th style="padding:15px 10px;font-size:16px;text-align:right;color:var(--success);">${formatRupiah(slip.take_home_pay)}</th>
-                </tr>
-            </tfoot>
-        </table>
-        
-        ${companyBurdens.length > 0 ? `
-        <div style="margin-top:20px;border-top:2px dashed #eee;padding-top:15px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <h4 style="margin:0;color:#475569;font-size:14px;font-weight:700;text-transform:uppercase;">Beban Perusahaan (Informasi)</h4>
-                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('bulk', ${id})" style="font-size:12px;color:var(--primary-color);font-weight:600;text-decoration:none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
+    document.getElementById('slipContent').innerHTML = `
+        <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; line-height: 1.4; padding: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+                <span style="font-size: 16px; font-weight: bold; text-transform: uppercase;">
+                    ${slip.client_name || '-' }
+                </span>
+                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('bulk', ${id})" style="font-size: 12px; color: #f39c12; font-weight: bold; text-decoration: none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
             </div>
-            <table style="width:100%;font-size:13px;color:#64748b;">
-                ${companyBurdens.map(d=>`<tr><td style="padding:4px 0;">${d.nama_komponen}</td><td style="text-align:right;padding:4px 0;">${formatRupiah(d.jumlah)}</td></tr>`).join('')}
+            
+            <table style="width: 100%; border: none; margin-bottom: 20px; font-size: 12px; border-collapse: collapse;">
+                <tr>
+                    <td style="width: 50%; vertical-align: top; border: none; padding: 0;">
+                        <table style="border: none; border-collapse: collapse;">
+                            <tr><td style="padding: 2px 0; font-weight: bold; width: 80px;">PERIOD</td><td style="padding: 2px 0; width: 10px;">:</td><td style="padding: 2px 0;">${slip.bulan}/${slip.tahun}${period && period.pay_date ? ' • Pay Date: ' + period.pay_date : ''}</td></tr>
+                            <tr><td style="padding: 2px 0; font-weight: bold;">NAME</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${emp.nama || '-'}</td></tr>
+                            <tr><td style="padding: 2px 0; font-weight: bold;">NIK</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${emp.nik || '-'}</td></tr>
+                            <tr><td style="padding: 2px 0; font-weight: bold;">PTKP</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${slip.ptkp_status || '-'}</td></tr>
+                        </table>
+                    </td>
+                    <td style="width: 50%; vertical-align: top; border: none; padding: 0;">
+                        <table style="border: none; border-collapse: collapse; margin-left: auto;">
+                            <tr><td style="padding: 2px 0; font-weight: bold; width: 80px;">POSITION</td><td style="padding: 2px 0; width: 10px;">:</td><td style="padding: 2px 0;">${emp.position_name || '-'}</td></tr>
+                            <tr><td style="padding: 2px 0; font-weight: bold;">DEPT</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${emp.department_name || '-'}</td></tr>
+                            <tr><td style="padding: 2px 0; font-weight: bold;">NPWP</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${emp.npwp || '-'}</td></tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+            
+            <hr style="border: none; border-top: 1px solid #000; margin-bottom: 15px;">
+            
+            <table style="width: 100%; border: none; border-collapse: collapse; font-size: 11px; margin-bottom: 15px;">
+                <tr>
+                    <!-- Left Column: INCOME -->
+                    <td style="width: 50%; vertical-align: top; border: none; padding: 0 15px 0 0;">
+                        <table style="width: 100%; border: none; border-collapse: collapse;">
+                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">BASIC SALARY</td><td style="padding: 4px 0; text-align: right; width: 40%;">${formatRupiah(basicSalary)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TRANSPORT ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(transportAlw)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SPECIAL ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(specialAlw)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">OVERTIME</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(overtime)}</td></tr>
+                            ${earlyArrival > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">EARLY ARRIVAL</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(earlyArrival)}</td></tr>` : ''}
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKK</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jkk)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKM</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jkm)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JHTC</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jhtc)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS by Company</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(bpjsCompany)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JAMINAN PENSIUN COMP</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jpCompany)}</td></tr>
+                        </table>
+                    </td>
+                    <!-- Vertical Divider -->
+                    <td style="width: 1px; border-left: 1px solid #000; padding: 0;"></td>
+                    <!-- Right Column: DEDUCTION -->
+                    <td style="width: 50%; vertical-align: top; border: none; padding: 0 0 0 15px;">
+                        <table style="width: 100%; border: none; border-collapse: collapse;">
+                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">IURAN WAJIB</td><td style="padding: 4px 0; text-align: right; color: #e74c3c; width: 40%;">${formatRupiah(iuranWajib)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SHOP DEDUCTION</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(shopDeduction)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TAX</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JHTE</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhte)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS by Employee</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(bpjsEmployee)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JAMINAN PENSIUN EMP</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jpEmployee)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKK</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jkk)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKM</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jkm)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JHTC</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhtc)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS by Company</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(bpjsCompany)}</td></tr>
+                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JAMINAN PENSIUN COMP</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jpCompany)}</td></tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+            
+            <hr style="border: none; border-top: 1px solid #000; margin: 15px 0;">
+            
+            <table style="width: 100%; border: none; border-collapse: collapse; font-size: 11px; margin-bottom: 15px;">
+                <tr>
+                    <td style="width: 50%; vertical-align: middle; border: none; padding: 0 15px 0 0;">
+                        <table style="width: 100%; border: none; border-collapse: collapse;">
+                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL INCOME</td><td style="padding: 4px 0; text-align: right; font-weight: bold; width: 40%;">${formatRupiah(totalIncome)}</td></tr>
+                        </table>
+                    </td>
+                    <td style="width: 1px; border-left: 1px solid #000; padding: 0;"></td>
+                    <td style="width: 50%; vertical-align: middle; border: none; padding: 0 0 0 15px;">
+                        <table style="width: 100%; border: none; border-collapse: collapse;">
+                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL DEDUCTION</td><td style="padding: 4px 0; text-align: right; font-weight: bold; color: #e74c3c; width: 40%;">${formatRupiah(totalDeduction)}</td></tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+            
+            <hr style="border: none; border-top: 1px solid #000; margin: 15px 0;">
+            
+            <table style="width: 100%; border: none; border-collapse: collapse; font-size: 12px; font-weight: bold; background-color: #fafafa; border: 1px solid #eee;">
+                <tr>
+                    <td style="padding: 12px 15px; text-transform: uppercase; width: 50%;">TOTAL INCOME THP</td>
+                    <td style="padding: 12px 15px; text-align: right; color: var(--success); font-size: 14px; width: 50%;">${formatRupiah(slip.take_home_pay)}</td>
+                </tr>
             </table>
         </div>
-        ` : ''}
         `;
     document.getElementById('modalSlip').style.display='block';document.getElementById('overlay').style.display='block';
 }

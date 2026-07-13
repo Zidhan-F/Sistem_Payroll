@@ -5855,13 +5855,14 @@ class Api extends ResourceController
 
     public function getSlipDetails($id)
     {
-        // Get Final Result
         $final = $this->db->table('payroll_final')
-                          ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.client_id, payroll_periods.bulan, payroll_periods.tahun, clients.nama as client_name, employees.employ_id')
+                          ->select('payroll_final.*, pkwt.employee_name, pkwt.position_name, pkwt.client_id, payroll_periods.bulan, payroll_periods.tahun, clients.nama as client_name, employees.employ_id, employees.npwp, departments.nama as department_name')
                           ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                           ->join('payroll_periods', 'payroll_periods.id = payroll_final.period_id')
                           ->join('clients', 'clients.id = pkwt.client_id')
                           ->join('employees', 'employees.nama = pkwt.employee_name AND employees.client_id = pkwt.client_id', 'left')
+                          ->join('positions', 'positions.id = employees.position_id', 'left')
+                          ->join('departments', 'departments.id = positions.department_id', 'left')
                           ->where('payroll_final.id', $id)
                           ->get()
                           ->getRowArray();
@@ -6613,19 +6614,19 @@ class Api extends ResourceController
         $companyBurdens = [];
         if (isset($final['bpjs_kes_perusahaan'])) {
             if (floatval($final['bpjs_kes_perusahaan']) > 0) {
-                $companyBurdens[] = ['nama' => 'BPJS Kesehatan (' . floatval($kesRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_kes_perusahaan'])];
+                $companyBurdens[] = ['nama' => 'BPJS Kesehatan (' . floatval($kesRateComp) . '% Tanggungan Perusahaan)', 'nilai' => floatval($final['bpjs_kes_perusahaan'])];
             }
             if (floatval($final['bpjs_jht_perusahaan']) > 0) {
-                $companyBurdens[] = ['nama' => 'BPJS TK JHT (' . floatval($jhtRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_jht_perusahaan'])];
+                $companyBurdens[] = ['nama' => 'BPJS TK JHT (' . floatval($jhtRateComp) . '% Tanggungan Perusahaan)', 'nilai' => floatval($final['bpjs_jht_perusahaan'])];
             }
             if (floatval($final['bpjs_jp_perusahaan']) > 0) {
-                $companyBurdens[] = ['nama' => 'BPJS TK JP (' . floatval($jpRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_jp_perusahaan'])];
+                $companyBurdens[] = ['nama' => 'BPJS TK JP (' . floatval($jpRateComp) . '% Tanggungan Perusahaan)', 'nilai' => floatval($final['bpjs_jp_perusahaan'])];
             }
             if (floatval($final['bpjs_jkk_perusahaan']) > 0) {
-                $companyBurdens[] = ['nama' => 'BPJS TK JKK (' . floatval($jkkRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_jkk_perusahaan'])];
+                $companyBurdens[] = ['nama' => 'BPJS TK JKK (' . floatval($jkkRateComp) . '% Tanggungan Perusahaan)', 'nilai' => floatval($final['bpjs_jkk_perusahaan'])];
             }
             if (floatval($final['bpjs_jkm_perusahaan']) > 0) {
-                $companyBurdens[] = ['nama' => 'BPJS TK JKM (' . floatval($jkmRateComp) . '% Beban Perusahaan)', 'nilai' => floatval($final['bpjs_jkm_perusahaan'])];
+                $companyBurdens[] = ['nama' => 'BPJS TK JKM (' . floatval($jkmRateComp) . '% Tanggungan Perusahaan)', 'nilai' => floatval($final['bpjs_jkm_perusahaan'])];
             }
         }
 
