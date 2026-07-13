@@ -1443,14 +1443,8 @@ class Api extends ResourceController
         if ($tanggal) {
             $builder->where('attendance_logs.log_date', $tanggal);
         } elseif ($bulan && $tahun) {
-            $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
-            $builder->groupStart()
-                ->groupStart()
-                    ->where('MONTH(attendance_logs.log_date)', intval($bulan))
-                    ->where('YEAR(attendance_logs.log_date)', intval($tahun))
-                ->groupEnd()
-                ->orWhere('attendance_logs.payout_period', $payoutPeriodStr)
-            ->groupEnd();
+            $builder->where('MONTH(attendance_logs.log_date)', intval($bulan));
+            $builder->where('YEAR(attendance_logs.log_date)', intval($tahun));
         }
 
         $builder->orderBy('attendance_logs.log_date', 'ASC');
@@ -1662,9 +1656,13 @@ class Api extends ResourceController
         if (!empty($logs)) {
             $firstLog = $logs[0];
             $empId = intval($firstLog['employee_id']);
-            $payoutPeriod = $firstLog['payout_period'] ?? null;
+            $firstLogDate = $firstLog['tanggal'] ?? null;
             
-            if ($empId && $payoutPeriod) {
+            if ($empId && $firstLogDate) {
+                $ts = strtotime($firstLogDate);
+                $uploadMonth = intval(date('n', $ts));
+                $uploadYear = intval(date('Y', $ts));
+                
                 $emp = $this->db->table('employees')->where('id', $empId)->get()->getRow();
                 if ($emp) {
                     $clientId = $emp->client_id;
@@ -1675,60 +1673,28 @@ class Api extends ResourceController
                     $employeeIds = array_column($employees, 'id');
                     
                     if (!empty($employeeIds)) {
-                        // Delete existing attendance logs for this client and payout period
+                        // Delete existing attendance logs for this client and calendar month/year
                         $this->db->table('attendance_logs')
                             ->whereIn('employee_id', $employeeIds)
-                            ->where('payout_period', $payoutPeriod)
+                            ->where('MONTH(log_date)', $uploadMonth)
+                            ->where('YEAR(log_date)', $uploadYear)
                             ->delete();
 
-                        // Delete existing early arrival logs for this client and payout period
+                        // Delete existing early arrival logs for this client and calendar month/year
                         $this->db->table('early_arrival')
                             ->whereIn('employee_id', $employeeIds)
-                            ->where('payroll_period', $payoutPeriod)
+                            ->where('MONTH(date)', $uploadMonth)
+                            ->where('YEAR(date)', $uploadYear)
                             ->delete();
                             
-                        // Collect all unique dates from uploaded logs to clean up overtime
-                        $uploadedDates = [];
-                        foreach ($logs as $l) {
-                            if (!empty($l['tanggal'])) {
-                                $uploadedDates[] = $l['tanggal'];
-                            }
-                        }
-                        $uploadedDates = array_unique($uploadedDates);
-                        
-                        // Delete ALL auto-generated pending overtime logs for these employees + dates
-                        // regardless of payout_period (fixes cross-period cleanup)
-                        if (!empty($uploadedDates)) {
-                            $this->db->table('overtime_logs')
-                                ->whereIn('employee_id', $employeeIds)
-                                ->whereIn('tanggal', $uploadedDates)
-                                ->where('status', 'Pending')
-                                ->like('keterangan', 'Auto: shift', 'after')
-                                ->delete();
-                        }
-                        
-                        // Also clean up by payout_period for any dates NOT in the upload
-                        $parts = explode('-', $payoutPeriod);
-                        if (count($parts) === 2) {
-                            $pMonth = intval($parts[0]);
-                            $pYear = intval($parts[1]);
-                            $this->db->table('overtime_logs')
-                                ->whereIn('employee_id', $employeeIds)
-                                ->where('status', 'Pending')
-                                ->like('keterangan', 'Auto: shift', 'after')
-                                ->groupStart()
-                                    ->where('payout_period', $payoutPeriod)
-                                    ->orGroupStart()
-                                        ->groupStart()
-                                            ->where('payout_period IS NULL')
-                                            ->orWhere('payout_period', '')
-                                        ->groupEnd()
-                                        ->where('MONTH(tanggal)', $pMonth)
-                                        ->where('YEAR(tanggal)', $pYear)
-                                    ->groupEnd()
-                                ->groupEnd()
-                                ->delete();
-                        }
+                        // Delete ALL auto-generated pending overtime logs for these employees in this calendar month/year
+                        $this->db->table('overtime_logs')
+                            ->whereIn('employee_id', $employeeIds)
+                            ->where('status', 'Pending')
+                            ->like('keterangan', 'Auto: shift', 'after')
+                            ->where('MONTH(tanggal)', $uploadMonth)
+                            ->where('YEAR(tanggal)', $uploadYear)
+                            ->delete();
                     }
                 }
             }
@@ -2003,14 +1969,8 @@ class Api extends ResourceController
             $builder->where('employees.client_id', intval($clientId));
         }
         if ($bulan && $tahun) {
-            $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
-            $builder->groupStart()
-                ->groupStart()
-                    ->where('MONTH(overtime_logs.tanggal)', intval($bulan))
-                    ->where('YEAR(overtime_logs.tanggal)', intval($tahun))
-                ->groupEnd()
-                ->orWhere('overtime_logs.payout_period', $payoutPeriodStr)
-            ->groupEnd();
+            $builder->where('MONTH(overtime_logs.tanggal)', intval($bulan));
+            $builder->where('YEAR(overtime_logs.tanggal)', intval($tahun));
         }
 
         $builder->orderBy('overtime_logs.tanggal', 'ASC');
@@ -2592,14 +2552,8 @@ class Api extends ResourceController
             $builder->where('early_arrival.status', $status);
         }
         if ($bulan && $tahun) {
-            $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
-            $builder->groupStart()
-                ->groupStart()
-                    ->where('MONTH(early_arrival.date)', intval($bulan))
-                    ->where('YEAR(early_arrival.date)', intval($tahun))
-                ->groupEnd()
-                ->orWhere('early_arrival.payroll_period', $payoutPeriodStr)
-            ->groupEnd();
+            $builder->where('MONTH(early_arrival.date)', intval($bulan));
+            $builder->where('YEAR(early_arrival.date)', intval($tahun));
         }
 
         $builder->orderBy('early_arrival.date', 'ASC');
@@ -3446,17 +3400,47 @@ class Api extends ResourceController
                 $clientId = $pkwt->client_id;
                 $clientConfig = $this->resolveClientConfig($clientId, $pkwt->position_name);
 
+                // Resolve cut-off date range using client config (same logic as getAttendance)
+                $payrollConfig = $this->db->table('client_payroll_configs')->where('client_id', $clientId)->get()->getRow();
+                $cutoffStart = $payrollConfig ? intval($payrollConfig->cutoff_start) : 21;
+                $cutoffEnd = $payrollConfig ? intval($payrollConfig->cutoff_end) : 20;
+                if ($cutoffStart <= 0) $cutoffStart = 21;
+                if ($cutoffEnd <= 0) $cutoffEnd = 20;
+
+                $bulan_start = intval($period->bulan);
+                $tahun_start = intval($period->tahun);
+                $bulan_end = $bulan_start;
+                $tahun_end = $tahun_start;
+
+                if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
+                    // Cross-month cutoff (e.g., 5-4): start is in the previous month
+                    $bulan_start -= 1;
+                    if ($bulan_start < 1) {
+                        $bulan_start = 12;
+                        $tahun_start -= 1;
+                    }
+                }
+
+                $daysInStartMonth = intval(date('t', mktime(0, 0, 0, $bulan_start, 1, $tahun_start)));
+                $daysInEndMonth = intval(date('t', mktime(0, 0, 0, $bulan_end, 1, $tahun_end)));
+                $safeStart = min($cutoffStart, $daysInStartMonth);
+                $safeEnd = min($cutoffEnd, $daysInEndMonth);
+
+                $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $safeStart);
+                $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $safeEnd);
+
+                // Overtime and Early Arrival are paid in the month after the calendar month of the log
                 $prevMonth = intval($period->bulan) - 1;
                 $prevYear = intval($period->tahun);
                 if ($prevMonth == 0) {
                     $prevMonth = 12;
                     $prevYear--;
                 }
-                $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
-                $endDateStr = date('Y-m-t', strtotime($startDateStr));
-
+                $otStartDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+                $otEndDateStr = date('Y-m-t', strtotime($otStartDateStr));
 
                 $effectiveStartDateStr = !empty($employee->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($employee->tgl_masuk))) : $startDateStr;
+                $effectiveOtStartDateStr = !empty($employee->tgl_masuk) ? max($otStartDateStr, date('Y-m-d', strtotime($employee->tgl_masuk))) : $otStartDateStr;
 
                 // 1. Query total hari_kerja (Hadir)
                 $hadirCount = $this->db->table('attendance_logs')
@@ -3472,8 +3456,8 @@ class Api extends ResourceController
                 $lemburBiasaObj = $this->db->table('overtime_logs')
                                          ->selectSum('jam_lembur')
                                          ->where('employee_id', $employee->id)
-                                         ->where('tanggal >=', $effectiveStartDateStr)
-                                         ->where('tanggal <=', $endDateStr)
+                                         ->where('tanggal >=', $effectiveOtStartDateStr)
+                                         ->where('tanggal <=', $otEndDateStr)
                                          ->where('status', 'Approved')
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                                          ->where('(is_holiday = 0 OR is_holiday IS NULL)')
@@ -3484,8 +3468,8 @@ class Api extends ResourceController
                 $lemburLiburObj = $this->db->table('overtime_logs')
                                          ->selectSum('jam_lembur')
                                          ->where('employee_id', $employee->id)
-                                         ->where('tanggal >=', $effectiveStartDateStr)
-                                         ->where('tanggal <=', $endDateStr)
+                                         ->where('tanggal >=', $effectiveOtStartDateStr)
+                                         ->where('tanggal <=', $otEndDateStr)
                                          ->where('status', 'Approved')
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                                          ->where('is_holiday', 1)
@@ -3667,8 +3651,8 @@ class Api extends ResourceController
                     $eaSumObj = $this->db->table('early_arrival')
                                          ->selectSum('eligible_minutes')
                                          ->where('employee_id', $employee->id)
-                                         ->where('date >=', $effectiveStartDateStr)
-                                         ->where('date <=', $endDateStr)
+                                         ->where('date >=', $effectiveOtStartDateStr)
+                                         ->where('date <=', $otEndDateStr)
                                          ->where('status', 'APPROVED')
                                          ->get()->getRow();
                     $earlyArrivalMinutes = $eaSumObj ? intval($eaSumObj->eligible_minutes) : 0;
@@ -3746,7 +3730,7 @@ class Api extends ResourceController
                 'early_arrival_minutes' => $earlyArrivalMinutes,
                 'potongan_absensi' => $potonganAbsensi,
                 'bonus_tambahan' => $record['bonus_tambahan'] ?? 0,
-                'is_manual' => 1
+                'is_manual' => 0
             ];
 
             if ($existing) {
@@ -8789,6 +8773,7 @@ class Api extends ResourceController
             if (!$emp) continue;
 
             $clientConfig = $this->resolveClientConfig($pkwt->client_id, $pkwt->position_name);
+            
             $prevMonth = intval($period->bulan) - 1;
             $prevYear = intval($period->tahun);
             if ($prevMonth == 0) {
@@ -8988,28 +8973,14 @@ class Api extends ResourceController
 
             $clientConfig = $this->resolveClientConfig($pkwt->client_id, $pkwt->position_name);
 
-            // Use cutoff dates from client config (consistent with getAttendance)
-            $cutoffStartEnd = $this->resolveCutoffStartEnd($clientConfig);
-            $cutoffStart = $cutoffStartEnd['start'];
-            $cutoffEnd = $cutoffStartEnd['end'];
-
-            $bulan_start = intval($period->bulan);
-            $tahun_start = intval($period->tahun);
-            $bulan_end = $bulan_start;
-            $tahun_end = $tahun_start;
-            if ($cutoffStart > $cutoffEnd && $cutoffStart > 1) {
-                $bulan_start -= 1;
-                if ($bulan_start < 1) {
-                    $bulan_start = 12;
-                    $tahun_start -= 1;
-                }
+            $prevMonth = intval($period->bulan) - 1;
+            $prevYear = intval($period->tahun);
+            if ($prevMonth == 0) {
+                $prevMonth = 12;
+                $prevYear--;
             }
-            $daysInStartMonth = date('t', mktime(0, 0, 0, $bulan_start, 1, $tahun_start));
-            $daysInEndMonth = date('t', mktime(0, 0, 0, $bulan_end, 1, $tahun_end));
-            $effectiveCutoffStart = min($cutoffStart, $daysInStartMonth);
-            $effectiveCutoffEnd = min($cutoffEnd, $daysInEndMonth);
-            $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $effectiveCutoffStart);
-            $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $effectiveCutoffEnd);
+            $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+            $endDateStr = date('Y-m-t', strtotime($startDateStr));
 
             $effectiveStartDateStr = !empty($emp->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $startDateStr;
 
