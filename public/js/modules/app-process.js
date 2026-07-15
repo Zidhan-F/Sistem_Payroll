@@ -1032,6 +1032,7 @@ async function bukaSlipGaji(id) {
         const totalDeduction = iuranWajib + shopDeduction + absenceDeduction + tax + jhte + bpjsEmployee + jpEmployee;
         const totalCompanyBpjs = jkk + jkm + jhtc + bpjsCompany + jpCompany;
         const hasBpjs = jkk > 0 || jkm > 0 || jhtc > 0 || bpjsCompany > 0 || jpCompany > 0 || bpjsEmployee > 0 || jhte > 0 || jpEmployee > 0;
+        const brutoPajak = totalIncome - absenceDeduction + bpjsCompany + jkk + jkm;
 
         document.getElementById('slipContent').innerHTML = `
         <style>
@@ -1144,6 +1145,23 @@ async function bukaSlipGaji(id) {
                     <tr style="border-top: 1px dashed #cbd5e1; font-weight: bold; color: #475569;"><td style="padding: 4px 0; padding-top: 6px;">Total Tunjangan BPJS Perusahaan</td><td style="padding: 4px 0; padding-top: 6px; text-align: right;">${formatRupiah(totalCompanyBpjs)}</td></tr>
                 </table>
                 <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Komponen di atas dibayarkan oleh perusahaan langsung ke BPJS Kesehatan dan BPJS Ketenagakerjaan (tidak memotong atau menambah jumlah uang tunai yang Anda terima).</div>
+            </div>
+            ` : ''}
+
+            ${brutoPajak > 0 ? `
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 11px; margin-top: 10px;">
+                <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; color: #475569; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">DETAIL PERHITUNGAN PAJAK (TAX DETAILS)</div>
+                <table style="width: 100%; border: none; border-collapse: collapse; color: #64748b;">
+                    <tr><td style="padding: 3px 0; width: 60%;">Total Gaji Bruto (Basis PPh 21)</td><td style="padding: 3px 0; text-align: right; width: 40%; font-weight: 500;">${formatRupiah(brutoPajak)}</td></tr>
+                    <tr>
+                        <td style="padding: 3px 0;">Potongan Pajak PPh 21</td>
+                        <td style="padding: 3px 0; text-align: right; font-weight: 500; color: ${tax >= 0 ? '#e74c3c' : 'var(--success)'};">
+                            ${tax >= 0 ? '-' : '+'}${formatRupiah(Math.abs(tax))}
+                        </td>
+                    </tr>
+                    <tr style="border-top: 1px dashed #cbd5e1; font-weight: bold; color: #475569;"><td style="padding: 4px 0; padding-top: 6px;">Gaji Bruto Setelah Pajak</td><td style="padding: 4px 0; padding-top: 6px; text-align: right;">${formatRupiah(brutoPajak - tax)}</td></tr>
+                </table>
+                <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Total Gaji Bruto di atas merupakan dasar pengenaan pajak (DPP) PPh 21, yang terdiri dari seluruh pendapatan tunai dikurangi denda/potongan absen, ditambah premi BPJS Kesehatan (4%), JKK (0.24%), dan JKM (0.3%) yang ditanggung perusahaan.</div>
             </div>
             ` : ''}
         </div>
