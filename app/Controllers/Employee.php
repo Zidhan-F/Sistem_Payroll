@@ -357,6 +357,42 @@ class Employee extends ResourceController
                 }
             }
 
+            // Sync Contract dates if start_contract or end_contract is updated
+            if (isset($data['start_contract']) || isset($data['end_contract'])) {
+                $contractModel = new \App\Models\ContractModel();
+                $contract = $contractModel->where('employee_id', $id)->where('status_pkwt', 'Aktif')->first();
+                if ($contract) {
+                    $updateContractData = [];
+                    if (isset($data['start_contract'])) {
+                        $updateContractData['tgl_mulai'] = $data['start_contract'];
+                    }
+                    if (isset($data['end_contract'])) {
+                        $updateContractData['tgl_berakhir'] = $data['end_contract'];
+                    }
+                    if (!empty($updateContractData)) {
+                        $contractModel->update($contract['id'], $updateContractData);
+                    }
+                }
+            }
+
+            // Sync PKWT dates if start_contract or end_contract is updated
+            if (isset($data['start_contract']) || isset($data['end_contract'])) {
+                $dbPkwt = \Config\Database::connect();
+                $updatePkwtData = [];
+                if (isset($data['start_contract'])) {
+                    $updatePkwtData['start_date'] = $data['start_contract'];
+                }
+                if (isset($data['end_contract'])) {
+                    $updatePkwtData['end_date'] = $data['end_contract'];
+                }
+                if (!empty($updatePkwtData)) {
+                    $dbPkwt->table('pkwt')
+                           ->where('client_id', $oldEmp['client_id'] ?? ($data['client_id'] ?? null))
+                           ->where('employee_name', $data['nama'] ?? ($oldEmp['nama'] ?? null))
+                           ->update($updatePkwtData);
+                }
+            }
+
             // Sync employee shifts if updated
             if (isset($data['shift_scheme_id'])) {
                 $dbShift = \Config\Database::connect();

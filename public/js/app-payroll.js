@@ -267,6 +267,7 @@ async function viewSlip(id){
     let overtime = 0;
     let earlyArrival = 0;
     
+    let rapelComponents = [];
     details.filter(d => d.tipe === 'Tunjangan' || d.tipe === 'Allowance').forEach(d => {
         const nameLower = d.nama_komponen.toLowerCase();
         if (nameLower.includes('transport')) {
@@ -275,6 +276,11 @@ async function viewSlip(id){
             overtime += parseFloat(d.jumlah) || 0;
         } else if (nameLower.includes('early arrival')) {
             earlyArrival += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('rapel')) {
+            rapelComponents.push({
+                nama: d.nama_komponen,
+                jumlah: parseFloat(d.jumlah) || 0
+            });
         } else {
             specialAlw += parseFloat(d.jumlah) || 0;
         }
@@ -297,7 +303,7 @@ async function viewSlip(id){
     });
     
     let tax = 0, jhte = 0, bpjsEmployee = 0, jpEmployee = 0;
-    let iuranWajib = 0, shopDeduction = 0;
+    let iuranWajib = 0, shopDeduction = 0, absenceDeduction = 0;
     
     details.filter(d => d.tipe === 'Potongan' || d.tipe === 'Deduction').forEach(d => {
         const nameLower = d.nama_komponen.toLowerCase();
@@ -309,6 +315,8 @@ async function viewSlip(id){
             bpjsEmployee += parseFloat(d.jumlah) || 0;
         } else if (nameLower.includes('jp') || nameLower.includes('pensiun')) {
             jpEmployee += parseFloat(d.jumlah) || 0;
+        } else if (nameLower.includes('absen') || nameLower.includes('absence')) {
+            absenceDeduction += parseFloat(d.jumlah) || 0;
         } else if (nameLower.includes('wajib') || nameLower.includes('iuran')) {
             iuranWajib += parseFloat(d.jumlah) || 0;
         } else {
@@ -316,8 +324,9 @@ async function viewSlip(id){
         }
     });
 
-    const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival + jkk + jkm + jhtc + bpjsCompany + jpCompany;
-    const totalDeduction = iuranWajib + shopDeduction + tax + jhte + bpjsEmployee + jpEmployee + jkk + jkm + jhtc + bpjsCompany + jpCompany;
+    const totalRapel = rapelComponents.reduce((sum, r) => sum + r.jumlah, 0);
+    const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival + totalRapel + jkk + jkm + jhtc + bpjsCompany + jpCompany;
+    const totalDeduction = iuranWajib + shopDeduction + absenceDeduction + tax + jhte + bpjsEmployee + jpEmployee + jkk + jkm + jhtc + bpjsCompany + jpCompany;
     const hasBpjs = details.some(d => d.nama_komponen.includes('BPJS'));
 
     document.getElementById('slipContent').innerHTML = `
@@ -326,7 +335,7 @@ async function viewSlip(id){
                 <span style="font-size: 16px; font-weight: bold; text-transform: uppercase;">
                     ${slip.client_name || '-' }
                 </span>
-                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('bulk', ${id})" style="font-size: 12px; color: #f39c12; font-weight: bold; text-decoration: none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
+                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('bulk', ${id})" class="no-pdf" style="font-size: 12px; color: #f39c12; font-weight: bold; text-decoration: none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
             </div>
             
             <table style="width: 100%; border: none; margin-bottom: 20px; font-size: 12px; border-collapse: collapse;">
@@ -359,6 +368,7 @@ async function viewSlip(id){
                             <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">BASIC SALARY</td><td style="padding: 4px 0; text-align: right; width: 40%;">${formatRupiah(basicSalary)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TRANSPORT ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(transportAlw)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SPECIAL ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(specialAlw)}</td></tr>
+                            ${rapelComponents.map(r => `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${r.nama}</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(r.jumlah)}</td></tr>`).join('')}
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">OVERTIME</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(overtime)}</td></tr>
                             ${earlyArrival > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">EARLY ARRIVAL</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(earlyArrival)}</td></tr>` : ''}
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JKK</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(jkk)}</td></tr>
@@ -374,6 +384,7 @@ async function viewSlip(id){
                     <td style="width: 50%; vertical-align: top; border: none; padding: 0 0 0 15px;">
                         <table style="width: 100%; border: none; border-collapse: collapse;">
                             <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">IURAN WAJIB</td><td style="padding: 4px 0; text-align: right; color: #e74c3c; width: 40%;">${formatRupiah(iuranWajib)}</td></tr>
+                            ${absenceDeduction > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">POTONGAN ABSEN</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(absenceDeduction)}</td></tr>` : ''}
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SHOP DEDUCTION</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(shopDeduction)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TAX</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">JHTE</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhte)}</td></tr>

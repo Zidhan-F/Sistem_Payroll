@@ -1236,6 +1236,25 @@ class Payroll extends ResourceController
                 }
 
                 continue; // Skip the rest of the loop!
+            } else {
+                if ($pkwt) {
+                    $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
+                    $db->table('pkwt_components')
+                        ->where('pkwt_id', $pkwt->id)
+                        ->where('allowance_type', 'Ad-hoc')
+                        ->where('payout_period', $payoutPeriodStr)
+                        ->like('nama', 'Rapel')
+                        ->delete();
+
+                    // Remove from $empComponents in memory to prevent calculation in current run
+                    foreach ($empComponents as $key => $ec) {
+                        if (isset($ec['allowance_type']) && $ec['allowance_type'] === 'Ad-hoc' &&
+                            stripos($ec['nama_komponen'] ?? $ec['nama'] ?? '', 'Rapel') !== false) {
+                            unset($empComponents[$key]);
+                        }
+                    }
+                    $empComponents = array_values($empComponents);
+                }
             }
 
             // Overtime divisor (use client config if set, otherwise fallback to 173)
@@ -1757,6 +1776,25 @@ class Payroll extends ResourceController
                                 'payout_period' => $payoutPeriod,
                             ]);
                         }
+                    }
+                } else {
+                    if ($pkwt) {
+                        $payoutPeriodStr = intval($bulan) . '-' . intval($tahun);
+                        $db->table('pkwt_components')
+                            ->where('pkwt_id', $pkwt->id)
+                            ->where('allowance_type', 'Ad-hoc')
+                            ->where('payout_period', $payoutPeriodStr)
+                            ->like('nama', 'Rapel')
+                            ->delete();
+
+                        // Remove from $empComponents in memory to prevent calculation in current run
+                        foreach ($empComponents as $key => $ec) {
+                            if (isset($ec['allowance_type']) && $ec['allowance_type'] === 'Ad-hoc' &&
+                                stripos($ec['nama_komponen'] ?? $ec['nama'] ?? '', 'Rapel') !== false) {
+                                unset($empComponents[$key]);
+                            }
+                        }
+                        $empComponents = array_values($empComponents);
                     }
                 }
             }
@@ -2494,10 +2532,10 @@ class Payroll extends ResourceController
 
             // Simpan Detail standar
             if ($overtimePay > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Lembur', 'tipe' => 'Tunjangan', 'jumlah' => $overtimePay]);
-            if ($taxAllowance > 0) {
+            if ($taxAllowance != 0) {
                 $ptkpCategory = $this->determineTerCategory($ptkpStatus);
                 $allowanceName = ($bulan == 12) 
-                    ? 'Tunjangan Pajak (Gross Up Pasal 17)' 
+                    ? ($taxAllowance < 0 ? 'Penyesuaian Tunjangan Pajak (Gross Up Pasal 17)' : 'Tunjangan Pajak (Gross Up Pasal 17)')
                     : 'Tunjangan Pajak (Gross Up TER Kategori ' . $ptkpCategory . ' - ' . floatval($calc['ter_rate']) . '%)';
                 $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => $allowanceName, 'tipe' => 'Tunjangan', 'jumlah' => $taxAllowance]);
             }
@@ -2506,11 +2544,13 @@ class Payroll extends ResourceController
             if ($bpjsJpKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JP (' . floatval($jpRateEmp) . '% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsJpKaryawan]);
             if ($potonganAlpa > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Alfa / Early Leave', 'tipe' => 'Potongan', 'jumlah' => $potonganAlpa]);
             if ($potonganLate > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Denda Keterlambatan', 'tipe' => 'Potongan', 'jumlah' => $potonganLate]);
-            if ($pph21 > 0 && $curTaxMethod !== 'Net') {
+            if ($pph21 != 0 && $curTaxMethod !== 'Net') {
                 $ptkpCategory = $this->determineTerCategory($ptkpStatus);
-                $taxName = ($bulan == 12) 
-                    ? 'Potongan Pajak PPh 21 (Pasal 17)' 
-                    : 'Potongan Pajak PPh 21 (TER Kategori ' . $ptkpCategory . ' - ' . floatval($calc['ter_rate']) . '%)';
+                if ($bulan == 12) {
+                    $taxName = $pph21 < 0 ? 'Kelebihan Potongan PPh 21 (Refund)' : 'Potongan Pajak PPh 21 (Pasal 17)';
+                } else {
+                    $taxName = 'Potongan Pajak PPh 21 (TER Kategori ' . $ptkpCategory . ' - ' . floatval($calc['ter_rate']) . '%)';
+                }
                 $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => $taxName, 'tipe' => 'Potongan', 'jumlah' => $pph21]);
             }
 
@@ -2912,7 +2952,7 @@ class Payroll extends ResourceController
                 $ptkpSetahun = $this->getPtkpAmount($ptkpStatus);
                 $pkpSetahun = max(0, floor(($nettoSetahun - $ptkpSetahun) / 1000) * 1000);
                 $pph21Setahun = $this->calculateProgressiveTax($pkpSetahun);
-                $pph21Desember = max(0, $pph21Setahun - $totalPph21JanNov);
+                $pph21Desember = $pph21Setahun - $totalPph21JanNov;
                 $taxAllowanceDec = $pph21Desember;
             }
 
@@ -2944,7 +2984,7 @@ class Payroll extends ResourceController
         $pph21Setahun = $this->calculateProgressiveTax($pkpSetahun);
 
         // 10. PPh 21 Desember = PPh 21 Setahun - Total PPh 21 Jan-Nov
-        $pph21Desember = max(0, $pph21Setahun - $totalPph21JanNov);
+        $pph21Desember = $pph21Setahun - $totalPph21JanNov;
 
         return [
             'pph21' => $pph21Desember,

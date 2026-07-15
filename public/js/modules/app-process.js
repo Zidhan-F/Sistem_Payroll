@@ -958,6 +958,7 @@ async function bukaSlipGaji(id) {
         let earlyArrival = 0;
         let taxAllowance = 0;
         let taxAllowanceLabel = '';
+        let rapelComponents = [];
         
         if (data.earnings && data.earnings.length > 0) {
             data.earnings.forEach(e => {
@@ -973,6 +974,11 @@ async function bukaSlipGaji(id) {
                 } else if (nameLower.includes('tunjangan pajak') || nameLower.includes('tax allowance')) {
                     taxAllowance = parseFloat(e.nilai) || 0;
                     taxAllowanceLabel = e.nama;
+                } else if (nameLower.includes('rapel')) {
+                    rapelComponents.push({
+                        nama: e.nama,
+                        nilai: parseFloat(e.nilai) || 0
+                    });
                 } else {
                     specialAlw += parseFloat(e.nilai) || 0;
                 }
@@ -992,6 +998,7 @@ async function bukaSlipGaji(id) {
         
         let iuranWajib = 0;
         let shopDeduction = 0;
+        let absenceDeduction = 0;
         
         if (data.deductions && data.deductions.length > 0) {
             data.deductions.forEach(d => {
@@ -999,7 +1006,9 @@ async function bukaSlipGaji(id) {
                 if (nameLower.includes('jht') || nameLower.includes('kesehatan') || nameLower.includes('bpjs') || nameLower.includes('pajak') || nameLower.includes('pph')) {
                     return;
                 }
-                if (nameLower.includes('wajib') || nameLower.includes('iuran')) {
+                if (nameLower.includes('absen') || nameLower.includes('absence')) {
+                    absenceDeduction += parseFloat(d.nilai) || 0;
+                } else if (nameLower.includes('wajib') || nameLower.includes('iuran')) {
                     iuranWajib += parseFloat(d.nilai) || 0;
                 } else {
                     shopDeduction += parseFloat(d.nilai) || 0;
@@ -1018,8 +1027,9 @@ async function bukaSlipGaji(id) {
             }
         }
 
-        const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival + taxAllowance;
-        const totalDeduction = iuranWajib + shopDeduction + tax + jhte + bpjsEmployee + jpEmployee;
+        const totalRapel = rapelComponents.reduce((sum, r) => sum + r.nilai, 0);
+        const totalIncome = basicSalary + transportAlw + specialAlw + overtime + earlyArrival + taxAllowance + totalRapel;
+        const totalDeduction = iuranWajib + shopDeduction + absenceDeduction + tax + jhte + bpjsEmployee + jpEmployee;
         const totalCompanyBpjs = jkk + jkm + jhtc + bpjsCompany + jpCompany;
         const hasBpjs = jkk > 0 || jkm > 0 || jhtc > 0 || bpjsCompany > 0 || jpCompany > 0 || bpjsEmployee > 0 || jhte > 0 || jpEmployee > 0;
 
@@ -1037,7 +1047,7 @@ async function bukaSlipGaji(id) {
                 <span style="font-size: 16px; font-weight: bold; text-transform: uppercase;">
                     ${info.client_name || info.nama_klien || 'PT Duta Karya Sukses Nusantara'}
                 </span>
-                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('pkwt', ${id})" style="font-size: 12px; color: #f39c12; font-weight: bold; text-decoration: none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
+                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('pkwt', ${id})" class="no-pdf" style="font-size: 12px; color: #f39c12; font-weight: bold; text-decoration: none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
             </div>
             
             <table style="width: 100%; border: none; margin-bottom: 20px; font-size: 12px; border-collapse: collapse;">
@@ -1071,6 +1081,7 @@ async function bukaSlipGaji(id) {
                             <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">BASIC SALARY</td><td style="padding: 4px 0; text-align: right; width: 40%;">${formatRupiah(basicSalary)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TRANSPORT ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(transportAlw)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SPECIAL ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(specialAlw)}</td></tr>
+                            ${rapelComponents.map(r => `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${r.nama}</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(r.nilai)}</td></tr>`).join('')}
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">OVERTIME</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(overtime)}</td></tr>
                             ${earlyArrival > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">EARLY ARRIVAL</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(earlyArrival)}</td></tr>` : ''}
                             ${taxAllowance > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${taxAllowanceLabel}</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(taxAllowance)}</td></tr>` : ''}
@@ -1083,6 +1094,7 @@ async function bukaSlipGaji(id) {
                         <div style="font-weight: bold; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; color: #e74c3c;">DEDUCTIONS (POTONGAN)</div>
                         <table style="width: 100%; border: none; border-collapse: collapse;">
                             <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">IURAN WAJIB</td><td style="padding: 4px 0; text-align: right; color: #e74c3c; width: 40%;">${formatRupiah(iuranWajib)}</td></tr>
+                            ${absenceDeduction > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">POTONGAN ABSEN</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(absenceDeduction)}</td></tr>` : ''}
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SHOP DEDUCTION</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(shopDeduction)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${taxLabel}</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
                             <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JHT (JHTE)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhte)}</td></tr>
@@ -1156,6 +1168,15 @@ function downloadSlip() {
     const element = document.getElementById('slipContent');
     if (!element) return;
     
+    // Physically remove no-pdf elements from DOM temporarily so html2pdf cannot render them
+    const noPdfElements = Array.from(element.querySelectorAll('.no-pdf'));
+    const placeholders = noPdfElements.map(el => {
+        const parent = el.parentNode;
+        const next = el.nextSibling;
+        parent.removeChild(el);
+        return { parent, next, el };
+    });
+    
     let filename = 'salary_slip.pdf';
     try {
         const htmlText = element.innerHTML;
@@ -1198,8 +1219,24 @@ function downloadSlip() {
     };
     
     html2pdf().set(opt).from(element).save().then(() => {
+        // Restore no-pdf elements to the exact DOM position
+        placeholders.forEach(({ parent, next, el }) => {
+            if (next && next.parentNode === parent) {
+                parent.insertBefore(el, next);
+            } else {
+                parent.appendChild(el);
+            }
+        });
         showToast('Salary slip downloaded successfully!', 'success');
     }).catch(err => {
+        // Restore no-pdf elements to the exact DOM position
+        placeholders.forEach(({ parent, next, el }) => {
+            if (next && next.parentNode === parent) {
+                parent.insertBefore(el, next);
+            } else {
+                parent.appendChild(el);
+            }
+        });
         console.error('PDF Generation Error:', err);
         showToast('Failed to download PDF', 'error');
     });

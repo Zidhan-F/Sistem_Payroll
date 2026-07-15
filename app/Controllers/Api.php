@@ -4331,6 +4331,24 @@ class Api extends ResourceController
                         }
                     }
                 }
+            } else {
+                $payoutPeriodStr = intval($period->bulan) . '-' . intval($period->tahun);
+                $this->db->table('pkwt_components')
+                         ->where('pkwt_id', $pkwt->id)
+                         ->where('allowance_type', 'Ad-hoc')
+                         ->where('payout_period', $payoutPeriodStr)
+                         ->like('nama', 'Rapel')
+                         ->delete();
+                
+                // Also remove it from $components array in memory to prevent it being calculated in the current run
+                foreach ($components as $key => $c) {
+                    if (isset($c->allowance_type) && $c->allowance_type === 'Ad-hoc' &&
+                        isset($c->payout_period) && $c->payout_period === $payoutPeriodStr &&
+                        stripos($c->nama ?? '', 'Rapel') !== false) {
+                        unset($components[$key]);
+                    }
+                }
+                $components = array_values($components); // Reindex array
             }
 
             // Prorate basic salary if the employee is a new hire joining within this period
@@ -6550,12 +6568,13 @@ class Api extends ResourceController
                 $deductions[] = ['nama' => 'BPJS TK JP (' . floatval($jpRateEmp) . '% Karyawan)', 'nilai' => floatval($final['bpjs_jp_karyawan'])];
             }
 
-            if (floatval($final['pph21']) > 0) {
+            if (floatval($final['pph21']) != 0) {
                 $isDecember = (intval($final['bulan'] ?? 0) === 12);
+                $pphVal = floatval($final['pph21']);
                 
                 if ($isDecember) {
-                    $allowanceLabel = 'Tunjangan Pajak (Gross Up Pasal 17)';
-                    $taxLabel = 'Potongan Pajak PPh 21 (Pasal 17)';
+                    $allowanceLabel = $pphVal < 0 ? 'Penyesuaian Tunjangan Pajak (Gross Up Pasal 17)' : 'Tunjangan Pajak (Gross Up Pasal 17)';
+                    $taxLabel = $pphVal < 0 ? 'Kelebihan Potongan PPh 21 (Refund)' : 'Potongan Pajak PPh 21 (Pasal 17)';
                 } else {
                     $ptkpCategory = $this->determineTerCategory($final['ptkp_status'] ?? 'TK/0');
                     
@@ -7613,7 +7632,7 @@ class Api extends ResourceController
                 $ptkpSetahun = $this->getPtkpAmount($ptkpStatus);
                 $pkpSetahun = max(0, floor(($nettoSetahun - $ptkpSetahun) / 1000) * 1000);
                 $pph21Setahun = $this->calculateProgressiveTax($pkpSetahun);
-                $pph21Desember = max(0, $pph21Setahun - $totalPph21JanNov);
+                $pph21Desember = $pph21Setahun - $totalPph21JanNov;
                 $taxAllowanceDec = $pph21Desember;
             }
             return [
@@ -7644,7 +7663,7 @@ class Api extends ResourceController
         $pph21Setahun = $this->calculateProgressiveTax($pkpSetahun);
 
         // 10. PPh 21 Desember = PPh 21 Setahun - Total PPh 21 Jan-Nov
-        $pph21Desember = max(0, $pph21Setahun - $totalPph21JanNov);
+        $pph21Desember = $pph21Setahun - $totalPph21JanNov;
 
         return [
             'pph21' => $pph21Desember,
@@ -8059,7 +8078,7 @@ class Api extends ResourceController
         }
 
         $activeEmployees = $this->db->table('employees')
-                                     ->select('employees.nama, employees.gaji_pokok, employees.tgl_masuk, employees.tipe_perjanjian, positions.nama as position_name')
+                                     ->select('employees.nama, employees.gaji_pokok, employees.tgl_masuk, employees.end_contract, employees.tipe_perjanjian, positions.nama as position_name')
                                      ->join('positions', 'positions.id = employees.position_id', 'left')
                                      ->where('employees.client_id', $clientId)
                                      ->where('employees.status', 'Aktif')
@@ -8077,7 +8096,7 @@ class Api extends ResourceController
             if (!$exists) {
                 // Create PKWT record
                 $tglMulai = !empty($emp->tgl_masuk) ? $emp->tgl_masuk : date('Y-m-d');
-                $tglBerakhir = date('Y-m-d', strtotime('+1 year', strtotime($tglMulai)));
+                $tglBerakhir = !empty($emp->end_contract) ? $emp->end_contract : date('Y-m-d', strtotime('+1 year', strtotime($tglMulai)));
                 
                 $pkwtData = [
                     'client_id' => $clientId,
@@ -8095,11 +8114,25 @@ class Api extends ResourceController
 
                 $this->syncPKWTComponents($pkwtId, $emp->gaji_pokok);
             } else {
+                $updatePkwt = [];
                 if (empty($exists->tipe_perjanjian) && !empty($emp->tipe_perjanjian)) {
+                    $updatePkwt['tipe_perjanjian'] = $emp->tipe_perjanjian;
+                }
+                
+                // Update start_date and end_date if they differ or are empty
+                if (!empty($emp->tgl_masuk) && $exists->start_date !== $emp->tgl_masuk) {
+                    $updatePkwt['start_date'] = $emp->tgl_masuk;
+                }
+                if (!empty($emp->end_contract) && $exists->end_date !== $emp->end_contract) {
+                    $updatePkwt['end_date'] = $emp->end_contract;
+                }
+                
+                if (!empty($updatePkwt)) {
                     $this->db->table('pkwt')
                              ->where('id', $exists->id)
-                             ->update(['tipe_perjanjian' => $emp->tipe_perjanjian]);
+                             ->update($updatePkwt);
                 }
+                
                 // ALWAYS synchronize the PKWT components to keep it up to date!
                 $this->syncPKWTComponents($exists->id, $emp->gaji_pokok);
             }
