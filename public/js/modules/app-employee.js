@@ -227,6 +227,13 @@ function switchKaryawanSubMenu(action, event) {
         }
         const subItem = document.getElementById('submenuSkemaShift');
         if (subItem) subItem.classList.add('active');
+    } else if (action === 'fpk_master') {
+        switchView('fpkMaster');
+        if (typeof initFpkView === 'function') {
+            initFpkView();
+        }
+        const subItem = document.getElementById('submenuFpkMaster');
+        if (subItem) subItem.classList.add('active');
     }
 }
 

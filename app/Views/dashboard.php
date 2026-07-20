@@ -279,6 +279,8 @@
                 </div>
             </div>
 
+
+
             <!-- Section: STO (Struktur Organisasi) Global -->
             <div id="viewSto" class="view-section">
                 <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
@@ -391,6 +393,83 @@
                         <button type="submit" class="btn-add" style="padding: 10px 20px; background: var(--primary-color);">Save</button>
                     </div>
                 </form>                
+            </div>
+
+            <!-- Section: FPK (Form Permintaan Karyawan) Master -->
+            <div id="viewFpkMaster" class="view-section">
+                <div class="content-card" style="box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee; border-radius: 12px; padding: 25px; background: white;">
+                    <div class="section-header" style="margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                        <div>
+                            <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Form Permintaan Karyawan (FPK)</h3>
+                            <p style="color: #64748b; font-size: 13px; margin: 0;">Kelola data master FPK dan proses penempelan karyawan.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="workspace-tabs">
+                        <button class="ws-tab active fpk-tab-btn" data-tab="master" onclick="switchFpkTab('master')">Master FPK</button>
+                        <button class="ws-tab fpk-tab-btn" data-tab="penempatan" onclick="switchFpkTab('penempatan')">Penempelan Karyawan</button>
+                    </div>
+
+                    <!-- Tab Panel 1: Master FPK -->
+                    <div id="fpkTab_master" class="fpk-tab-content" style="display: block;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                            <input type="text" id="cariFpkMaster" placeholder="Cari FPK, provinsi, kota..." oninput="fpkMasterSearch = this.value; renderFpkMasterTable();" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <button id="btnTambahFpkMaster" class="btn-add" onclick="openModalFpkMaster()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; border: none; padding: 10px 20px; color: white; cursor: pointer;">
+                                <i class="fas fa-plus"></i> Tambah FPK
+                            </button>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <th style="width: 60px; text-align: center; padding: 14px; color: #475569; font-weight: 600;">No</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Nomor FPK</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Nama FPK</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Provinsi</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Kota / Kabupaten</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Status</th>
+                                        <th style="width: 150px; text-align: center; padding: 14px; color: #475569; font-weight: 600;" id="thActionFpkMaster">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelFpkMasterBody">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab Panel 2: Penempelan Karyawan -->
+                    <div id="fpkTab_penempatan" class="fpk-tab-content" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                            <input type="text" id="cariFpkAssignment" placeholder="Cari penempatan karyawan..." oninput="fpkAssignmentSearch = this.value; renderFpkAssignmentTable();" style="padding: 8px 15px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; font-size: 14px; width: 250px;">
+                            <button id="btnTambahFpkAssign" class="btn-add" onclick="openModalFpkAssign()" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; border: none; padding: 10px 20px; color: white; cursor: pointer;">
+                                <i class="fas fa-link"></i> Tempelkan Karyawan ke FPK
+                            </button>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <th style="width: 60px; text-align: center; padding: 14px; color: #475569; font-weight: 600;">No</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">NIK</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Nama Karyawan</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Nomor FPK</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Nama FPK</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Provinsi</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Kota / Kabupaten</th>
+                                        <th style="text-align: left; padding: 14px; color: #475569; font-weight: 600;">Tanggal Penempatan</th>
+                                        <th style="width: 120px; text-align: center; padding: 14px; color: #475569; font-weight: 600;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelFpkAssignmentBody">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
             <!-- Section: Client Workspace -->
@@ -518,26 +597,40 @@
 
                         <!-- Panel: Kontrak PKWT -->
                         <div id="viewPkwt" class="w-tab-panel">
-                            <div class="content-card">
-                                <div class="section-header">
-                                    <h3 style="font-size: 16px; color: var(--secondary-color);">PKWT Contract List</h3>
+                            <!-- Sub Tabs for Workspace PKWT -->
+                            <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
+                                <button class="sub-tab-btn active" id="subTabPKWTData" onclick="switchClientPKWTSubTab('pkwt_data')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">PKWT Contract List</button>
+                                <button class="sub-tab-btn" id="subTabPKWTKompensasi" onclick="switchClientPKWTSubTab('pkwt_kompensasi')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Kompensasi Kontrak</button>
+                            </div>
+
+                            <!-- Sub Panel 1: PKWT Contract List (Active by default) -->
+                            <div id="panelPKWTData" class="client-pkwt-subpanel">
+                                <div class="content-card">
+                                    <div class="section-header">
+                                        <h3 style="font-size: 16px; color: var(--secondary-color);">PKWT Contract List</h3>
+                                    </div>
+                                    <div class="table-container">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Employee</th>
+                                                    <th>Client</th>
+                                                    <th>Position</th>
+                                                    <th>Start Date</th>
+                                                    <th>End Date</th>
+                                                    <th>Basic Salary</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelPKWTBody"></tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                                <div class="table-container">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Employee</th>
-                                                <th>Client</th>
-                                                <th>Position</th>
-                                                <th>Start Date</th>
-                                                <th>End Date</th>
-                                                <th>Basic Salary</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tabelPKWTBody"></tbody>
-                                    </table>
-                                </div>
+                            </div>
+
+                            <!-- Sub Panel 2: Kompensasi Kontrak -->
+                            <div id="panelPKWTKompensasi" class="client-pkwt-subpanel" style="display: none;">
+                                <?= view('partials/_view_contract_compensation') ?>
                             </div>
                         </div>
 

@@ -2422,15 +2422,18 @@ class Payroll extends ResourceController
 
             $employeeBpjsDeductions = $bpjsKesKaryawan + $bpjsJhtKaryawan + $bpjsJpKaryawan;
 
-            if ($curTaxMethod === 'Gross Up') {
+            $isGrossUp = (strcasecmp($curTaxMethod ?? '', 'Gross Up') === 0 || strcasecmp($curTaxMethod ?? '', 'Grossup') === 0);
+            $isNett = (strcasecmp($curTaxMethod ?? '', 'Net') === 0 || strcasecmp($curTaxMethod ?? '', 'Nett') === 0);
+
+            if ($isGrossUp) {
                 $totalTunjangan = $overtimePay + $taxAllowance + $customTunjangan;
                 $totalPotongan = $employeeBpjsDeductions + $pph21 + $potonganAlpa + $potonganLate + $potonganEarly + $customPotongan;
-            } elseif ($curTaxMethod === 'Gross') {
-                $totalTunjangan = $overtimePay + $customTunjangan;
-                $totalPotongan = $employeeBpjsDeductions + $pph21 + $potonganAlpa + $potonganLate + $potonganEarly + $customPotongan;
-            } else { // Nett
+            } elseif ($isNett) {
                 $totalTunjangan = $overtimePay + $customTunjangan;
                 $totalPotongan = $employeeBpjsDeductions + $potonganAlpa + $potonganLate + $potonganEarly + $customPotongan;
+            } else { // Gross (including TER, Progresif, etc.)
+                $totalTunjangan = $overtimePay + $customTunjangan;
+                $totalPotongan = $employeeBpjsDeductions + $pph21 + $potonganAlpa + $potonganLate + $potonganEarly + $customPotongan;
             }
 
             $thp = $baseSalary + $totalTunjangan - $totalPotongan;
@@ -2475,6 +2478,15 @@ class Payroll extends ResourceController
                     ->where('status', 'Absen')
                     ->countAllResults();
                 if ($absentCountRemaining > 0) {
+                    $holdPayroll = true;
+                }
+            }
+
+            // CHECK PKWT EXPIRY FOR CONTRACT HOLD
+            if (isset($emp['tipe_perjanjian']) && $emp['tipe_perjanjian'] === 'PKWT') {
+                $endDate = !empty($emp['end_contract']) ? $emp['end_contract'] : null;
+                $periodCalendarEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tahun, $bulan)));
+                if ($endDate && $endDate < $periodCalendarEndDate) {
                     $holdPayroll = true;
                 }
             }
@@ -2603,6 +2615,9 @@ class Payroll extends ResourceController
         $payrollEmpIds = array_column($payrolls, 'employee_id');
         $issues = [];
 
+        $db = \Config\Database::connect();
+        $periodCalendarEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tahun, $bulan)));
+
         foreach ($employees as $emp) {
             // Cek apakah data gaji sudah ada
             if (!in_array($emp['id'], $payrollEmpIds)) {
@@ -2624,26 +2639,49 @@ class Payroll extends ResourceController
                 ];
             }
 
-            // Cek kontrak expired
+            // Cek kontrak expired dan tipe perjanjian
             $activeContract = $contractModel
                 ->where('employee_id', $emp['id'])
                 ->where('status_pkwt', 'Aktif')
                 ->first();
             
+            $isPkwt = (isset($emp['tipe_perjanjian']) && $emp['tipe_perjanjian'] === 'PKWT');
+            
             if (!$activeContract) {
-                $issues[] = [
-                    'employee_id' => $emp['id'],
-                    'nama' => $emp['nama'],
-                    'issue_type' => 'Kontrak Expired',
-                    'issue_detail' => 'Tidak ada PKWT aktif'
-                ];
-            } elseif (strtotime($activeContract['tgl_berakhir']) < time()) {
-                $issues[] = [
-                    'employee_id' => $emp['id'],
-                    'nama' => $emp['nama'],
-                    'issue_type' => 'Kontrak Expired',
-                    'issue_detail' => 'PKWT berakhir pada ' . $activeContract['tgl_berakhir']
-                ];
+                if ($isPkwt) {
+                    $issues[] = [
+                        'employee_id' => $emp['id'],
+                        'nama' => $emp['nama'],
+                        'issue_type' => 'Kontrak PKWT Expired - Gaji Hold',
+                        'issue_detail' => 'Karyawan PKWT tidak memiliki kontrak aktif. Gaji ditahan.'
+                    ];
+                } else {
+                    $issues[] = [
+                        'employee_id' => $emp['id'],
+                        'nama' => $emp['nama'],
+                        'issue_type' => 'Kontrak Expired',
+                        'issue_detail' => 'Tidak ada kontrak aktif'
+                    ];
+                }
+            } else {
+                $tglAkhir = $activeContract['tgl_berakhir'] ?? $emp['end_contract'] ?? null;
+                if ($tglAkhir && $tglAkhir < $periodCalendarEndDate) {
+                    if ($isPkwt) {
+                        $issues[] = [
+                            'employee_id' => $emp['id'],
+                            'nama' => $emp['nama'],
+                            'issue_type' => 'Kontrak PKWT Expired - Gaji Hold',
+                            'issue_detail' => 'Kontrak PKWT berakhir pada ' . $tglAkhir . '. Gaji ditahan hingga dipastikan superior.'
+                        ];
+                    } else {
+                        $issues[] = [
+                            'employee_id' => $emp['id'],
+                            'nama' => $emp['nama'],
+                            'issue_type' => 'Kontrak Expired',
+                            'issue_detail' => 'Kontrak berakhir pada ' . $tglAkhir
+                        ];
+                    }
+                }
             }
 
             // Cek rekening kosong

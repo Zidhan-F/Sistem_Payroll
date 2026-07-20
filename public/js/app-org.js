@@ -418,6 +418,8 @@ async function handleWorkLocationChange() {
     await updateLocationMinimumWage(currentSelectedPayrollType);
 }
 
+
+
 async function updateLocationMinimumWage(payrollType, customWage = null, customInfo = null) {
     const locSel = document.getElementById('empWorkLocationId');
     const minWageInput = document.getElementById('empMinimumWage');
@@ -562,6 +564,7 @@ async function bukaModalKaryawan(mode,id=null){
     document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
     document.getElementById('empEmployId').value = '';
     document.getElementById('empCustomStandardDays').value = '';
+
     if (document.getElementById('empEmail')) {
         document.getElementById('empEmail').value = '';
     }

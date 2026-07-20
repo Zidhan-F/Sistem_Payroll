@@ -54,6 +54,10 @@ $userRole = session()->get('role') ?? $_COOKIE['user_role'] ?? '';
                     <i class="fas fa-clock"></i>
                     <span>Shift Scheme</span>
                 </li>
+                <li id="submenuFpkMaster" onclick="switchKaryawanSubMenu('fpk_master', event)">
+                    <i class="fas fa-file-contract"></i>
+                    <span>Master FPK</span>
+                </li>
             </ul>
         </li>
         <li id="menuPayroll" onclick="togglePayrollSubmenu()" <?= (!in_array($userRole, ['admin', 'hc_ops'])) ? 'style="display: none;"' : '' ?>>

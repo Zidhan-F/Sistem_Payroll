@@ -244,6 +244,12 @@ async function renderReviewGajiTable() {
         const section = document.getElementById('resultSection');
         if (!tbody) return;
 
+        const monthSelect = document.getElementById('processMonthSelect');
+        const yearSelect = document.getElementById('processYearSelect');
+        const selectedMonth = monthSelect ? parseInt(monthSelect.value) : new Date().getMonth() + 1;
+        const selectedYear = yearSelect ? parseInt(yearSelect.value) : new Date().getFullYear();
+        const lastDayOfPeriodMonth = new Date(selectedYear, selectedMonth, 0);
+
         let displayData = data;
         const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
         if (role === 'staff') {
@@ -299,12 +305,25 @@ async function renderReviewGajiTable() {
                 const totalPotongan = parseFloat(row.total_potongan || 0);
                 const potLain = Math.max(0, totalPotongan - potAbsen - bpjsKaryawan - pph21);
 
+                const isPkwtExpired = row.tipe_perjanjian === 'PKWT' && row.end_contract && new Date(row.end_contract) < lastDayOfPeriodMonth;
+
                 return `
                     <tr>
                         <td style="text-align: center; vertical-align: middle;">
                             <input type="checkbox" class="review-gaji-checkbox" data-id="${row.id}" data-employee-name="${row.employee_name}" data-scheme="${row.scheme_name || ''}" data-net-salary="${row.take_home_pay}" data-is-rapel="${row.is_new_hire_rapel ? 'true' : 'false'}" ${(row.status_approval === 'Approved' || row.status_approval === 'Hold') ? 'disabled' : ''} ${row.status_approval === 'Approved' ? 'checked' : ''} style="transform: scale(1.2); cursor: pointer;">
                         </td>
-                        <td>${row.employee_name} <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>${row.status_approval === 'Hold' ? (row.is_new_hire_rapel ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Gaji dirapel ke bulan depan)</span>' : '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen setelah cut-off)</span>') : ''}${row.is_new_hire_rapel ? ` <span class="status-badge warning" style="font-size:10px; margin-left:5px; padding:2px 6px; background-color:#fff3cd; color:#856404; border:1px solid #ffeeba; font-weight:600; border-radius:4px;">Dirapel ke ${row.rapel_payout_period || ''}</span>` : ''}</td>
+                        <td>
+                            ${row.employee_name} 
+                            <span class="status-badge info" style="font-size:10px; margin-left:5px; padding:2px 6px;">${row.tipe_perjanjian || 'PKWT'}</span>
+                            ${row.status_approval === 'Hold' ? (
+                                isPkwtExpired 
+                                    ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Kontrak PKWT Expired)</span>'
+                                    : (row.is_new_hire_rapel 
+                                        ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Gaji dirapel ke bulan depan)</span>' 
+                                        : '<br><span style="font-size:10px; color:#ef4444; font-weight:600;"><i class="fas fa-exclamation-circle"></i> Ditunda (Absen setelah cut-off)</span>')
+                            ) : ''}
+                            ${row.is_new_hire_rapel ? ` <span class="status-badge warning" style="font-size:10px; margin-left:5px; padding:2px 6px; background-color:#fff3cd; color:#856404; border:1px solid #ffeeba; font-weight:600; border-radius:4px;">Dirapel ke ${row.rapel_payout_period || ''}</span>` : ''}
+                        </td>
                         <td>${row.client_name || '-'}</td>
                         <td>${row.division_name || '-'}</td>
                         <td>${row.department_name || '-'}</td>
@@ -324,10 +343,22 @@ async function renderReviewGajiTable() {
                         <td>${formatRupiah(potLain)}</td>
                         <td style="font-weight:600;">${formatRupiah(totalPotongan)}</td>
                         <td style="font-weight:700; color:#2e7d32;">${formatRupiah(row.take_home_pay)}</td>
-                        <td><span class="status-badge ${row.status_approval === 'Approved' ? 'success' : (row.status_approval === 'Hold' ? 'danger' : 'warning')}">${row.status_approval}</span></td>
+                        <td>
+                            <span class="status-badge ${row.status_approval === 'Approved' ? 'success' : (row.status_approval === 'Hold' ? 'danger' : 'warning')}">${row.status_approval}</span>
+                            ${row.status_approval === 'Hold' ? (
+                                isPkwtExpired 
+                                    ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600; display:block; margin-top:4px;">(Kontrak PKWT Expired)</span>'
+                                    : (row.is_new_hire_rapel 
+                                        ? '<br><span style="font-size:10px; color:#ef4444; font-weight:600; display:block; margin-top:4px;">(Gaji Dirapel)</span>' 
+                                        : '<br><span style="font-size:10px; color:#ef4444; font-weight:600; display:block; margin-top:4px;">(Absen Setelah Cut-Off)</span>')
+                            ) : ''}
+                        </td>
                         <td>
                             <div style="display:flex; gap:6px; align-items:center;">
                                 <button class="btn-icon btn-neutral" onclick="bukaSlipGaji(${row.id})" title="View Salary Slip / Details" style="width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-eye"></i></button>
+                                ${(row.status_approval === 'Hold' && isPkwtExpired && (role === 'client_superior' || role === 'admin')) ? `
+                                <button class="btn-icon" onclick="releaseHoldDanApprove(${row.id}, '${row.employee_name}')" title="Release Hold & Approve" style="background:#22c55e; color:white; border:none; border-radius:6px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-check"></i></button>
+                                ` : ''}
                             </div>
                         </td>
                     </tr>
@@ -2262,3 +2293,37 @@ window.handleAbsensiDragOver = handleAbsensiDragOver;
 window.handleAbsensiDragLeave = handleAbsensiDragLeave;
 window.handleAbsensiDrop = handleAbsensiDrop;
 
+async function releaseHoldDanApprove(id, employeeName) {
+    let confirmed = false;
+    if (typeof showConfirm === 'function') {
+        confirmed = await showConfirm(
+            `Apakah Anda yakin ingin melepas hold dan menyetujui (Approve) gaji untuk ${employeeName} meskipun kontrak PKWT telah berakhir?`,
+            'Konfirmasi Pelepasan Hold',
+            'Ya, Lepas & Approve',
+            'Batal',
+            'primary'
+        );
+    } else {
+        confirmed = confirm(`Apakah Anda yakin ingin melepas hold dan menyetujui (Approve) gaji untuk ${employeeName} meskipun kontrak PKWT telah berakhir?`);
+    }
+    
+    if (!confirmed) return;
+    
+    showToast('Memproses persetujuan...', 'info');
+    try {
+        const res = await fetch(`${API_URL}/approve-payroll/${id}`, { method: 'POST' });
+        if (res.ok) { 
+            showToast('Hold berhasil dilepas dan gaji disetujui!', 'success'); 
+            renderReviewGajiTable(); 
+        } else {
+            const errData = await res.json();
+            const errMsg = errData.messages?.error || errData.message || 'Gagal melepas hold!';
+            showToast(errMsg, 'error');
+        }
+    } catch(err) {
+        console.error(err);
+        showToast('Gagal memproses persetujuan.', 'error');
+    }
+}
+
+window.releaseHoldDanApprove = releaseHoldDanApprove;

@@ -121,26 +121,40 @@
 
                         <!-- Panel: Kontrak PKWT -->
                         <div id="viewPkwt" class="w-tab-panel">
-                            <div class="content-card">
-                                <div class="section-header">
-                                    <h3 style="font-size: 16px; color: var(--secondary-color);">PKWT Contract List</h3>
+                            <!-- Sub Tabs for Workspace PKWT -->
+                            <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
+                                <button class="sub-tab-btn active" id="subTabPKWTData" onclick="switchClientPKWTSubTab('pkwt_data')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">PKWT Contract List</button>
+                                <button class="sub-tab-btn" id="subTabPKWTKompensasi" onclick="switchClientPKWTSubTab('pkwt_kompensasi')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Kompensasi Kontrak</button>
+                            </div>
+
+                            <!-- Sub Panel 1: PKWT Contract List (Active by default) -->
+                            <div id="panelPKWTData" class="client-pkwt-subpanel">
+                                <div class="content-card">
+                                    <div class="section-header">
+                                        <h3 style="font-size: 16px; color: var(--secondary-color);">PKWT Contract List</h3>
+                                    </div>
+                                    <div class="table-container">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Employee</th>
+                                                    <th>Client</th>
+                                                    <th>Position</th>
+                                                    <th>Start Date</th>
+                                                    <th>End Date</th>
+                                                    <th>Basic Salary</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelPKWTBody"></tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                                <div class="table-container">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Employee</th>
-                                                <th>Client</th>
-                                                <th>Position</th>
-                                                <th>Start Date</th>
-                                                <th>End Date</th>
-                                                <th>Basic Salary</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tabelPKWTBody"></tbody>
-                                    </table>
-                                </div>
+                            </div>
+
+                            <!-- Sub Panel 2: Kompensasi Kontrak -->
+                            <div id="panelPKWTKompensasi" class="client-pkwt-subpanel" style="display: none;">
+                                <?= view('partials/_view_contract_compensation') ?>
                             </div>
                         </div>
 

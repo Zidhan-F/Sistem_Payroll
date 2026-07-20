@@ -2364,6 +2364,8 @@
                     </select>
                 </div>
 
+
+
                 <div class="form-group" id="empMinimumWageContainer" style="margin-bottom: 15px; display: none;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Location Minimum Wage (UMP / UMK)</label>
                     <div style="position: relative;">
@@ -2466,7 +2468,7 @@
                 </div>
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label>Allowance Type</label>
-                    <select id="skemaKompensasiSifat" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
+                    <select id="skemaKompensasiSifat" onchange="handleSchemeSifatChange()" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: white;">
                         <option value="tetap">Fixed Allowance</option>
                         <option value="tidak_tetap">Variable Allowance</option>
                     </select>
@@ -2525,7 +2527,7 @@
                 <!-- Show Allowance Type if type is Allowance -->
                 <div class="form-group" id="containerSifatKompensasi" style="display: block; margin-bottom: 15px;">
                     <label>Allowance Type</label>
-                    <select id="komponenKompensasiSifat" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <select id="komponenKompensasiSifat" onchange="handleKomponenSifatChange()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
                         <option value="tetap">Fixed Allowance</option>
                         <option value="tidak_tetap">Variable Allowance</option>
                     </select>
@@ -3446,4 +3448,244 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal Hitung Kompensasi Kontrak -->
+    <div id="modalHitungKompensasi" class="modal-skema" style="width: 550px; max-width: 95%; display: none; z-index: 2000; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); padding: 15px 20px; color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 600;"><i class="fas fa-calculator" style="margin-right: 8px;"></i>Hitung Kompensasi Kontrak</h3>
+            <i class="fas fa-times" style="cursor: pointer; font-size: 18px;" onclick="tutupModalHitungKompensasi()"></i>
+        </div>
+        <form id="formHitungKompensasi" onsubmit="hitungKompensasiKontrak(event)">
+            <div class="modal-body" style="padding: 20px;">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Karyawan PKWT <span style="color: #ef4444;">*</span></label>
+                    <select id="hkEmployeeId" required onchange="onEmployeeChangeKompensasi()" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background: white;">
+                        <option value="">-- Pilih Karyawan PKWT --</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Tanggal Mulai <span style="color: #ef4444;">*</span></label>
+                        <input type="date" id="hkStartDate" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Tanggal Selesai <span style="color: #ef4444;">*</span></label>
+                        <input type="date" id="hkEndDate" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Basic Salary <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="hkBasicSalary" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Hari Kerja Aktual (Opsional)</label>
+                        <input type="number" id="hkActualDays" placeholder="Jika kontrak < 1 bulan" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    </div>
+                </div>
+                
+                <div id="hkPreviewContainer" style="display: none; background: #f8fafc; border: 1px dashed var(--primary-color); border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 13px;">
+                    <h4 style="margin: 0 0 10px 0; color: var(--secondary-color); font-weight: 600;">Preview Perhitungan:</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+                        <div>Masa Kerja: <strong id="hkPreviewMasaKerja">-</strong></div>
+                        <div>Multiplier: <strong id="hkPreviewMultiplier">-</strong></div>
+                    </div>
+                    <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 14px;">
+                        Estimasi Kompensasi: <strong id="hkPreviewNilai" style="color: var(--primary-color); font-size: 16px;">-</strong>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" class="btn-cancel" onclick="tutupModalHitungKompensasi()" style="padding: 10px 20px; border-radius: 8px;">Cancel</button>
+                    <button type="button" onclick="previewKompensasiKontrak()" style="background: #64748b; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer;">Preview</button>
+                    <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Simpan Draft</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal Tetapkan Nilai Kompensasi -->
+    <div id="modalTetapkanKompensasi" class="modal-skema" style="width: 500px; max-width: 95%; display: none; z-index: 2000; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 15px 20px; color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 600;"><i class="fas fa-check-double" style="margin-right: 8px;"></i>Tetapkan Nilai Kompensasi (HCOPS)</h3>
+            <i class="fas fa-times" style="cursor: pointer; font-size: 18px;" onclick="tutupModalTetapkanKompensasi()"></i>
+        </div>
+        <form id="formTetapkanKompensasi" onsubmit="tetapkanKompensasiKontrak(event)">
+            <div class="modal-body" style="padding: 20px;">
+                <input type="hidden" id="tkId">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Nilai Kalkulasi Sistem</label>
+                    <input type="text" id="tkKalkulasiSistem" disabled style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none; background: #f1f5f9;">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Nilai Final Kompensasi <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="tkNilaiFinal" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                </div>
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Catatan Penyesuaian</label>
+                    <textarea id="tkCatatan" placeholder="Tambahkan alasan jika nilai final berbeda dengan kalkulasi sistem" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; height: 80px; outline: none; resize: none;"></textarea>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" class="btn-cancel" onclick="tutupModalTetapkanKompensasi()" style="padding: 10px 20px; border-radius: 8px;">Cancel</button>
+                    <button type="submit" style="background: #f59e0b; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Tetapkan & Kirim</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Modal Detail Kompensasi Kontrak -->
+    <div id="modalDetailKompensasi" class="modal-skema" style="width: 600px; max-width: 95%; display: none; z-index: 2000; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--secondary-color) 0%, #1e293b 100%); padding: 15px 20px; color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 600;"><i class="fas fa-file-invoice-dollar" style="margin-right: 8px;"></i>Detail Kompensasi Kontrak</h3>
+            <i class="fas fa-times" style="cursor: pointer; font-size: 18px;" onclick="tutupModalDetailKompensasi()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px; font-size: 14px;">
+            <input type="hidden" id="dkId">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="color: #64748b; font-size: 12px; font-weight: 600; display: block; margin-bottom: 2px;">NAMA KARYAWAN</label>
+                    <strong id="dkNamaKaryawan" style="color: #334155; font-size: 15px;">-</strong>
+                </div>
+                <div>
+                    <label style="color: #64748b; font-size: 12px; font-weight: 600; display: block; margin-bottom: 2px;">NIK</label>
+                    <strong id="dkNik" style="color: #334155; font-size: 15px;">-</strong>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+                <div>
+                    <label style="color: #64748b; font-size: 12px; font-weight: 600; display: block; margin-bottom: 2px;">TANGGAL MULAI</label>
+                    <span id="dkTglMulai">-</span>
+                </div>
+                <div>
+                    <label style="color: #64748b; font-size: 12px; font-weight: 600; display: block; margin-bottom: 2px;">TANGGAL BERAKHIR</label>
+                    <span id="dkTglAkhir">-</span>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+                <div>
+                    <label style="color: #64748b; font-size: 12px; font-weight: 600; display: block; margin-bottom: 2px;">MASA KERJA AKTUAL</label>
+                    <span id="dkMasaKerja">-</span>
+                </div>
+                <div>
+                    <label style="color: #64748b; font-size: 12px; font-weight: 600; display: block; margin-bottom: 2px;">GAJI POKOK (BASIC)</label>
+                    <span id="dkGajiPokok">-</span>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+                <div>
+                    <label style="color: #64748b; font-size: 12px; font-weight: 600; display: block; margin-bottom: 2px;">MULTIPLIER</label>
+                    <span id="dkMultiplier">-</span>
+                </div>
+                <div>
+                    <label style="color: #64748b; font-size: 12px; font-weight: 600; display: block; margin-bottom: 2px;">STATUS</label>
+                    <span id="dkStatusBadge">-</span>
+                </div>
+            </div>
+            
+            <div style="background: #f8fafc; border-radius: 8px; padding: 15px; margin-top: 15px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Kompensasi Kalkulasi:</span>
+                        <strong id="dkKompensasiSistem" style="color: #334155;">-</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 10px; font-size: 15px;">
+                        <span>Nilai Final Kompensasi:</span>
+                        <strong id="dkKompensasiFinal" style="color: var(--primary-color); font-size: 16px;">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div id="dkCatatanBox" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 13px;">
+                <label style="color: #b45309; font-weight: 600; display: block; margin-bottom: 4px;">CATATAN / OVERRIDE REASON</label>
+                <span id="dkCatatan" style="color: #78350f;">-</span>
+            </div>
+
+            <div id="dkWorkflowBox" style="display: none; font-size: 12px; color: #64748b; margin-bottom: 20px; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                <div id="dkFlowDitetapkan" style="display: none;">Ditetapkan oleh: <strong id="dkDitetapkanOleh">-</strong> pada <span id="dkDitetapkanPada">-</span></div>
+                <div id="dkFlowDisetujui" style="display: none; margin-top: 4px;">Disetujui oleh: <strong id="dkDisetujuiOleh">-</strong> pada <span id="dkDisetujuiPada">-</span></div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" class="btn-cancel" onclick="tutupModalDetailKompensasi()" style="padding: 10px 20px; border-radius: 8px; margin: 0;">Close</button>
+                <?php if (($_COOKIE['user_role'] ?? '') === 'client_superior' || ($_COOKIE['user_role'] ?? '') === 'admin'): ?>
+                <button type="button" id="btnRejectKompensasi" onclick="tolakKompensasiKontrakWorkflow()" style="background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: none;">Reject</button>
+                <button type="button" id="btnApproveKompensasi" onclick="setujuiKompensasiKontrakWorkflow()" style="background: #22c55e; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: none;">Approve</button>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Tambah/Edit FPK Master -->
+    <div id="modalFpkMaster" class="modal-skema" style="display: none; position: fixed; z-index: 1050; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 450px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); box-sizing: border-box; overflow: hidden;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+            <h3 id="fpkMasterTitle" style="margin: 0; font-size: 16px; font-weight: 700; color: white;">Tambah FPK Baru</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px;" onclick="tutupModalFpkMaster()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px 25px; box-sizing: border-box;">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Nomor FPK <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="fpkNomor" placeholder="Contoh: FPK/2026/001" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Nama FPK <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="fpkNama" placeholder="Contoh: Rekrutmen Staff IT" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Provinsi FPK <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="fpkProvinsi" placeholder="Contoh: Jawa Barat" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Kota / Kabupaten <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="fpkCity" placeholder="Contoh: Bandung" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-cancel" onclick="tutupModalFpkMaster()" style="padding: 10px 18px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; cursor: pointer; font-size: 14px; font-weight: 600;">Batal</button>
+                <button type="button" onclick="saveFpkMaster()" style="padding: 10px 22px; border-radius: 8px; background: var(--primary-color); color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600;">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Penempelan Karyawan ke FPK -->
+    <div id="modalFpkAssign" class="modal-skema" style="display: none; position: fixed; z-index: 1050; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 500px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); box-sizing: border-box; overflow: hidden;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: white;">Penempelan Karyawan ke FPK</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px;" onclick="tutupModalFpkAssign()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px 25px; box-sizing: border-box;">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Filter Client <span style="color:#ef4444;">*</span></label>
+                <select id="fpkAssignClient" style="width: 100%;">
+                    <option value="">-- Pilih Client --</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Pilih Karyawan <span style="color:#ef4444;">*</span></label>
+                <select id="fpkAssignEmployee" style="width: 100%;">
+                    <option value="">-- Pilih Karyawan (Pilih Client terlebih dahulu) --</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Pilih FPK (Status: Open) <span style="color:#ef4444;">*</span></label>
+                <select id="fpkAssignFpk" style="width: 100%;">
+                    <option value="">-- Pilih FPK --</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Provinsi FPK</label>
+                <input type="text" id="fpkAssignProvinsi" readonly style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; background: #f1f5f9; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; color: #64748b;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #475569; font-size: 13px;">Kota / Kabupaten FPK</label>
+                <input type="text" id="fpkAssignCity" readonly style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; background: #f1f5f9; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; color: #64748b;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-cancel" onclick="tutupModalFpkAssign()" style="padding: 10px 18px; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; cursor: pointer; font-size: 14px; font-weight: 600;">Batal</button>
+                <button type="button" id="btnSubmitFpkAssign" onclick="submitFpkAssignment()" style="padding: 10px 22px; border-radius: 8px; background: var(--primary-color); color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600;"><i class="fas fa-check"></i> Submit</button>
+            </div>
+        </div>
+    </div>
+
+
+
 

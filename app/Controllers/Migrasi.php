@@ -792,17 +792,41 @@ class Migrasi extends BaseController
         $db->query("UPDATE users SET is_active = 1 WHERE is_active IS NULL");
         $db->query("UPDATE users SET role = 'staff' WHERE role IS NULL OR role = ''");
 
-        // 34. Tabel Password Resets (Forgot Password OTP)
-        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'password_resets')
-            CREATE TABLE password_resets (
+        // ====== FPK (Form Permintaan Karyawan) Tables ======
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'fpk_master')
+            CREATE TABLE fpk_master (
                 id INT IDENTITY(1,1) PRIMARY KEY,
-                email NVARCHAR(100) NOT NULL,
-                token NVARCHAR(10) NOT NULL,
+                nomor_fpk NVARCHAR(50) NOT NULL UNIQUE,
+                nama_fpk NVARCHAR(150) NOT NULL,
+                provinsi NVARCHAR(100) NOT NULL,
+                city NVARCHAR(100) NOT NULL,
+                status NVARCHAR(20) NOT NULL DEFAULT 'Open',
                 created_at DATETIME DEFAULT GETDATE(),
-                expires_at DATETIME NOT NULL
+                updated_at DATETIME DEFAULT GETDATE()
             )");
 
-        return "Migrasi Berhasil! (termasuk kolom absensi lembur, early arrival, dismissed notifications, RBAC users, dan password resets)";
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'fpk_assignments')
+            CREATE TABLE fpk_assignments (
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                fpk_id INT NOT NULL,
+                employee_id INT NOT NULL,
+                nik NVARCHAR(50) NOT NULL,
+                nama_karyawan NVARCHAR(150) NOT NULL,
+                nomor_fpk NVARCHAR(50) NOT NULL,
+                nama_fpk NVARCHAR(150) NOT NULL,
+                provinsi NVARCHAR(100),
+                city NVARCHAR(100),
+                tanggal_penempatan DATETIME DEFAULT GETDATE(),
+                user_submit NVARCHAR(100),
+                status NVARCHAR(20) NOT NULL DEFAULT 'Active',
+                created_at DATETIME DEFAULT GETDATE(),
+                updated_at DATETIME DEFAULT GETDATE()
+            )");
+
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'fpk_id')
+            ALTER TABLE employees ADD fpk_id INT NULL");
+
+        return "Migrasi Berhasil! (termasuk kolom absensi lembur, early arrival, dismissed notifications, RBAC users, password resets, dan FPK tables)";
     }
 
     /**

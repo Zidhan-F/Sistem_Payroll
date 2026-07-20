@@ -3891,6 +3891,15 @@ class Api extends ResourceController
             $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start_period, $bulan_start_period, $actualCutoffStart);
             $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end_period, $bulan_end_period, $actualCutoffEnd);
 
+            // CHECK PKWT EXPIRY FOR CONTRACT HOLD
+            if (isset($emp->tipe_perjanjian) && $emp->tipe_perjanjian === 'PKWT') {
+                $endDate = !empty($emp->end_contract) ? $emp->end_contract : null;
+                $periodCalendarEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tYear, $tMonth)));
+                if ($endDate && $endDate < $periodCalendarEndDate) {
+                    $holdPayroll = true;
+                }
+            }
+
             // Reset old rapel flags for this employee in the current period range
             if ($emp) {
                 $this->db->table('attendance_logs')
@@ -5139,13 +5148,16 @@ class Api extends ResourceController
             // Deductions from Employee: BPJS Kes Karyawan, JHT Karyawan, JP Karyawan
             $employeeBpjsDeductions = $calc['bpjs_kes_karyawan'] + $calc['bpjs_jht_karyawan'] + $calc['bpjs_jp_karyawan'];
 
-            if ($calc['metode_pajak'] === 'Gross Up') {
+            $isGrossUp = (strcasecmp($calc['metode_pajak'] ?? '', 'Gross Up') === 0 || strcasecmp($calc['metode_pajak'] ?? '', 'Grossup') === 0);
+            $isNett = (strcasecmp($calc['metode_pajak'] ?? '', 'Net') === 0 || strcasecmp($calc['metode_pajak'] ?? '', 'Nett') === 0);
+
+            if ($isGrossUp) {
                 $totalPendapatan += $calc['tax_allowance'];
                 $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
-            } elseif ($calc['metode_pajak'] === 'Gross') {
-                $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
-            } else { // Nett
+            } elseif ($isNett) {
                 $totalPotongan += $employeeBpjsDeductions;
+            } else { // Gross (including TER, Progresif, etc.)
+                $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
             }
 
             $thp = $totalPendapatan - $totalPotongan;
@@ -5215,7 +5227,8 @@ class Api extends ResourceController
                              clients.nama as client_name,
                              divisions.nama as division_name,
                              departments.nama as department_name,
-                             positions.nama as position_name
+                             positions.nama as position_name,
+                             employees.end_contract
                          ')
                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                          ->join('clients', 'clients.id = pkwt.client_id', 'left')
@@ -5234,6 +5247,17 @@ class Api extends ResourceController
         $tMonth = $period ? intval($period->bulan) : intval(date('n'));
 
         foreach ($data as &$row) {
+            // Auto-hold if PKWT contract is expired in the processed period and not yet Approved
+            if (($row->tipe_perjanjian ?? '') === 'PKWT' && !empty($row->end_contract)) {
+                $periodCalendarEndDate = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $tYear, $tMonth)));
+                if ($row->end_contract < $periodCalendarEndDate && $row->status_approval !== 'Approved') {
+                    if ($row->status_approval !== 'Hold') {
+                        $this->db->table('payroll_final')->where('id', $row->id)->update(['status_approval' => 'Hold']);
+                        $row->status_approval = 'Hold';
+                    }
+                }
+            }
+
             $row->division_name = $row->division_name ?? '-';
             $row->department_name = $row->department_name ?? '-';
             $row->position_name = $row->position_name ?? $row->pkwt_position_name ?? '-';
@@ -5346,7 +5370,25 @@ class Api extends ResourceController
         }
         
         if ($row->status_approval === 'Hold') {
-            return $this->fail('Gaji untuk karyawan ' . $row->employee_name . ' tidak dapat disetujui karena berstatus Hold (dirapel ke bulan depan).');
+            // Check if it's a PKWT contract expired hold
+            $emp = $this->db->table('employees')
+                            ->where('nama', $row->employee_name)
+                            ->where('client_id', $row->client_id)
+                            ->select('tipe_perjanjian, end_contract')
+                            ->get()
+                            ->getRow();
+            
+            $isPkwtExpired = false;
+            if ($emp && ($emp->tipe_perjanjian ?? '') === 'PKWT') {
+                $endDate = !empty($emp->end_contract) ? $emp->end_contract : null;
+                if ($endDate && strtotime($endDate) < time()) {
+                    $isPkwtExpired = true;
+                }
+            }
+
+            if (!$isPkwtExpired) {
+                return $this->fail('Gaji untuk karyawan ' . $row->employee_name . ' tidak dapat disetujui karena berstatus Hold (dirapel ke bulan depan).');
+            }
         }
         
         // Resolve Scheme
@@ -5787,13 +5829,16 @@ class Api extends ResourceController
             $employeeBpjsDeductions = $calc['bpjs_kes_karyawan'] + $calc['bpjs_jht_karyawan'] + $calc['bpjs_jp_karyawan'];
             $totalPotongan += $row['potongan_absen'] + $row['potongan_lain'];
 
-            if ($calc['metode_pajak'] === 'Gross Up') {
+            $isGrossUp = (strcasecmp($calc['metode_pajak'] ?? '', 'Gross Up') === 0 || strcasecmp($calc['metode_pajak'] ?? '', 'Grossup') === 0);
+            $isNett = (strcasecmp($calc['metode_pajak'] ?? '', 'Net') === 0 || strcasecmp($calc['metode_pajak'] ?? '', 'Nett') === 0);
+
+            if ($isGrossUp) {
                 $totalPendapatan += $calc['tax_allowance'];
                 $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
-            } elseif ($calc['metode_pajak'] === 'Gross') {
-                $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
-            } else { // Nett
+            } elseif ($isNett) {
                 $totalPotongan += $employeeBpjsDeductions;
+            } else { // Gross (including TER, Progresif, etc.)
+                $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
             }
 
             $thp = $totalPendapatan - $totalPotongan;

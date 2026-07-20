@@ -211,8 +211,40 @@ function handleSchemeSumberNilaiChange() {
             formatRupiahInput(inputNilai);
         }
         if (selectPeriode) {
+            // Only re-enable if Allowance Type is not Fixed (tetap locks period)
+            const sifat = document.getElementById('skemaKompensasiSifat').value;
+            selectPeriode.disabled = (sifat === 'tetap');
+        }
+    }
+}
+
+// Lock Period to "Per Month" when Fixed Allowance is selected (Scheme modal)
+function handleSchemeSifatChange() {
+    const sifat = document.getElementById('skemaKompensasiSifat').value;
+    const selectPeriode = document.getElementById('skemaKompensasiPeriode');
+    if (!selectPeriode) return;
+    if (sifat === 'tetap') {
+        selectPeriode.value = 'bulan';
+        selectPeriode.disabled = true;
+    } else {
+        // Only re-enable if sumber_nilai is not UMP/UMK (those also lock period)
+        const sumber = document.getElementById('skemaKompensasiSumber').value;
+        if (sumber !== 'ump' && sumber !== 'umk') {
             selectPeriode.disabled = false;
         }
+    }
+}
+
+// Lock Period to "Month" when Fixed Allowance is selected (Component modal)
+function handleKomponenSifatChange() {
+    const sifat = document.getElementById('komponenKompensasiSifat').value;
+    const selectPeriode = document.getElementById('komponenKompensasiPeriode');
+    if (!selectPeriode) return;
+    if (sifat === 'tetap') {
+        selectPeriode.value = 'bulan';
+        selectPeriode.disabled = true;
+    } else {
+        selectPeriode.disabled = false;
     }
 }
 
@@ -302,6 +334,7 @@ function bukaModalSkemaKompensasi(mode, id = null) {
                 document.getElementById('skemaKompensasiSifat').value = 'tetap';
             }
             handleSchemeSumberNilaiChange();
+            handleSchemeSifatChange();
         }
     } else {
         document.getElementById('modalSkemaKompensasiTitle').innerText = 'Add Allowance Scheme';
@@ -315,6 +348,7 @@ function bukaModalSkemaKompensasi(mode, id = null) {
         document.getElementById('skemaKompensasiIsPersentase').value = '0';
         document.getElementById('skemaKompensasiSifat').value = 'tetap';
         handleSchemeSumberNilaiChange();
+        handleSchemeSifatChange();
     }
 }
 
@@ -419,6 +453,7 @@ function bukaModalKomponenKompensasi(schemeId, mode, id = null) {
     // Trigger handlers to update visibility/labels
     handleJenisKomponenChange();
     handleSumberNilaiChange();
+    handleKomponenSifatChange();
 }
 
 function tutupModalKomponenKompensasi() {

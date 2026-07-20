@@ -393,6 +393,92 @@ class Employee extends ResourceController
                 }
             }
 
+            // Sync & Recalculate Contract Compensation if contract dates or salary are updated
+            if (isset($data['start_contract']) || isset($data['end_contract']) || isset($data['gaji_pokok']) || (isset($data['tipe_perjanjian']) && $data['tipe_perjanjian'] !== $oldEmp['tipe_perjanjian'])) {
+                $compModel = new \App\Models\ContractCompensationModel();
+                $existingComp = $compModel->where('employee_id', $id)->first();
+                if ($existingComp) {
+                    $cId = $oldEmp['client_id'] ?? ($data['client_id'] ?? null);
+                    
+                    // If contract type changed to non-PKWT, delete the draft/compensation
+                    if (isset($data['tipe_perjanjian']) && $data['tipe_perjanjian'] !== 'PKWT') {
+                        $compModel->delete($existingComp['id']);
+                        
+                        $log = new \App\Models\SystemLogModel();
+                        $log->insert([
+                            'action' => 'DELETE_COMPENSATION',
+                            'description' => "Menghapus draf kompensasi kontrak untuk {$oldEmp['nama']} karena tipe perjanjian diubah menjadi {$data['tipe_perjanjian']}",
+                            'client_id' => $cId,
+                            'created_by' => 1,
+                            'user_name' => $this->request->getHeaderLine('X-User-Action') ?: 'Sistem',
+                            'created_at' => date('Y-m-d H:i:s')
+                        ]);
+                    } else {
+                        // Recalculate compensation
+                        $newBasic = isset($data['gaji_pokok']) ? floatval($data['gaji_pokok']) : floatval($oldEmp['gaji_pokok'] ?? 0);
+                        $newStart = isset($data['start_contract']) ? $data['start_contract'] : ($oldEmp['start_contract'] ?? $oldEmp['tgl_masuk'] ?? null);
+                        $newEnd = isset($data['end_contract']) ? $data['end_contract'] : ($oldEmp['end_contract'] ?? null);
+                        
+                        if ($newStart && $newEnd && $newBasic > 0) {
+                            // Resolve standard days
+                            $db = \Config\Database::connect();
+                            $empConfig = null;
+                            $posId = $data['position_id'] ?? $oldEmp['position_id'] ?? null;
+                            $deptId = $data['department_id'] ?? $oldEmp['department_id'] ?? null;
+                            
+                            if (!empty($posId)) {
+                                $empConfig = $db->table('client_payroll_configs')->where('client_id', $cId)->where('position_id', $posId)->get()->getRow();
+                            }
+                            if (!$empConfig && !empty($deptId)) {
+                                $empConfig = $db->table('client_payroll_configs')->where('client_id', $cId)->where('department_id', $deptId)->where('position_id IS NULL')->get()->getRow();
+                            }
+                            if (!$empConfig) {
+                                $empConfig = $db->table('client_payroll_configs')->where('client_id', $cId)->where('division_id IS NULL')->where('department_id IS NULL')->where('position_id IS NULL')->get()->getRow();
+                            }
+                            
+                            $standardDays = ($empConfig && isset($empConfig->standard_work_days) && intval($empConfig->standard_work_days) > 0) ? intval($empConfig->standard_work_days) : 22;
+                            if (isset($oldEmp['custom_standard_days']) && intval($oldEmp['custom_standard_days']) > 0) {
+                                $standardDays = intval($oldEmp['custom_standard_days']);
+                            }
+                            if (isset($data['custom_standard_days']) && intval($data['custom_standard_days']) > 0) {
+                                $standardDays = intval($data['custom_standard_days']);
+                            }
+                            
+                            // Recalculate
+                            $calc = $compModel->calculateCompensation($newBasic, $newStart, $newEnd, $standardDays);
+                            
+                            $compModel->update($existingComp['id'], [
+                                'basic_salary' => $newBasic,
+                                'tgl_mulai_kerja' => $newStart,
+                                'tgl_akhir_kontrak' => $newEnd,
+                                'masa_kerja_tahun' => $calc['tahun'],
+                                'masa_kerja_bulan' => $calc['bulan'],
+                                'masa_kerja_hari' => $calc['hari'],
+                                'multiplier' => $calc['multiplier'],
+                                'nilai_kompensasi' => $calc['nilai'],
+                                'nilai_kompensasi_final' => null, // Reset final value
+                                'status' => 'Draft', // Reset status to Draft so it has to be re-evaluated
+                                'ditetapkan_oleh' => null,
+                                'ditetapkan_pada' => null,
+                                'disetujui_oleh' => null,
+                                'disetujui_pada' => null,
+                                'catatan' => 'Dihitung ulang otomatis karena pembaruan data kontrak karyawan.'
+                            ]);
+                            
+                            $log = new \App\Models\SystemLogModel();
+                            $log->insert([
+                                'action' => 'RECALCULATE_COMPENSATION',
+                                'description' => "Menghitung ulang otomatis draf kompensasi kontrak untuk {$oldEmp['nama']} karena pembaruan data kontrak.",
+                                'client_id' => $cId,
+                                'created_by' => 1,
+                                'user_name' => $this->request->getHeaderLine('X-User-Action') ?: 'Sistem',
+                                'created_at' => date('Y-m-d H:i:s')
+                            ]);
+                        }
+                    }
+                }
+            }
+
             // Sync employee shifts if updated
             if (isset($data['shift_scheme_id'])) {
                 $dbShift = \Config\Database::connect();
@@ -657,4 +743,6 @@ class Employee extends ResourceController
         }
         return null;
     }
+
+
 }

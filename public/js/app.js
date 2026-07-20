@@ -104,9 +104,9 @@ const ROLE_PERMISSIONS = {
     admin: ['*'], // Akses semua
     payroll: ['dashboard', 'klien', 'payroll', 'pajak', 'masterKompensasi', 'clientWorkspace'],
     business_development: ['dashboard', 'klien'],
-    recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace'],
+    recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace', 'fpkMaster'],
     client_superior: ['dashboard', 'klien', 'clientWorkspace'],
-    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak'],
+    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak', 'fpkMaster'],
     staff: ['clientWorkspace']
 };
 
@@ -151,8 +151,8 @@ function applyWorkspaceTabRestrictions() {
         payroll: ['proses'],
         business_development: [],
         recruiter: ['karyawan', 'pkwt'],
-        client_superior: ['proses', 'overtime', 'earlyArrival'],
-        hc_ops: ['struktur', 'kompensasi', 'attendance'],
+        client_superior: ['proses', 'overtime', 'earlyArrival', 'pkwt'],
+        hc_ops: ['struktur', 'kompensasi', 'attendance', 'pkwt'],
         staff: ['proses']
     };
 
@@ -206,7 +206,8 @@ function applyRoleRestrictions() {
             const hasAny = (isAdmin || 
                 perms.includes('manajemenKaryawan') || 
                 perms.includes('globalLokasiKerja') || 
-                perms.includes('skemaShift'));
+                perms.includes('skemaShift') ||
+                perms.includes('fpkMaster'));
             el.style.display = hasAny ? '' : 'none';
         } else if (menuId === 'menuPayroll') {
             const hasAny = (isAdmin || 
@@ -223,10 +224,12 @@ function applyRoleRestrictions() {
     const subLokasi = document.getElementById('submenuLokasiKerja');
     const subTambah = document.getElementById('submenuTambahKaryawan');
     const subShift = document.getElementById('submenuSkemaShift');
+    const subFpk = document.getElementById('submenuFpkMaster');
 
     if (subLokasi) subLokasi.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
     if (subTambah) subTambah.style.display = (isAdmin || role === 'recruiter' || role === 'hc_ops') ? '' : 'none';
     if (subShift) subShift.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (subFpk) subFpk.style.display = (isAdmin || role === 'recruiter' || role === 'hc_ops') ? '' : 'none';
 
     // Submenu Payroll detail restrictions
     const subUploadUmr = document.getElementById('submenu_uploadUmr');
@@ -285,6 +288,16 @@ function applyRoleRestrictions() {
     if (qaWorkLocation) qaWorkLocation.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none'; // wait, it was originally `(isAdmin || role === 'hc_ops')`, which is already correct. But we can just replace what's needed.
     if (qaUploadUmkUmp) qaUploadUmkUmp.style.display = (isAdmin || role === 'payroll') ? '' : 'none';
     if (qaSchemeSettings) qaSchemeSettings.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+
+    // FPK Tab Restrictions
+    const fpkTabMaster = document.querySelector('.fpk-tab-btn[data-tab="master"]');
+    const fpkTabPenempatan = document.querySelector('.fpk-tab-btn[data-tab="penempatan"]');
+    if (fpkTabMaster) {
+        fpkTabMaster.style.display = (role === 'recruiter') ? 'none' : '';
+    }
+    if (fpkTabPenempatan) {
+        fpkTabPenempatan.style.display = (role === 'hc_ops') ? 'none' : '';
+    }
 
     // Work Location Recruiter Restrictions
     const btnTambahLokasi = document.getElementById('btnTambahLokasiKerjaGlobal');
@@ -841,7 +854,7 @@ function switchView(view) {
     } else if (view === 'schedule') {
         const item = document.getElementById('menuSchedule');
         if (item) item.classList.add('active');
-    } else if (view === 'globalLokasiKerja' || view === 'manajemenKaryawan' || view === 'skemaShift') {
+    } else if (view === 'globalLokasiKerja' || view === 'manajemenKaryawan' || view === 'skemaShift' || view === 'fpkMaster') {
         const parent = document.getElementById('menuManajemenKaryawan');
         if (parent) parent.classList.add('active');
         if (submenuKaryawan) submenuKaryawan.style.display = 'block';
@@ -851,6 +864,7 @@ function switchView(view) {
         if (view === 'globalLokasiKerja') subItemId = 'submenuLokasiKerja';
         else if (view === 'manajemenKaryawan') subItemId = 'submenuTambahKaryawan';
         else if (view === 'skemaShift') subItemId = 'submenuSkemaShift';
+        else if (view === 'fpkMaster') subItemId = 'submenuFpkMaster';
 
         const subItem = document.getElementById(subItemId);
         if (subItem) subItem.classList.add('active');
@@ -893,7 +907,8 @@ function switchView(view) {
         pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme',
         schedule: 'Schedule',
-        skemaShift: 'Employee Management'
+        skemaShift: 'Employee Management',
+        fpkMaster: 'Employee Management'
     };
     const titleEl = document.getElementById('viewTitle');
     if (titleEl) {
@@ -971,7 +986,7 @@ function switchView(view) {
 
 // ===== UTILS & MODAL CLOSING =====
 function tutupSemuaModal(keepSidebarOpen = false) {
-    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalDetailPph21', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema', 'modalSchedule', 'modalUploadAbsensi', 'attendanceModal', 'overtimeModal'];
+    const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalDetailPph21', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema', 'modalSchedule', 'modalUploadAbsensi', 'attendanceModal', 'overtimeModal', 'modalHitungKompensasi', 'modalTetapkanKompensasi', 'modalDetailKompensasi'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     
     // Clean up TomSelect instances from modalPilihanSkema if it was open

@@ -162,7 +162,11 @@ function switchWorkspaceTab(tab) {
             loadSchemeTemplates(window.selectedClientId);
         }
     } else if (tab === 'pkwt') {
-        renderPKWTTable();
+        if (typeof switchClientPKWTSubTab === 'function') {
+            switchClientPKWTSubTab('pkwt_data');
+        } else {
+            renderPKWTTable();
+        }
     } else if (tab === 'proses') {
         loadActivePeriod();
         if (typeof switchPayrollProcessSubTab === 'function') {

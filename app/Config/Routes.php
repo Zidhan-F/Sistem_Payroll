@@ -12,6 +12,7 @@ $routes->get('calculator', 'Home::calculator');
 $routes->get('migrasi', 'Migrasi::index');
 $routes->cli('migrasi', 'Migrasi::index');
 $routes->get('migrasi/seed-ump', 'Migrasi::seedUmp');
+
 $routes->get('seed-dummy', 'DummySeeder::run');
 
 // =====================================================================
@@ -69,6 +70,10 @@ $routes->group('api', ['filter' => 'role'], function($routes) {
     $routes->get('pkwt', 'Api::getPKWT');
     $routes->get('sync-employees-pkwt', 'Api::syncEmployeesPKWTEndpoint');
 
+    // Contract Compensation (read)
+    $routes->get('contract-compensations', 'ContractCompensation::index');
+    $routes->get('contract-compensations/(:num)', 'ContractCompensation::show/$1');
+
     // Payroll Processing (read)
     $routes->get('periods', 'Api::getPeriods');
     $routes->get('attendance/(:num)', 'Api::getAttendance/$1');
@@ -117,6 +122,8 @@ $routes->group('api', ['filter' => 'role'], function($routes) {
     $routes->get('employees/(:num)', 'Employee::show/$1');
     $routes->get('employees/next-employ-id', 'Employee::nextEmployId');
 
+
+
     // Work Locations (read)
     $routes->get('work-locations', 'WorkLocation::index');
     $routes->get('work-locations/(:num)', 'WorkLocation::show/$1');
@@ -130,6 +137,10 @@ $routes->group('api', ['filter' => 'role'], function($routes) {
 
     // Employee Shifts (read)
     $routes->get('employee-shifts', 'Api::getEmployeeShifts');
+
+    // FPK Master (read)
+    $routes->get('fpk', 'Fpk::index');
+    $routes->get('fpk/assignments', 'Fpk::getAssignments');
 
     // AI Assistant (all authenticated users)
     $routes->post('ai/summarize-dashboard', 'Ai::summarizeDashboard');
@@ -218,6 +229,11 @@ $routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
 
     // Client Absence Config
     $routes->post('client-absence-config', 'Api::saveAbsenceConfig');
+
+    // Contract Compensation CRUD
+    $routes->post('contract-compensations/calculate', 'ContractCompensation::calculate');
+    $routes->post('contract-compensations/set/(:num)', 'ContractCompensation::setCompensation/$1');
+    $routes->delete('contract-compensations/(:num)', 'ContractCompensation::delete/$1');
 });
 
 // =====================================================================
@@ -234,6 +250,14 @@ $routes->group('api', ['filter' => 'role:recruiter,hc_ops'], function($routes) {
     $routes->post('contracts', 'Contract::create');
     $routes->put('contracts/(:num)', 'Contract::update/$1');
     $routes->post('contracts/terminate/(:num)', 'Contract::terminate/$1');
+});
+
+// =====================================================================
+// RECRUITER ONLY — FPK Penempelan Karyawan
+// =====================================================================
+$routes->group('api', ['filter' => 'role:recruiter'], function($routes) {
+    $routes->post('fpk/assign', 'Fpk::assign');
+    $routes->delete('fpk/assignments/(:num)', 'Fpk::revokeAssignment/$1');
 });
 
 // =====================================================================
@@ -287,6 +311,11 @@ $routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
     $routes->post('work-locations', 'WorkLocation::create');
     $routes->put('work-locations/(:num)', 'WorkLocation::update/$1');
     $routes->delete('work-locations/(:num)', 'WorkLocation::delete/$1');
+
+    // FPK Master CRUD
+    $routes->post('fpk', 'Fpk::create');
+    $routes->put('fpk/(:num)', 'Fpk::update/$1');
+    $routes->delete('fpk/(:num)', 'Fpk::delete/$1');
 });
 
 // =====================================================================
@@ -316,5 +345,9 @@ $routes->group('api', ['filter' => 'role:client_superior'], function($routes) {
     $routes->post('early-arrival/reset/(:num)', 'Api::resetEarlyArrivalLog/$1');
     $routes->post('early-arrival/bulk-approve', 'Api::bulkApproveEarlyArrivalLogs');
     $routes->post('early-arrival/bulk-reject', 'Api::bulkRejectEarlyArrivalLogs');
+
+    // Contract Compensation Approval
+    $routes->post('contract-compensations/approve/(:num)', 'ContractCompensation::approve/$1');
+    $routes->post('contract-compensations/reject/(:num)', 'ContractCompensation::reject/$1');
 });
 
