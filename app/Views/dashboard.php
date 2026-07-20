@@ -226,6 +226,7 @@
                                     <th>Employee Name</th>
                                     <th>Place & Date of Birth</th>
                                     <th>NPWP</th>
+                                    <th>Status PTKP</th>
                                     <th>Division</th>
                                     <th>Department</th>
                                     <th>Position / Role</th>
@@ -558,6 +559,7 @@
                                                     <th>Employee Name</th>
                                                     <th>Place & Date of Birth</th>
                                                     <th>NPWP</th>
+                                                    <th>Status PTKP</th>
                                                     <th>Division</th>
                                                     <th>Department</th>
                                                     <th>Position / Role</th>
@@ -748,6 +750,7 @@
                                                         <th>Department</th>
                                                         <th>Position</th>
                                                         <th>Scheme</th>
+                                                        <th>PTKP</th>
                                                         <th>Basic Salary</th>
                                                         <th>Overtime</th>
                                                         <th>Early Arrival</th>
@@ -762,6 +765,12 @@
                                                         <th>Potongan Lain</th>
                                                         <th>Total Deductions</th>
                                                         <th>Net Salary</th>
+                                                        <th>BPJS Kes (Co)</th>
+                                                        <th>BPJS JHT (Co)</th>
+                                                        <th>BPJS JP (Co)</th>
+                                                        <th>BPJS JKK (Co)</th>
+                                                        <th>BPJS JKM (Co)</th>
+                                                        <th>Total BPJS (Co)</th>
                                                         <th>Status</th>
                                                         <th>Action</th>
                                                     </tr>

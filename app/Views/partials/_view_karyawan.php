@@ -20,6 +20,7 @@
                                      <th>Employee Name</th>
                                      <th>Place & Date of Birth</th>
                                      <th>NPWP</th>
+                                     <th>Status PTKP</th>
                                      <th>Division</th>
                                      <th>Department</th>
                                      <th>Position / Role</th>

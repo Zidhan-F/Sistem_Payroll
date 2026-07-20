@@ -19,6 +19,12 @@ class GeneratePayrollCLI extends BaseCommand
             return;
         }
 
+        $clientId = $params[1] ?? null;
+        if ($clientId) {
+            $_GET['client_id'] = $clientId;
+            CLI::write("Set client_id to $clientId", 'yellow');
+        }
+
         CLI::write("Instantiating Api controller...", 'yellow');
         $api = new \App\Controllers\Api();
 

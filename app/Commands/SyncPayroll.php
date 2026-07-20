@@ -13,24 +13,27 @@ class SyncPayroll extends BaseCommand
 
     public function run(array $params)
     {
+        $periodId = !empty($params[0]) ? intval($params[0]) : 16;
+        $clientId = !empty($params[1]) ? intval($params[1]) : 5;
+
         $api = new \App\Controllers\Api();
 
-        CLI::write("Running syncEmployeesToPKWT...", 'yellow');
+        CLI::write("Running syncEmployeesToPKWT for client $clientId...", 'yellow');
         $ref = new \ReflectionClass($api);
 
         $syncEmployees = $ref->getMethod('syncEmployeesToPKWT');
         $syncEmployees->setAccessible(true);
-        $syncEmployees->invoke($api, 1);
+        $syncEmployees->invoke($api, $clientId);
 
-        CLI::write("Running syncOvertimeToPayrollAttendance...", 'yellow');
+        CLI::write("Running syncOvertimeToPayrollAttendance for period $periodId, client $clientId...", 'yellow');
         $syncOvertime = $ref->getMethod('syncOvertimeToPayrollAttendance');
         $syncOvertime->setAccessible(true);
-        $syncOvertime->invoke($api, 1, 1);
+        $syncOvertime->invoke($api, $periodId, $clientId);
 
-        CLI::write("Running syncEarlyArrivalToPayrollAttendance...", 'yellow');
+        CLI::write("Running syncEarlyArrivalToPayrollAttendance for period $periodId, client $clientId...", 'yellow');
         $syncEarly = $ref->getMethod('syncEarlyArrivalToPayrollAttendance');
         $syncEarly->setAccessible(true);
-        $syncEarly->invoke($api, 1, 1);
+        $syncEarly->invoke($api, $periodId, $clientId);
 
         CLI::write("Sync completed successfully!", 'green');
     }

@@ -9,6 +9,14 @@
     
     <!-- SheetJS for client-side Excel (.xlsx) export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        window.XLSXReader = window.XLSX;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script>
+        window.XLSXStyle = window.XLSX;
+        window.XLSX = window.XLSXReader;
+    </script>
     
     <!-- html2pdf.js for client-side PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>

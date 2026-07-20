@@ -22,6 +22,7 @@ function rowHtmlForEmployee(emp) {
                 <div style="font-size: 11px;">${emp.tanggal_lahir || '-'}</div>
             </td>
             <td>${emp.npwp || '-'}</td>
+            <td>${emp.ptkp || 'TK/0'}</td>
             <td>${emp.nama_divisi || '-'}</td>
             <td>${emp.nama_dept || '-'}</td>
             <td>${emp.nama_posisi || '-'}</td>
@@ -64,7 +65,7 @@ async function renderAllEmployees() {
     try {
         const tbody = document.getElementById('tabelKaryawanBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/employees?client_id=${window.selectedClientId}` : `${API_URL}/employees`;
         const res = await fetch(url);
@@ -102,7 +103,7 @@ async function renderManajemenKaryawan(list = null) {
         if (!list) {
             const tbody = document.getElementById('tabelKaryawanGlobalBody');
             if (tbody) {
-                tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="16" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
             }
             const res = await fetch(`${API_URL}/employees`);
             allEmployeesGlobal = await res.json();

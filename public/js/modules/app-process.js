@@ -233,7 +233,7 @@ async function renderReviewGajiTable() {
     try {
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="22" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="30" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
         const res = await fetch(url);
@@ -329,6 +329,7 @@ async function renderReviewGajiTable() {
                         <td>${row.department_name || '-'}</td>
                         <td>${row.position_name || '-'}</td>
                         <td>${row.scheme_name || '-'}</td>
+                        <td>${row.ptkp_status || 'TK/0'}</td>
                         <td>${formatRupiah(gp)}</td>
                         <td>${formatRupiah(ot)}</td>
                         <td>${formatRupiah(ea)}</td>
@@ -343,6 +344,18 @@ async function renderReviewGajiTable() {
                         <td>${formatRupiah(potLain)}</td>
                         <td style="font-weight:600;">${formatRupiah(totalPotongan)}</td>
                         <td style="font-weight:700; color:#2e7d32;">${formatRupiah(row.take_home_pay)}</td>
+                        <td>${formatRupiah(parseFloat(row.bpjs_kes_perusahaan || 0))}</td>
+                        <td>${formatRupiah(parseFloat(row.bpjs_jht_perusahaan || 0))}</td>
+                        <td>${formatRupiah(parseFloat(row.bpjs_jp_perusahaan || 0))}</td>
+                        <td>${formatRupiah(parseFloat(row.bpjs_jkk_perusahaan || 0))}</td>
+                        <td>${formatRupiah(parseFloat(row.bpjs_jkm_perusahaan || 0))}</td>
+                        <td style="font-weight:600;">${formatRupiah(
+                            parseFloat(row.bpjs_kes_perusahaan || 0) + 
+                            parseFloat(row.bpjs_jht_perusahaan || 0) + 
+                            parseFloat(row.bpjs_jp_perusahaan || 0) + 
+                            parseFloat(row.bpjs_jkk_perusahaan || 0) + 
+                            parseFloat(row.bpjs_jkm_perusahaan || 0)
+                        )}</td>
                         <td>
                             <span class="status-badge ${row.status_approval === 'Approved' ? 'success' : (row.status_approval === 'Hold' ? 'danger' : 'warning')}">${row.status_approval}</span>
                             ${row.status_approval === 'Hold' ? (
@@ -860,6 +873,12 @@ async function exportGajiToExcel() {
         let totalPotLain = 0;
         let totalTotalPotongan = 0;
         let totalThp = 0;
+        let totalBpjsKesCo = 0;
+        let totalBpjsJhtCo = 0;
+        let totalBpjsJpCo = 0;
+        let totalBpjsJkkCo = 0;
+        let totalBpjsJkmCo = 0;
+        let totalTotalBpjsCo = 0;
 
         // Format the rows for Excel
         const formatted = data.map((row, index) => {
@@ -897,6 +916,13 @@ async function exportGajiToExcel() {
             const potLain = Math.max(0, totalPotongan - potAbsen - bpjsKaryawan - pph21);
             const thp = parseFloat(row.take_home_pay || 0);
 
+            const bpjsKesCo = parseFloat(row.bpjs_kes_perusahaan || 0);
+            const bpjsJhtCo = parseFloat(row.bpjs_jht_perusahaan || 0);
+            const bpjsJpCo = parseFloat(row.bpjs_jp_perusahaan || 0);
+            const bpjsJkkCo = parseFloat(row.bpjs_jkk_perusahaan || 0);
+            const bpjsJkmCo = parseFloat(row.bpjs_jkm_perusahaan || 0);
+            const totalCoBpjsRow = bpjsKesCo + bpjsJhtCo + bpjsJpCo + bpjsJkkCo + bpjsJkmCo;
+
             // Accumulate sums
             totalMinWage += parseFloat(row.min_wage || 0);
             totalGp += gp;
@@ -913,6 +939,12 @@ async function exportGajiToExcel() {
             totalPotLain += potLain;
             totalTotalPotongan += totalPotongan;
             totalThp += thp;
+            totalBpjsKesCo += bpjsKesCo;
+            totalBpjsJhtCo += bpjsJhtCo;
+            totalBpjsJpCo += bpjsJpCo;
+            totalBpjsJkkCo += bpjsJkkCo;
+            totalBpjsJkmCo += bpjsJkmCo;
+            totalTotalBpjsCo += totalCoBpjsRow;
 
             return {
                 'No': index + 1,
@@ -922,6 +954,7 @@ async function exportGajiToExcel() {
                 'Contract Type': row.tipe_perjanjian || 'PKWT',
                 'Place & Date of Birth': dob,
                 'NPWP': row.npwp || '-',
+                'Status PTKP': row.ptkp_status || 'TK/0',
                 'Division': row.division_name || '-',
                 'Department': row.department_name || '-',
                 'Position / Role': row.position_name || '-',
@@ -941,6 +974,12 @@ async function exportGajiToExcel() {
                 'Potongan Lain': Math.round(potLain),
                 'Total Deductions (Potongan)': Math.round(totalPotongan),
                 'Net Salary (Take Home Pay)': Math.round(thp),
+                'BPJS Kes (Perusahaan)': Math.round(bpjsKesCo),
+                'BPJS JHT (Perusahaan)': Math.round(bpjsJhtCo),
+                'BPJS JP (Perusahaan)': Math.round(bpjsJpCo),
+                'BPJS JKK (Perusahaan)': Math.round(bpjsJkkCo),
+                'BPJS JKM (Perusahaan)': Math.round(bpjsJkmCo),
+                'Total BPJS (Perusahaan)': Math.round(totalCoBpjsRow),
                 'Status': row.status_approval || 'Pending'
             };
         });
@@ -954,6 +993,7 @@ async function exportGajiToExcel() {
             'Contract Type': '',
             'Place & Date of Birth': '',
             'NPWP': '',
+            'Status PTKP': '',
             'Division': '',
             'Department': '',
             'Position / Role': '',
@@ -973,11 +1013,18 @@ async function exportGajiToExcel() {
             'Potongan Lain': Math.round(totalPotLain),
             'Total Deductions (Potongan)': Math.round(totalTotalPotongan),
             'Net Salary (Take Home Pay)': Math.round(totalThp),
+            'BPJS Kes (Perusahaan)': Math.round(totalBpjsKesCo),
+            'BPJS JHT (Perusahaan)': Math.round(totalBpjsJhtCo),
+            'BPJS JP (Perusahaan)': Math.round(totalBpjsJpCo),
+            'BPJS JKK (Perusahaan)': Math.round(totalBpjsJkkCo),
+            'BPJS JKM (Perusahaan)': Math.round(totalBpjsJkmCo),
+            'Total BPJS (Perusahaan)': Math.round(totalTotalBpjsCo),
             'Status': ''
         });
         
         // Create SheetJS workbook and worksheet
-        const ws = XLSX.utils.json_to_sheet(formatted);
+        const xl = typeof XLSXStyle !== 'undefined' ? XLSXStyle : XLSX;
+        const ws = xl.utils.json_to_sheet(formatted);
         
         // Apply Cell Formatting for currency columns (display as "Rp 5.000.000" but keeps numeric values)
         const numericKeys = [
@@ -995,30 +1042,46 @@ async function exportGajiToExcel() {
             'Tax (PPh21)',
             'Potongan Lain',
             'Total Deductions (Potongan)',
-            'Net Salary (Take Home Pay)'
+            'Net Salary (Take Home Pay)',
+            'BPJS Kes (Perusahaan)',
+            'BPJS JHT (Perusahaan)',
+            'BPJS JP (Perusahaan)',
+            'BPJS JKK (Perusahaan)',
+            'BPJS JKM (Perusahaan)',
+            'Total BPJS (Perusahaan)'
         ];
 
         if (ws['!ref']) {
-            const range = XLSX.utils.decode_range(ws['!ref']);
+            const range = xl.utils.decode_range(ws['!ref']);
             for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                const isTotalRow = (R === range.e.r);
                 for (let C = range.s.c; C <= range.e.c; ++C) {
-                    const cell_ref = XLSX.utils.encode_cell({ r: R, c: C });
+                    const cell_ref = xl.utils.encode_cell({ r: R, c: C });
                     const cell = ws[cell_ref];
-                    if (cell && (cell.t === 'n' || typeof cell.v === 'number')) {
-                        cell.t = 'n'; // Ensure type is number
-                        const header_cell_ref = XLSX.utils.encode_cell({ r: range.s.r, c: C });
-                        const header_cell = ws[header_cell_ref];
-                        if (header_cell && numericKeys.includes(header_cell.v)) {
-                            // Excel Custom Format String: "Rp"#,##0;("-Rp"#,##0);"-"
-                            cell.z = '"Rp"#,##0;("-Rp"#,##0);"-"';
+                    if (cell) {
+                        if (cell.t === 'n' || typeof cell.v === 'number') {
+                            cell.t = 'n'; // Ensure type is number
+                            const header_cell_ref = xl.utils.encode_cell({ r: range.s.r, c: C });
+                            const header_cell = ws[header_cell_ref];
+                            if (header_cell && numericKeys.includes(header_cell.v)) {
+                                // Excel Custom Format String: "Rp"#,##0;("-Rp"#,##0);"-"
+                                cell.z = '"Rp"#,##0;("-Rp"#,##0);"-"';
+                            }
+                        }
+                        if (isTotalRow && typeof XLSXStyle !== 'undefined') {
+                            cell.s = {
+                                font: {
+                                    bold: true
+                                }
+                            };
                         }
                     }
                 }
             }
         }
         
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Payroll Report");
+        const wb = xl.utils.book_new();
+        xl.utils.book_append_sheet(wb, ws, "Payroll Report");
         
         // Adjust column widths for clean readability
         const wscols = [
@@ -1029,6 +1092,7 @@ async function exportGajiToExcel() {
             {wch: 15},  // Contract Type
             {wch: 22},  // Place & Date of Birth
             {wch: 20},  // NPWP
+            {wch: 15},  // Status PTKP
             {wch: 15},  // Division
             {wch: 15},  // Department
             {wch: 18},  // Position / Role
@@ -1048,6 +1112,12 @@ async function exportGajiToExcel() {
             {wch: 18},  // Potongan Lain
             {wch: 25},  // Total Deductions (Potongan)
             {wch: 25},  // Net Salary (Take Home Pay)
+            {wch: 22},  // BPJS Kes (Perusahaan)
+            {wch: 22},  // BPJS JHT (Perusahaan)
+            {wch: 22},  // BPJS JP (Perusahaan)
+            {wch: 22},  // BPJS JKK (Perusahaan)
+            {wch: 22},  // BPJS JKM (Perusahaan)
+            {wch: 24},  // Total BPJS (Perusahaan)
             {wch: 12}   // Status
         ];
         ws['!cols'] = wscols;
@@ -1062,7 +1132,7 @@ async function exportGajiToExcel() {
         }
         
         // Download real .xlsx file
-        XLSX.writeFile(wb, `Payroll_Report_${periodText}.xlsx`);
+        xl.writeFile(wb, `Payroll_Report_${periodText}.xlsx`);
         showToast('Export successful!', 'success');
     } catch (error) {
         console.error(error);
