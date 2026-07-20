@@ -5154,9 +5154,7 @@ class Api extends ResourceController
             if ($isGrossUp) {
                 $totalPendapatan += $calc['tax_allowance'];
                 $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
-            } elseif ($isNett) {
-                $totalPotongan += $employeeBpjsDeductions;
-            } else { // Gross (including TER, Progresif, etc.)
+            } else { // Gross and Nett (Always deduct tax from employee)
                 $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
             }
 
@@ -5835,9 +5833,7 @@ class Api extends ResourceController
             if ($isGrossUp) {
                 $totalPendapatan += $calc['tax_allowance'];
                 $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
-            } elseif ($isNett) {
-                $totalPotongan += $employeeBpjsDeductions;
-            } else { // Gross (including TER, Progresif, etc.)
+            } else { // Gross and Nett (Always deduct tax from employee)
                 $totalPotongan += $employeeBpjsDeductions + $calc['pph21'];
             }
 
@@ -6652,7 +6648,7 @@ class Api extends ResourceController
                 if ($final['tax_method'] === 'Gross Up') {
                     $earnings[] = ['nama' => $allowanceLabel, 'nilai' => floatval($final['tax_allowance'])];
                     $deductions[] = ['nama' => $taxLabel, 'nilai' => floatval($final['pph21'])];
-                } elseif (strcasecmp($final['tax_method'] ?? '', 'Net') !== 0 && strcasecmp($final['tax_method'] ?? '', 'Nett') !== 0) {
+                } else {
                     $deductions[] = ['nama' => $taxLabel, 'nilai' => floatval($final['pph21'])];
                 }
             }
@@ -6775,6 +6771,21 @@ class Api extends ResourceController
         
         // Write Data Rows
         $no = 1;
+        $totalGp = 0;
+        $totalOt = 0;
+        $totalEa = 0;
+        $totalRapel = 0;
+        $totalTunjanganLainnya = 0;
+        $totalTotalPendapatan = 0;
+        $totalPotAbsen = 0;
+        $totalBpjsKes = 0;
+        $totalBpjsJht = 0;
+        $totalBpjsJp = 0;
+        $totalPph21 = 0;
+        $totalPotonganLainnya = 0;
+        $totalTotalPotongan = 0;
+        $totalThp = 0;
+
         foreach ($results as $row) {
             $placeDob = '';
             if (!empty($row['tempat_lahir']) && !empty($row['tanggal_lahir'])) {
@@ -6823,6 +6834,23 @@ class Api extends ResourceController
             $potonganLainnya = $totalPotongan - ($potAbsen + $bpjsKes + $bpjsJht + $bpjsJp + $pajakDikurangi);
             if ($potonganLainnya < 0) $potonganLainnya = 0;
             
+            $thp = floatval($row['take_home_pay'] ?? 0);
+
+            $totalGp += $gp;
+            $totalOt += $ot;
+            $totalEa += $ea;
+            $totalRapel += $rapelVal;
+            $totalTunjanganLainnya += $tunjanganLainnya;
+            $totalTotalPendapatan += $totalPendapatan;
+            $totalPotAbsen += $potAbsen;
+            $totalBpjsKes += $bpjsKes;
+            $totalBpjsJht += $bpjsJht;
+            $totalBpjsJp += $bpjsJp;
+            $totalPph21 += $pph21;
+            $totalPotonganLainnya += $potonganLainnya;
+            $totalTotalPotongan += $totalPotongan;
+            $totalThp += $thp;
+            
             fputcsv($output, [
                 $no++,
                 $row['client_name'] ?? '-',
@@ -6834,24 +6862,54 @@ class Api extends ResourceController
                 $row['department_name'] ?? '-',
                 $row['position_name'] ?? '-',
                 $row['location_name'] ?? '-',
-                isset($row['min_wage']) ? 'Rp ' . number_format((float)$row['min_wage'], 0, ',', '.') : '-',
-                'Rp ' . number_format($gp, 0, ',', '.'),
-                'Rp ' . number_format($ot, 0, ',', '.'),
-                'Rp ' . number_format($ea, 0, ',', '.'),
-                'Rp ' . number_format($rapelVal, 0, ',', '.'),
-                'Rp ' . number_format($tunjanganLainnya, 0, ',', '.'),
-                'Rp ' . number_format($totalPendapatan, 0, ',', '.'),
-                'Rp ' . number_format($potAbsen, 0, ',', '.'),
-                'Rp ' . number_format($bpjsKes, 0, ',', '.'),
-                'Rp ' . number_format($bpjsJht, 0, ',', '.'),
-                'Rp ' . number_format($bpjsJp, 0, ',', '.'),
-                'Rp ' . number_format($pph21, 0, ',', '.'),
-                'Rp ' . number_format($potonganLainnya, 0, ',', '.'),
-                'Rp ' . number_format($totalPotongan, 0, ',', '.'),
-                'Rp ' . number_format((float)($row['take_home_pay'] ?? 0), 0, ',', '.'),
+                isset($row['min_wage']) ? floatval($row['min_wage']) : '',
+                $gp,
+                $ot,
+                $ea,
+                $rapelVal,
+                $tunjanganLainnya,
+                $totalPendapatan,
+                $potAbsen,
+                $bpjsKes,
+                $bpjsJht,
+                $bpjsJp,
+                $pph21,
+                $potonganLainnya,
+                $totalPotongan,
+                $thp,
                 $row['status_approval'] ?? 'Pending'
             ], ';');
         }
+
+        // Write Summary Row
+        fputcsv($output, [
+            'TOTAL',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            $totalGp,
+            $totalOt,
+            $totalEa,
+            $totalRapel,
+            $totalTunjanganLainnya,
+            $totalTotalPendapatan,
+            $totalPotAbsen,
+            $totalBpjsKes,
+            $totalBpjsJht,
+            $totalBpjsJp,
+            $totalPph21,
+            $totalPotonganLainnya,
+            $totalTotalPotongan,
+            $totalThp,
+            ''
+        ], ';');
         
         fclose($output);
         exit;
@@ -8238,6 +8296,22 @@ class Api extends ResourceController
         fputcsv($output, $headers);
         
         $no = 1;
+        $totalGp = 0;
+        $totalLembur = 0;
+        $totalEa = 0;
+        $totalRapel = 0;
+        $totalBonus = 0;
+        $totalTunjanganLainnya = 0;
+        $totalTotalPendapatan = 0;
+        $totalPotonganAbsen = 0;
+        $totalBpjsKes = 0;
+        $totalBpjsJht = 0;
+        $totalBpjsJp = 0;
+        $totalPph21 = 0;
+        $totalPotonganLainnya = 0;
+        $totalTotalPotongan = 0;
+        $totalThp = 0;
+
         foreach ($data as $row) {
             // Compute Tunjangan Lainnya
             $lemburPay = floatval($row['lembur_pay'] ?? 0);
@@ -8280,6 +8354,24 @@ class Api extends ResourceController
             $potonganLainnya = $totalPotongan - ($potonganAbsen + $bpjsKes + $bpjsJht + $bpjsJp + $pajakDikurangi);
             if ($potonganLainnya < 0) $potonganLainnya = 0;
             
+            $thp = floatval($row['take_home_pay'] ?? 0);
+
+            $totalGp += $gajiPokok;
+            $totalLembur += $lemburPay;
+            $totalEa += $ea;
+            $totalRapel += $rapelVal;
+            $totalBonus += $bonus;
+            $totalTunjanganLainnya += $tunjanganLainnya;
+            $totalTotalPendapatan += $totalPendapatan;
+            $totalPotonganAbsen += $potonganAbsen;
+            $totalBpjsKes += $bpjsKes;
+            $totalBpjsJht += $bpjsJht;
+            $totalBpjsJp += $bpjsJp;
+            $totalPph21 += $pph21;
+            $totalPotonganLainnya += $potonganLainnya;
+            $totalTotalPotongan += $totalPotongan;
+            $totalThp += $thp;
+            
             fputcsv($output, [
                 $no++,
                 $row['nik'] ?? '-',
@@ -8288,25 +8380,53 @@ class Api extends ResourceController
                 $row['position_name'] ?? '-',
                 $taxMethod,
                 $row['ptkp_status'] ?? '-',
-                'Rp ' . number_format($gajiPokok, 0, ',', '.'),
-                'Rp ' . number_format($lemburPay, 0, ',', '.'),
-                'Rp ' . number_format($ea, 0, ',', '.'),
-                'Rp ' . number_format($rapelVal, 0, ',', '.'),
-                'Rp ' . number_format($bonus, 0, ',', '.'),
-                'Rp ' . number_format($tunjanganLainnya, 0, ',', '.'),
-                'Rp ' . number_format($totalPendapatan, 0, ',', '.'),
-                'Rp ' . number_format($potonganAbsen, 0, ',', '.'),
-                'Rp ' . number_format($bpjsKes, 0, ',', '.'),
-                'Rp ' . number_format($bpjsJht, 0, ',', '.'),
-                'Rp ' . number_format($bpjsJp, 0, ',', '.'),
-                'Rp ' . number_format($pph21, 0, ',', '.'),
-                'Rp ' . number_format($potonganLainnya, 0, ',', '.'),
-                'Rp ' . number_format($totalPotongan, 0, ',', '.'),
-                'Rp ' . number_format(floatval($row['take_home_pay'] ?? 0), 0, ',', '.'),
+                $gajiPokok,
+                $lemburPay,
+                $ea,
+                $rapelVal,
+                $bonus,
+                $tunjanganLainnya,
+                $totalPendapatan,
+                $potonganAbsen,
+                $bpjsKes,
+                $bpjsJht,
+                $bpjsJp,
+                $pph21,
+                $potonganLainnya,
+                $totalPotongan,
+                $thp,
                 $row['bank_name'] ?? '-',
                 $row['no_rekening'] ?? '-'
             ]);
         }
+
+        // Write Summary Row
+        fputcsv($output, [
+            'TOTAL',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            $totalGp,
+            $totalLembur,
+            $totalEa,
+            $totalRapel,
+            $totalBonus,
+            $totalTunjanganLainnya,
+            $totalTotalPendapatan,
+            $totalPotonganAbsen,
+            $totalBpjsKes,
+            $totalBpjsJht,
+            $totalBpjsJp,
+            $totalPph21,
+            $totalPotonganLainnya,
+            $totalTotalPotongan,
+            $totalThp,
+            '',
+            ''
+        ]);
         
         fclose($output);
         exit();

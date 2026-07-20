@@ -844,10 +844,22 @@ async function exportGajiToExcel() {
             return;
         }
         
-        const formatMoney = (val) => {
-            const num = parseFloat(val || 0);
-            return 'Rp ' + Math.round(num).toLocaleString('id-ID');
-        };
+        // Initialize sums
+        let totalMinWage = 0;
+        let totalGp = 0;
+        let totalOt = 0;
+        let totalEa = 0;
+        let totalRapel = 0;
+        let totalLainBonus = 0;
+        let totalTotalPendapatan = 0;
+        let totalPotAbsen = 0;
+        let totalBpjsKes = 0;
+        let totalBpjsJht = 0;
+        let totalBpjsJp = 0;
+        let totalPph21 = 0;
+        let totalPotLain = 0;
+        let totalTotalPotongan = 0;
+        let totalThp = 0;
 
         // Format the rows for Excel
         const formatted = data.map((row, index) => {
@@ -883,6 +895,24 @@ async function exportGajiToExcel() {
             const pph21 = parseFloat(row.pph21 || 0);
             const totalPotongan = parseFloat(row.total_potongan || 0);
             const potLain = Math.max(0, totalPotongan - potAbsen - bpjsKaryawan - pph21);
+            const thp = parseFloat(row.take_home_pay || 0);
+
+            // Accumulate sums
+            totalMinWage += parseFloat(row.min_wage || 0);
+            totalGp += gp;
+            totalOt += ot;
+            totalEa += ea;
+            totalRapel += rapelVal;
+            totalLainBonus += lainBonus;
+            totalTotalPendapatan += totalPendapatan;
+            totalPotAbsen += potAbsen;
+            totalBpjsKes += bpjsKes;
+            totalBpjsJht += bpjsJht;
+            totalBpjsJp += bpjsJp;
+            totalPph21 += pph21;
+            totalPotLain += potLain;
+            totalTotalPotongan += totalPotongan;
+            totalThp += thp;
 
             return {
                 'No': index + 1,
@@ -896,27 +926,97 @@ async function exportGajiToExcel() {
                 'Department': row.department_name || '-',
                 'Position / Role': row.position_name || '-',
                 'Work Location': row.location_name || '-',
-                'Min. Wage (UMP/UMK)': row.min_wage ? formatMoney(row.min_wage) : '0',
-                'Basic Salary (Gaji Pokok)': formatMoney(gp),
-                'Overtime Pay (Lembur)': formatMoney(ot),
-                'Early Arrival Pay': formatMoney(ea),
-                'Rapel': formatMoney(rapelVal),
-                'Bonus / Lainnya': formatMoney(lainBonus),
-                'Total Income (Pendapatan)': formatMoney(totalPendapatan),
-                'Absence Deduction (Potongan Absen)': formatMoney(potAbsen),
-                'BPJS Kes (Karyawan)': formatMoney(bpjsKes),
-                'BPJS JHT (Karyawan)': formatMoney(bpjsJht),
-                'BPJS JP (Karyawan)': formatMoney(bpjsJp),
-                'Tax (PPh21)': formatMoney(pph21),
-                'Potongan Lain': formatMoney(potLain),
-                'Total Deductions (Potongan)': formatMoney(totalPotongan),
-                'Net Salary (Take Home Pay)': formatMoney(row.take_home_pay),
+                'Min. Wage (UMP/UMK)': row.min_wage ? Math.round(parseFloat(row.min_wage)) : 0,
+                'Basic Salary (Gaji Pokok)': Math.round(gp),
+                'Overtime Pay (Lembur)': Math.round(ot),
+                'Early Arrival Pay': Math.round(ea),
+                'Rapel': Math.round(rapelVal),
+                'Bonus / Lainnya': Math.round(lainBonus),
+                'Total Income (Pendapatan)': Math.round(totalPendapatan),
+                'Absence Deduction (Potongan Absen)': Math.round(potAbsen),
+                'BPJS Kes (Karyawan)': Math.round(bpjsKes),
+                'BPJS JHT (Karyawan)': Math.round(bpjsJht),
+                'BPJS JP (Karyawan)': Math.round(bpjsJp),
+                'Tax (PPh21)': Math.round(pph21),
+                'Potongan Lain': Math.round(potLain),
+                'Total Deductions (Potongan)': Math.round(totalPotongan),
+                'Net Salary (Take Home Pay)': Math.round(thp),
                 'Status': row.status_approval || 'Pending'
             };
+        });
+
+        // Push total row
+        formatted.push({
+            'No': 'TOTAL',
+            'Company / Client': '',
+            'Employee ID (NIK)': '',
+            'Employee Name': '',
+            'Contract Type': '',
+            'Place & Date of Birth': '',
+            'NPWP': '',
+            'Division': '',
+            'Department': '',
+            'Position / Role': '',
+            'Work Location': '',
+            'Min. Wage (UMP/UMK)': Math.round(totalMinWage),
+            'Basic Salary (Gaji Pokok)': Math.round(totalGp),
+            'Overtime Pay (Lembur)': Math.round(totalOt),
+            'Early Arrival Pay': Math.round(totalEa),
+            'Rapel': Math.round(totalRapel),
+            'Bonus / Lainnya': Math.round(totalLainBonus),
+            'Total Income (Pendapatan)': Math.round(totalTotalPendapatan),
+            'Absence Deduction (Potongan Absen)': Math.round(totalPotAbsen),
+            'BPJS Kes (Karyawan)': Math.round(totalBpjsKes),
+            'BPJS JHT (Karyawan)': Math.round(totalBpjsJht),
+            'BPJS JP (Karyawan)': Math.round(totalBpjsJp),
+            'Tax (PPh21)': Math.round(totalPph21),
+            'Potongan Lain': Math.round(totalPotLain),
+            'Total Deductions (Potongan)': Math.round(totalTotalPotongan),
+            'Net Salary (Take Home Pay)': Math.round(totalThp),
+            'Status': ''
         });
         
         // Create SheetJS workbook and worksheet
         const ws = XLSX.utils.json_to_sheet(formatted);
+        
+        // Apply Cell Formatting for currency columns (display as "Rp 5.000.000" but keeps numeric values)
+        const numericKeys = [
+            'Min. Wage (UMP/UMK)',
+            'Basic Salary (Gaji Pokok)',
+            'Overtime Pay (Lembur)',
+            'Early Arrival Pay',
+            'Rapel',
+            'Bonus / Lainnya',
+            'Total Income (Pendapatan)',
+            'Absence Deduction (Potongan Absen)',
+            'BPJS Kes (Karyawan)',
+            'BPJS JHT (Karyawan)',
+            'BPJS JP (Karyawan)',
+            'Tax (PPh21)',
+            'Potongan Lain',
+            'Total Deductions (Potongan)',
+            'Net Salary (Take Home Pay)'
+        ];
+
+        if (ws['!ref']) {
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cell_ref = XLSX.utils.encode_cell({ r: R, c: C });
+                    const cell = ws[cell_ref];
+                    if (cell && (cell.t === 'n' || typeof cell.v === 'number')) {
+                        cell.t = 'n'; // Ensure type is number
+                        const header_cell_ref = XLSX.utils.encode_cell({ r: range.s.r, c: C });
+                        const header_cell = ws[header_cell_ref];
+                        if (header_cell && numericKeys.includes(header_cell.v)) {
+                            // Excel Custom Format String: "Rp"#,##0;("-Rp"#,##0);"-"
+                            cell.z = '"Rp"#,##0;("-Rp"#,##0);"-"';
+                        }
+                    }
+                }
+            }
+        }
+        
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Payroll Report");
         
@@ -2024,8 +2124,16 @@ function processParsedAttendance(rows) {
             const dd = String(dateObj.getDate()).padStart(2, '0');
             const formattedDate = `${yyyy}-${mm}-${dd}`;
 
-            // Filter: skip rows outside the selected calendar month
-            if (bulan && tahun) {
+            // Filter: skip rows outside the selected period's cutoff range
+            if (activePeriod && activePeriod.start_date && activePeriod.end_date) {
+                const startParts = activePeriod.start_date.split('-');
+                const endParts = activePeriod.end_date.split('-');
+                const startDate = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]), 0, 0, 0);
+                const endDate = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]), 23, 59, 59);
+                if (dateObj < startDate || dateObj > endDate) {
+                    return; // Skip this row - not in the period's cutoff range
+                }
+            } else if (bulan && tahun) {
                 const filterMonth = parseInt(bulan);
                 const filterYear = parseInt(tahun);
                 if (dateObj.getMonth() + 1 !== filterMonth || dateObj.getFullYear() !== filterYear) {

@@ -2428,10 +2428,7 @@ class Payroll extends ResourceController
             if ($isGrossUp) {
                 $totalTunjangan = $overtimePay + $taxAllowance + $customTunjangan;
                 $totalPotongan = $employeeBpjsDeductions + $pph21 + $potonganAlpa + $potonganLate + $potonganEarly + $customPotongan;
-            } elseif ($isNett) {
-                $totalTunjangan = $overtimePay + $customTunjangan;
-                $totalPotongan = $employeeBpjsDeductions + $potonganAlpa + $potonganLate + $potonganEarly + $customPotongan;
-            } else { // Gross (including TER, Progresif, etc.)
+            } else { // Gross and Nett (Always deduct tax from employee)
                 $totalTunjangan = $overtimePay + $customTunjangan;
                 $totalPotongan = $employeeBpjsDeductions + $pph21 + $potonganAlpa + $potonganLate + $potonganEarly + $customPotongan;
             }
@@ -2556,7 +2553,7 @@ class Payroll extends ResourceController
             if ($bpjsJpKaryawan > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'BPJS TK JP (' . floatval($jpRateEmp) . '% Karyawan)', 'tipe' => 'Potongan', 'jumlah' => $bpjsJpKaryawan]);
             if ($potonganAlpa > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Potongan Alfa / Early Leave', 'tipe' => 'Potongan', 'jumlah' => $potonganAlpa]);
             if ($potonganLate > 0) $detailModel->insert(['payroll_id' => $payrollId, 'nama_komponen' => 'Denda Keterlambatan', 'tipe' => 'Potongan', 'jumlah' => $potonganLate]);
-            if ($pph21 != 0 && $curTaxMethod !== 'Net') {
+            if ($pph21 != 0) {
                 $ptkpCategory = $this->determineTerCategory($ptkpStatus);
                 if ($bulan == 12) {
                     $taxName = $pph21 < 0 ? 'Kelebihan Potongan PPh 21 (Refund)' : 'Potongan Pajak PPh 21 (Pasal 17)';
