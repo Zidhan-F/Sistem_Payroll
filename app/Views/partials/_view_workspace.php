@@ -9,7 +9,7 @@
                                 <i class="fas fa-arrow-left"></i> Back
                             </button>
                             <?php endif; ?>
-                            <h2 id="clientWorkspaceTitle" style="font-size: 22px; font-weight: 700; color: var(--secondary-color); margin: 0;">🏢 -</h2>
+                            <h2 id="clientWorkspaceTitle" style="font-size: 22px; font-weight: 700; color: var(--secondary-color); margin: 0;">-</h2>
                         </div>
                         <div id="clientWorkspaceMeta" style="font-size: 14px; color: var(--text-muted); font-weight: 500;">
                             Sector: <strong id="clientWorkspaceSektor" style="color: var(--primary-color);">-</strong>
@@ -25,6 +25,7 @@
                     <button class="ws-tab" data-wtab="kompensasi" onclick="switchWorkspaceTab('kompensasi')">Scheme Choices</button>
                     <button class="ws-tab" data-wtab="pkwt" onclick="switchWorkspaceTab('pkwt')">PKWT Contract</button>
                     <button class="ws-tab" data-wtab="proses" onclick="switchWorkspaceTab('proses')">Process Payroll</button>
+                    <button class="ws-tab" data-wtab="laporan" onclick="switchWorkspaceTab('laporan')">Payroll Report</button>
                 </div>
                 <?php endif; ?>
 

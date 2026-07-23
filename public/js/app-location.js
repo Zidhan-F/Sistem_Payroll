@@ -170,7 +170,7 @@ function renderWorkLocationsTable() {
 }
 
 async function bukaModalLokasiKerja() {
-    document.getElementById('modalLokasiKerja').style.display = 'block';
+    document.getElementById('modalLokasiKerja').style.display = 'flex';
     document.getElementById('overlay').style.display = 'block';
     
     document.getElementById('formLokasiKerja').reset();

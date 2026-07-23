@@ -178,6 +178,10 @@ function switchWorkspaceTab(tab) {
                 switchPayrollProcessSubTab('processing');
             }
         }
+    } else if (tab === 'laporan') {
+        if (typeof loadPayrollReport === 'function') {
+            loadPayrollReport(window.selectedClientId);
+        }
     } else if (tab === 'attendance') {
         const selectEl = document.getElementById('attendanceClientSelect');
         if (selectEl) {

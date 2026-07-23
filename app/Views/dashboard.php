@@ -484,7 +484,7 @@
                                 <i class="fas fa-arrow-left"></i> Back
                             </button>
                             <?php endif; ?>
-                            <h2 id="clientWorkspaceTitle" style="font-size: 22px; font-weight: 700; color: var(--secondary-color); margin: 0;">🏢 -</h2>
+                            <h2 id="clientWorkspaceTitle" style="font-size: 22px; font-weight: 700; color: var(--secondary-color); margin: 0;">-</h2>
                         </div>
                         <div id="clientWorkspaceMeta" style="font-size: 14px; color: var(--text-muted); font-weight: 500;">
                             Sector: <strong id="clientWorkspaceSektor" style="color: var(--primary-color);">-</strong>
@@ -500,6 +500,7 @@
                     <button class="ws-tab" data-wtab="kompensasi" onclick="switchWorkspaceTab('kompensasi')">Scheme Selections</button>
                     <button class="ws-tab" data-wtab="pkwt" onclick="switchWorkspaceTab('pkwt')">PKWT Contract</button>
                     <button class="ws-tab" data-wtab="proses" onclick="switchWorkspaceTab('proses')">Process Payroll</button>
+                    <button class="ws-tab" data-wtab="laporan" onclick="switchWorkspaceTab('laporan')">Payroll Report</button>
                     <button class="ws-tab" data-wtab="attendance" onclick="switchWorkspaceTab('attendance')">Attendance</button>
                     <button class="ws-tab" data-wtab="overtime" onclick="switchWorkspaceTab('overtime')">Overtime</button>
                     <button class="ws-tab" data-wtab="earlyArrival" onclick="switchWorkspaceTab('earlyArrival')">Early Arrival</button>
@@ -780,6 +781,159 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel: Payroll Report -->
+                        <div id="viewLaporan" class="w-tab-panel">
+                            <div class="content-card" style="box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; background: white;">
+                                
+                                <!-- Section Header -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                                    <div>
+                                        <h3 style="font-size: 20px; color: #1e293b; font-weight: 800; margin: 0 0 4px 0; display: flex; align-items: center; gap: 10px;">
+                                            <i class="fas fa-chart-line" style="color: #f39c12;"></i> Laporan Summary Gaji (Month-on-Month)
+                                        </h3>
+                                        <p style="color: #64748b; font-size: 13px; margin: 0;">Ringkasan dan visualisasi tren total pengeluaran gaji karyawan secara bulanan untuk klien ini.</p>
+                                    </div>
+                                    <div class="report-actions-bar" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                        <button type="button" onclick="exportReportExcel()" style="background: #10b981; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;">
+                                            <i class="fas fa-file-excel"></i> Export Excel
+                                        </button>
+                                        <button type="button" onclick="exportReportPdf()" style="background: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;">
+                                            <i class="fas fa-file-pdf"></i> Export PDF
+                                        </button>
+                                        <button type="button" onclick="loadPayrollReport()" style="background: var(--primary-color); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;">
+                                            <i class="fas fa-sync-alt"></i> Refresh Data
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Filter Bar -->
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+                                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; display: none;">
+                                        <label style="font-size: 12px; font-weight: 700; color: #475569;">Pilih Klien:</label>
+                                        <select id="filterReportClient" onchange="loadPayrollReport()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white;">
+                                            <option value="all">Semua Klien</option>
+                                        </select>
+                                    </div>
+
+                                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 150px;">
+                                        <label style="font-size: 12px; font-weight: 700; color: #475569;">Tahun Periode:</label>
+                                        <select id="filterReportTahun" onchange="loadPayrollReport()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white;">
+                                            <option value="all">Semua Tahun</option>
+                                            <option value="2026" selected>2026</option>
+                                            <option value="2025">2025</option>
+                                        </select>
+                                    </div>
+
+                                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px;">
+                                        <label style="font-size: 12px; font-weight: 700; color: #475569;">Tampilkan Metrik Grafik:</label>
+                                        <select id="filterReportMetric" onchange="renderReportCharts()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white;">
+                                            <option value="total_thp">Take Home Pay (THP)</option>
+                                            <option value="total_pendapatan">Total Pendapatan (Gross)</option>
+                                            <option value="total_karyawan">Jumlah Karyawan (Headcount)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- KPI Metric Cards Grid -->
+                                <div class="stats-grid" style="margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                                    <div class="stat-card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff;">
+                                        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                            <i class="fas fa-coins"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <h4 id="kpiReportTotalThp" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Total THP / Gaji Bersih</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff;">
+                                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                            <i class="fas fa-user-friends"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <h4 id="kpiReportHeadcount" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">0 Orang</h4>
+                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Total Karyawan</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff;">
+                                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                            <i class="fas fa-calculator"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <h4 id="kpiReportAvgSalary" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Rata-Rata Gaji / Karyawan</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff;">
+                                        <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <div class="stat-info">
+                                            <h4 id="kpiReportMomGrowth" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">0.00% MoM</h4>
+                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Tren MoM Periode Terakhir</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Charts Section (Grid 2 Canvas) -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                                    <!-- Line Chart: Month on Month Trend -->
+                                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white;">
+                                        <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                                            <i class="fas fa-chart-area" style="color: #3b82f6;"></i> Tren Month-on-Month Klien
+                                        </h4>
+                                        <div style="height: 300px; position: relative;">
+                                            <canvas id="chartMomPayroll"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- Bar Chart: Gaji Pokok vs Tunjangan vs Potongan -->
+                                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white;">
+                                        <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                                            <i class="fas fa-chart-bar" style="color: #10b981;"></i> Komposisi Komponen Gaji (Pokok, Tunjangan, Potongan)
+                                        </h4>
+                                        <div style="height: 300px; position: relative;">
+                                            <canvas id="chartPayrollComposition"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Summary Data Table -->
+                                <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white;">
+                                    <div style="padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                                        <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">
+                                            Rincian Data Summary Gaji Bulanan Klien
+                                        </h4>
+                                        <span style="font-size: 12px; color: #64748b;">Menampilkan perbandingan bulanan</span>
+                                    </div>
+
+                                    <div style="overflow-x: auto;">
+                                        <table style="width: 100%; border-collapse: collapse; min-width: 950px; font-size: 13px;">
+                                            <thead>
+                                                <tr style="background: #f1f5f9; text-align: left; color: #475569; font-weight: 700; border-bottom: 2px solid #e2e8f0; white-space: nowrap;">
+                                                    <th style="width: 50px; text-align: center; padding: 14px 16px; white-space: nowrap;">No</th>
+                                                    <th style="padding: 14px 16px; white-space: nowrap;">Nama Klien</th>
+                                                    <th style="text-align: center; padding: 14px 16px; white-space: nowrap;">Periode</th>
+                                                    <th style="text-align: center; padding: 14px 16px; white-space: nowrap;">Headcount</th>
+                                                    <th style="text-align: right; padding: 14px 16px; white-space: nowrap;">Total Gaji Pokok</th>
+                                                    <th style="text-align: right; padding: 14px 16px; white-space: nowrap;">Total Tunjangan</th>
+                                                    <th style="text-align: right; padding: 14px 16px; white-space: nowrap;">Total Potongan</th>
+                                                    <th style="text-align: right; padding: 14px 16px; white-space: nowrap;">Take Home Pay (THP)</th>
+                                                    <th style="text-align: center; padding: 14px 16px; white-space: nowrap;">Pertumbuhan MoM</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tableReportPayrollBody">
+                                                <!-- Data rows rendered dynamically via app-report.js -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
 
@@ -1117,13 +1271,8 @@
                                 <th style="width: 150px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="compensationSchemesContainer">
-                            <!-- Rows will be dynamically rendered here -->
-                        </tbody>
-                    </table>
             </div>
         </div>
-        <!-- Section: Log Aktivitas Removed -->
     </div>
 
     <?= view('partials/_modals') ?>

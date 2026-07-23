@@ -42,7 +42,11 @@
     <script src="<?= base_url('js/modules/app-early-arrival.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-shift.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-fpk.js?v=' . time()) ?>"></script>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
     <script src="<?= base_url('js/modules/app-ai-assistant.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-report.js?v=' . time()) ?>"></script>
     <!-- Existing separate modules -->
     <script src="<?= base_url('js/app-org.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/app-global-sto.js?v=' . time()) ?>"></script>

@@ -102,11 +102,11 @@ if (currentUser && document.getElementById('headerUserName')) {
 // ===== RBAC - Role Based Access Control =====
 const ROLE_PERMISSIONS = {
     admin: ['*'], // Akses semua
-    payroll: ['dashboard', 'klien', 'payroll', 'pajak', 'masterKompensasi', 'clientWorkspace'],
+    payroll: ['dashboard', 'klien', 'payroll', 'pajak', 'masterKompensasi', 'clientWorkspace', 'laporanGaji'],
     business_development: ['dashboard', 'klien'],
     recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace', 'fpkMaster'],
-    client_superior: ['dashboard', 'klien', 'clientWorkspace'],
-    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak', 'fpkMaster'],
+    client_superior: ['dashboard', 'klien', 'clientWorkspace', 'laporanGaji'],
+    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak', 'fpkMaster', 'laporanGaji'],
     staff: ['clientWorkspace']
 };
 
@@ -147,12 +147,12 @@ function applyWorkspaceTabRestrictions() {
     if (!tabs.length) return;
 
     const allowedTabs = {
-        admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses'],
-        payroll: ['proses'],
+        admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses', 'laporan', 'attendance', 'overtime', 'earlyArrival'],
+        payroll: ['proses', 'laporan'],
         business_development: [],
         recruiter: ['karyawan', 'pkwt'],
-        client_superior: ['proses', 'overtime', 'earlyArrival', 'pkwt'],
-        hc_ops: ['struktur', 'kompensasi', 'attendance', 'pkwt'],
+        client_superior: ['proses', 'laporan', 'overtime', 'earlyArrival', 'pkwt'],
+        hc_ops: ['struktur', 'kompensasi', 'attendance', 'pkwt', 'laporan'],
         staff: ['proses']
     };
 
@@ -783,12 +783,12 @@ function switchView(view) {
             let targetTab = view.toLowerCase();
             const role = getCurrentRole();
             const allowedTabs = {
-                admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses'],
-                payroll: ['proses'],
+                admin: ['karyawan', 'struktur', 'kompensasi', 'pkwt', 'proses', 'laporan'],
+                payroll: ['proses', 'laporan'],
                 business_development: ['struktur', 'kompensasi'],
                 recruiter: ['karyawan', 'pkwt'],
-                client_superior: ['proses', 'overtime', 'earlyArrival'],
-                hc_ops: ['attendance', 'struktur', 'kompensasi'],
+                client_superior: ['proses', 'laporan', 'overtime', 'earlyArrival'],
+                hc_ops: ['attendance', 'struktur', 'kompensasi', 'laporan'],
                 staff: ['proses']
             };
             const allowed = allowedTabs[role] || [];

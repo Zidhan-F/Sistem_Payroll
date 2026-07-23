@@ -2225,13 +2225,13 @@
     </div>
 
     <!-- Employee Data Modal -->
-    <div id="modalKaryawan" class="modal-skema" style="display: none; z-index: 1000;">
-        <div class="modal-header" style="background: var(--primary-color);">
+    <div id="modalKaryawan" class="modal-skema" style="display: none; z-index: 1000; width: 780px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
+        <div class="modal-header" style="background: var(--primary-color); flex-shrink: 0; padding: 18px 25px;">
             <h3 id="modalKaryawanTitle">Add Employee Data</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalKaryawan()"></i>
         </div>
-        <form id="formKaryawan" novalidate>
-            <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
+        <form id="formKaryawan" novalidate style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; margin: 0;">
+            <div class="modal-body" style="padding: 25px; overflow-y: auto; flex: 1; min-height: 0;">
                 <input type="hidden" id="employeeId">
                 
                 <div class="form-group" id="empClientIdContainer" style="margin-bottom: 15px;">
@@ -2396,7 +2396,7 @@
                     </select>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="flex-shrink: 0; padding: 15px 25px;">
                 <button type="button" class="btn-cancel" onclick="tutupModalKaryawan()">Cancel</button>
                 <button type="submit" class="btn-save" style="background: var(--primary-color);">Save Data</button>
             </div>
@@ -2404,13 +2404,13 @@
     </div>
 
     <!-- Work Location Modal -->
-    <div id="modalLokasiKerja" class="modal-skema" style="display: none; z-index: 1000;">
-        <div class="modal-header" style="background: var(--primary-color);">
+    <div id="modalLokasiKerja" class="modal-skema" style="display: none; z-index: 1000; width: 650px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
+        <div class="modal-header" style="background: var(--primary-color); flex-shrink: 0; padding: 18px 25px;">
             <h3 id="modalLokasiKerjaTitle">Add Work Location</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalLokasiKerja()"></i>
         </div>
-        <form id="formLokasiKerja">
-            <div class="modal-body" style="padding: 25px; max-height: 70vh; overflow-y: auto;">
+        <form id="formLokasiKerja" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; margin: 0;">
+            <div class="modal-body" style="padding: 25px; overflow-y: auto; flex: 1; min-height: 0;">
                 <input type="hidden" id="workLocationId">
                 
                 <div class="form-group" style="margin-bottom: 15px;">
@@ -2443,7 +2443,7 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="flex-shrink: 0; padding: 15px 25px;">
                 <button type="button" class="btn-cancel" onclick="tutupModalLokasiKerja()">Cancel</button>
                 <button type="submit" class="btn-save" style="background: var(--primary-color);">Save Data</button>
             </div>
@@ -3047,9 +3047,7 @@
                         <div class="form-group" style="margin: 0;">
                             <label style="font-weight: 600; font-size: 13px; color: #475569; display: block; margin-bottom: 6px;">Tax Method</label>
                             <select id="schemeMetodePajak" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
-                                <option value="Gross">Gross (Tax borne by Employee)</option>
-                                <option value="Gross Up">Gross Up (Tax Allowance)</option>
-                                <option value="Net">Net (Tax borne by Company)</option>
+                                <option value="Gross" selected>Gross (Pajak Ditanggung Karyawan)</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin: 0;">

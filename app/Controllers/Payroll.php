@@ -2833,12 +2833,8 @@ class Payroll extends ResourceController
             'metode_pajak' => 'Gross'
         ];
 
-        // Resolve tax method
-        if ($schemeTemplate) {
-            $result['metode_pajak'] = $schemeTemplate['metode_pajak'] ?? ($taxScheme ? ($taxScheme->metode ?? 'Gross') : 'Gross');
-        } elseif ($taxScheme) {
-            $result['metode_pajak'] = $taxScheme->metode ?? 'Gross';
-        }
+        // Resolve tax method - System enforced to Gross
+        $result['metode_pajak'] = 'Gross';
 
         if ($gajiPokok <= 0) {
             return $result;
@@ -2847,11 +2843,6 @@ class Payroll extends ResourceController
         // Determine Rates source
         $bpjsSrc = $bpjsScheme ?: ($schemeTemplate ?: $taxScheme);
         $taxSrc = $schemeTemplate ?: $taxScheme;
-
-        if ($taxSrc) {
-            $isTaxTemplate = is_array($taxSrc);
-            $result['metode_pajak'] = $isTaxTemplate ? ($taxSrc['metode_pajak'] ?? 'Gross') : ($taxSrc->metode ?? 'Gross');
-        }
 
         if ($bpjsSrc) {
             $isBpjsTemplate = is_array($bpjsSrc);
@@ -2896,7 +2887,7 @@ class Payroll extends ResourceController
         $result['bpjs_jkk_perusahaan'] = $bpjsWageBase * $jkkRateCo;
         $result['bpjs_jkm_perusahaan'] = $bpjsWageBase * $jkmRateCo;
 
-        // PPh 21 TER 2024 Calculation
+        // PPh 21 TER 2024 Calculation (PMK 168/2023: Kes 4% + JKK 0.24% + JKM 0.3%)
         $bpjsCoPremiums = $result['bpjs_kes_perusahaan'] + $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
         
         $ptkpCategory = $this->determineTerCategory($ptkpStatus);
@@ -2906,31 +2897,20 @@ class Payroll extends ResourceController
             $decResult = $this->calculateDecemberTaxReconciliation(
                 $employeeId, $tahun, $pphWageBase, $bpjsCoPremiums,
                 $result['bpjs_jht_karyawan'], $result['bpjs_jp_karyawan'],
-                $ptkpStatus, $result['metode_pajak']
+                $ptkpStatus, 'Gross'
             );
             $result['pph21'] = $decResult['pph21'];
-            $result['tax_allowance'] = $decResult['tax_allowance'];
+            $result['tax_allowance'] = 0;
             $result['ter_rate'] = 0; // Not applicable for December progressive
             return $result;
         }
 
-        if ($result['metode_pajak'] === 'Gross Up') {
-            // Iteration loop for Gross Up
-            $allowance = 0;
-            for ($i = 0; $i < 5; $i++) {
-                $brutoPajak = $pphWageBase + $bpjsCoPremiums + $allowance;
-                $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
-                $allowance = $brutoPajak * ($terRate / 100);
-            }
-            $result['tax_allowance'] = $allowance;
-            $result['pph21'] = $allowance;
-            $result['ter_rate'] = $terRate;
-        } else {
-            $brutoPajak = $pphWageBase + $bpjsCoPremiums;
-            $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
-            $result['pph21'] = $brutoPajak * ($terRate / 100);
-            $result['ter_rate'] = $terRate;
-        }
+        // Gross Tax Method: Pajak dipotong dari penghasilan bruto
+        $brutoPajak = $pphWageBase + $bpjsCoPremiums;
+        $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
+        $result['pph21'] = $brutoPajak * ($terRate / 100);
+        $result['tax_allowance'] = 0;
+        $result['ter_rate'] = $terRate;
 
         return $result;
     }

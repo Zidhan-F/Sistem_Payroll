@@ -556,7 +556,7 @@ async function bukaModalKaryawan(mode,id=null){
     window.isHariKerjaManuallyEdited = false;
     currentSelectedPayrollType = null;
     const m=document.getElementById('modalKaryawan'),cs=document.getElementById('empClientId');
-    m.style.display='block';document.getElementById('overlay').style.display='block';
+    m.style.display='flex';document.getElementById('overlay').style.display='block';
     
     // Reset form first so it doesn't overwrite values set below!
     document.getElementById('formKaryawan').reset();

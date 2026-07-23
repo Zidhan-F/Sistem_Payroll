@@ -924,7 +924,6 @@ async function exportGajiToExcel() {
             const totalCoBpjsRow = bpjsKesCo + bpjsJhtCo + bpjsJpCo + bpjsJkkCo + bpjsJkmCo;
 
             // Accumulate sums
-            totalMinWage += parseFloat(row.min_wage || 0);
             totalGp += gp;
             totalOt += ot;
             totalEa += ea;
@@ -959,27 +958,26 @@ async function exportGajiToExcel() {
                 'Department': row.department_name || '-',
                 'Position / Role': row.position_name || '-',
                 'Work Location': row.location_name || '-',
-                'Min. Wage (UMP/UMK)': row.min_wage ? Math.round(parseFloat(row.min_wage)) : 0,
-                'Basic Salary (Gaji Pokok)': Math.round(gp),
-                'Overtime Pay (Lembur)': Math.round(ot),
-                'Early Arrival Pay': Math.round(ea),
-                'Rapel': Math.round(rapelVal),
-                'Bonus / Lainnya': Math.round(lainBonus),
-                'Total Income (Pendapatan)': Math.round(totalPendapatan),
-                'Absence Deduction (Potongan Absen)': Math.round(potAbsen),
-                'BPJS Kes (Karyawan)': Math.round(bpjsKes),
-                'BPJS JHT (Karyawan)': Math.round(bpjsJht),
-                'BPJS JP (Karyawan)': Math.round(bpjsJp),
-                'Tax (PPh21)': Math.round(pph21),
-                'Potongan Lain': Math.round(potLain),
-                'Total Deductions (Potongan)': Math.round(totalPotongan),
-                'Net Salary (Take Home Pay)': Math.round(thp),
-                'BPJS Kes (Perusahaan)': Math.round(bpjsKesCo),
-                'BPJS JHT (Perusahaan)': Math.round(bpjsJhtCo),
-                'BPJS JP (Perusahaan)': Math.round(bpjsJpCo),
-                'BPJS JKK (Perusahaan)': Math.round(bpjsJkkCo),
-                'BPJS JKM (Perusahaan)': Math.round(bpjsJkmCo),
-                'Total BPJS (Perusahaan)': Math.round(totalCoBpjsRow),
+                'Basic Salary (Gaji Pokok)': Math.round(gp * 100) / 100,
+                'Overtime Pay (Lembur)': Math.round(ot * 100) / 100,
+                'Early Arrival Pay': Math.round(ea * 100) / 100,
+                'Rapel': Math.round(rapelVal * 100) / 100,
+                'Bonus / Lainnya': Math.round(lainBonus * 100) / 100,
+                'Total Income (Pendapatan)': Math.round(totalPendapatan * 100) / 100,
+                'Absence Deduction (Potongan Absen)': Math.round(potAbsen * 100) / 100,
+                'BPJS Kes (Karyawan)': Math.round(bpjsKes * 100) / 100,
+                'BPJS JHT (Karyawan)': Math.round(bpjsJht * 100) / 100,
+                'BPJS JP (Karyawan)': Math.round(bpjsJp * 100) / 100,
+                'Tax (PPh21)': Math.round(pph21 * 100) / 100,
+                'Potongan Lain': Math.round(potLain * 100) / 100,
+                'Total Deductions (Potongan)': Math.round(totalPotongan * 100) / 100,
+                'Net Salary (Take Home Pay)': Math.round(thp * 100) / 100,
+                'BPJS Kes (Perusahaan)': Math.round(bpjsKesCo * 100) / 100,
+                'BPJS JHT (Perusahaan)': Math.round(bpjsJhtCo * 100) / 100,
+                'BPJS JP (Perusahaan)': Math.round(bpjsJpCo * 100) / 100,
+                'BPJS JKK (Perusahaan)': Math.round(bpjsJkkCo * 100) / 100,
+                'BPJS JKM (Perusahaan)': Math.round(bpjsJkmCo * 100) / 100,
+                'Total BPJS (Perusahaan)': Math.round(totalCoBpjsRow * 100) / 100,
                 'Status': row.status_approval || 'Pending'
             };
         });
@@ -998,27 +996,26 @@ async function exportGajiToExcel() {
             'Department': '',
             'Position / Role': '',
             'Work Location': '',
-            'Min. Wage (UMP/UMK)': Math.round(totalMinWage),
-            'Basic Salary (Gaji Pokok)': Math.round(totalGp),
-            'Overtime Pay (Lembur)': Math.round(totalOt),
-            'Early Arrival Pay': Math.round(totalEa),
-            'Rapel': Math.round(totalRapel),
-            'Bonus / Lainnya': Math.round(totalLainBonus),
-            'Total Income (Pendapatan)': Math.round(totalTotalPendapatan),
-            'Absence Deduction (Potongan Absen)': Math.round(totalPotAbsen),
-            'BPJS Kes (Karyawan)': Math.round(totalBpjsKes),
-            'BPJS JHT (Karyawan)': Math.round(totalBpjsJht),
-            'BPJS JP (Karyawan)': Math.round(totalBpjsJp),
-            'Tax (PPh21)': Math.round(totalPph21),
-            'Potongan Lain': Math.round(totalPotLain),
-            'Total Deductions (Potongan)': Math.round(totalTotalPotongan),
-            'Net Salary (Take Home Pay)': Math.round(totalThp),
-            'BPJS Kes (Perusahaan)': Math.round(totalBpjsKesCo),
-            'BPJS JHT (Perusahaan)': Math.round(totalBpjsJhtCo),
-            'BPJS JP (Perusahaan)': Math.round(totalBpjsJpCo),
-            'BPJS JKK (Perusahaan)': Math.round(totalBpjsJkkCo),
-            'BPJS JKM (Perusahaan)': Math.round(totalBpjsJkmCo),
-            'Total BPJS (Perusahaan)': Math.round(totalTotalBpjsCo),
+            'Basic Salary (Gaji Pokok)': Math.round(totalGp * 100) / 100,
+            'Overtime Pay (Lembur)': Math.round(totalOt * 100) / 100,
+            'Early Arrival Pay': Math.round(totalEa * 100) / 100,
+            'Rapel': Math.round(totalRapel * 100) / 100,
+            'Bonus / Lainnya': Math.round(totalLainBonus * 100) / 100,
+            'Total Income (Pendapatan)': Math.round(totalTotalPendapatan * 100) / 100,
+            'Absence Deduction (Potongan Absen)': Math.round(totalPotAbsen * 100) / 100,
+            'BPJS Kes (Karyawan)': Math.round(totalBpjsKes * 100) / 100,
+            'BPJS JHT (Karyawan)': Math.round(totalBpjsJht * 100) / 100,
+            'BPJS JP (Karyawan)': Math.round(totalBpjsJp * 100) / 100,
+            'Tax (PPh21)': Math.round(totalPph21 * 100) / 100,
+            'Potongan Lain': Math.round(totalPotLain * 100) / 100,
+            'Total Deductions (Potongan)': Math.round(totalTotalPotongan * 100) / 100,
+            'Net Salary (Take Home Pay)': Math.round(totalThp * 100) / 100,
+            'BPJS Kes (Perusahaan)': Math.round(totalBpjsKesCo * 100) / 100,
+            'BPJS JHT (Perusahaan)': Math.round(totalBpjsJhtCo * 100) / 100,
+            'BPJS JP (Perusahaan)': Math.round(totalBpjsJpCo * 100) / 100,
+            'BPJS JKK (Perusahaan)': Math.round(totalBpjsJkkCo * 100) / 100,
+            'BPJS JKM (Perusahaan)': Math.round(totalBpjsJkmCo * 100) / 100,
+            'Total BPJS (Perusahaan)': Math.round(totalTotalBpjsCo * 100) / 100,
             'Status': ''
         });
         
@@ -1028,7 +1025,6 @@ async function exportGajiToExcel() {
         
         // Apply Cell Formatting for currency columns (display as "Rp 5.000.000" but keeps numeric values)
         const numericKeys = [
-            'Min. Wage (UMP/UMK)',
             'Basic Salary (Gaji Pokok)',
             'Overtime Pay (Lembur)',
             'Early Arrival Pay',
@@ -1097,7 +1093,6 @@ async function exportGajiToExcel() {
             {wch: 15},  // Department
             {wch: 18},  // Position / Role
             {wch: 25},  // Work Location
-            {wch: 20},  // Min. Wage (UMP/UMK)
             {wch: 25},  // Basic Salary (Gaji Pokok)
             {wch: 20},  // Overtime Pay (Lembur)
             {wch: 20},  // Early Arrival Pay
@@ -1330,7 +1325,7 @@ async function bukaSlipGaji(id) {
             <table style="width: 100%; border: none; border-collapse: collapse; font-size: 12px; font-weight: bold; background-color: #fafafa; border: 1px solid #eee; margin-bottom: 15px;">
                 <tr>
                     <td style="padding: 12px 15px; text-transform: uppercase; width: 50%;">TAKE HOME PAY (THP)</td>
-                    <td style="padding: 12px 15px; text-align: right; color: var(--success); font-size: 14px; width: 50%;">${formatRupiah(info.take_home_pay)}</td>
+                    <td style="padding: 12px 15px; text-align: right; color: var(--success); font-size: 14px; width: 50%;">${formatRupiah(totalIncome - totalDeduction)}</td>
                 </tr>
             </table>
 
@@ -1362,7 +1357,7 @@ async function bukaSlipGaji(id) {
                     </tr>
                     <tr style="border-top: 1px dashed #cbd5e1; font-weight: bold; color: #475569;"><td style="padding: 4px 0; padding-top: 6px;">Gaji Bruto Setelah Pajak</td><td style="padding: 4px 0; padding-top: 6px; text-align: right;">${formatRupiah(brutoPajak - tax)}</td></tr>
                 </table>
-                <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Total Gaji Bruto di atas merupakan dasar pengenaan pajak (DPP) PPh 21, yang terdiri dari seluruh pendapatan tunai dikurangi denda/potongan absen, ditambah premi BPJS Kesehatan (4%), JKK (0.24%), dan JKM (0.3%) yang ditanggung perusahaan.</div>
+                <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Total Gaji Bruto di atas merupakan dasar pengenaan pajak (DPP) PPh 21 sesuai PMK 168/2023, yang terdiri dari seluruh pendapatan tunai dikurangi denda/potongan absen, ditambah premi BPJS Kesehatan (4%), JKK (0.24%), dan JKM (0.3%) yang ditanggung perusahaan (JHT 3.7% & JP 2% ditanggung perusahaan tidak menambah bruto).</div>
             </div>
             ` : ''}
         </div>

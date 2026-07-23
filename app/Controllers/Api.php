@@ -6755,7 +6755,6 @@ class Api extends ResourceController
             'Department',
             'Position / Role', 
             'Work Location',
-            'Min. Wage (UMP/UMK)',
             'Basic Salary', 
             'Overtime Pay',
             'Early Arrival',
@@ -6892,7 +6891,6 @@ class Api extends ResourceController
                 $row['department_name'] ?? '-',
                 $row['position_name'] ?? '-',
                 $row['location_name'] ?? '-',
-                isset($row['min_wage']) ? floatval($row['min_wage']) : '',
                 $gp,
                 $ot,
                 $ea,
@@ -7625,12 +7623,8 @@ class Api extends ResourceController
             'metode_pajak' => 'Gross'
         ];
 
-        // Resolve tax method
-        if ($schemeTemplate) {
-            $result['metode_pajak'] = $schemeTemplate['metode_pajak'] ?? ($taxScheme ? ($taxScheme->metode ?? 'Gross') : 'Gross');
-        } elseif ($taxScheme) {
-            $result['metode_pajak'] = $taxScheme->metode ?? 'Gross';
-        }
+        // Resolve tax method - System enforced to Gross
+        $result['metode_pajak'] = 'Gross';
 
         if ($gajiPokok <= 0) {
             return $result;
@@ -7639,11 +7633,6 @@ class Api extends ResourceController
         // Determine Rates source
         $bpjsSrc = $bpjsScheme ?: ($schemeTemplate ?: $taxScheme);
         $taxSrc = $schemeTemplate ?: $taxScheme;
-
-        if ($taxSrc) {
-            $isTaxTemplate = is_array($taxSrc);
-            $result['metode_pajak'] = $isTaxTemplate ? ($taxSrc['metode_pajak'] ?? 'Gross') : ($taxSrc->metode ?? 'Gross');
-        }
 
         if ($bpjsSrc) {
             $isBpjsTemplate = is_array($bpjsSrc);
@@ -7688,7 +7677,7 @@ class Api extends ResourceController
         $result['bpjs_jkk_perusahaan'] = $bpjsWageBase * $jkkRateCo;
         $result['bpjs_jkm_perusahaan'] = $bpjsWageBase * $jkmRateCo;
 
-        // PPh 21 TER 2024 Calculation
+        // PPh 21 TER 2024 Calculation (PMK 168/2023: Kes 4% + JKK 0.24% + JKM 0.3%)
         $bpjsCoPremiums = $result['bpjs_kes_perusahaan'] + $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
         
         $ptkpCategory = $this->determineTerCategory($ptkpStatus);
@@ -7698,31 +7687,20 @@ class Api extends ResourceController
             $decResult = $this->calculateDecemberTaxReconciliation(
                 $pkwtId, $tahun, $pphWageBase, $bpjsCoPremiums,
                 $result['bpjs_jht_karyawan'], $result['bpjs_jp_karyawan'],
-                $ptkpStatus, $result['metode_pajak']
+                $ptkpStatus, 'Gross'
             );
             $result['pph21'] = $decResult['pph21'];
-            $result['tax_allowance'] = $decResult['tax_allowance'];
+            $result['tax_allowance'] = 0;
             $result['ter_rate'] = 0; // Not applicable for December progressive
             return $result;
         }
 
-        if ($result['metode_pajak'] === 'Gross Up') {
-            // Iteration loop for Gross Up
-            $allowance = 0;
-            for ($i = 0; $i < 5; $i++) {
-                $brutoPajak = $pphWageBase + $bpjsCoPremiums + $allowance;
-                $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
-                $allowance = $brutoPajak * ($terRate / 100);
-            }
-            $result['tax_allowance'] = $allowance;
-            $result['pph21'] = $allowance;
-            $result['ter_rate'] = $terRate;
-        } else {
-            $brutoPajak = $pphWageBase + $bpjsCoPremiums;
-            $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
-            $result['pph21'] = $brutoPajak * ($terRate / 100);
-            $result['ter_rate'] = $terRate;
-        }
+        // Gross Tax Method: Pajak dipotong dari penghasilan bruto
+        $brutoPajak = $pphWageBase + $bpjsCoPremiums;
+        $terRate = $this->getTerRate($ptkpCategory, $brutoPajak);
+        $result['pph21'] = $brutoPajak * ($terRate / 100);
+        $result['tax_allowance'] = 0;
+        $result['ter_rate'] = $terRate;
 
         return $result;
     }
@@ -8071,11 +8049,21 @@ class Api extends ResourceController
         }
         
         // 5. Fallback to global config (where all org columns are NULL)
-        return $this->db->table('client_payroll_configs')
+        $config = $this->db->table('client_payroll_configs')
                   ->where('client_id', $clientId)
                   ->where('division_id IS NULL')
                   ->where('department_id IS NULL')
                   ->where('position_id IS NULL')
+                  ->get()
+                  ->getRow();
+
+        if ($config) {
+            return $config;
+        }
+
+        // 6. Last fallback: return the first available config for this client
+        return $this->db->table('client_payroll_configs')
+                  ->where('client_id', $clientId)
                   ->get()
                   ->getRow();
     }
@@ -8261,6 +8249,9 @@ class Api extends ResourceController
                 $this->syncPKWTComponents($pkwtId, $emp->gaji_pokok);
             } else {
                 $updatePkwt = [];
+                if (!empty($emp->position_name) && $exists->position_name !== $emp->position_name) {
+                    $updatePkwt['position_name'] = $emp->position_name;
+                }
                 if (empty($exists->tipe_perjanjian) && !empty($emp->tipe_perjanjian)) {
                     $updatePkwt['tipe_perjanjian'] = $emp->tipe_perjanjian;
                 }
@@ -9490,5 +9481,183 @@ class Api extends ResourceController
             }
         }
     }
+
+    public function getPayrollSummaryReport()
+    {
+        $clientId = $this->request->getGet('client_id');
+        $tahun = $this->request->getGet('tahun');
+
+        // 1. Get client options
+        $clients = $this->db->table('clients')->select('id, nama, sektor')->orderBy('nama', 'ASC')->get()->getResultArray();
+
+        // 2. Query payroll_final summary grouped by client & period
+        $builderFinal = $this->db->table('payroll_final pf')
+            ->select('c.id as client_id, c.nama as client_name, pp.tahun, pp.bulan, 
+                COUNT(pf.id) as total_karyawan, 
+                SUM(COALESCE(pf.gaji_pokok,0)) as total_gaji_pokok, 
+                SUM(COALESCE(pf.total_pendapatan,0)) as total_pendapatan, 
+                SUM(COALESCE(pf.total_potongan,0)) as total_potongan, 
+                SUM(COALESCE(pf.take_home_pay,0)) as total_thp,
+                SUM(COALESCE(pf.bpjs_kes_perusahaan,0) + COALESCE(pf.bpjs_jht_perusahaan,0) + COALESCE(pf.bpjs_jp_perusahaan,0) + COALESCE(pf.bpjs_jkk_perusahaan,0) + COALESCE(pf.bpjs_jkm_perusahaan,0)) as bpjs_perusahaan,
+                SUM(COALESCE(pf.bpjs_kes_karyawan,0) + COALESCE(pf.bpjs_jht_karyawan,0) + COALESCE(pf.bpjs_jp_karyawan,0)) as bpjs_karyawan,
+                SUM(COALESCE(pf.pph21,0)) as total_pph21')
+            ->join('payroll_periods pp', 'pp.id = pf.period_id')
+            ->join('clients c', 'c.id = pp.client_id')
+            ->groupBy('c.id, c.nama, pp.tahun, pp.bulan')
+            ->orderBy('pp.tahun', 'ASC')
+            ->orderBy('pp.bulan', 'ASC')
+            ->orderBy('c.nama', 'ASC');
+
+        if (!empty($clientId) && $clientId !== 'all') {
+            $builderFinal->where('c.id', $clientId);
+        }
+        if (!empty($tahun) && $tahun !== 'all') {
+            $builderFinal->where('pp.tahun', $tahun);
+        }
+
+        $finalSummary = $builderFinal->get()->getResultArray();
+
+        // 3. Query legacy payrolls summary grouped by client & period
+        $builderLegacy = $this->db->table('payrolls p')
+            ->select('c.id as client_id, c.nama as client_name, p.tahun, p.bulan, 
+                COUNT(p.id) as total_karyawan, 
+                SUM(COALESCE(p.gaji_pokok,0)) as total_gaji_pokok, 
+                SUM(COALESCE(p.gaji_pokok,0) + COALESCE(p.total_tunjangan,0) + COALESCE(p.lembur_pay,0) + COALESCE(p.bonus_tambahan,0)) as total_pendapatan, 
+                SUM(COALESCE(p.total_potongan,0) + COALESCE(p.potongan_absen,0)) as total_potongan, 
+                SUM(COALESCE(p.take_home_pay,0)) as total_thp,
+                SUM(COALESCE(p.bpjs_kes_perusahaan,0) + COALESCE(p.bpjs_jht_perusahaan,0) + COALESCE(p.bpjs_jp_perusahaan,0) + COALESCE(p.bpjs_jkk_perusahaan,0) + COALESCE(p.bpjs_jkm_perusahaan,0)) as bpjs_perusahaan,
+                SUM(COALESCE(p.bpjs_kes_karyawan,0) + COALESCE(p.bpjs_jht_karyawan,0) + COALESCE(p.bpjs_jp_karyawan,0)) as bpjs_karyawan,
+                SUM(COALESCE(p.pph21,0)) as total_pph21')
+            ->join('employees e', 'e.id = p.employee_id')
+            ->join('clients c', 'c.id = e.client_id')
+            ->groupBy('c.id, c.nama, p.tahun, p.bulan')
+            ->orderBy('p.tahun', 'ASC')
+            ->orderBy('p.bulan', 'ASC')
+            ->orderBy('c.nama', 'ASC');
+
+        if (!empty($clientId) && $clientId !== 'all') {
+            $builderLegacy->where('c.id', $clientId);
+        }
+        if (!empty($tahun) && $tahun !== 'all') {
+            $builderLegacy->where('p.tahun', $tahun);
+        }
+
+        $legacySummary = $builderLegacy->get()->getResultArray();
+
+        // Merge records by client_id, tahun, bulan
+        $mergedMap = [];
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        foreach (array_merge($finalSummary, $legacySummary) as $row) {
+            $key = $row['client_id'] . '_' . $row['tahun'] . '_' . sprintf('%02d', $row['bulan']);
+            if (!isset($mergedMap[$key])) {
+                $bNum = (int)$row['bulan'];
+                $tNum = (int)$row['tahun'];
+                $mergedMap[$key] = [
+                    'client_id' => (int)$row['client_id'],
+                    'client_name' => $row['client_name'],
+                    'tahun' => $tNum,
+                    'bulan' => $bNum,
+                    'bulan_tahun_label' => ($monthNames[$bNum] ?? $bNum) . ' ' . $tNum,
+                    'total_karyawan' => 0,
+                    'total_gaji_pokok' => 0.0,
+                    'total_pendapatan' => 0.0,
+                    'total_potongan' => 0.0,
+                    'total_thp' => 0.0,
+                    'bpjs_perusahaan' => 0.0,
+                    'bpjs_karyawan' => 0.0,
+                    'total_pph21' => 0.0,
+                ];
+            }
+            $mergedMap[$key]['total_karyawan'] += (int)$row['total_karyawan'];
+            $mergedMap[$key]['total_gaji_pokok'] += (float)$row['total_gaji_pokok'];
+            $mergedMap[$key]['total_pendapatan'] += (float)$row['total_pendapatan'];
+            $mergedMap[$key]['total_potongan'] += (float)$row['total_potongan'];
+            $mergedMap[$key]['total_thp'] += (float)$row['total_thp'];
+            $mergedMap[$key]['bpjs_perusahaan'] += (float)$row['bpjs_perusahaan'];
+            $mergedMap[$key]['bpjs_karyawan'] += (float)$row['bpjs_karyawan'];
+            $mergedMap[$key]['total_pph21'] += (float)$row['total_pph21'];
+        }
+
+        // Sort chronologically by year, month, client_name
+        uksort($mergedMap, function($a, $b) use ($mergedMap) {
+            $itemA = $mergedMap[$a];
+            $itemB = $mergedMap[$b];
+            if ($itemA['tahun'] != $itemB['tahun']) return $itemA['tahun'] <=> $itemB['tahun'];
+            if ($itemA['bulan'] != $itemB['bulan']) return $itemA['bulan'] <=> $itemB['bulan'];
+            return strcmp($itemA['client_name'], $itemB['client_name']);
+        });
+        
+        $reportData = array_values($mergedMap);
+
+        // Calculate Month-on-Month Growth (%) per Client
+        $prevThpPerClient = [];
+        $prevEmpPerClient = [];
+        foreach ($reportData as &$item) {
+            $cid = $item['client_id'];
+            $currThp = $item['total_thp'];
+            $currEmp = $item['total_karyawan'];
+
+            if (isset($prevThpPerClient[$cid]) && $prevThpPerClient[$cid] > 0) {
+                $diff = $currThp - $prevThpPerClient[$cid];
+                $item['mom_growth_percent'] = round(($diff / $prevThpPerClient[$cid]) * 100, 2);
+                $item['mom_diff_amount'] = $diff;
+            } else {
+                $item['mom_growth_percent'] = 0.0;
+                $item['mom_diff_amount'] = 0.0;
+            }
+
+            if (isset($prevEmpPerClient[$cid]) && $prevEmpPerClient[$cid] > 0) {
+                $item['mom_emp_diff'] = $currEmp - $prevEmpPerClient[$cid];
+            } else {
+                $item['mom_emp_diff'] = 0;
+            }
+
+            $prevThpPerClient[$cid] = $currThp;
+            $prevEmpPerClient[$cid] = $currEmp;
+        }
+        unset($item);
+
+        // Calculate Overall Summary & Headcount (Avoid summing headcount across multiple periods for same client)
+        $grandTotalThp = array_sum(array_column($reportData, 'total_thp'));
+        $grandTotalGp = array_sum(array_column($reportData, 'total_gaji_pokok'));
+        $grandTotalPendapatan = array_sum(array_column($reportData, 'total_pendapatan'));
+        $grandTotalPotongan = array_sum(array_column($reportData, 'total_potongan'));
+        $totalBpjsPerusahaan = array_sum(array_column($reportData, 'bpjs_perusahaan'));
+
+        if (!empty($clientId) && $clientId !== 'all') {
+            $empCount = $this->db->table('employees')->where('client_id', $clientId)->countAllResults();
+            if ($empCount === 0 && !empty($reportData)) {
+                $lastRow = end($reportData);
+                $empCount = (int)$lastRow['total_karyawan'];
+            }
+            $totalHeadcount = $empCount;
+        } else {
+            $latestPerClient = [];
+            foreach ($reportData as $row) {
+                $latestPerClient[$row['client_id']] = (int)$row['total_karyawan'];
+            }
+            $totalHeadcount = array_sum($latestPerClient);
+        }
+
+        return $this->respond([
+            'status' => 'success',
+            'clients' => $clients,
+            'data' => $reportData,
+            'summary' => [
+                'total_thp' => $grandTotalThp,
+                'total_gaji_pokok' => $grandTotalGp,
+                'total_pendapatan' => $grandTotalPendapatan,
+                'total_potongan' => $grandTotalPotongan,
+                'total_headcount' => $totalHeadcount,
+                'total_bpjs_perusahaan' => $totalBpjsPerusahaan,
+                'avg_thp_per_employee' => $totalHeadcount > 0 ? round($grandTotalThp / $totalHeadcount, 2) : 0,
+            ]
+        ]);
+    }
 }
+
 

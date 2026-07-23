@@ -1446,8 +1446,12 @@ body:has(#overlay:not([style*="display: none"]):not([style*="display:none"])) {
         0 25px 60px rgba(0, 0, 0, 0.15),
         0 0 0 1px rgba(243, 156, 18, 0.08);
     max-height: 90vh;
-    overflow-y: auto;
+    box-sizing: border-box;
     animation: modalSkemaEntrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.modal-skema:has(.modal-body) {
+    overflow: hidden;
 }
 
 @keyframes modalSkemaEntrance {
