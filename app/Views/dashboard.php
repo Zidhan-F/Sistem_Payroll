@@ -937,7 +937,6 @@
                             </div>
                         </div>
 
-                        <?php if (($_COOKIE['user_role'] ?? '') !== 'admin'): ?>
                         <!-- Panel: Attendance -->
                         <div id="viewAttendance" class="w-tab-panel">
                             <?= view('partials/_view_attendance_panel') ?>
@@ -952,7 +951,6 @@
                         <div id="viewEarlyArrival" class="w-tab-panel">
                             <?= view('partials/_view_early_arrival_panel') ?>
                         </div>
-                        <?php endif; ?>
 
                         <!-- Panel: Scheme Selection -->
                         <div id="viewKompensasi" class="w-tab-panel">

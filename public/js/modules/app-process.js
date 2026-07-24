@@ -858,7 +858,6 @@ async function exportGajiToExcel() {
         }
         
         // Initialize sums
-        let totalMinWage = 0;
         let totalGp = 0;
         let totalOt = 0;
         let totalEa = 0;

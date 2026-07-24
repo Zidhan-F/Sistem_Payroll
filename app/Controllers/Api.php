@@ -6928,7 +6928,6 @@ class Api extends ResourceController
             '',
             '',
             '',
-            '',
             $totalGp,
             $totalOt,
             $totalEa,
