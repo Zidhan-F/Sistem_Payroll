@@ -10,6 +10,8 @@ window.reportState = {
     chartComposition: null,
     selectedClient: 'all',
     selectedTahun: 'all',
+    selectedStartDate: '',
+    selectedEndDate: '',
     selectedMetric: 'total_thp'
 };
 
@@ -49,14 +51,23 @@ async function loadPayrollReport(overrideClientId = null) {
         const selectTahunEl = document.getElementById('filterReportTahun');
         const tahunFilter = selectTahunEl ? selectTahunEl.value : (window.reportState.selectedTahun || 'all');
 
+        const startDateEl = document.getElementById('filterReportStartDate');
+        const endDateEl = document.getElementById('filterReportEndDate');
+        const startDateFilter = startDateEl ? startDateEl.value : (window.reportState.selectedStartDate || '');
+        const endDateFilter = endDateEl ? endDateEl.value : (window.reportState.selectedEndDate || '');
+
         window.reportState.selectedClient = clientFilter;
         window.reportState.selectedTahun = tahunFilter;
+        window.reportState.selectedStartDate = startDateFilter;
+        window.reportState.selectedEndDate = endDateFilter;
 
         showToast('Memuat data laporan gaji...', 'info');
 
         const queryParams = new URLSearchParams({
             client_id: clientFilter,
-            tahun: tahunFilter
+            tahun: tahunFilter,
+            start_date: startDateFilter,
+            end_date: endDateFilter
         });
 
         const response = await fetch(`${window.API}/reports/payroll-summary?${queryParams.toString()}`, {
@@ -496,7 +507,7 @@ function exportReportPdf() {
 
                 // Remove filter container bar
                 target.querySelectorAll('div').forEach(div => {
-                    if (div.innerText && (div.innerText.includes('Tahun Periode:') || div.innerText.includes('Pilih Klien:'))) {
+                    if (div.innerText && (div.innerText.includes('Tahun Periode:') || div.innerText.includes('Pilih Klien:') || div.innerText.includes('Tanggal Mulai'))) {
                         if (div.parentNode) {
                             div.parentNode.removeChild(div);
                         }
@@ -696,6 +707,50 @@ function exportReportPdf() {
     });
 }
 
+function onReportTahunChange() {
+    const startDateEl = document.getElementById('filterReportStartDate');
+    const endDateEl = document.getElementById('filterReportEndDate');
+    if (startDateEl) startDateEl.value = '';
+    if (endDateEl) endDateEl.value = '';
+
+    window.reportState.selectedStartDate = '';
+    window.reportState.selectedEndDate = '';
+
+    loadPayrollReport();
+}
+
+function onReportDateRangeChange() {
+    const startDateEl = document.getElementById('filterReportStartDate');
+    const endDateEl = document.getElementById('filterReportEndDate');
+    const selectTahunEl = document.getElementById('filterReportTahun');
+
+    if ((startDateEl && startDateEl.value) || (endDateEl && endDateEl.value)) {
+        if (selectTahunEl) selectTahunEl.value = 'all';
+        window.reportState.selectedTahun = 'all';
+    }
+
+    loadPayrollReport();
+}
+
+function resetReportFilter() {
+    const startDateEl = document.getElementById('filterReportStartDate');
+    const endDateEl = document.getElementById('filterReportEndDate');
+    const selectTahunEl = document.getElementById('filterReportTahun');
+    const selectMetricEl = document.getElementById('filterReportMetric');
+
+    if (startDateEl) startDateEl.value = '';
+    if (endDateEl) endDateEl.value = '';
+    if (selectTahunEl) selectTahunEl.value = '2026';
+    if (selectMetricEl) selectMetricEl.value = 'total_thp';
+
+    window.reportState.selectedStartDate = '';
+    window.reportState.selectedEndDate = '';
+    window.reportState.selectedTahun = '2026';
+    window.reportState.selectedMetric = 'total_thp';
+
+    loadPayrollReport();
+}
+
 function dateStr() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -703,5 +758,295 @@ function dateStr() {
 
 // Global helpers attached to window
 window.loadPayrollReport = loadPayrollReport;
+window.onReportTahunChange = onReportTahunChange;
+window.onReportDateRangeChange = onReportDateRangeChange;
+window.resetReportFilter = resetReportFilter;
 window.exportReportExcel = exportReportExcel;
 window.exportReportPdf = exportReportPdf;
+
+/**
+ * Show KPI Detail Modal for top summary cards
+ */
+function showKpiDetailModal(type) {
+    const modal = document.getElementById('modalReportKpiDetail');
+    const overlay = document.getElementById('overlay');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('modalKpiDetailTitle');
+    const summaryEl = document.getElementById('modalKpiDetailSummary');
+    const theadEl = document.getElementById('modalKpiDetailThead');
+    const tbodyEl = document.getElementById('modalKpiDetailTbody');
+
+    const summary = window.reportState.summary || {};
+    const data = window.reportState.data || [];
+
+    if (!data.length) {
+        showToast('Belum ada data summary gaji untuk ditampilkan', 'warning');
+        return;
+    }
+
+    if (type === 'total_thp') {
+        titleEl.innerHTML = `<i class="fas fa-coins" style="color: #ffffff;"></i> Detail Total THP / Gaji Bersih`;
+        
+        let totalGajiPokok = 0, totalTunjangan = 0, totalPotongan = 0, totalThp = 0;
+        data.forEach(item => {
+            totalGajiPokok += (item.total_gaji_pokok || 0);
+            const tunj = Math.max(0, (item.total_pendapatan || 0) - (item.total_gaji_pokok || 0));
+            totalTunjangan += tunj;
+            totalPotongan += (item.total_potongan || 0);
+            totalThp += (item.total_thp || 0);
+        });
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL THP</div>
+                <div style="font-size: 16px; font-weight: 800; color: #3b82f6;">${formatRupiah(totalThp)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">GAJI POKOK</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${formatRupiah(totalGajiPokok)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL TUNJANGAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #10b981;">+${formatRupiah(totalTunjangan)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL POTONGAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #ef4444;">-${formatRupiah(totalPotongan)}</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 2px solid #cbd5e1;">
+                <th style="padding: 12px; text-align: center;">No</th>
+                <th style="padding: 12px;">Nama Klien</th>
+                <th style="padding: 12px; text-align: center;">Periode</th>
+                <th style="padding: 12px; text-align: right;">Gaji Pokok</th>
+                <th style="padding: 12px; text-align: right;">Tunjangan</th>
+                <th style="padding: 12px; text-align: right;">Potongan</th>
+                <th style="padding: 12px; text-align: right;">Take Home Pay</th>
+                <th style="padding: 12px; text-align: center;">Kontribusi %</th>
+            </tr>
+        `;
+
+        let rows = '';
+        data.forEach((item, idx) => {
+            const tunj = Math.max(0, (item.total_pendapatan || 0) - (item.total_gaji_pokok || 0));
+            const share = totalThp > 0 ? ((item.total_thp / totalThp) * 100).toFixed(1) : 0;
+            rows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(item.client_name)}</td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(item.total_gaji_pokok)}</td>
+                    <td style="padding: 12px; text-align: right; color: #10b981;">+${formatRupiah(tunj)}</td>
+                    <td style="padding: 12px; text-align: right; color: #ef4444;">-${formatRupiah(item.total_potongan)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #3b82f6;">${formatRupiah(item.total_thp)}</td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 12px; font-weight: 700;">${share}%</span></td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = rows;
+
+    } else if (type === 'headcount') {
+        titleEl.innerHTML = `<i class="fas fa-user-friends" style="color: #ffffff;"></i> Detail Total Karyawan (Headcount)`;
+
+        let maxHc = 0, totalHcAll = 0;
+        data.forEach(item => {
+            totalHcAll += (item.total_karyawan || 0);
+            if (item.total_karyawan > maxHc) maxHc = item.total_karyawan;
+        });
+        const avgHc = (totalHcAll / data.length).toFixed(1);
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL HEADCOUNT</div>
+                <div style="font-size: 16px; font-weight: 800; color: #10b981;">${summary.total_headcount || 0} Orang</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">RATA-RATA / PERIODE</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${avgHc} Orang</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">PERIODE TERBANYAK</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${maxHc} Orang</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 2px solid #cbd5e1;">
+                <th style="padding: 12px; text-align: center;">No</th>
+                <th style="padding: 12px;">Nama Klien</th>
+                <th style="padding: 12px; text-align: center;">Periode</th>
+                <th style="padding: 12px; text-align: center;">Jumlah Karyawan</th>
+                <th style="padding: 12px; text-align: right;">Total THP</th>
+                <th style="padding: 12px; text-align: right;">Rata-Rata Gaji / Orang</th>
+            </tr>
+        `;
+
+        let rows = '';
+        data.forEach((item, idx) => {
+            const avgVal = item.total_karyawan > 0 ? (item.total_thp / item.total_karyawan) : 0;
+            rows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(item.client_name)}</td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 4px 10px; border-radius: 12px; font-weight: 800;">${item.total_karyawan} Orang</span></td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700;">${formatRupiah(item.total_thp)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #1e293b;">${formatRupiah(avgVal)}</td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = rows;
+
+    } else if (type === 'avg_salary') {
+        titleEl.innerHTML = `<i class="fas fa-calculator" style="color: #ffffff;"></i> Detail Rata-Rata Gaji Per Karyawan`;
+
+        let highestAvg = 0, lowestAvg = Infinity;
+        data.forEach(item => {
+            const avg = item.total_karyawan > 0 ? (item.total_thp / item.total_karyawan) : 0;
+            if (avg > highestAvg) highestAvg = avg;
+            if (avg < lowestAvg && avg > 0) lowestAvg = avg;
+        });
+        if (lowestAvg === Infinity) lowestAvg = 0;
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">RATA-RATA UMUM</div>
+                <div style="font-size: 16px; font-weight: 800; color: #3b82f6;">${formatRupiah(summary.avg_thp_per_employee || 0)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">RATA-RATA TERTINGGI</div>
+                <div style="font-size: 16px; font-weight: 800; color: #10b981;">${formatRupiah(highestAvg)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">RATA-RATA TERENDAH</div>
+                <div style="font-size: 16px; font-weight: 800; color: #ef4444;">${formatRupiah(lowestAvg)}</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 2px solid #cbd5e1;">
+                <th style="padding: 12px; text-align: center;">No</th>
+                <th style="padding: 12px;">Nama Klien</th>
+                <th style="padding: 12px; text-align: center;">Periode</th>
+                <th style="padding: 12px; text-align: center;">Headcount</th>
+                <th style="padding: 12px; text-align: right;">Total THP</th>
+                <th style="padding: 12px; text-align: right;">Rata-Rata Gaji</th>
+                <th style="padding: 12px; text-align: center;">Kategori</th>
+            </tr>
+        `;
+
+        const globalAvg = summary.avg_thp_per_employee || 0;
+        let rows = '';
+        data.forEach((item, idx) => {
+            const avgVal = item.total_karyawan > 0 ? (item.total_thp / item.total_karyawan) : 0;
+            const diffPct = globalAvg > 0 ? (((avgVal - globalAvg) / globalAvg) * 100).toFixed(1) : 0;
+            const isAbove = avgVal >= globalAvg;
+
+            rows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(item.client_name)}</td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 12px; text-align: center;">${item.total_karyawan} Orang</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600;">${formatRupiah(item.total_thp)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #1e293b;">${formatRupiah(avgVal)}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; ${isAbove ? 'background: rgba(16, 185, 129, 0.1); color: #059669;' : 'background: rgba(239, 68, 68, 0.1); color: #dc2626;'}">
+                            ${isAbove ? 'Diatas Rata-Rata' : 'Dibawah Rata-Rata'} (${diffPct > 0 ? '+' : ''}${diffPct}%)
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = rows;
+
+    } else if (type === 'mom_growth') {
+        titleEl.innerHTML = `<i class="fas fa-chart-line" style="color: #ffffff;"></i> Detail Tren MoM (Month-on-Month Growth)`;
+
+        const lastItem = data.length > 0 ? data[data.length - 1] : {};
+        const growth = lastItem.mom_growth_percent || 0;
+        const diffAmt = lastItem.mom_diff_amount || 0;
+        const isPos = growth >= 0;
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">PERTUMBUHAN MOM TERAKHIR</div>
+                <div style="font-size: 16px; font-weight: 800; color: ${isPos ? '#10b981' : '#ef4444'};">${growth > 0 ? '+' : ''}${growth}%</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">SELISIH NOMINAL TERAKHIR</div>
+                <div style="font-size: 16px; font-weight: 800; color: ${diffAmt >= 0 ? '#10b981' : '#ef4444'};">${diffAmt > 0 ? '+' : ''}${formatRupiah(diffAmt)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">STATUS TREN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #8b5cf6;">${isPos ? 'Meningkat ↑' : 'Penurunan ↓'}</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 2px solid #cbd5e1;">
+                <th style="padding: 12px; text-align: center;">No</th>
+                <th style="padding: 12px;">Nama Klien</th>
+                <th style="padding: 12px; text-align: center;">Periode</th>
+                <th style="padding: 12px; text-align: right;">Total THP</th>
+                <th style="padding: 12px; text-align: right;">Selisih Nominal (Rp)</th>
+                <th style="padding: 12px; text-align: center;">Pertumbuhan MoM (%)</th>
+            </tr>
+        `;
+
+        let rows = '';
+        data.forEach((item, idx) => {
+            const g = item.mom_growth_percent || 0;
+            const diff = item.mom_diff_amount || 0;
+            const pos = g > 0;
+            const neg = g < 0;
+
+            let badgeClass = 'background: #f1f5f9; color: #475569;';
+            let badgeIcon = 'minus';
+            if (pos) {
+                badgeClass = 'background: rgba(16, 185, 129, 0.1); color: #059669;';
+                badgeIcon = 'arrow-up';
+            } else if (neg) {
+                badgeClass = 'background: rgba(239, 68, 68, 0.1); color: #dc2626;';
+                badgeIcon = 'arrow-down';
+            }
+
+            rows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(item.client_name)}</td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800;">${formatRupiah(item.total_thp)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600; color: ${diff >= 0 ? '#059669' : '#dc2626'};">${diff > 0 ? '+' : ''}${formatRupiah(diff)}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; ${badgeClass}">
+                            <i class="fas fa-${badgeIcon}"></i> ${g > 0 ? '+' : ''}${g}%
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = rows;
+    }
+
+    if (overlay) overlay.style.display = 'block';
+    modal.style.display = 'block';
+}
+
+function tutupModalKpiDetail() {
+    const modal = document.getElementById('modalReportKpiDetail');
+    const overlay = document.getElementById('overlay');
+    if (modal) modal.style.display = 'none';
+
+    const openModals = document.querySelectorAll('.modal-skema[style*="display: block"]');
+    if (openModals.length === 0 && overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+window.showKpiDetailModal = showKpiDetailModal;
+window.tutupModalKpiDetail = tutupModalKpiDetail;
+

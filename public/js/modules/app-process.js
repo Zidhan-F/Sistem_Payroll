@@ -1139,9 +1139,47 @@ async function exportGajiToExcel() {
 // ===== SLIP GAJI =====
 
 async function bukaSlipGaji(id) {
+    if (!id) {
+        if (typeof showToast === 'function') showToast('ID Slip Gaji tidak valid.', 'error');
+        return;
+    }
+
+    // Immediately open modal and overlay so the pop-up appears right away!
+    const modalSlip = document.getElementById('modalSlip');
+    const overlay = document.getElementById('overlay');
+    const slipContentEl = document.getElementById('slipContent');
+
+    if (modalSlip) {
+        modalSlip.style.display = 'block';
+        modalSlip.style.zIndex = '2000';
+        const modalBody = modalSlip.querySelector('.modal-body');
+        if (modalBody) modalBody.scrollTop = 0;
+    }
+    if (overlay) {
+        overlay.style.display = 'block';
+        overlay.style.zIndex = '1999';
+    }
+
+    if (slipContentEl) {
+        slipContentEl.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; color: #64748b;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 36px; color: var(--primary-color, #f39c12); margin-bottom: 15px;"></i>
+                <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: #334155;">Memuat Detail Slip Gaji...</h4>
+                <p style="margin: 5px 0 0 0; font-size: 12px; color: #94a3b8;">Mohon tunggu sebentar</p>
+            </div>
+        `;
+    }
+
     try {
         const response = await fetch(`${API_URL}/slip-details/${id}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.message || errData.messages?.error || `Gagal mengambil data slip (HTTP ${response.status})`);
+        }
         const data = await response.json();
+        if (!data || !data.info) {
+            throw new Error('Data slip gaji tidak ditemukan.');
+        }
 
         const info = data.info;
         
@@ -1155,27 +1193,29 @@ async function bukaSlipGaji(id) {
         let taxAllowanceLabel = '';
         let rapelComponents = [];
         
-        if (data.earnings && data.earnings.length > 0) {
+        if (data.earnings && Array.isArray(data.earnings)) {
             data.earnings.forEach(e => {
-                const nameLower = e.nama.toLowerCase();
+                const namaStr = (e && e.nama) ? String(e.nama) : '';
+                const nameLower = namaStr.toLowerCase();
+                const val = parseFloat(e ? e.nilai : 0) || 0;
                 if (nameLower.includes('gaji pokok') || nameLower.includes('basic salary')) {
-                    basicSalary = parseFloat(e.nilai) || 0;
+                    basicSalary = val;
                 } else if (nameLower.includes('transport')) {
-                    transportAlw += parseFloat(e.nilai) || 0;
+                    transportAlw += val;
                 } else if (nameLower.includes('lembur') || nameLower.includes('overtime')) {
-                    overtime += parseFloat(e.nilai) || 0;
+                    overtime += val;
                 } else if (nameLower.includes('early arrival')) {
-                    earlyArrival += parseFloat(e.nilai) || 0;
+                    earlyArrival += val;
                 } else if (nameLower.includes('tunjangan pajak') || nameLower.includes('tax allowance')) {
-                    taxAllowance = parseFloat(e.nilai) || 0;
-                    taxAllowanceLabel = e.nama;
+                    taxAllowance = val;
+                    taxAllowanceLabel = namaStr;
                 } else if (nameLower.includes('rapel')) {
                     rapelComponents.push({
-                        nama: e.nama,
-                        nilai: parseFloat(e.nilai) || 0
+                        nama: namaStr,
+                        nilai: val
                     });
                 } else {
-                    specialAlw += parseFloat(e.nilai) || 0;
+                    specialAlw += val;
                 }
             });
         }
@@ -1195,29 +1235,32 @@ async function bukaSlipGaji(id) {
         let shopDeduction = 0;
         let absenceDeduction = 0;
         
-        if (data.deductions && data.deductions.length > 0) {
+        if (data.deductions && Array.isArray(data.deductions)) {
             data.deductions.forEach(d => {
-                const nameLower = d.nama.toLowerCase();
+                const namaStr = (d && d.nama) ? String(d.nama) : '';
+                const nameLower = namaStr.toLowerCase();
+                const val = parseFloat(d ? d.nilai : 0) || 0;
                 if (nameLower.includes('jht') || nameLower.includes('kesehatan') || nameLower.includes('bpjs') || nameLower.includes('pajak') || nameLower.includes('pph')) {
                     return;
                 }
                 if (nameLower.includes('absen') || nameLower.includes('absence')) {
-                    absenceDeduction += parseFloat(d.nilai) || 0;
+                    absenceDeduction += val;
                 } else if (nameLower.includes('wajib') || nameLower.includes('iuran')) {
-                    iuranWajib += parseFloat(d.nilai) || 0;
+                    iuranWajib += val;
                 } else {
-                    shopDeduction += parseFloat(d.nilai) || 0;
+                    shopDeduction += val;
                 }
             });
         }
 
         let taxLabel = 'TAX (PPH 21)';
-        if (data.deductions && data.deductions.length > 0) {
+        if (data.deductions && Array.isArray(data.deductions)) {
             const taxItem = data.deductions.find(d => {
-                const nameLower = d.nama.toLowerCase();
+                const namaStr = (d && d.nama) ? String(d.nama) : '';
+                const nameLower = namaStr.toLowerCase();
                 return nameLower.includes('pajak') || nameLower.includes('pph') || nameLower.includes('tax');
             });
-            if (taxItem) {
+            if (taxItem && taxItem.nama) {
                 taxLabel = taxItem.nama;
             }
         }
@@ -1227,145 +1270,157 @@ async function bukaSlipGaji(id) {
         const totalDeduction = iuranWajib + shopDeduction + absenceDeduction + tax + jhte + bpjsEmployee + jpEmployee;
         const totalCompanyBpjs = jkk + jkm + jhtc + bpjsCompany + jpCompany;
         const hasBpjs = jkk > 0 || jkm > 0 || jhtc > 0 || bpjsCompany > 0 || jpCompany > 0 || bpjsEmployee > 0 || jhte > 0 || jpEmployee > 0;
-        const brutoPajak = totalIncome - absenceDeduction + bpjsCompany + jkk + jkm;
+        const brutoPajak = totalIncome - absenceDeduction + jkk + jkm;
 
-        document.getElementById('slipContent').innerHTML = `
-        <style>
-            #slipContent table tbody tr:hover {
-                background: transparent !important;
-            }
-            #slipContent table tbody tr:hover td:first-child {
-                box-shadow: none !important;
-            }
-        </style>
-        <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; line-height: 1.4; padding: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
-                <span style="font-size: 16px; font-weight: bold; text-transform: uppercase;">
-                    ${info.client_name || info.nama_klien || 'PT Duta Karya Sukses Nusantara'}
-                </span>
-                ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('pkwt', ${id})" class="no-pdf" style="font-size: 12px; color: #f39c12; font-weight: bold; text-decoration: none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
-            </div>
-            
-            <table style="width: 100%; border: none; margin-bottom: 20px; font-size: 12px; border-collapse: collapse;">
-                <tr>
-                    <td style="width: 50%; vertical-align: top; border: none; padding: 0;">
-                        <table style="border: none; border-collapse: collapse;">
-                            <tr><td style="padding: 2px 0; font-weight: bold; width: 80px;">PERIOD</td><td style="padding: 2px 0; width: 10px;">:</td><td style="padding: 2px 0;">${info.period_name || info.periode || '-'}</td></tr>
-                            <tr><td style="padding: 2px 0; font-weight: bold;">NAME</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.employee_name || '-'}</td></tr>
-                            <tr><td style="padding: 2px 0; font-weight: bold;">NIK</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.employ_id || info.nik_karyawan || '-'}</td></tr>
-                            <tr><td style="padding: 2px 0; font-weight: bold;">PTKP</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.ptkp_status || '-'}</td></tr>
-                        </table>
-                    </td>
-                    <td style="width: 50%; vertical-align: top; border: none; padding: 0;">
-                        <table style="border: none; border-collapse: collapse; margin-left: auto;">
-                            <tr><td style="padding: 2px 0; font-weight: bold; width: 80px;">POSITION</td><td style="padding: 2px 0; width: 10px;">:</td><td style="padding: 2px 0;">${info.position_name || '-'}</td></tr>
-                            <tr><td style="padding: 2px 0; font-weight: bold;">DEPT</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.department_name || '-'}</td></tr>
-                            <tr><td style="padding: 2px 0; font-weight: bold;">NPWP</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.npwp || '-'}</td></tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-            
-            <hr style="border: none; border-top: 1px solid #000; margin-bottom: 15px;">
-            
-            <table style="width: 100%; border: none; border-collapse: collapse; font-size: 11px; margin-bottom: 15px;">
-                <tr>
-                    <!-- Left Column: INCOME -->
-                    <td style="width: 50%; vertical-align: top; border: none; padding: 0 15px 0 0;">
-                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">EARNINGS (PENDAPATAN)</div>
-                        <table style="width: 100%; border: none; border-collapse: collapse;">
-                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">BASIC SALARY</td><td style="padding: 4px 0; text-align: right; width: 40%;">${formatRupiah(basicSalary)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TRANSPORT ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(transportAlw)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SPECIAL ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(specialAlw)}</td></tr>
-                            ${rapelComponents.map(r => `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${r.nama}</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(r.nilai)}</td></tr>`).join('')}
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">OVERTIME</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(overtime)}</td></tr>
-                            ${earlyArrival > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">EARLY ARRIVAL</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(earlyArrival)}</td></tr>` : ''}
-                            ${taxAllowance > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${taxAllowanceLabel}</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(taxAllowance)}</td></tr>` : ''}
-                        </table>
-                    </td>
-                    <!-- Vertical Divider -->
-                    <td style="width: 1px; border-left: 1px solid #000; padding: 0;"></td>
-                    <!-- Right Column: DEDUCTION -->
-                    <td style="width: 50%; vertical-align: top; border: none; padding: 0 0 0 15px;">
-                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; color: #e74c3c;">DEDUCTIONS (POTONGAN)</div>
-                        <table style="width: 100%; border: none; border-collapse: collapse;">
-                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">IURAN WAJIB</td><td style="padding: 4px 0; text-align: right; color: #e74c3c; width: 40%;">${formatRupiah(iuranWajib)}</td></tr>
-                            ${absenceDeduction > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">POTONGAN ABSEN</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(absenceDeduction)}</td></tr>` : ''}
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SHOP DEDUCTION</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(shopDeduction)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${taxLabel}</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JHT (JHTE)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhte)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS KESEHATAN (EMP)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(bpjsEmployee)}</td></tr>
-                            <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JP (EMP)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jpEmployee)}</td></tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-            
-            <hr style="border: none; border-top: 1px solid #000; margin: 15px 0;">
-            
-            <table style="width: 100%; border: none; border-collapse: collapse; font-size: 11px; margin-bottom: 15px;">
-                <tr>
-                    <td style="width: 50%; vertical-align: middle; border: none; padding: 0 15px 0 0;">
-                        <table style="width: 100%; border: none; border-collapse: collapse;">
-                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL CASH INCOME</td><td style="padding: 4px 0; text-align: right; font-weight: bold; width: 40%;">${formatRupiah(totalIncome)}</td></tr>
-                        </table>
-                    </td>
-                    <td style="width: 1px; border-left: 1px solid #000; padding: 0;"></td>
-                    <td style="width: 50%; vertical-align: middle; border: none; padding: 0 0 0 15px;">
-                        <table style="width: 100%; border: none; border-collapse: collapse;">
-                            <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL CASH DEDUCTION</td><td style="padding: 4px 0; text-align: right; font-weight: bold; color: #e74c3c; width: 40%;">${formatRupiah(totalDeduction)}</td></tr>
-                        </table>
-                    </td>
-                </tr>
-            </table>
-            
-            <hr style="border: none; border-top: 1px solid #000; margin: 15px 0;">
-            
-            <table style="width: 100%; border: none; border-collapse: collapse; font-size: 12px; font-weight: bold; background-color: #fafafa; border: 1px solid #eee; margin-bottom: 15px;">
-                <tr>
-                    <td style="padding: 12px 15px; text-transform: uppercase; width: 50%;">TAKE HOME PAY (THP)</td>
-                    <td style="padding: 12px 15px; text-align: right; color: var(--success); font-size: 14px; width: 50%;">${formatRupiah(totalIncome - totalDeduction)}</td>
-                </tr>
-            </table>
-
-            ${totalCompanyBpjs > 0 ? `
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 11px;">
-                <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; color: #475569; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">COMPANY BENEFITS (BPJS DIBAYAR PERUSAHAAN)</div>
-                <table style="width: 100%; border: none; border-collapse: collapse; color: #64748b;">
-                    <tr><td style="padding: 3px 0; width: 60%;">BPJS Kesehatan (4%)</td><td style="padding: 3px 0; text-align: right; width: 40%; font-weight: 500;">${formatRupiah(bpjsCompany)}</td></tr>
-                    <tr><td style="padding: 3px 0;">BPJS JHT (JHTC) (3.7%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jhtc)}</td></tr>
-                    <tr><td style="padding: 3px 0;">BPJS JP (Company) (2%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jpCompany)}</td></tr>
-                    <tr><td style="padding: 3px 0;">BPJS JKK (0.24%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jkk)}</td></tr>
-                    <tr><td style="padding: 3px 0;">BPJS JKM (0.3%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jkm)}</td></tr>
-                    <tr style="border-top: 1px dashed #cbd5e1; font-weight: bold; color: #475569;"><td style="padding: 4px 0; padding-top: 6px;">Total Tunjangan BPJS Perusahaan</td><td style="padding: 4px 0; padding-top: 6px; text-align: right;">${formatRupiah(totalCompanyBpjs)}</td></tr>
-                </table>
-                <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Komponen di atas dibayarkan oleh perusahaan langsung ke BPJS Kesehatan dan BPJS Ketenagakerjaan (tidak memotong atau menambah jumlah uang tunai yang Anda terima).</div>
-            </div>
-            ` : ''}
-
-            ${brutoPajak > 0 ? `
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 11px; margin-top: 10px;">
-                <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; color: #475569; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">DETAIL PERHITUNGAN PAJAK (TAX DETAILS)</div>
-                <table style="width: 100%; border: none; border-collapse: collapse; color: #64748b;">
-                    <tr><td style="padding: 3px 0; width: 60%;">Total Gaji Bruto (Basis PPh 21)</td><td style="padding: 3px 0; text-align: right; width: 40%; font-weight: 500;">${formatRupiah(brutoPajak)}</td></tr>
+        if (slipContentEl) {
+            slipContentEl.innerHTML = `
+            <style>
+                #slipContent table tbody tr:hover {
+                    background: transparent !important;
+                }
+                #slipContent table tbody tr:hover td:first-child {
+                    box-shadow: none !important;
+                }
+            </style>
+            <div style="font-family: Arial, sans-serif; font-size: 12px; color: #333; line-height: 1.4; padding: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+                    <span style="font-size: 16px; font-weight: bold; text-transform: uppercase;">
+                        ${info.client_name || info.nama_klien || 'PT Duta Karya Sukses Nusantara'}
+                    </span>
+                    ${hasBpjs ? `<a href="javascript:void(0)" onclick="bukaDetailBpjsModal('pkwt', ${id})" class="no-pdf" style="font-size: 12px; color: #f39c12; font-weight: bold; text-decoration: none;"><i class="fas fa-calculator"></i> Detail Perhitungan BPJS</a>` : ''}
+                </div>
+                
+                <table style="width: 100%; border: none; margin-bottom: 20px; font-size: 12px; border-collapse: collapse;">
                     <tr>
-                        <td style="padding: 3px 0;">Potongan Pajak PPh 21</td>
-                        <td style="padding: 3px 0; text-align: right; font-weight: 500; color: ${tax >= 0 ? '#e74c3c' : 'var(--success)'};">
-                            ${tax >= 0 ? '-' : '+'}${formatRupiah(Math.abs(tax))}
+                        <td style="width: 50%; vertical-align: top; border: none; padding: 0;">
+                            <table style="border: none; border-collapse: collapse;">
+                                <tr><td style="padding: 2px 0; font-weight: bold; width: 80px;">PERIOD</td><td style="padding: 2px 0; width: 10px;">:</td><td style="padding: 2px 0;">${info.period_name || info.periode || '-'}</td></tr>
+                                <tr><td style="padding: 2px 0; font-weight: bold;">NAME</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.employee_name || '-'}</td></tr>
+                                <tr><td style="padding: 2px 0; font-weight: bold;">NIK</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.employ_id || info.nik_karyawan || '-'}</td></tr>
+                                <tr><td style="padding: 2px 0; font-weight: bold;">PTKP</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.ptkp_status || '-'}</td></tr>
+                            </table>
+                        </td>
+                        <td style="width: 50%; vertical-align: top; border: none; padding: 0;">
+                            <table style="border: none; border-collapse: collapse; margin-left: auto;">
+                                <tr><td style="padding: 2px 0; font-weight: bold; width: 80px;">POSITION</td><td style="padding: 2px 0; width: 10px;">:</td><td style="padding: 2px 0;">${info.position_name || '-'}</td></tr>
+                                <tr><td style="padding: 2px 0; font-weight: bold;">DEPT</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.department_name || '-'}</td></tr>
+                                <tr><td style="padding: 2px 0; font-weight: bold;">NPWP</td><td style="padding: 2px 0;">:</td><td style="padding: 2px 0;">${info.npwp || '-'}</td></tr>
+                            </table>
                         </td>
                     </tr>
-                    <tr style="border-top: 1px dashed #cbd5e1; font-weight: bold; color: #475569;"><td style="padding: 4px 0; padding-top: 6px;">Gaji Bruto Setelah Pajak</td><td style="padding: 4px 0; padding-top: 6px; text-align: right;">${formatRupiah(brutoPajak - tax)}</td></tr>
                 </table>
-                <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Total Gaji Bruto di atas merupakan dasar pengenaan pajak (DPP) PPh 21 sesuai PMK 168/2023, yang terdiri dari seluruh pendapatan tunai dikurangi denda/potongan absen, ditambah premi BPJS Kesehatan (4%), JKK (0.24%), dan JKM (0.3%) yang ditanggung perusahaan (JHT 3.7% & JP 2% ditanggung perusahaan tidak menambah bruto).</div>
-            </div>
-            ` : ''}
-        </div>
-        `;
+                
+                <hr style="border: none; border-top: 1px solid #000; margin-bottom: 15px;">
+                
+                <table style="width: 100%; border: none; border-collapse: collapse; font-size: 11px; margin-bottom: 15px;">
+                    <tr>
+                        <!-- Left Column: INCOME -->
+                        <td style="width: 50%; vertical-align: top; border: none; padding: 0 15px 0 0;">
+                            <div style="font-weight: bold; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;">EARNINGS (PENDAPATAN)</div>
+                            <table style="width: 100%; border: none; border-collapse: collapse;">
+                                <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">BASIC SALARY</td><td style="padding: 4px 0; text-align: right; width: 40%;">${formatRupiah(basicSalary)}</td></tr>
+                                <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">TRANSPORT ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(transportAlw)}</td></tr>
+                                <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SPECIAL ALW</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(specialAlw)}</td></tr>
+                                ${rapelComponents.map(r => `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${r.nama}</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(r.nilai)}</td></tr>`).join('')}
+                                <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">OVERTIME</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(overtime)}</td></tr>
+                                ${earlyArrival > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">EARLY ARRIVAL</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(earlyArrival)}</td></tr>` : ''}
+                                ${taxAllowance > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${taxAllowanceLabel}</td><td style="padding: 4px 0; text-align: right;">${formatRupiah(taxAllowance)}</td></tr>` : ''}
+                            </table>
+                        </td>
+                        <!-- Vertical Divider -->
+                        <td style="width: 1px; border-left: 1px solid #000; padding: 0;"></td>
+                        <!-- Right Column: DEDUCTION -->
+                        <td style="width: 50%; vertical-align: top; border: none; padding: 0 0 0 15px;">
+                            <div style="font-weight: bold; font-size: 12px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; color: #e74c3c;">DEDUCTIONS (POTONGAN)</div>
+                            <table style="width: 100%; border: none; border-collapse: collapse;">
+                                <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">IURAN WAJIB</td><td style="padding: 4px 0; text-align: right; color: #e74c3c; width: 40%;">${formatRupiah(iuranWajib)}</td></tr>
+                                ${absenceDeduction > 0 ? `<tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">POTONGAN ABSEN</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(absenceDeduction)}</td></tr>` : ''}
+                                <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">SHOP DEDUCTION</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(shopDeduction)}</td></tr>
+                                <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">${taxLabel}</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(tax)}</td></tr>
+                                <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JHT (JHTE)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jhte)}</td></tr>
+                                <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS KESEHATAN (EMP)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(bpjsEmployee)}</td></tr>
+                                <tr><td style="padding: 4px 0; font-weight: bold; text-transform: uppercase;">BPJS JP (EMP)</td><td style="padding: 4px 0; text-align: right; color: #e74c3c;">${formatRupiah(jpEmployee)}</td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                
+                <hr style="border: none; border-top: 1px solid #000; margin: 15px 0;">
+                
+                <table style="width: 100%; border: none; border-collapse: collapse; font-size: 11px; margin-bottom: 15px;">
+                    <tr>
+                        <td style="width: 50%; vertical-align: middle; border: none; padding: 0 15px 0 0;">
+                            <table style="width: 100%; border: none; border-collapse: collapse;">
+                                <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL CASH INCOME</td><td style="padding: 4px 0; text-align: right; font-weight: bold; width: 40%;">${formatRupiah(totalIncome)}</td></tr>
+                            </table>
+                        </td>
+                        <td style="width: 1px; border-left: 1px solid #000; padding: 0;"></td>
+                        <td style="width: 50%; vertical-align: middle; border: none; padding: 0 0 0 15px;">
+                            <table style="width: 100%; border: none; border-collapse: collapse;">
+                                <tr><td style="padding: 4px 0; font-weight: bold; width: 60%; text-transform: uppercase;">TOTAL CASH DEDUCTION</td><td style="padding: 4px 0; text-align: right; font-weight: bold; color: #e74c3c; width: 40%;">${formatRupiah(totalDeduction)}</td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                
+                <hr style="border: none; border-top: 1px solid #000; margin: 15px 0;">
+                
+                <table style="width: 100%; border: none; border-collapse: collapse; font-size: 12px; font-weight: bold; background-color: #fafafa; border: 1px solid #eee; margin-bottom: 15px;">
+                    <tr>
+                        <td style="padding: 12px 15px; text-transform: uppercase; width: 50%;">TAKE HOME PAY (THP)</td>
+                        <td style="padding: 12px 15px; text-align: right; color: var(--success); font-size: 14px; width: 50%;">${formatRupiah(totalIncome - totalDeduction)}</td>
+                    </tr>
+                </table>
 
-        document.getElementById('modalSlip').style.display = 'block';
-        document.getElementById('overlay').style.display = 'block';
+                ${totalCompanyBpjs > 0 ? `
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 11px;">
+                    <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; color: #475569; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">COMPANY BENEFITS (BPJS DIBAYAR PERUSAHAAN)</div>
+                    <table style="width: 100%; border: none; border-collapse: collapse; color: #64748b;">
+                        <tr><td style="padding: 3px 0; width: 60%;">BPJS Kesehatan (4%)</td><td style="padding: 3px 0; text-align: right; width: 40%; font-weight: 500;">${formatRupiah(bpjsCompany)}</td></tr>
+                        <tr><td style="padding: 3px 0;">BPJS JHT (JHTC) (3.7%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jhtc)}</td></tr>
+                        <tr><td style="padding: 3px 0;">BPJS JP (Company) (2%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jpCompany)}</td></tr>
+                        <tr><td style="padding: 3px 0;">BPJS JKK (0.24%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jkk)}</td></tr>
+                        <tr><td style="padding: 3px 0;">BPJS JKM (0.3%)</td><td style="padding: 3px 0; text-align: right; font-weight: 500;">${formatRupiah(jkm)}</td></tr>
+                        <tr style="border-top: 1px dashed #cbd5e1; font-weight: bold; color: #475569;"><td style="padding: 4px 0; padding-top: 6px;">Total Tunjangan BPJS Perusahaan</td><td style="padding: 4px 0; padding-top: 6px; text-align: right;">${formatRupiah(totalCompanyBpjs)}</td></tr>
+                    </table>
+                    <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Komponen di atas dibayarkan oleh perusahaan langsung ke BPJS Kesehatan dan BPJS Ketenagakerjaan (tidak memotong atau menambah jumlah uang tunai yang Anda terima).</div>
+                </div>
+                ` : ''}
+
+                ${brutoPajak > 0 ? `
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; font-size: 11px; margin-top: 10px;">
+                    <div style="font-weight: bold; font-size: 12px; margin-bottom: 6px; color: #475569; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">DETAIL PERHITUNGAN PAJAK (TAX DETAILS)</div>
+                    <table style="width: 100%; border: none; border-collapse: collapse; color: #64748b;">
+                        <tr><td style="padding: 3px 0; width: 60%;">Total Gaji Bruto (Basis PPh 21)</td><td style="padding: 3px 0; text-align: right; width: 40%; font-weight: 500;">${formatRupiah(brutoPajak)}</td></tr>
+                        <tr>
+                            <td style="padding: 3px 0;">Potongan Pajak PPh 21</td>
+                            <td style="padding: 3px 0; text-align: right; font-weight: 500; color: ${tax >= 0 ? '#e74c3c' : 'var(--success)'};">
+                                ${tax >= 0 ? '-' : '+'}${formatRupiah(Math.abs(tax))}
+                            </td>
+                        </tr>
+                        <tr style="border-top: 1px dashed #cbd5e1; font-weight: bold; color: #475569;"><td style="padding: 4px 0; padding-top: 6px;">Gaji Bruto Setelah Pajak</td><td style="padding: 4px 0; padding-top: 6px; text-align: right;">${formatRupiah(brutoPajak - tax)}</td></tr>
+                    </table>
+                    <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.3;"><i class="fas fa-info-circle"></i> Total Gaji Bruto di atas merupakan dasar pengenaan pajak (DPP) PPh 21 sesuai PMK 168/2023, yang terdiri dari seluruh pendapatan tunai dikurangi denda/potongan absen, ditambah premi JKK (0.24%) dan JKM (0.3%) yang ditanggung perusahaan (BPJS Kesehatan, JHT & JP ditanggung perusahaan tidak masuk bruto TER).</div>
+                </div>
+                ` : ''}
+            </div>
+            `;
+        }
     } catch (err) {
         console.error('Error loading slip details:', err);
+        if (slipContentEl) {
+            slipContentEl.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px; color: #ef4444;">
+                    <i class="fas fa-exclamation-triangle fa-2x" style="margin-bottom: 12px;"></i>
+                    <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700;">Gagal Memuat Detail Slip Gaji</h4>
+                    <p style="margin: 0; font-size: 12px; color: #64748b;">${err.message || 'Terjadi kesalahan pada server.'}</p>
+                    <button class="btn-cancel" onclick="bukaSlipGaji(${id})" style="margin-top: 15px; padding: 6px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">Coba Lagi</button>
+                </div>
+            `;
+        }
+        if (typeof showToast === 'function') {
+            showToast('Gagal memuat detail slip gaji: ' + (err.message || 'Terjadi kesalahan server'), 'error');
+        }
     }
 }
 
@@ -2499,3 +2554,6 @@ async function releaseHoldDanApprove(id, employeeName) {
 }
 
 window.releaseHoldDanApprove = releaseHoldDanApprove;
+window.bukaSlipGaji = bukaSlipGaji;
+window.tutupModalSlip = tutupModalSlip;
+window.downloadSlip = downloadSlip;

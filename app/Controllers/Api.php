@@ -6635,7 +6635,7 @@ class Api extends ResourceController
                         $taxableEarnings -= floatval($final['potongan_absen']);
                     }
                     
-                    $bpjsCoPremiums = floatval($final['bpjs_kes_perusahaan'] ?? 0) + floatval($final['bpjs_jkk_perusahaan'] ?? 0) + floatval($final['bpjs_jkm_perusahaan'] ?? 0);
+                    $bpjsCoPremiums = floatval($final['bpjs_jkk_perusahaan'] ?? 0) + floatval($final['bpjs_jkm_perusahaan'] ?? 0);
                     $brutoPajak = $taxableEarnings + $bpjsCoPremiums;
                     
                     if ($final['tax_method'] === 'Gross Up') {
@@ -7676,8 +7676,9 @@ class Api extends ResourceController
         $result['bpjs_jkk_perusahaan'] = $bpjsWageBase * $jkkRateCo;
         $result['bpjs_jkm_perusahaan'] = $bpjsWageBase * $jkmRateCo;
 
-        // PPh 21 TER 2024 Calculation (PMK 168/2023: Kes 4% + JKK 0.24% + JKM 0.3%)
-        $bpjsCoPremiums = $result['bpjs_kes_perusahaan'] + $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
+        // PPh 21 TER 2024 Calculation (PMK 168/2023: JKK 0.24% + JKM 0.3%)
+        // BPJS Kesehatan perusahaan (4%), JHT perusahaan (3.7%), dan JP perusahaan (2%) BUKAN objek PPh 21 (tidak masuk bruto TER)
+        $bpjsCoPremiums = $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
         
         $ptkpCategory = $this->determineTerCategory($ptkpStatus);
 
@@ -7728,11 +7729,10 @@ class Api extends ResourceController
         $totalJpKaryawanJanNov = 0;
 
         foreach ($prevPayrolls as $pp) {
-            // Bruto = total_pendapatan - potongan_absen + bpjs perusahaan (kes+jkk+jkm)
+            // Bruto = total_pendapatan - potongan_absen + bpjs perusahaan (jkk+jkm)
             // total_pendapatan already includes gaji_pokok + tunjangan + lembur etc.
             $ppBruto = floatval($pp['total_pendapatan'] ?? 0)
                      - floatval($pp['potongan_absen'] ?? 0)
-                     + floatval($pp['bpjs_kes_perusahaan'] ?? 0)
                      + floatval($pp['bpjs_jkk_perusahaan'] ?? 0)
                      + floatval($pp['bpjs_jkm_perusahaan'] ?? 0);
             $totalBrutoJanNov += $ppBruto;
@@ -9483,8 +9483,26 @@ class Api extends ResourceController
 
     public function getPayrollSummaryReport()
     {
-        $clientId = $this->request->getGet('client_id');
-        $tahun = $this->request->getGet('tahun');
+        $clientId  = $this->request->getGet('client_id');
+        $tahun     = $this->request->getGet('tahun');
+        $startDate = $this->request->getGet('start_date');
+        $endDate   = $this->request->getGet('end_date');
+
+        $startCode = null;
+        if (!empty($startDate)) {
+            $ts = strtotime($startDate);
+            if ($ts !== false) {
+                $startCode = ((int)date('Y', $ts) * 100) + (int)date('n', $ts);
+            }
+        }
+
+        $endCode = null;
+        if (!empty($endDate)) {
+            $ts = strtotime($endDate);
+            if ($ts !== false) {
+                $endCode = ((int)date('Y', $ts) * 100) + (int)date('n', $ts);
+            }
+        }
 
         // 1. Get client options
         $clients = $this->db->table('clients')->select('id, nama, sektor')->orderBy('nama', 'ASC')->get()->getResultArray();
@@ -9510,7 +9528,13 @@ class Api extends ResourceController
         if (!empty($clientId) && $clientId !== 'all') {
             $builderFinal->where('c.id', $clientId);
         }
-        if (!empty($tahun) && $tahun !== 'all') {
+        if (!empty($startCode)) {
+            $builderFinal->where('((pp.tahun * 100) + pp.bulan) >=', $startCode);
+        }
+        if (!empty($endCode)) {
+            $builderFinal->where('((pp.tahun * 100) + pp.bulan) <=', $endCode);
+        }
+        if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
             $builderFinal->where('pp.tahun', $tahun);
         }
 
@@ -9537,7 +9561,13 @@ class Api extends ResourceController
         if (!empty($clientId) && $clientId !== 'all') {
             $builderLegacy->where('c.id', $clientId);
         }
-        if (!empty($tahun) && $tahun !== 'all') {
+        if (!empty($startCode)) {
+            $builderLegacy->where('((p.tahun * 100) + p.bulan) >=', $startCode);
+        }
+        if (!empty($endCode)) {
+            $builderLegacy->where('((p.tahun * 100) + p.bulan) <=', $endCode);
+        }
+        if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
             $builderLegacy->where('p.tahun', $tahun);
         }
 

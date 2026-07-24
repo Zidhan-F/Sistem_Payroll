@@ -28,7 +28,7 @@
             <!-- Section: Dashboard -->
             <div id="viewDashboard" class="view-section active">
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="switchView('klien')" title="Klik untuk lihat Data Klien" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 15px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                         <div class="stat-icon" style="background: rgba(243, 156, 18, 0.1); color: var(--primary-color);">
                             <i class="fas fa-users"></i>
                         </div>
@@ -37,7 +37,7 @@
                             <p>Total Clients</p>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="switchView('globalLokasiKerja')" title="Klik untuk lihat Divisi & Organisasi" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 15px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                         <div class="stat-icon" style="background: rgba(52, 152, 219, 0.1); color: var(--info);">
                             <i class="fas fa-sitemap"></i>
                         </div>
@@ -46,7 +46,7 @@
                             <p>Total Divisions</p>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="switchView('manajemenKaryawan')" title="Klik untuk lihat Data Karyawan" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 15px rgba(0,0,0,0.06)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                         <div class="stat-icon" style="background: rgba(46, 204, 113, 0.1); color: var(--success);">
                             <i class="fas fa-user-tie"></i>
                         </div>
@@ -810,7 +810,7 @@
                                 </div>
 
                                 <!-- Filter Bar -->
-                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center;">
+                                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;">
                                     <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; display: none;">
                                         <label style="font-size: 12px; font-weight: 700; color: #475569;">Pilih Klien:</label>
                                         <select id="filterReportClient" onchange="loadPayrollReport()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white;">
@@ -818,13 +818,23 @@
                                         </select>
                                     </div>
 
-                                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 150px;">
+                                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px;">
                                         <label style="font-size: 12px; font-weight: 700; color: #475569;">Tahun Periode:</label>
-                                        <select id="filterReportTahun" onchange="loadPayrollReport()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white;">
+                                        <select id="filterReportTahun" onchange="onReportTahunChange()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white;">
                                             <option value="all">Semua Tahun</option>
                                             <option value="2026" selected>2026</option>
                                             <option value="2025">2025</option>
                                         </select>
+                                    </div>
+
+                                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px;">
+                                        <label style="font-size: 12px; font-weight: 700; color: #475569;">Tanggal Mulai (Start Date):</label>
+                                        <input type="date" id="filterReportStartDate" onchange="onReportDateRangeChange()" style="padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; outline: none;">
+                                    </div>
+
+                                    <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px;">
+                                        <label style="font-size: 12px; font-weight: 700; color: #475569;">Tanggal Selesai (End Date):</label>
+                                        <input type="date" id="filterReportEndDate" onchange="onReportDateRangeChange()" style="padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; outline: none;">
                                     </div>
 
                                     <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px;">
@@ -835,47 +845,53 @@
                                             <option value="total_karyawan">Jumlah Karyawan (Headcount)</option>
                                         </select>
                                     </div>
+
+                                    <div style="display: flex; gap: 8px;">
+                                        <button type="button" onclick="resetReportFilter()" title="Reset Filter" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; color: #64748b; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;">
+                                            <i class="fas fa-undo"></i> Reset
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <!-- KPI Metric Cards Grid -->
                                 <div class="stats-grid" style="margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
-                                    <div class="stat-card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff;">
+                                    <div class="stat-card" onclick="showKpiDetailModal('total_thp')" title="Klik untuk lihat detail Total THP" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(59, 130, 246, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                                         <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                                             <i class="fas fa-coins"></i>
                                         </div>
                                         <div class="stat-info">
                                             <h4 id="kpiReportTotalThp" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
-                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Total THP / Gaji Bersih</p>
+                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total THP / Gaji Bersih <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
                                         </div>
                                     </div>
 
-                                    <div class="stat-card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff;">
+                                    <div class="stat-card" onclick="showKpiDetailModal('headcount')" title="Klik untuk lihat detail Total Karyawan" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(16, 185, 129, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                                         <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                                             <i class="fas fa-user-friends"></i>
                                         </div>
                                         <div class="stat-info">
                                             <h4 id="kpiReportHeadcount" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">0 Orang</h4>
-                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Total Karyawan</p>
+                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total Karyawan <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
                                         </div>
                                     </div>
 
-                                    <div class="stat-card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff;">
+                                    <div class="stat-card" onclick="showKpiDetailModal('avg_salary')" title="Klik untuk lihat detail Rata-Rata Gaji" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(245, 158, 11, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                                         <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                                             <i class="fas fa-calculator"></i>
                                         </div>
                                         <div class="stat-info">
                                             <h4 id="kpiReportAvgSalary" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
-                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Rata-Rata Gaji / Karyawan</p>
+                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Rata-Rata Gaji / Karyawan <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
                                         </div>
                                     </div>
 
-                                    <div class="stat-card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff;">
+                                    <div class="stat-card" onclick="showKpiDetailModal('mom_growth')" title="Klik untuk lihat detail Tren MoM" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(139, 92, 246, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                                         <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                                             <i class="fas fa-chart-line"></i>
                                         </div>
                                         <div class="stat-info">
                                             <h4 id="kpiReportMomGrowth" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">0.00% MoM</h4>
-                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Tren MoM Periode Terakhir</p>
+                                            <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Tren MoM Periode Terakhir <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
                                         </div>
                                     </div>
                                 </div>
@@ -1269,8 +1285,14 @@
                                 <th style="width: 150px; text-align: center; padding: 16px; border-bottom: 2px solid #e2e8f0; color: #475569; font-weight: 600; font-size: 14px;">Actions</th>
                             </tr>
                         </thead>
+                        <tbody id="compensationSchemesContainer">
+                            <!-- Rows will be dynamically rendered here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+    </div>
     </div>
 
     <?= view('partials/_modals') ?>

@@ -3684,6 +3684,36 @@
         </div>
     </div>
 
+    <!-- Modal KPI Report Detail (Total THP, Total Headcount, Rata-Rata Gaji, Tren MoM) -->
+    <div id="modalReportKpiDetail" class="modal-skema" style="display: none; width: 920px; max-width: 95%; z-index: 2010; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
+            <h3 id="modalKpiDetailTitle" style="margin: 0; font-size: 18px; font-weight: 700; color: white; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-chart-pie" id="modalKpiDetailIcon" style="color: white;"></i> Detail Metrik Summary Gaji
+            </h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'" onclick="tutupModalKpiDetail()"></i>
+        </div>
+        <div class="modal-body" style="padding: 24px; max-height: 75vh; overflow-y: auto; background: #ffffff;">
+            <div id="modalKpiDetailSummary" style="margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                <!-- Dynamically populated by JS -->
+            </div>
+
+            <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead id="modalKpiDetailThead">
+                        <!-- Dynamically populated by JS -->
+                    </thead>
+                    <tbody id="modalKpiDetailTbody">
+                        <!-- Dynamically populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;">
+            <button type="button" class="btn-cancel" onclick="tutupModalKpiDetail()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; background: #cbd5e1; color: #334155; border: none; font-size: 13px;">Tutup</button>
+        </div>
+    </div>
+
+
 
 
 

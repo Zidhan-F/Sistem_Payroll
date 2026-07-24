@@ -2887,8 +2887,9 @@ class Payroll extends ResourceController
         $result['bpjs_jkk_perusahaan'] = $bpjsWageBase * $jkkRateCo;
         $result['bpjs_jkm_perusahaan'] = $bpjsWageBase * $jkmRateCo;
 
-        // PPh 21 TER 2024 Calculation (PMK 168/2023: Kes 4% + JKK 0.24% + JKM 0.3%)
-        $bpjsCoPremiums = $result['bpjs_kes_perusahaan'] + $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
+        // PPh 21 TER 2024 Calculation (PMK 168/2023: JKK 0.24% + JKM 0.3%)
+        // BPJS Kesehatan perusahaan (4%), JHT perusahaan (3.7%), dan JP perusahaan (2%) BUKAN objek PPh 21 (tidak masuk bruto TER)
+        $bpjsCoPremiums = $result['bpjs_jkk_perusahaan'] + $result['bpjs_jkm_perusahaan'];
         
         $ptkpCategory = $this->determineTerCategory($ptkpStatus);
 
@@ -2938,11 +2939,10 @@ class Payroll extends ResourceController
         $totalJpKaryawanJanNov = 0;
 
         foreach ($prevPayrolls as $pp) {
-            // Bruto = gaji_pokok + total_tunjangan - potongan_absen + bpjs perusahaan (kes+jkk+jkm)
+            // Bruto = gaji_pokok + total_tunjangan - potongan_absen + bpjs perusahaan (jkk+jkm)
             $ppBruto = floatval($pp['gaji_pokok'] ?? 0)
                      + floatval($pp['total_tunjangan'] ?? 0)
                      - floatval($pp['potongan_absen'] ?? 0)
-                     + floatval($pp['bpjs_kes_perusahaan'] ?? 0)
                      + floatval($pp['bpjs_jkk_perusahaan'] ?? 0)
                      + floatval($pp['bpjs_jkm_perusahaan'] ?? 0);
             $totalBrutoJanNov += $ppBruto;
