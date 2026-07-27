@@ -9687,6 +9687,327 @@ class Api extends ResourceController
             ]
         ]);
     }
+
+    public function getBpjsReport()
+    {
+        $clientId  = $this->request->getGet('client_id');
+        $tahun     = $this->request->getGet('tahun');
+        $startDate = $this->request->getGet('start_date');
+        $endDate   = $this->request->getGet('end_date');
+        $viewMode  = $this->request->getGet('view_mode') ?? 'summary';
+
+        $startCode = null;
+        if (!empty($startDate)) {
+            $ts = strtotime($startDate);
+            if ($ts !== false) {
+                $startCode = ((int)date('Y', $ts) * 100) + (int)date('n', $ts);
+            }
+        }
+
+        $endCode = null;
+        if (!empty($endDate)) {
+            $ts = strtotime($endDate);
+            if ($ts !== false) {
+                $endCode = ((int)date('Y', $ts) * 100) + (int)date('n', $ts);
+            }
+        }
+
+        $clients = $this->db->table('clients')->select('id, nama, sektor')->orderBy('nama', 'ASC')->get()->getResultArray();
+
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        if ($viewMode === 'employee') {
+            $builderFinal = $this->db->table('payroll_final pf')
+                ->select('c.id as client_id, c.nama as client_name, pp.tahun, pp.bulan, pkwt.employee_name, employees.employ_id, pkwt.position_name,
+                    COALESCE(pf.bpjs_kes_karyawan,0) as bpjs_kes_karyawan,
+                    COALESCE(pf.bpjs_kes_perusahaan,0) as bpjs_kes_perusahaan,
+                    COALESCE(pf.bpjs_jht_karyawan,0) as bpjs_jht_karyawan,
+                    COALESCE(pf.bpjs_jht_perusahaan,0) as bpjs_jht_perusahaan,
+                    COALESCE(pf.bpjs_jp_karyawan,0) as bpjs_jp_karyawan,
+                    COALESCE(pf.bpjs_jp_perusahaan,0) as bpjs_jp_perusahaan,
+                    COALESCE(pf.bpjs_jkk_perusahaan,0) as bpjs_jkk_perusahaan,
+                    COALESCE(pf.bpjs_jkm_perusahaan,0) as bpjs_jkm_perusahaan')
+                ->join('payroll_periods pp', 'pp.id = pf.period_id')
+                ->join('clients c', 'c.id = pp.client_id')
+                ->join('pkwt', 'pkwt.id = pf.pkwt_id', 'left')
+                ->join('employees', 'employees.id = pkwt.employee_id', 'left')
+                ->orderBy('pp.tahun', 'DESC')
+                ->orderBy('pp.bulan', 'DESC')
+                ->orderBy('c.nama', 'ASC')
+                ->orderBy('pkwt.employee_name', 'ASC');
+
+            if (!empty($clientId) && $clientId !== 'all') {
+                $builderFinal->where('c.id', $clientId);
+            }
+            if (!empty($startCode)) {
+                $builderFinal->where('((pp.tahun * 100) + pp.bulan) >=', $startCode);
+            }
+            if (!empty($endCode)) {
+                $builderFinal->where('((pp.tahun * 100) + pp.bulan) <=', $endCode);
+            }
+            if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
+                $builderFinal->where('pp.tahun', $tahun);
+            }
+
+            $finalList = $builderFinal->get()->getResultArray();
+
+            $builderLegacy = $this->db->table('payrolls p')
+                ->select('c.id as client_id, c.nama as client_name, p.tahun, p.bulan, e.nama as employee_name, e.employ_id, e.jabatan as position_name,
+                    COALESCE(p.bpjs_kes_karyawan,0) as bpjs_kes_karyawan,
+                    COALESCE(p.bpjs_kes_perusahaan,0) as bpjs_kes_perusahaan,
+                    COALESCE(p.bpjs_jht_karyawan,0) as bpjs_jht_karyawan,
+                    COALESCE(p.bpjs_jht_perusahaan,0) as bpjs_jht_perusahaan,
+                    COALESCE(p.bpjs_jp_karyawan,0) as bpjs_jp_karyawan,
+                    COALESCE(p.bpjs_jp_perusahaan,0) as bpjs_jp_perusahaan,
+                    COALESCE(p.bpjs_jkk_perusahaan,0) as bpjs_jkk_perusahaan,
+                    COALESCE(p.bpjs_jkm_perusahaan,0) as bpjs_jkm_perusahaan')
+                ->join('employees e', 'e.id = p.employee_id')
+                ->join('clients c', 'c.id = e.client_id')
+                ->orderBy('p.tahun', 'DESC')
+                ->orderBy('p.bulan', 'DESC')
+                ->orderBy('c.nama', 'ASC')
+                ->orderBy('e.nama', 'ASC');
+
+            if (!empty($clientId) && $clientId !== 'all') {
+                $builderLegacy->where('c.id', $clientId);
+            }
+            if (!empty($startCode)) {
+                $builderLegacy->where('((p.tahun * 100) + p.bulan) >=', $startCode);
+            }
+            if (!empty($endCode)) {
+                $builderLegacy->where('((p.tahun * 100) + p.bulan) <=', $endCode);
+            }
+            if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
+                $builderLegacy->where('p.tahun', $tahun);
+            }
+
+            $legacyList = $builderLegacy->get()->getResultArray();
+            $rawList = array_merge($finalList, $legacyList);
+
+            $reportData = [];
+            foreach ($rawList as $row) {
+                $bNum = (int)$row['bulan'];
+                $tNum = (int)$row['tahun'];
+                $kesEmp = (float)$row['bpjs_kes_karyawan'];
+                $kesCo  = (float)$row['bpjs_kes_perusahaan'];
+                $subtotalKes = $kesEmp + $kesCo;
+
+                $jhtEmp = (float)$row['bpjs_jht_karyawan'];
+                $jhtCo  = (float)$row['bpjs_jht_perusahaan'];
+                $jpEmp  = (float)$row['bpjs_jp_karyawan'];
+                $jpCo   = (float)$row['bpjs_jp_perusahaan'];
+                $jkkCo  = (float)$row['bpjs_jkk_perusahaan'];
+                $jkmCo  = (float)$row['bpjs_jkm_perusahaan'];
+
+                $tkEmp = $jhtEmp + $jpEmp;
+                $tkCo  = $jhtCo + $jpCo + $jkkCo + $jkmCo;
+                $subtotalTk = $tkEmp + $tkCo;
+
+                $totalPribadi = $kesEmp + $tkEmp;
+                $totalCompany = $kesCo + $tkCo;
+                $grandTotal   = $totalPribadi + $totalCompany;
+
+                $reportData[] = [
+                    'client_id' => (int)$row['client_id'],
+                    'client_name' => $row['client_name'] ?? '-',
+                    'tahun' => $tNum,
+                    'bulan' => $bNum,
+                    'bulan_tahun_label' => ($monthNames[$bNum] ?? $bNum) . ' ' . $tNum,
+                    'employee_name' => $row['employee_name'] ?? '-',
+                    'employ_id' => $row['employ_id'] ?? '-',
+                    'position_name' => $row['position_name'] ?? '-',
+                    'bpjs_kes_karyawan' => $kesEmp,
+                    'bpjs_kes_perusahaan' => $kesCo,
+                    'subtotal_bpjs_kes' => $subtotalKes,
+                    'bpjs_jht_karyawan' => $jhtEmp,
+                    'bpjs_jht_perusahaan' => $jhtCo,
+                    'bpjs_jp_karyawan' => $jpEmp,
+                    'bpjs_jp_perusahaan' => $jpCo,
+                    'bpjs_jkk_perusahaan' => $jkkCo,
+                    'bpjs_jkm_perusahaan' => $jkmCo,
+                    'bpjs_tk_karyawan' => $tkEmp,
+                    'bpjs_tk_perusahaan' => $tkCo,
+                    'subtotal_bpjs_tk' => $subtotalTk,
+                    'total_pribadi' => $totalPribadi,
+                    'total_company' => $totalCompany,
+                    'grand_total_bpjs' => $grandTotal
+                ];
+            }
+        } else {
+            $builderFinal = $this->db->table('payroll_final pf')
+                ->select('c.id as client_id, c.nama as client_name, pp.tahun, pp.bulan, 
+                    COUNT(pf.id) as total_karyawan, 
+                    SUM(COALESCE(pf.bpjs_kes_karyawan,0)) as bpjs_kes_karyawan, 
+                    SUM(COALESCE(pf.bpjs_kes_perusahaan,0)) as bpjs_kes_perusahaan,
+                    SUM(COALESCE(pf.bpjs_jht_karyawan,0)) as bpjs_jht_karyawan, 
+                    SUM(COALESCE(pf.bpjs_jht_perusahaan,0)) as bpjs_jht_perusahaan,
+                    SUM(COALESCE(pf.bpjs_jp_karyawan,0)) as bpjs_jp_karyawan, 
+                    SUM(COALESCE(pf.bpjs_jp_perusahaan,0)) as bpjs_jp_perusahaan,
+                    SUM(COALESCE(pf.bpjs_jkk_perusahaan,0)) as bpjs_jkk_perusahaan,
+                    SUM(COALESCE(pf.bpjs_jkm_perusahaan,0)) as bpjs_jkm_perusahaan')
+                ->join('payroll_periods pp', 'pp.id = pf.period_id')
+                ->join('clients c', 'c.id = pp.client_id')
+                ->groupBy('c.id, c.nama, pp.tahun, pp.bulan')
+                ->orderBy('pp.tahun', 'ASC')
+                ->orderBy('pp.bulan', 'ASC')
+                ->orderBy('c.nama', 'ASC');
+
+            if (!empty($clientId) && $clientId !== 'all') {
+                $builderFinal->where('c.id', $clientId);
+            }
+            if (!empty($startCode)) {
+                $builderFinal->where('((pp.tahun * 100) + pp.bulan) >=', $startCode);
+            }
+            if (!empty($endCode)) {
+                $builderFinal->where('((pp.tahun * 100) + pp.bulan) <=', $endCode);
+            }
+            if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
+                $builderFinal->where('pp.tahun', $tahun);
+            }
+
+            $finalSummary = $builderFinal->get()->getResultArray();
+
+            $builderLegacy = $this->db->table('payrolls p')
+                ->select('c.id as client_id, c.nama as client_name, p.tahun, p.bulan, 
+                    COUNT(p.id) as total_karyawan, 
+                    SUM(COALESCE(p.bpjs_kes_karyawan,0)) as bpjs_kes_karyawan, 
+                    SUM(COALESCE(p.bpjs_kes_perusahaan,0)) as bpjs_kes_perusahaan,
+                    SUM(COALESCE(p.bpjs_jht_karyawan,0)) as bpjs_jht_karyawan, 
+                    SUM(COALESCE(p.bpjs_jht_perusahaan,0)) as bpjs_jht_perusahaan,
+                    SUM(COALESCE(p.bpjs_jp_karyawan,0)) as bpjs_jp_karyawan, 
+                    SUM(COALESCE(p.bpjs_jp_perusahaan,0)) as bpjs_jp_perusahaan,
+                    SUM(COALESCE(p.bpjs_jkk_perusahaan,0)) as bpjs_jkk_perusahaan,
+                    SUM(COALESCE(p.bpjs_jkm_perusahaan,0)) as bpjs_jkm_perusahaan')
+                ->join('employees e', 'e.id = p.employee_id')
+                ->join('clients c', 'c.id = e.client_id')
+                ->groupBy('c.id, c.nama, p.tahun, p.bulan')
+                ->orderBy('p.tahun', 'ASC')
+                ->orderBy('p.bulan', 'ASC')
+                ->orderBy('c.nama', 'ASC');
+
+            if (!empty($clientId) && $clientId !== 'all') {
+                $builderLegacy->where('c.id', $clientId);
+            }
+            if (!empty($startCode)) {
+                $builderLegacy->where('((p.tahun * 100) + p.bulan) >=', $startCode);
+            }
+            if (!empty($endCode)) {
+                $builderLegacy->where('((p.tahun * 100) + p.bulan) <=', $endCode);
+            }
+            if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
+                $builderLegacy->where('p.tahun', $tahun);
+            }
+
+            $legacySummary = $builderLegacy->get()->getResultArray();
+
+            $mergedMap = [];
+            foreach (array_merge($finalSummary, $legacySummary) as $row) {
+                $key = $row['client_id'] . '_' . $row['tahun'] . '_' . sprintf('%02d', $row['bulan']);
+                if (!isset($mergedMap[$key])) {
+                    $bNum = (int)$row['bulan'];
+                    $tNum = (int)$row['tahun'];
+                    $mergedMap[$key] = [
+                        'client_id' => (int)$row['client_id'],
+                        'client_name' => $row['client_name'],
+                        'tahun' => $tNum,
+                        'bulan' => $bNum,
+                        'bulan_tahun_label' => ($monthNames[$bNum] ?? $bNum) . ' ' . $tNum,
+                        'total_karyawan' => 0,
+                        'bpjs_kes_karyawan' => 0.0,
+                        'bpjs_kes_perusahaan' => 0.0,
+                        'bpjs_jht_karyawan' => 0.0,
+                        'bpjs_jht_perusahaan' => 0.0,
+                        'bpjs_jp_karyawan' => 0.0,
+                        'bpjs_jp_perusahaan' => 0.0,
+                        'bpjs_jkk_perusahaan' => 0.0,
+                        'bpjs_jkm_perusahaan' => 0.0,
+                    ];
+                }
+                $mergedMap[$key]['total_karyawan'] += (int)$row['total_karyawan'];
+                $mergedMap[$key]['bpjs_kes_karyawan'] += (float)$row['bpjs_kes_karyawan'];
+                $mergedMap[$key]['bpjs_kes_perusahaan'] += (float)$row['bpjs_kes_perusahaan'];
+                $mergedMap[$key]['bpjs_jht_karyawan'] += (float)$row['bpjs_jht_karyawan'];
+                $mergedMap[$key]['bpjs_jht_perusahaan'] += (float)$row['bpjs_jht_perusahaan'];
+                $mergedMap[$key]['bpjs_jp_karyawan'] += (float)$row['bpjs_jp_karyawan'];
+                $mergedMap[$key]['bpjs_jp_perusahaan'] += (float)$row['bpjs_jp_perusahaan'];
+                $mergedMap[$key]['bpjs_jkk_perusahaan'] += (float)$row['bpjs_jkk_perusahaan'];
+                $mergedMap[$key]['bpjs_jkm_perusahaan'] += (float)$row['bpjs_jkm_perusahaan'];
+            }
+
+            uksort($mergedMap, function($a, $b) use ($mergedMap) {
+                $itemA = $mergedMap[$a];
+                $itemB = $mergedMap[$b];
+                if ($itemA['tahun'] != $itemB['tahun']) return $itemA['tahun'] <=> $itemB['tahun'];
+                if ($itemA['bulan'] != $itemB['bulan']) return $itemA['bulan'] <=> $itemB['bulan'];
+                return strcmp($itemA['client_name'], $itemB['client_name']);
+            });
+
+            $reportData = [];
+            foreach (array_values($mergedMap) as $item) {
+                $kesEmp = $item['bpjs_kes_karyawan'];
+                $kesCo  = $item['bpjs_kes_perusahaan'];
+                $subtotalKes = $kesEmp + $kesCo;
+
+                $jhtEmp = $item['bpjs_jht_karyawan'];
+                $jhtCo  = $item['bpjs_jht_perusahaan'];
+                $jpEmp  = $item['bpjs_jp_karyawan'];
+                $jpCo   = $item['bpjs_jp_perusahaan'];
+                $jkkCo  = $item['bpjs_jkk_perusahaan'];
+                $jkmCo  = $item['bpjs_jkm_perusahaan'];
+
+                $tkEmp = $jhtEmp + $jpEmp;
+                $tkCo  = $jhtCo + $jpCo + $jkkCo + $jkmCo;
+                $subtotalTk = $tkEmp + $tkCo;
+
+                $totalPribadi = $kesEmp + $tkEmp;
+                $totalCompany = $kesCo + $tkCo;
+                $grandTotal   = $totalPribadi + $totalCompany;
+
+                $item['subtotal_bpjs_kes'] = $subtotalKes;
+                $item['bpjs_tk_karyawan']  = $tkEmp;
+                $item['bpjs_tk_perusahaan']= $tkCo;
+                $item['subtotal_bpjs_tk']  = $subtotalTk;
+                $item['total_pribadi']     = $totalPribadi;
+                $item['total_company']     = $totalCompany;
+                $item['grand_total_bpjs']  = $grandTotal;
+
+                $reportData[] = $item;
+            }
+        }
+
+        $totalKesEmp = array_sum(array_column($reportData, 'bpjs_kes_karyawan'));
+        $totalKesCo  = array_sum(array_column($reportData, 'bpjs_kes_perusahaan'));
+        $totalKes    = array_sum(array_column($reportData, 'subtotal_bpjs_kes'));
+
+        $totalTkEmp  = array_sum(array_column($reportData, 'bpjs_tk_karyawan'));
+        $totalTkCo   = array_sum(array_column($reportData, 'bpjs_tk_perusahaan'));
+        $totalTk     = array_sum(array_column($reportData, 'subtotal_bpjs_tk'));
+
+        $totalPribadi = array_sum(array_column($reportData, 'total_pribadi'));
+        $totalCompany = array_sum(array_column($reportData, 'total_company'));
+        $grandTotal   = array_sum(array_column($reportData, 'grand_total_bpjs'));
+
+        return $this->respond([
+            'status' => 'success',
+            'view_mode' => $viewMode,
+            'clients' => $clients,
+            'data' => $reportData,
+            'summary' => [
+                'total_bpjs_kes_karyawan' => $totalKesEmp,
+                'total_bpjs_kes_perusahaan' => $totalKesCo,
+                'total_bpjs_kes' => $totalKes,
+                'total_bpjs_tk_karyawan' => $totalTkEmp,
+                'total_bpjs_tk_perusahaan' => $totalTkCo,
+                'total_bpjs_tk' => $totalTk,
+                'total_bpjs_pribadi' => $totalPribadi,
+                'total_bpjs_company' => $totalCompany,
+                'grand_total_bpjs' => $grandTotal,
+            ]
+        ]);
+    }
 }
 
 
