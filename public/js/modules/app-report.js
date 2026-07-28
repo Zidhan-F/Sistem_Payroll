@@ -1070,43 +1070,51 @@ window.bpjsReportState = {
     selectedViewMode: 'summary'
 };
 
+window.taxReportState = {
+    clients: [],
+    data: [],
+    summary: {},
+    chartTrend: null,
+    chartComposition: null,
+    selectedClient: 'all',
+    selectedTahun: '2026',
+    selectedStartDate: '',
+    selectedEndDate: '',
+    selectedViewMode: 'summary'
+};
+
 function switchReportSubTab(tabName) {
     const btnSummary = document.getElementById('subTabReportSummary');
-    const btnBpjs = document.getElementById('subTabReportBpjs');
+    const btnBpjs    = document.getElementById('subTabReportBpjs');
+    const btnTax     = document.getElementById('subTabReportTax');
     const panelSummary = document.getElementById('panelReportSummary');
-    const panelBpjs = document.getElementById('panelReportBpjs');
+    const panelBpjs    = document.getElementById('panelReportBpjs');
+    const panelTax     = document.getElementById('panelReportTax');
 
-    if (tabName === 'bpjs') {
-        if (btnSummary) {
-            btnSummary.classList.remove('active');
-            btnSummary.style.color = '#64748b';
-            btnSummary.style.borderBottom = '2px solid transparent';
-        }
-        if (btnBpjs) {
-            btnBpjs.classList.add('active');
-            btnBpjs.style.color = 'var(--primary-color)';
-            btnBpjs.style.borderBottom = '2px solid var(--primary-color)';
-        }
-        if (panelSummary) panelSummary.style.display = 'none';
-        if (panelBpjs) panelBpjs.style.display = 'block';
+    const tabs = [
+        { name: 'summary', btn: btnSummary, panel: panelSummary, loadFn: loadPayrollReport },
+        { name: 'bpjs',    btn: btnBpjs,    panel: panelBpjs,    loadFn: loadBpjsReport },
+        { name: 'tax',     btn: btnTax,     panel: panelTax,     loadFn: loadTaxReport }
+    ];
 
-        loadBpjsReport();
-    } else {
-        if (btnBpjs) {
-            btnBpjs.classList.remove('active');
-            btnBpjs.style.color = '#64748b';
-            btnBpjs.style.borderBottom = '2px solid transparent';
+    tabs.forEach(t => {
+        if (t.name === tabName) {
+            if (t.btn) {
+                t.btn.classList.add('active');
+                t.btn.style.color = 'var(--primary-color)';
+                t.btn.style.borderBottom = '2px solid var(--primary-color)';
+            }
+            if (t.panel) t.panel.style.display = 'block';
+            if (typeof t.loadFn === 'function') t.loadFn();
+        } else {
+            if (t.btn) {
+                t.btn.classList.remove('active');
+                t.btn.style.color = '#64748b';
+                t.btn.style.borderBottom = '2px solid transparent';
+            }
+            if (t.panel) t.panel.style.display = 'none';
         }
-        if (btnSummary) {
-            btnSummary.classList.add('active');
-            btnSummary.style.color = 'var(--primary-color)';
-            btnSummary.style.borderBottom = '2px solid var(--primary-color)';
-        }
-        if (panelBpjs) panelBpjs.style.display = 'none';
-        if (panelSummary) panelSummary.style.display = 'block';
-
-        loadPayrollReport();
-    }
+    });
 }
 window.switchReportSubTab = switchReportSubTab;
 
@@ -1214,6 +1222,11 @@ window.resetBpjsFilter = resetBpjsFilter;
 function renderBpjsKpiCards() {
     const summary = window.bpjsReportState.summary || {};
 
+    const elKesEmp = document.getElementById('kpiBpjsKesEmp');
+    const elTkEmp  = document.getElementById('kpiBpjsTkEmp');
+    const elKesCo  = document.getElementById('kpiBpjsKesCo');
+    const elTkCo   = document.getElementById('kpiBpjsTkCo');
+
     const elKes = document.getElementById('kpiBpjsTotalKes');
     const elTk  = document.getElementById('kpiBpjsTotalTk');
     const elPribadi = document.getElementById('kpiBpjsTotalPribadi');
@@ -1223,6 +1236,11 @@ function renderBpjsKpiCards() {
     const badgeKesCo  = document.getElementById('badgeKesCo');
     const badgeTkEmp  = document.getElementById('badgeTkEmp');
     const badgeTkCo   = document.getElementById('badgeTkCo');
+
+    if (elKesEmp) elKesEmp.innerText = formatRupiah(summary.total_bpjs_kes_karyawan || 0);
+    if (elTkEmp)  elTkEmp.innerText  = formatRupiah(summary.total_bpjs_tk_karyawan || 0);
+    if (elKesCo)  elKesCo.innerText  = formatRupiah(summary.total_bpjs_kes_perusahaan || 0);
+    if (elTkCo)   elTkCo.innerText   = formatRupiah(summary.total_bpjs_tk_perusahaan || 0);
 
     if (elKes) elKes.innerText = formatRupiah(summary.total_bpjs_kes || 0);
     if (elTk)  elTk.innerText  = formatRupiah(summary.total_bpjs_tk || 0);
@@ -1293,7 +1311,7 @@ function renderBpjsCharts() {
                     {
                         label: 'BPJS Ketenagakerjaan (TK)',
                         data: tkData,
-                        backgroundColor: '#9333ea',
+                        backgroundColor: '#334155',
                         borderRadius: 4
                     }
                 ]
@@ -1337,13 +1355,13 @@ function renderBpjsCharts() {
                     {
                         label: 'Tanggungan Pribadi (Dipotong Gaji)',
                         data: empData,
-                        backgroundColor: '#ef4444',
+                        backgroundColor: '#0284c7',
                         borderRadius: 4
                     },
                     {
                         label: 'Tanggungan Company (Perusahaan)',
                         data: coData,
-                        backgroundColor: '#10b981',
+                        backgroundColor: '#475569',
                         borderRadius: 4
                     }
                 ]
@@ -1399,49 +1417,49 @@ function renderBpjsTable() {
 
     if (isEmployeeMode) {
         headContainer.innerHTML = `
-            <tr style="background: #f1f5f9; text-align: center; color: #475569; font-weight: 700; border-bottom: 1px solid #cbd5e1;">
+            <tr style="background: #f1f5f9; text-align: center; color: #334155; font-weight: 700; border-bottom: 1px solid #cbd5e1;">
                 <th rowspan="2" style="width: 40px; padding: 10px;">No</th>
                 <th rowspan="2" style="padding: 10px; text-align: left;">Nama Karyawan</th>
-                <th rowspan="2" style="padding: 10px; text-align: left;">ID / Jabatan</th>
+                <th rowspan="2" style="padding: 10px; text-align: left;">Jabatan</th>
                 <th rowspan="2" style="padding: 10px; text-align: left;">Klien</th>
                 <th rowspan="2" style="padding: 10px;">Periode</th>
                 <th colspan="3" style="padding: 8px; background: #e0f2fe; color: #0369a1;">BPJS Kesehatan</th>
-                <th colspan="3" style="padding: 8px; background: #f3e8ff; color: #7e22ce;">BPJS Ketenagakerjaan</th>
-                <th colspan="3" style="padding: 8px; background: #ecfdf5; color: #047857;">Total Kontribusi BPJS</th>
+                <th colspan="3" style="padding: 8px; background: #f8fafc; color: #334155;">BPJS Ketenagakerjaan</th>
+                <th colspan="3" style="padding: 8px; background: #f1f5f9; color: #1e293b;">Total Kontribusi BPJS</th>
             </tr>
             <tr style="background: #f8fafc; text-align: right; color: #475569; font-weight: 700; border-bottom: 2px solid #e2e8f0; font-size: 11px;">
                 <th style="padding: 8px; background: #f0f9ff;">Pribadi (1%)</th>
                 <th style="padding: 8px; background: #f0f9ff;">Company (4%)</th>
-                <th style="padding: 8px; background: #e0f2fe; color: #0284c7;">Total Kes</th>
-                <th style="padding: 8px; background: #faf5ff;">Pribadi (JHT+JP)</th>
-                <th style="padding: 8px; background: #faf5ff;">Company (TK)</th>
-                <th style="padding: 8px; background: #f3e8ff; color: #9333ea;">Total TK</th>
-                <th style="padding: 8px; background: #f0fdf4; color: #dc2626;">Total Pribadi</th>
-                <th style="padding: 8px; background: #f0fdf4; color: #059669;">Total Company</th>
-                <th style="padding: 8px; background: #dcfce7; color: #065f46;">Grand Total</th>
+                <th style="padding: 8px; background: #bae6fd; color: #0369a1;">Total Kes</th>
+                <th style="padding: 8px; background: #f1f5f9;">Pribadi (JHT+JP)</th>
+                <th style="padding: 8px; background: #f1f5f9;">Company (TK)</th>
+                <th style="padding: 8px; background: #e2e8f0; color: #1e293b;">Total TK</th>
+                <th style="padding: 8px; background: #e0f2fe; color: #0369a1;">Total Pribadi</th>
+                <th style="padding: 8px; background: #f1f5f9; color: #334155;">Total Company</th>
+                <th style="padding: 8px; background: #e2e8f0; color: #0f172a;">Grand Total</th>
             </tr>
         `;
     } else {
         headContainer.innerHTML = `
-            <tr style="background: #f1f5f9; text-align: center; color: #475569; font-weight: 700; border-bottom: 1px solid #cbd5e1;">
+            <tr style="background: #f1f5f9; text-align: center; color: #334155; font-weight: 700; border-bottom: 1px solid #cbd5e1;">
                 <th rowspan="2" style="width: 40px; padding: 10px;">No</th>
                 <th rowspan="2" style="padding: 10px; text-align: left;">Nama Klien</th>
                 <th rowspan="2" style="padding: 10px;">Periode</th>
                 <th rowspan="2" style="padding: 10px;">Headcount</th>
                 <th colspan="3" style="padding: 8px; background: #e0f2fe; color: #0369a1;">BPJS Kesehatan</th>
-                <th colspan="3" style="padding: 8px; background: #f3e8ff; color: #7e22ce;">BPJS Ketenagakerjaan</th>
-                <th colspan="3" style="padding: 8px; background: #ecfdf5; color: #047857;">Total Kontribusi BPJS</th>
+                <th colspan="3" style="padding: 8px; background: #f8fafc; color: #334155;">BPJS Ketenagakerjaan</th>
+                <th colspan="3" style="padding: 8px; background: #f1f5f9; color: #1e293b;">Total Kontribusi BPJS</th>
             </tr>
             <tr style="background: #f8fafc; text-align: right; color: #475569; font-weight: 700; border-bottom: 2px solid #e2e8f0; font-size: 11px;">
                 <th style="padding: 8px; background: #f0f9ff;">Pribadi (1%)</th>
                 <th style="padding: 8px; background: #f0f9ff;">Company (4%)</th>
-                <th style="padding: 8px; background: #e0f2fe; color: #0284c7;">Total Kes</th>
-                <th style="padding: 8px; background: #faf5ff;">Pribadi (JHT+JP)</th>
-                <th style="padding: 8px; background: #faf5ff;">Company (TK)</th>
-                <th style="padding: 8px; background: #f3e8ff; color: #9333ea;">Total TK</th>
-                <th style="padding: 8px; background: #f0fdf4; color: #dc2626;">Total Pribadi</th>
-                <th style="padding: 8px; background: #f0fdf4; color: #059669;">Total Company</th>
-                <th style="padding: 8px; background: #dcfce7; color: #065f46;">Grand Total</th>
+                <th style="padding: 8px; background: #bae6fd; color: #0369a1;">Total Kes</th>
+                <th style="padding: 8px; background: #f1f5f9;">Pribadi (JHT+JP)</th>
+                <th style="padding: 8px; background: #f1f5f9;">Company (TK)</th>
+                <th style="padding: 8px; background: #e2e8f0; color: #1e293b;">Total TK</th>
+                <th style="padding: 8px; background: #e0f2fe; color: #0369a1;">Total Pribadi</th>
+                <th style="padding: 8px; background: #f1f5f9; color: #334155;">Total Company</th>
+                <th style="padding: 8px; background: #e2e8f0; color: #0f172a;">Grand Total</th>
             </tr>
         `;
     }
@@ -1471,28 +1489,25 @@ function renderBpjsTable() {
                             <i class="fas fa-search-plus" style="font-size: 11px; opacity: 0.6;"></i>
                         </span>
                     </td>
-                    <td style="padding: 10px; color: #64748b; font-size: 11px;">
-                        <span style="font-weight: 600; color: #334155;">${escapeHtml(item.employ_id)}</span><br>
-                        <span>${escapeHtml(item.position_name)}</span>
-                    </td>
+                    <td style="padding: 10px; font-weight: 600; color: #334155;">${escapeHtml(item.position_name)}</td>
                     <td style="padding: 10px; font-weight: 600; color: #334155;">${escapeHtml(item.client_name)}</td>
                     <td style="padding: 10px; text-align: center;">
-                        <span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
+                        <span style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
                             ${escapeHtml(item.bulan_tahun_label)}
                         </span>
                     </td>
                     <!-- BPJS Kes -->
-                    <td style="padding: 10px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_kes_karyawan)}</td>
+                    <td style="padding: 10px; text-align: right; color: #0284c7; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_kes_karyawan)}</td>
                     <td style="padding: 10px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_kes_perusahaan)}</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #0284c7; background: rgba(224, 242, 254, 0.4); font-variant-numeric: tabular-nums;">${formatRupiah(item.subtotal_bpjs_kes)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #0369a1; background: rgba(224, 242, 254, 0.4); font-variant-numeric: tabular-nums;">${formatRupiah(item.subtotal_bpjs_kes)}</td>
                     <!-- BPJS TK -->
-                    <td style="padding: 10px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_tk_karyawan)}</td>
+                    <td style="padding: 10px; text-align: right; color: #0284c7; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_tk_karyawan)}</td>
                     <td style="padding: 10px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_tk_perusahaan)}</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #9333ea; background: rgba(243, 232, 255, 0.4); font-variant-numeric: tabular-nums;">${formatRupiah(item.subtotal_bpjs_tk)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #1e293b; background: rgba(226, 232, 240, 0.4); font-variant-numeric: tabular-nums;">${formatRupiah(item.subtotal_bpjs_tk)}</td>
                     <!-- Totals -->
-                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #dc2626; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_pribadi)}</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #059669; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_company)}</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #0f172a; background: rgba(220, 252, 231, 0.5); font-variant-numeric: tabular-nums;">${formatRupiah(item.grand_total_bpjs)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #0284c7; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_pribadi)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #334155; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_company)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #0f172a; background: rgba(226, 232, 240, 0.6); font-variant-numeric: tabular-nums;">${formatRupiah(item.grand_total_bpjs)}</td>
                 </tr>
             `;
         } else {
@@ -1506,23 +1521,23 @@ function renderBpjsTable() {
                         </span>
                     </td>
                     <td style="padding: 12px; text-align: center;">
-                        <span style="background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;">
+                        <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;">
                             ${escapeHtml(item.bulan_tahun_label)}
                         </span>
                     </td>
                     <td style="padding: 12px; text-align: center; font-weight: 600;">${item.total_karyawan} orang</td>
                     <!-- BPJS Kes -->
-                    <td style="padding: 12px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_kes_karyawan)}</td>
+                    <td style="padding: 12px; text-align: right; color: #0284c7; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_kes_karyawan)}</td>
                     <td style="padding: 12px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_kes_perusahaan)}</td>
-                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #0284c7; background: rgba(224, 242, 254, 0.4); font-variant-numeric: tabular-nums;">${formatRupiah(item.subtotal_bpjs_kes)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #0369a1; background: rgba(224, 242, 254, 0.4); font-variant-numeric: tabular-nums;">${formatRupiah(item.subtotal_bpjs_kes)}</td>
                     <!-- BPJS TK -->
-                    <td style="padding: 12px; text-align: right; color: #ef4444; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_tk_karyawan)}</td>
+                    <td style="padding: 12px; text-align: right; color: #0284c7; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_tk_karyawan)}</td>
                     <td style="padding: 12px; text-align: right; color: #475569; font-variant-numeric: tabular-nums;">${formatRupiah(item.bpjs_tk_perusahaan)}</td>
-                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #9333ea; background: rgba(243, 232, 255, 0.4); font-variant-numeric: tabular-nums;">${formatRupiah(item.subtotal_bpjs_tk)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #1e293b; background: rgba(226, 232, 240, 0.4); font-variant-numeric: tabular-nums;">${formatRupiah(item.subtotal_bpjs_tk)}</td>
                     <!-- Totals -->
-                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #dc2626; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_pribadi)}</td>
-                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #059669; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_company)}</td>
-                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #0f172a; background: rgba(220, 252, 231, 0.5); font-variant-numeric: tabular-nums;">${formatRupiah(item.grand_total_bpjs)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #0284c7; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_pribadi)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #334155; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_company)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #0f172a; background: rgba(226, 232, 240, 0.6); font-variant-numeric: tabular-nums;">${formatRupiah(item.grand_total_bpjs)}</td>
                 </tr>
             `;
         }
@@ -1649,7 +1664,7 @@ function showBpjsRowDetailModal(idx) {
 
     const headerEl = document.getElementById('modalBpjsReportHeader');
     if (headerEl) {
-        headerEl.style.background = 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)';
+        headerEl.style.background = 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%)';
     }
 
     const subjectName = isEmployeeMode ? item.employee_name : item.client_name;
@@ -1663,13 +1678,13 @@ function showBpjsRowDetailModal(idx) {
     `;
     if (isEmployeeMode) {
         metaHtml += `
-            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">ID / Jabatan:</strong><br><span style="font-weight: 600; color: #334155;">${escapeHtml(item.employ_id)} - ${escapeHtml(item.position_name)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Jabatan:</strong><br><span style="font-weight: 600; color: #334155;">${escapeHtml(item.position_name)}</span></div>
             <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Klien:</strong><br><span style="font-weight: 600; color: #334155;">${escapeHtml(item.client_name)}</span></div>
         `;
     } else {
         metaHtml += `
             <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Headcount:</strong><br><span style="font-weight: 700; color: #334155;">${item.total_karyawan} Orang</span></div>
-            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Grand Total BPJS:</strong><br><span style="font-weight: 800; color: #059669;">${formatRupiah(item.grand_total_bpjs)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Grand Total BPJS:</strong><br><span style="font-weight: 800; color: #0f172a;">${formatRupiah(item.grand_total_bpjs)}</span></div>
         `;
     }
     metaEl.innerHTML = metaHtml;
@@ -1712,21 +1727,21 @@ function showBpjsRowDetailModal(idx) {
     const grandTot   = item.grand_total_bpjs || 0;
 
     tbodyEl.innerHTML = `
-        <tr style="border-bottom: 1px solid #e2e8f0; background: #f0f9ff;">
+        <tr style="border-bottom: 1px solid #e2e8f0; background: #e0f2fe;">
             <td style="padding: 12px; font-weight: 700; color: #0369a1;"><i class="fas fa-heartbeat" style="margin-right: 6px;"></i> BPJS Kesehatan (5%)</td>
-            <td style="padding: 12px; text-align: right; color: #ef4444; font-weight: 600;">${formatRupiah(kesEmp)} <span style="font-size: 11px; opacity: 0.8;">(1%)</span></td>
+            <td style="padding: 12px; text-align: right; color: #0284c7; font-weight: 600;">${formatRupiah(kesEmp)} <span style="font-size: 11px; opacity: 0.8;">(1%)</span></td>
             <td style="padding: 12px; text-align: right; color: #475569; font-weight: 600;">${formatRupiah(kesCo)} <span style="font-size: 11px; opacity: 0.8;">(4%)</span></td>
-            <td style="padding: 12px; text-align: right; font-weight: 800; color: #0284c7;">${formatRupiah(kesTot)}</td>
+            <td style="padding: 12px; text-align: right; font-weight: 800; color: #0369a1;">${formatRupiah(kesTot)}</td>
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
             <td style="padding: 10px 12px; padding-left: 24px; color: #334155; font-weight: 600;">• BPJS TK - JHT (Jaminan Hari Tua)</td>
-            <td style="padding: 10px 12px; text-align: right; color: #ef4444;">${formatRupiah(jhtEmp)} <span style="font-size: 11px; opacity: 0.8;">(2%)</span></td>
+            <td style="padding: 10px 12px; text-align: right; color: #0284c7;">${formatRupiah(jhtEmp)} <span style="font-size: 11px; opacity: 0.8;">(2%)</span></td>
             <td style="padding: 10px 12px; text-align: right; color: #475569;">${formatRupiah(jhtCo)} <span style="font-size: 11px; opacity: 0.8;">(3.7%)</span></td>
             <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #1e293b;">${formatRupiah(jhtTot)}</td>
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0;">
             <td style="padding: 10px 12px; padding-left: 24px; color: #334155; font-weight: 600;">• BPJS TK - JP (Jaminan Pensiun)</td>
-            <td style="padding: 10px 12px; text-align: right; color: #ef4444;">${formatRupiah(jpEmp)} <span style="font-size: 11px; opacity: 0.8;">(1%)</span></td>
+            <td style="padding: 10px 12px; text-align: right; color: #0284c7;">${formatRupiah(jpEmp)} <span style="font-size: 11px; opacity: 0.8;">(1%)</span></td>
             <td style="padding: 10px 12px; text-align: right; color: #475569;">${formatRupiah(jpCo)} <span style="font-size: 11px; opacity: 0.8;">(2%)</span></td>
             <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #1e293b;">${formatRupiah(jpTot)}</td>
         </tr>
@@ -1742,17 +1757,17 @@ function showBpjsRowDetailModal(idx) {
             <td style="padding: 10px 12px; text-align: right; color: #475569;">${formatRupiah(jkmCo)} <span style="font-size: 11px; opacity: 0.8;">(0.30%)</span></td>
             <td style="padding: 10px 12px; text-align: right; font-weight: 700; color: #1e293b;">${formatRupiah(jkmTot)}</td>
         </tr>
-        <tr style="border-bottom: 2px solid #cbd5e1; background: #faf5ff;">
-            <td style="padding: 12px; font-weight: 700; color: #7e22ce;"><i class="fas fa-briefcase" style="margin-right: 6px;"></i> Subtotal BPJS Ketenagakerjaan</td>
-            <td style="padding: 12px; text-align: right; color: #ef4444; font-weight: 700;">${formatRupiah(tkEmp)}</td>
+        <tr style="border-bottom: 2px solid #cbd5e1; background: #f8fafc;">
+            <td style="padding: 12px; font-weight: 700; color: #334155;"><i class="fas fa-briefcase" style="margin-right: 6px;"></i> Subtotal BPJS Ketenagakerjaan</td>
+            <td style="padding: 12px; text-align: right; color: #0284c7; font-weight: 700;">${formatRupiah(tkEmp)}</td>
             <td style="padding: 12px; text-align: right; color: #475569; font-weight: 700;">${formatRupiah(tkCo)}</td>
-            <td style="padding: 12px; text-align: right; font-weight: 800; color: #9333ea;">${formatRupiah(tkTot)}</td>
+            <td style="padding: 12px; text-align: right; font-weight: 800; color: #1e293b;">${formatRupiah(tkTot)}</td>
         </tr>
-        <tr style="background: #ecfdf5; font-weight: 800; color: #0f172a; font-size: 14px;">
+        <tr style="background: #e2e8f0; font-weight: 800; color: #0f172a; font-size: 14px;">
             <td style="padding: 14px 12px;">GRAND TOTAL BPJS (Kesehatan + TK)</td>
-            <td style="padding: 14px 12px; text-align: right; color: #dc2626;">${formatRupiah(totPribadi)}</td>
-            <td style="padding: 14px 12px; text-align: right; color: #059669;">${formatRupiah(totCompany)}</td>
-            <td style="padding: 14px 12px; text-align: right; color: #065f46; font-size: 15px;">${formatRupiah(grandTot)}</td>
+            <td style="padding: 14px 12px; text-align: right; color: #0284c7;">${formatRupiah(totPribadi)}</td>
+            <td style="padding: 14px 12px; text-align: right; color: #334155;">${formatRupiah(totCompany)}</td>
+            <td style="padding: 14px 12px; text-align: right; color: #0f172a; font-size: 15px;">${formatRupiah(grandTot)}</td>
         </tr>
     `;
 
@@ -1777,7 +1792,7 @@ function showBpjsKpiDetailModal(kpiType) {
 
     const headerEl = document.getElementById('modalBpjsReportHeader');
     if (headerEl) {
-        headerEl.style.background = 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)';
+        headerEl.style.background = 'linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%)';
     }
 
     let titleText = 'Detail Metrik BPJS';
@@ -1785,21 +1800,21 @@ function showBpjsKpiDetailModal(kpiType) {
     let theadHtml = '';
     let tbodyHtml = '';
 
-    if (kpiType === 'kes') {
-        titleText = 'Detail Metrik: BPJS Kesehatan (5%)';
+    if (kpiType === 'kes_pribadi' || kpiType === 'kes') {
+        titleText = 'Detail Metrik: BPJS Kesehatan - Tanggungan Pribadi (1%)';
         metaHtml = `
-            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total BPJS Kes:</strong><br><span style="font-weight: 800; color: #0284c7; font-size: 16px;">${formatRupiah(summary.total_bpjs_kes || 0)}</span></div>
-            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Tanggungan Pribadi (1%):</strong><br><span style="font-weight: 700; color: #dc2626;">${formatRupiah(summary.total_bpjs_kes_karyawan || 0)}</span></div>
-            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Tanggungan Company (4%):</strong><br><span style="font-weight: 700; color: #059669;">${formatRupiah(summary.total_bpjs_kes_perusahaan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total Kes Pribadi (1%):</strong><br><span style="font-weight: 800; color: #0284c7; font-size: 16px;">${formatRupiah(summary.total_bpjs_kes_karyawan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total Kes Company (4%):</strong><br><span style="font-weight: 700; color: #334155;">${formatRupiah(summary.total_bpjs_kes_perusahaan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Grand Total BPJS Kes (5%):</strong><br><span style="font-weight: 700; color: #1e293b;">${formatRupiah(summary.total_bpjs_kes || 0)}</span></div>
         `;
         theadHtml = `
             <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
                 <th style="padding: 10px; text-align: center;">No</th>
                 <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
                 <th style="padding: 10px; text-align: center;">Periode</th>
-                <th style="padding: 10px; text-align: right;">Pribadi (1%)</th>
-                <th style="padding: 10px; text-align: right;">Company (4%)</th>
-                <th style="padding: 10px; text-align: right;">Total BPJS Kes (5%)</th>
+                <th style="padding: 10px; text-align: right;">Kes Pribadi (1%)</th>
+                <th style="padding: 10px; text-align: right;">Kes Co (4%)</th>
+                <th style="padding: 10px; text-align: right;">Total BPJS Kes</th>
             </tr>
         `;
         data.forEach((item, idx) => {
@@ -1808,46 +1823,105 @@ function showBpjsKpiDetailModal(kpiType) {
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 10px; text-align: center; font-weight: 600;">${idx + 1}</td>
                     <td style="padding: 10px; font-weight: 700; color: #1e293b;">${escapeHtml(subj)}</td>
-                    <td style="padding: 10px; text-align: center;"><span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
-                    <td style="padding: 10px; text-align: right; color: #ef4444; font-weight: 600;">${formatRupiah(item.bpjs_kes_karyawan)}</td>
-                    <td style="padding: 10px; text-align: right; color: #475569; font-weight: 600;">${formatRupiah(item.bpjs_kes_perusahaan)}</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #0284c7;">${formatRupiah(item.subtotal_bpjs_kes)}</td>
+                    <td style="padding: 10px; text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 10px; text-align: right; color: #0284c7; font-weight: 700;">${formatRupiah(item.bpjs_kes_karyawan)}</td>
+                    <td style="padding: 10px; text-align: right; color: #475569;">${formatRupiah(item.bpjs_kes_perusahaan)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #1e293b;">${formatRupiah(item.subtotal_bpjs_kes)}</td>
                 </tr>
             `;
         });
-    } else if (kpiType === 'tk') {
-        titleText = 'Detail Metrik: BPJS Ketenagakerjaan (JHT, JP, JKK, JKM)';
+    } else if (kpiType === 'tk_pribadi' || kpiType === 'tk') {
+        titleText = 'Detail Metrik: BPJS Ketenagakerjaan - Tanggungan Pribadi (3%)';
         metaHtml = `
-            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total BPJS TK:</strong><br><span style="font-weight: 800; color: #9333ea; font-size: 16px;">${formatRupiah(summary.total_bpjs_tk || 0)}</span></div>
-            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Tanggungan Pribadi (JHT+JP):</strong><br><span style="font-weight: 700; color: #dc2626;">${formatRupiah(summary.total_bpjs_tk_karyawan || 0)}</span></div>
-            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Tanggungan Company (TK):</strong><br><span style="font-weight: 700; color: #059669;">${formatRupiah(summary.total_bpjs_tk_perusahaan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total TK Pribadi (3%):</strong><br><span style="font-weight: 800; color: #0284c7; font-size: 16px;">${formatRupiah(summary.total_bpjs_tk_karyawan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">TK Company (8.04%):</strong><br><span style="font-weight: 700; color: #334155;">${formatRupiah(summary.total_bpjs_tk_perusahaan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Grand Total BPJS TK:</strong><br><span style="font-weight: 700; color: #1e293b;">${formatRupiah(summary.total_bpjs_tk || 0)}</span></div>
         `;
         theadHtml = `
             <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
                 <th style="padding: 10px; text-align: center;">No</th>
                 <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
                 <th style="padding: 10px; text-align: center;">Periode</th>
-                <th style="padding: 10px; text-align: right;">JHT (Emp/Co)</th>
-                <th style="padding: 10px; text-align: right;">JP (Emp/Co)</th>
-                <th style="padding: 10px; text-align: right;">JKK (Co)</th>
-                <th style="padding: 10px; text-align: right;">JKM (Co)</th>
-                <th style="padding: 10px; text-align: right;">Total BPJS TK</th>
+                <th style="padding: 10px; text-align: right;">JHT Pribadi (2%)</th>
+                <th style="padding: 10px; text-align: right;">JP Pribadi (1%)</th>
+                <th style="padding: 10px; text-align: right;">Total TK Pribadi (3%)</th>
             </tr>
         `;
         data.forEach((item, idx) => {
             const subj = isEmployeeMode ? item.employee_name : item.client_name;
-            const jhtTot = (item.bpjs_jht_karyawan || 0) + (item.bpjs_jht_perusahaan || 0);
-            const jpTot  = (item.bpjs_jp_karyawan || 0) + (item.bpjs_jp_perusahaan || 0);
+            const tkPribadiTot = (item.bpjs_jht_karyawan || 0) + (item.bpjs_jp_karyawan || 0);
             tbodyHtml += `
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                     <td style="padding: 10px; text-align: center; font-weight: 600;">${idx + 1}</td>
                     <td style="padding: 10px; font-weight: 700; color: #1e293b;">${escapeHtml(subj)}</td>
-                    <td style="padding: 10px; text-align: center;"><span style="background: #e0e7ff; color: #3730a3; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
-                    <td style="padding: 10px; text-align: right; font-weight: 600;">${formatRupiah(jhtTot)}</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 600;">${formatRupiah(jpTot)}</td>
+                    <td style="padding: 10px; text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 10px; text-align: right; color: #0284c7; font-weight: 600;">${formatRupiah(item.bpjs_jht_karyawan)}</td>
+                    <td style="padding: 10px; text-align: right; color: #0284c7; font-weight: 600;">${formatRupiah(item.bpjs_jp_karyawan)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #0284c7;">${formatRupiah(tkPribadiTot)}</td>
+                </tr>
+            `;
+        });
+    } else if (kpiType === 'kes_company') {
+        titleText = 'Detail Metrik: BPJS Kesehatan - Tanggungan Company (4%)';
+        metaHtml = `
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total Kes Company (4%):</strong><br><span style="font-weight: 800; color: #334155; font-size: 16px;">${formatRupiah(summary.total_bpjs_kes_perusahaan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Kes Pribadi (1%):</strong><br><span style="font-weight: 700; color: #0284c7;">${formatRupiah(summary.total_bpjs_kes_karyawan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Grand Total BPJS Kes (5%):</strong><br><span style="font-weight: 700; color: #1e293b;">${formatRupiah(summary.total_bpjs_kes || 0)}</span></div>
+        `;
+        theadHtml = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 10px; text-align: center;">No</th>
+                <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
+                <th style="padding: 10px; text-align: center;">Periode</th>
+                <th style="padding: 10px; text-align: right;">Kes Co (4%)</th>
+                <th style="padding: 10px; text-align: right;">Kes Pribadi (1%)</th>
+                <th style="padding: 10px; text-align: right;">Total BPJS Kes</th>
+            </tr>
+        `;
+        data.forEach((item, idx) => {
+            const subj = isEmployeeMode ? item.employee_name : item.client_name;
+            tbodyHtml += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 10px; font-weight: 700; color: #1e293b;">${escapeHtml(subj)}</td>
+                    <td style="padding: 10px; text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 10px; text-align: right; color: #334155; font-weight: 700;">${formatRupiah(item.bpjs_kes_perusahaan)}</td>
+                    <td style="padding: 10px; text-align: right; color: #475569;">${formatRupiah(item.bpjs_kes_karyawan)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #1e293b;">${formatRupiah(item.subtotal_bpjs_kes)}</td>
+                </tr>
+            `;
+        });
+    } else if (kpiType === 'tk_company') {
+        titleText = 'Detail Metrik: BPJS Ketenagakerjaan - Tanggungan Company (8.04%)';
+        metaHtml = `
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total TK Company:</strong><br><span style="font-weight: 800; color: #334155; font-size: 16px;">${formatRupiah(summary.total_bpjs_tk_perusahaan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">TK Pribadi (3%):</strong><br><span style="font-weight: 700; color: #0284c7;">${formatRupiah(summary.total_bpjs_tk_karyawan || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Grand Total BPJS TK:</strong><br><span style="font-weight: 700; color: #1e293b;">${formatRupiah(summary.total_bpjs_tk || 0)}</span></div>
+        `;
+        theadHtml = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 10px; text-align: center;">No</th>
+                <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
+                <th style="padding: 10px; text-align: center;">Periode</th>
+                <th style="padding: 10px; text-align: right;">JHT Co (3.7%)</th>
+                <th style="padding: 10px; text-align: right;">JP Co (2%)</th>
+                <th style="padding: 10px; text-align: right;">JKK Co (0.24%)</th>
+                <th style="padding: 10px; text-align: right;">JKM Co (0.3%)</th>
+                <th style="padding: 10px; text-align: right;">Total TK Company</th>
+            </tr>
+        `;
+        data.forEach((item, idx) => {
+            const subj = isEmployeeMode ? item.employee_name : item.client_name;
+            tbodyHtml += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 10px; font-weight: 700; color: #1e293b;">${escapeHtml(subj)}</td>
+                    <td style="padding: 10px; text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 10px; text-align: right; color: #475569;">${formatRupiah(item.bpjs_jht_perusahaan)}</td>
+                    <td style="padding: 10px; text-align: right; color: #475569;">${formatRupiah(item.bpjs_jp_perusahaan)}</td>
                     <td style="padding: 10px; text-align: right; color: #475569;">${formatRupiah(item.bpjs_jkk_perusahaan)}</td>
                     <td style="padding: 10px; text-align: right; color: #475569;">${formatRupiah(item.bpjs_jkm_perusahaan)}</td>
-                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #9333ea;">${formatRupiah(item.subtotal_bpjs_tk)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #334155;">${formatRupiah(item.bpjs_tk_perusahaan)}</td>
                 </tr>
             `;
         });
@@ -1943,6 +2017,579 @@ function tutupModalBpjsReportDetail() {
     }
 }
 window.tutupModalBpjsReportDetail = tutupModalBpjsReportDetail;
+
+/* =====================================================================
+ * TAX REPORT (PPh 21) MODULE
+ * ===================================================================== */
+
+async function loadTaxReport(overrideClientId = null) {
+    try {
+        let clientFilter = overrideClientId || window.selectedClientId || 'all';
+
+        const selectClientEl = document.getElementById('filterTaxClient');
+        if (selectClientEl) {
+            if (overrideClientId || window.selectedClientId) {
+                selectClientEl.value = overrideClientId || window.selectedClientId;
+            }
+            clientFilter = selectClientEl.value || clientFilter;
+        }
+
+        const selectTahunEl = document.getElementById('filterTaxTahun');
+        const tahunFilter = selectTahunEl ? selectTahunEl.value : (window.taxReportState.selectedTahun || '2026');
+
+        const startDateEl = document.getElementById('filterTaxStartDate');
+        const endDateEl = document.getElementById('filterTaxEndDate');
+        const startDateFilter = startDateEl ? startDateEl.value : '';
+        const endDateFilter = endDateEl ? endDateEl.value : '';
+
+        const viewModeEl = document.getElementById('filterTaxViewMode');
+        const viewModeFilter = viewModeEl ? viewModeEl.value : 'summary';
+
+        window.taxReportState.selectedClient = clientFilter;
+        window.taxReportState.selectedTahun = tahunFilter;
+        window.taxReportState.selectedStartDate = startDateFilter;
+        window.taxReportState.selectedEndDate = endDateFilter;
+        window.taxReportState.selectedViewMode = viewModeFilter;
+
+        showToast('Memuat data laporan Pajak (PPh 21)...', 'info');
+
+        const queryParams = new URLSearchParams({
+            client_id: clientFilter,
+            tahun: tahunFilter,
+            start_date: startDateFilter,
+            end_date: endDateFilter,
+            view_mode: viewModeFilter
+        });
+
+        const response = await fetch(`${window.API}/reports/tax-summary?${queryParams.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            window.taxReportState.clients = result.clients || [];
+            window.taxReportState.data = result.data || [];
+            window.taxReportState.summary = result.summary || {};
+
+            populateTaxClientOptions(clientFilter);
+            renderTaxKpiCards();
+            renderTaxCharts();
+            renderTaxTable();
+            showToast('Laporan Pajak (PPh 21) berhasil diperbarui', 'success');
+        } else {
+            showToast(result.message || 'Gagal memuat data laporan Pajak', 'error');
+        }
+    } catch (err) {
+        console.error('Error loading Tax report:', err);
+        showToast('Terjadi kesalahan saat memuat laporan Pajak', 'error');
+    }
+}
+window.loadTaxReport = loadTaxReport;
+
+function populateTaxClientOptions(activeClientId = null) {
+    const select = document.getElementById('filterTaxClient');
+    if (!select) return;
+
+    const targetVal = activeClientId || window.selectedClientId || select.value || 'all';
+    let html = '<option value="all">Semua Klien</option>';
+    (window.taxReportState.clients || []).forEach(c => {
+        html += `<option value="${c.id}">${escapeHtml(c.nama)}</option>`;
+    });
+    select.innerHTML = html;
+    select.value = targetVal;
+}
+
+function resetTaxFilter() {
+    const selectClient = document.getElementById('filterTaxClient');
+    const selectTahun  = document.getElementById('filterTaxTahun');
+    const inputStart   = document.getElementById('filterTaxStartDate');
+    const inputEnd     = document.getElementById('filterTaxEndDate');
+    const selectMode   = document.getElementById('filterTaxViewMode');
+
+    if (selectClient) selectClient.value = window.selectedClientId || 'all';
+    if (selectTahun)  selectTahun.value = '2026';
+    if (inputStart)   inputStart.value = '';
+    if (inputEnd)     inputEnd.value = '';
+    if (selectMode)   selectMode.value = 'summary';
+
+    loadTaxReport();
+}
+window.resetTaxFilter = resetTaxFilter;
+
+function renderTaxKpiCards() {
+    const summary = window.taxReportState.summary || {};
+
+    const elPph21     = document.getElementById('kpiTaxTotalPph21');
+    const elAllowance = document.getElementById('kpiTaxTotalAllowance');
+    const elBruto     = document.getElementById('kpiTaxTotalBruto');
+    const elHeadcount = document.getElementById('kpiTaxTotalHeadcount');
+
+    if (elPph21)     elPph21.innerText     = formatRupiah(summary.total_pph21 || 0);
+    if (elAllowance) elAllowance.innerText = formatRupiah(summary.total_tax_allowance || 0);
+    if (elBruto)     elBruto.innerText     = formatRupiah(summary.total_bruto || 0);
+    if (elHeadcount) elHeadcount.innerText = (summary.total_headcount || 0) + ' Orang';
+}
+
+function renderTaxCharts() {
+    if (typeof Chart === 'undefined') return;
+
+    const data = window.taxReportState.data || [];
+    const isEmployeeMode = window.taxReportState.selectedViewMode === 'employee';
+
+    const ctxTrend = document.getElementById('chartTaxTrend');
+    const ctxComp  = document.getElementById('chartTaxComposition');
+
+    if (window.taxReportState.chartTrend) window.taxReportState.chartTrend.destroy();
+    if (window.taxReportState.chartComposition) window.taxReportState.chartComposition.destroy();
+
+    const periodMap = {};
+    data.forEach(item => {
+        const label = item.bulan_tahun_label || item.bulan + ' ' + item.tahun;
+        if (!periodMap[label]) {
+            periodMap[label] = { pph21: 0, allowance: 0, bruto: 0 };
+        }
+        periodMap[label].pph21     += (isEmployeeMode ? (item.pph21 || 0) : (item.total_pph21 || 0));
+        periodMap[label].allowance += (isEmployeeMode ? (item.tax_allowance || 0) : (item.total_tax_allowance || 0));
+        periodMap[label].bruto     += (isEmployeeMode ? (item.gaji_pokok || 0) : (item.total_gaji_pokok || 0));
+    });
+
+    const labels    = Object.keys(periodMap);
+    const pphData   = labels.map(l => periodMap[l].pph21);
+    const allowData = labels.map(l => periodMap[l].allowance);
+    const brutoData = labels.map(l => periodMap[l].bruto);
+
+    if (ctxTrend) {
+        window.taxReportState.chartTrend = new Chart(ctxTrend, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'PPh 21 Terutang (Pajak)',
+                        data: pphData,
+                        backgroundColor: '#0284c7',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', align: 'end' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return (context.dataset.label || '') + ': ' + formatRupiah(context.parsed.y);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        ticks: {
+                            callback: function(val) {
+                                if (val >= 1000000000) return 'Rp ' + (val / 1000000000).toFixed(1) + ' B';
+                                if (val >= 1000000) return 'Rp ' + (val / 1000000).toFixed(1) + ' Jt';
+                                if (val >= 1000) return 'Rp ' + (val / 1000).toFixed(0) + ' Rb';
+                                return 'Rp ' + val;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    if (ctxComp) {
+        window.taxReportState.chartComposition = new Chart(ctxComp, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Penghasilan Bruto Kena Pajak',
+                        data: brutoData,
+                        borderColor: '#0284c7',
+                        backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', align: 'end' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return (context.dataset.label || '') + ': ' + formatRupiah(context.parsed.y);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        ticks: {
+                            callback: function(val) {
+                                if (val >= 1000000000) return 'Rp ' + (val / 1000000000).toFixed(1) + ' B';
+                                if (val >= 1000000) return 'Rp ' + (val / 1000000).toFixed(1) + ' Jt';
+                                if (val >= 1000) return 'Rp ' + (val / 1000).toFixed(0) + ' Rb';
+                                return 'Rp ' + val;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function renderTaxTable() {
+    const headContainer = document.getElementById('tableReportTaxHead');
+    const bodyContainer = document.getElementById('tableReportTaxBody');
+    const titleEl = document.getElementById('tableReportTaxTitle');
+    const subtitleEl = document.getElementById('tableReportTaxSubtitle');
+    if (!bodyContainer || !headContainer) return;
+
+    const data = window.taxReportState.data || [];
+    const isEmployeeMode = window.taxReportState.selectedViewMode === 'employee';
+
+    if (titleEl) {
+        titleEl.innerText = isEmployeeMode ? 'Rincian Laporan Pajak PPh 21 Per Karyawan' : 'Rincian Laporan Pajak PPh 21 Per Klien & Periode';
+    }
+    if (subtitleEl) {
+        subtitleEl.innerText = isEmployeeMode ? 'Menampilkan rincian PPh 21 & PTKP setiap karyawan' : 'Menampilkan akumulasi PPh 21 per perusahaan & bulan';
+    }
+
+    if (isEmployeeMode) {
+        headContainer.innerHTML = `
+            <tr style="background: #f1f5f9; text-align: center; color: #334155; font-weight: 700; border-bottom: 1px solid #cbd5e1;">
+                <th style="width: 40px; padding: 10px;">No</th>
+                <th style="padding: 10px; text-align: left;">Nama Karyawan</th>
+                <th style="padding: 10px; text-align: left;">Jabatan</th>
+                <th style="padding: 10px; text-align: left;">Klien</th>
+                <th style="padding: 10px;">Periode</th>
+                <th style="padding: 10px; text-align: center; background: #f8fafc; color: #334155;">Status PTKP</th>
+                <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">Penghasilan Bruto</th>
+                <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">PPh 21 Terutang</th>
+                <th style="padding: 10px; text-align: right; background: #e2e8f0; color: #0f172a;">Gaji Bersih (THP)</th>
+            </tr>
+        `;
+    } else {
+        headContainer.innerHTML = `
+            <tr style="background: #f1f5f9; text-align: center; color: #334155; font-weight: 700; border-bottom: 1px solid #cbd5e1;">
+                <th style="width: 40px; padding: 10px;">No</th>
+                <th style="padding: 10px; text-align: left;">Nama Klien</th>
+                <th style="padding: 10px;">Periode</th>
+                <th style="padding: 10px;">Headcount</th>
+                <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">Total Bruto</th>
+                <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">Total PPh 21 Terutang</th>
+                <th style="padding: 10px; text-align: right; background: #e2e8f0; color: #0f172a;">Total THP Karyawan</th>
+            </tr>
+        `;
+    }
+
+    if (!data.length) {
+        const colspan = isEmployeeMode ? 9 : 7;
+        bodyContainer.innerHTML = `
+            <tr>
+                <td colspan="${colspan}" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <i class="fas fa-folder-open" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
+                    Belum ada data PPh 21 untuk periode / klien yang dipilih.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    data.forEach((item, index) => {
+        if (isEmployeeMode) {
+            html += `
+                <tr onclick="showTaxRowDetailModal(${index})" title="Klik untuk lihat rincian detail PPh 21" style="border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 10px; text-align: center; font-weight: 600; color: #64748b;">${index + 1}</td>
+                    <td style="padding: 10px; font-weight: 700; color: #1e293b;">
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            ${escapeHtml(item.employee_name)}
+                            <i class="fas fa-search-plus" style="font-size: 11px; opacity: 0.6;"></i>
+                        </span>
+                    </td>
+                    <td style="padding: 10px; font-weight: 600; color: #334155;">${escapeHtml(item.position_name)}</td>
+                    <td style="padding: 10px; font-weight: 600; color: #334155;">${escapeHtml(item.client_name)}</td>
+                    <td style="padding: 10px; text-align: center;">
+                        <span style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
+                            ${escapeHtml(item.bulan_tahun_label)}
+                        </span>
+                    </td>
+                    <td style="padding: 10px; text-align: center;">
+                        <span style="background: #f1f5f9; color: #334155; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">
+                            ${escapeHtml(item.ptkp_status || 'TK/0')}
+                        </span>
+                    </td>
+                    <td style="padding: 10px; text-align: right; color: #334155; font-variant-numeric: tabular-nums;">${formatRupiah(item.gaji_pokok)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 700; color: #1e293b; font-variant-numeric: tabular-nums;">${formatRupiah(item.pph21)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #0f172a; background: rgba(226, 232, 240, 0.6); font-variant-numeric: tabular-nums;">${formatRupiah(item.take_home_pay)}</td>
+                </tr>
+            `;
+        } else {
+            html += `
+                <tr onclick="showTaxRowDetailModal(${index})" title="Klik untuk lihat rincian detail PPh 21" style="border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 12px; text-align: center; font-weight: 600; color: #64748b;">${index + 1}</td>
+                    <td style="padding: 12px; font-weight: 700; color: #1e293b;">
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            ${escapeHtml(item.client_name)}
+                            <i class="fas fa-search-plus" style="font-size: 11px; opacity: 0.6;"></i>
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700;">
+                            ${escapeHtml(item.bulan_tahun_label)}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${item.total_karyawan} orang</td>
+                    <td style="padding: 12px; text-align: right; color: #334155; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_gaji_pokok)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700; color: #1e293b; font-variant-numeric: tabular-nums;">${formatRupiah(item.total_pph21)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #0f172a; background: rgba(226, 232, 240, 0.6); font-variant-numeric: tabular-nums;">${formatRupiah(item.total_take_home_pay)}</td>
+                </tr>
+            `;
+        }
+    });
+
+    bodyContainer.innerHTML = html;
+}
+
+function exportTaxReportExcel() {
+    showToast('Mempersiapkan data Excel Laporan Pajak...', 'info');
+    const state = window.taxReportState;
+    const queryParams = new URLSearchParams({
+        client_id: state.selectedClient || 'all',
+        tahun: state.selectedTahun || '2026',
+        start_date: state.selectedStartDate || '',
+        end_date: state.selectedEndDate || '',
+        view_mode: state.selectedViewMode || 'summary',
+        export: 'excel'
+    });
+    window.open(`${window.API}/reports/tax-summary?${queryParams.toString()}`, '_blank');
+}
+window.exportTaxReportExcel = exportTaxReportExcel;
+
+function exportTaxReportPdf() {
+    showToast('Mencetak Laporan Pajak ke PDF...', 'info');
+    window.print();
+}
+window.exportTaxReportPdf = exportTaxReportPdf;
+
+function showTaxRowDetailModal(index) {
+    const data = window.taxReportState.data || [];
+    const item = data[index];
+    if (!item) return;
+
+    const modal   = document.getElementById('modalTaxReportDetail');
+    const overlay = document.getElementById('overlay');
+    const titleEl = document.getElementById('modalTaxReportTitle');
+    const metaEl  = document.getElementById('modalTaxReportHeaderMeta');
+    const theadEl = document.getElementById('modalTaxReportThead');
+    const tbodyEl = document.getElementById('modalTaxReportTbody');
+    const isEmployeeMode = window.taxReportState.selectedViewMode === 'employee';
+
+    if (!modal || !metaEl || !theadEl || !tbodyEl) return;
+
+    const subjectName = isEmployeeMode ? item.employee_name : item.client_name;
+    if (titleEl) {
+        titleEl.innerHTML = `<i class="fas fa-file-invoice-dollar" style="color: white; margin-right: 8px;"></i> Rincian Pajak PPh 21: ${escapeHtml(subjectName)}`;
+    }
+
+    let metaHtml = `
+        <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Subjek:</strong><br><span style="font-weight: 700; color: #1e293b; font-size: 15px;">${escapeHtml(subjectName)}</span></div>
+        <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Periode:</strong><br><span style="font-weight: 700; color: #1e293b;">${escapeHtml(item.bulan_tahun_label)}</span></div>
+    `;
+    if (isEmployeeMode) {
+        metaHtml += `
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Jabatan:</strong><br><span style="font-weight: 600; color: #334155;">${escapeHtml(item.position_name)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Status PTKP:</strong><br><span style="font-weight: 700; color: #334155;">${escapeHtml(item.ptkp_status || 'TK/0')}</span></div>
+        `;
+    } else {
+        metaHtml += `
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Headcount:</strong><br><span style="font-weight: 700; color: #334155;">${item.total_karyawan} Orang</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total PPh 21:</strong><br><span style="font-weight: 800; color: #1e293b;">${formatRupiah(item.total_pph21)}</span></div>
+        `;
+    }
+    metaEl.innerHTML = metaHtml;
+
+    theadEl.innerHTML = `
+        <tr style="background: #f1f5f9; color: #475569; font-weight: 700; text-align: left;">
+            <th style="padding: 12px;">Komponen Pajak</th>
+            <th style="padding: 12px; text-align: right;">Nominal</th>
+        </tr>
+    `;
+
+    const bruto = isEmployeeMode ? item.gaji_pokok : item.total_gaji_pokok;
+    const pph   = isEmployeeMode ? item.pph21 : item.total_pph21;
+    const thp   = isEmployeeMode ? item.take_home_pay : item.total_take_home_pay;
+
+    tbodyEl.innerHTML = `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px; font-weight: 600; color: #334155;">Penghasilan Bruto (Gaji Pokok / Total Gross)</td>
+            <td style="padding: 12px; text-align: right; color: #1e293b; font-weight: 600;">${formatRupiah(bruto)}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+            <td style="padding: 12px; font-weight: 700; color: #334155;">PPh 21 Terutang (Dipotong)</td>
+            <td style="padding: 12px; text-align: right; font-weight: 800; color: #1e293b;">${formatRupiah(pph)}</td>
+        </tr>
+        <tr style="background: #e2e8f0; font-weight: 800; color: #0f172a; font-size: 14px;">
+            <td style="padding: 14px 12px;">TAKE HOME PAY (Gaji Bersih)</td>
+            <td style="padding: 14px 12px; text-align: right; color: #0f172a; font-size: 15px;">${formatRupiah(thp)}</td>
+        </tr>
+    `;
+
+    if (overlay) overlay.style.display = 'block';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+}
+window.showTaxRowDetailModal = showTaxRowDetailModal;
+
+function tutupModalTaxReportDetail() {
+    const modal   = document.getElementById('modalTaxReportDetail');
+    const overlay = document.getElementById('overlay');
+    if (modal)   modal.style.display = 'none';
+
+    const openModals = document.querySelectorAll('.modal-skema[style*="display: block"], .modal-skema[style*="display: flex"]');
+    if (openModals.length === 0 && overlay) {
+        overlay.style.display = 'none';
+    }
+}
+window.tutupModalTaxReportDetail = tutupModalTaxReportDetail;
+
+function showTaxKpiDetailModal(kpiType) {
+    const data    = window.taxReportState.data || [];
+    const summary = window.taxReportState.summary || {};
+    const modal   = document.getElementById('modalTaxReportDetail');
+    const overlay = document.getElementById('overlay');
+    const titleEl = document.getElementById('modalTaxReportTitle');
+    const metaEl  = document.getElementById('modalTaxReportHeaderMeta');
+    const theadEl = document.getElementById('modalTaxReportThead');
+    const tbodyEl = document.getElementById('modalTaxReportTbody');
+    const isEmployeeMode = window.taxReportState.selectedViewMode === 'employee';
+
+    if (!modal || !metaEl || !theadEl || !tbodyEl) return;
+
+    let titleText = 'Detail Metrik Pajak PPh 21';
+    let metaHtml  = '';
+    let theadHtml = '';
+    let tbodyHtml = '';
+
+    if (kpiType === 'pph21') {
+        titleText = 'Detail Metrik: Total PPh 21 Terutang';
+        metaHtml  = `
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total PPh 21:</strong><br><span style="font-weight: 800; color: #1e293b; font-size: 16px;">${formatRupiah(summary.total_pph21 || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total Bruto:</strong><br><span style="font-weight: 700; color: #334155;">${formatRupiah(summary.total_bruto || 0)}</span></div>
+        `;
+        theadHtml = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 10px; text-align: center;">No</th>
+                <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
+                <th style="padding: 10px; text-align: center;">Periode</th>
+                <th style="padding: 10px; text-align: right;">Bruto</th>
+                <th style="padding: 10px; text-align: right;">PPh 21 Terutang</th>
+            </tr>
+        `;
+        data.forEach((item, idx) => {
+            const subj = isEmployeeMode ? item.employee_name : item.client_name;
+            const bruto = isEmployeeMode ? item.gaji_pokok : item.total_gaji_pokok;
+            const pph   = isEmployeeMode ? item.pph21 : item.total_pph21;
+            tbodyHtml += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 10px; font-weight: 700; color: #1e293b;">${escapeHtml(subj)}</td>
+                    <td style="padding: 10px; text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 10px; text-align: right; color: #334155;">${formatRupiah(bruto)}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #1e293b;">${formatRupiah(pph)}</td>
+                </tr>
+            `;
+        });
+    } else if (kpiType === 'allowance') {
+        titleText = 'Detail Metrik: Total Tunjangan Pajak (Gross Up)';
+        metaHtml  = `
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total Tunjangan Pajak:</strong><br><span style="font-weight: 800; color: #1e293b; font-size: 16px;">${formatRupiah(summary.total_tax_allowance || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total PPh 21:</strong><br><span style="font-weight: 700; color: #1e293b;">${formatRupiah(summary.total_pph21 || 0)}</span></div>
+        `;
+        theadHtml = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 10px; text-align: center;">No</th>
+                <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
+                <th style="padding: 10px; text-align: center;">Periode</th>
+                <th style="padding: 10px; text-align: right;">Tunjangan Pajak</th>
+                <th style="padding: 10px; text-align: right;">PPh 21 Terutang</th>
+            </tr>
+        `;
+        data.forEach((item, idx) => {
+            const subj  = isEmployeeMode ? item.employee_name : item.client_name;
+            const allow = isEmployeeMode ? item.tax_allowance : item.total_tax_allowance;
+            const pph   = isEmployeeMode ? item.pph21 : item.total_pph21;
+            tbodyHtml += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 10px; font-weight: 700; color: #1e293b;">${escapeHtml(subj)}</td>
+                    <td style="padding: 10px; text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #334155;">${formatRupiah(allow)}</td>
+                    <td style="padding: 10px; text-align: right; color: #1e293b;">${formatRupiah(pph)}</td>
+                </tr>
+            `;
+        });
+    } else {
+        titleText = 'Detail Metrik: Subjek & Penghasilan Bruto Kena Pajak';
+        metaHtml  = `
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total Bruto:</strong><br><span style="font-weight: 800; color: #1e293b; font-size: 16px;">${formatRupiah(summary.total_bruto || 0)}</span></div>
+            <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total Subjek Pajak:</strong><br><span style="font-weight: 700; color: #334155;">${summary.total_headcount || 0} Orang</span></div>
+        `;
+        theadHtml = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 10px; text-align: center;">No</th>
+                <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
+                <th style="padding: 10px; text-align: center;">Periode</th>
+                <th style="padding: 10px; text-align: right;">Penghasilan Bruto</th>
+                <th style="padding: 10px; text-align: right;">PPh 21 Terutang</th>
+            </tr>
+        `;
+        data.forEach((item, idx) => {
+            const subj  = isEmployeeMode ? item.employee_name : item.client_name;
+            const bruto = isEmployeeMode ? item.gaji_pokok : item.total_gaji_pokok;
+            const pph   = isEmployeeMode ? item.pph21 : item.total_pph21;
+            tbodyHtml += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 10px; font-weight: 700; color: #1e293b;">${escapeHtml(subj)}</td>
+                    <td style="padding: 10px; text-align: center;"><span style="background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">${escapeHtml(item.bulan_tahun_label)}</span></td>
+                    <td style="padding: 10px; text-align: right; font-weight: 800; color: #334155;">${formatRupiah(bruto)}</td>
+                    <td style="padding: 10px; text-align: right; color: #1e293b;">${formatRupiah(pph)}</td>
+                </tr>
+            `;
+        });
+    }
+
+    if (titleEl) titleEl.innerHTML = `<i class="fas fa-file-invoice-dollar" style="color: white; margin-right: 8px;"></i> ${titleText}`;
+    metaEl.innerHTML  = metaHtml;
+    theadEl.innerHTML = theadHtml;
+    tbodyEl.innerHTML = tbodyHtml;
+
+    if (overlay) overlay.style.display = 'block';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+}
+window.showTaxKpiDetailModal = showTaxKpiDetailModal;
 
 
 

@@ -97,6 +97,7 @@ $routes->group('api', ['filter' => 'role'], function($routes) {
     $routes->get('client-absence-config/(:num)', 'Api::getAbsenceConfig/$1');
     $routes->get('reports/payroll-summary', 'Api::getPayrollSummaryReport');
     $routes->get('reports/bpjs-summary', 'Api::getBpjsReport');
+    $routes->get('reports/tax-summary', 'Api::getTaxReport');
     $routes->get('check-schema', 'Api::checkSchema');
     $routes->get('preview-payroll', 'Api::previewPayroll');
 

@@ -790,6 +790,7 @@
                             <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
                                 <button class="sub-tab-btn active" id="subTabReportSummary" onclick="switchReportSubTab('summary')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Summary Gaji (MoM)</button>
                                 <button class="sub-tab-btn" id="subTabReportBpjs" onclick="switchReportSubTab('bpjs')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Laporan BPJS</button>
+                                <button class="sub-tab-btn" id="subTabReportTax" onclick="switchReportSubTab('tax')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Laporan Pajak</button>
                             </div>
 
                             <!-- Sub Panel 1: Summary Gaji (MoM) -->
@@ -1029,60 +1030,64 @@
                                         </div>
                                     </div>
 
-                                     <!-- KPI Metric Cards Grid -->
-                                    <div class="stats-grid" style="margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
-                                        <!-- BPJS Kesehatan -->
-                                        <div class="stat-card" onclick="showBpjsKpiDetailModal('kes')" title="Klik untuk lihat detail BPJS Kesehatan" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(14, 165, 233, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <div class="stat-icon" style="background: rgba(14, 165, 233, 0.1); color: #0284c7; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                                                <i class="fas fa-heartbeat"></i>
-                                            </div>
-                                            <div class="stat-info">
-                                                <h4 id="kpiBpjsTotalKes" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
-                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total BPJS Kesehatan (5%) <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
-                                                <div id="kpiBpjsSubKes" style="font-size: 11px; margin-top: 6px; color: #475569; display: flex; gap: 6px; flex-wrap: wrap;">
-                                                    <span id="badgeKesEmp" style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Pribadi: Rp 0</span>
-                                                    <span id="badgeKesCo" style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Co: Rp 0</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                      <!-- KPI Metric Cards Grid (Icon matches Program, Badge matches Tanggungan) -->
+                                     <div class="stats-grid" style="margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                                         <!-- BPJS Kesehatan (Pribadi) - Kes = Blue, Pribadi = Blue Badge -->
+                                         <div class="stat-card" onclick="showBpjsKpiDetailModal('kes_pribadi')" title="Klik untuk lihat detail BPJS Kesehatan Pribadi" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(2, 132, 199, 0.12)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                             <div class="stat-icon" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                                 <i class="fas fa-heartbeat"></i>
+                                             </div>
+                                             <div class="stat-info">
+                                                 <h4 id="kpiBpjsKesEmp" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                                 <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">BPJS Kes (Pribadi 1%) <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
+                                                 <div style="font-size: 11px; margin-top: 6px;">
+                                                     <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Dipotong Gaji (Pribadi)</span>
+                                                 </div>
+                                             </div>
+                                         </div>
 
-                                        <!-- BPJS TK -->
-                                        <div class="stat-card" onclick="showBpjsKpiDetailModal('tk')" title="Klik untuk lihat detail BPJS Ketenagakerjaan" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(168, 85, 247, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <div class="stat-icon" style="background: rgba(168, 85, 247, 0.1); color: #9333ea; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                                                <i class="fas fa-briefcase"></i>
-                                            </div>
-                                            <div class="stat-info">
-                                                <h4 id="kpiBpjsTotalTk" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
-                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total BPJS TK (JHT, JP, JKK, JKM) <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
-                                                <div id="kpiBpjsSubTk" style="font-size: 11px; margin-top: 6px; color: #475569; display: flex; gap: 6px; flex-wrap: wrap;">
-                                                    <span id="badgeTkEmp" style="background: #f3e8ff; color: #7e22ce; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Pribadi: Rp 0</span>
-                                                    <span id="badgeTkCo" style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Co: Rp 0</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                         <!-- BPJS TK (Pribadi) - TK = Slate, Pribadi = Blue Badge -->
+                                         <div class="stat-card" onclick="showBpjsKpiDetailModal('tk_pribadi')" title="Klik untuk lihat detail BPJS TK Pribadi" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(51, 65, 85, 0.12)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                             <div class="stat-icon" style="background: rgba(51, 65, 85, 0.08); color: #334155; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                                 <i class="fas fa-briefcase"></i>
+                                             </div>
+                                             <div class="stat-info">
+                                                 <h4 id="kpiBpjsTkEmp" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                                 <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">BPJS TK (Pribadi 3%) <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
+                                                 <div style="font-size: 11px; margin-top: 6px;">
+                                                     <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">JHT 2% + JP 1% (Pribadi)</span>
+                                                 </div>
+                                             </div>
+                                         </div>
 
-                                        <!-- Total Pribadi -->
-                                        <div class="stat-card" onclick="showBpjsKpiDetailModal('pribadi')" title="Klik untuk lihat detail Tanggungan Pribadi" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(239, 68, 68, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                                                <i class="fas fa-user-shield"></i>
-                                            </div>
-                                            <div class="stat-info">
-                                                <h4 id="kpiBpjsTotalPribadi" style="font-size: 18px; font-weight: 800; color: #dc2626; margin: 0;">Rp 0</h4>
-                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Tanggungan Pribadi (Dipotong Gaji) <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
-                                            </div>
-                                        </div>
+                                         <!-- BPJS Kesehatan (Company) - Kes = Blue, Company = Slate Badge -->
+                                         <div class="stat-card" onclick="showBpjsKpiDetailModal('kes_company')" title="Klik untuk lihat detail BPJS Kesehatan Company" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(2, 132, 199, 0.12)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                             <div class="stat-icon" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                                 <i class="fas fa-building"></i>
+                                             </div>
+                                             <div class="stat-info">
+                                                 <h4 id="kpiBpjsKesCo" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                                 <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">BPJS Kes (Company 4%) <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
+                                                 <div style="font-size: 11px; margin-top: 6px;">
+                                                     <span style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Tanggungan Perusahaan</span>
+                                                 </div>
+                                             </div>
+                                         </div>
 
-                                        <!-- Total Company -->
-                                        <div class="stat-card" onclick="showBpjsKpiDetailModal('company')" title="Klik untuk lihat detail Tanggungan Company" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(16, 185, 129, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
-                                            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
-                                                <i class="fas fa-building"></i>
-                                            </div>
-                                            <div class="stat-info">
-                                                <h4 id="kpiBpjsTotalCompany" style="font-size: 18px; font-weight: 800; color: #059669; margin: 0;">Rp 0</h4>
-                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Tanggungan Company (Perusahaan) <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                         <!-- BPJS TK (Company) - TK = Slate, Company = Slate Badge -->
+                                         <div class="stat-card" onclick="showBpjsKpiDetailModal('tk_company')" title="Klik untuk lihat detail BPJS TK Company" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(51, 65, 85, 0.12)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                             <div class="stat-icon" style="background: rgba(51, 65, 85, 0.08); color: #334155; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                                 <i class="fas fa-building-user"></i>
+                                             </div>
+                                             <div class="stat-info">
+                                                 <h4 id="kpiBpjsTkCo" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                                 <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">BPJS TK (Company 8.04%) <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
+                                                 <div style="font-size: 11px; margin-top: 6px;">
+                                                     <span style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 600;">JHT, JP, JKK, JKM Co</span>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
 
                                     <!-- Charts Section (Grid 2 Canvas) -->
                                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; margin-bottom: 30px;">
@@ -1099,7 +1104,7 @@
                                         <!-- Stacked Bar Chart: Tanggungan Pribadi vs Tanggungan Company -->
                                         <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white;">
                                             <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
-                                                <i class="fas fa-chart-line" style="color: #9333ea;"></i> Beban BPJS: Tanggungan Pribadi vs Perusahaan
+                                                <i class="fas fa-chart-line" style="color: #0284c7;"></i> Beban BPJS: Tanggungan Pribadi vs Perusahaan
                                             </h4>
                                             <div style="height: 300px; position: relative;">
                                                 <canvas id="chartBpjsComposition"></canvas>
@@ -1123,6 +1128,166 @@
                                                 </thead>
                                                 <tbody id="tableReportBpjsBody">
                                                     <!-- Rendered by JS -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <!-- Sub Panel 3: Laporan Pajak (PPh 21) -->
+                            <div id="panelReportTax" class="report-subpanel" style="display: none;">
+                                <div class="content-card" style="box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; background: white;">
+                                    
+                                    <!-- Section Header -->
+                                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px;">
+                                        <div>
+                                            <h3 style="font-size: 20px; color: #1e293b; font-weight: 800; margin: 0 0 4px 0; display: flex; align-items: center; gap: 10px;">
+                                                <i class="fas fa-file-invoice-dollar" style="color: #059669;"></i> Laporan Payroll Pajak (PPh 21)
+                                            </h3>
+                                            <p style="color: #64748b; font-size: 13px; margin: 0;">Rincian akumulasi PPh 21 terutang, tunjangan pajak, penghasilan bruto, dan metode pemotongan pajak.</p>
+                                        </div>
+                                        <div class="report-actions-bar" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                            <button type="button" onclick="exportTaxReportExcel()" style="background: #059669; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;">
+                                                <i class="fas fa-file-excel"></i> Export Excel Pajak
+                                            </button>
+                                            <button type="button" onclick="exportTaxReportPdf()" style="background: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;">
+                                                <i class="fas fa-file-pdf"></i> Export PDF
+                                            </button>
+                                            <button type="button" onclick="loadTaxReport()" style="background: var(--primary-color); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;">
+                                                <i class="fas fa-sync-alt"></i> Refresh Data
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Filter Bar -->
+                                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;">
+                                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; display: none;">
+                                            <label style="font-size: 12px; font-weight: 700; color: #475569;">Pilih Klien:</label>
+                                            <select id="filterTaxClient" onchange="loadTaxReport()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white;">
+                                                <option value="all">Semua Klien</option>
+                                            </select>
+                                        </div>
+
+                                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px;">
+                                            <label style="font-size: 12px; font-weight: 700; color: #475569;">Tahun Periode:</label>
+                                            <select id="filterTaxTahun" onchange="loadTaxReport()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white;">
+                                                <option value="all">Semua Tahun</option>
+                                                <option value="2026" selected>2026</option>
+                                                <option value="2025">2025</option>
+                                            </select>
+                                        </div>
+
+                                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px;">
+                                            <label style="font-size: 12px; font-weight: 700; color: #475569;">Tanggal Mulai (Start Date):</label>
+                                            <input type="date" id="filterTaxStartDate" onchange="loadTaxReport()" style="padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; outline: none;">
+                                        </div>
+
+                                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px;">
+                                            <label style="font-size: 12px; font-weight: 700; color: #475569;">Tanggal Selesai (End Date):</label>
+                                            <input type="date" id="filterTaxEndDate" onchange="loadTaxReport()" style="padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; outline: none;">
+                                        </div>
+
+                                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px;">
+                                            <label style="font-size: 12px; font-weight: 700; color: #475569;">Mode Tampilan Data:</label>
+                                            <select id="filterTaxViewMode" onchange="loadTaxReport()" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; font-weight: 600; color: #1e293b;">
+                                                <option value="summary" selected>Summary Per Klien & Periode</option>
+                                                <option value="employee">Rincian Per Karyawan</option>
+                                            </select>
+                                        </div>
+
+                                        <div style="display: flex; gap: 8px;">
+                                            <button type="button" onclick="resetTaxFilter()" title="Reset Filter" style="padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; background: white; color: #64748b; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;">
+                                                <i class="fas fa-undo"></i> Reset
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- KPI Metric Cards Grid -->
+                                    <div class="stats-grid" style="margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+                                        <!-- Total PPh 21 -->
+                                        <div class="stat-card" onclick="showTaxKpiDetailModal('pph21')" title="Klik untuk lihat detail Total PPh 21" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(2, 132, 199, 0.12)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <div class="stat-icon" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                                <i class="fas fa-receipt"></i>
+                                            </div>
+                                            <div class="stat-info">
+                                                <h4 id="kpiTaxTotalPph21" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total PPh 21 Terutang <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
+                                                <div style="font-size: 11px; margin-top: 6px;">
+                                                    <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Dipotong / Kena Pajak</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Total Bruto -->
+                                        <div class="stat-card" onclick="showTaxKpiDetailModal('bruto')" title="Klik untuk lihat detail Total Bruto" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(51, 65, 85, 0.12)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <div class="stat-icon" style="background: rgba(51, 65, 85, 0.08); color: #334155; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                                <i class="fas fa-wallet"></i>
+                                            </div>
+                                            <div class="stat-info">
+                                                <h4 id="kpiTaxTotalBruto" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total Gaji Bruto <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
+                                                <div style="font-size: 11px; margin-top: 6px;">
+                                                    <span style="background: #f1f5f9; color: #334155; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Penghasilan Kena Pajak</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Headcount Kena Pajak -->
+                                        <div class="stat-card" onclick="showTaxKpiDetailModal('headcount')" title="Klik untuk lihat detail Subjek Pajak" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(2, 132, 199, 0.12)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                            <div class="stat-icon" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                                                <i class="fas fa-users-viewfinder"></i>
+                                            </div>
+                                            <div class="stat-info">
+                                                <h4 id="kpiTaxTotalHeadcount" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">0 Orang</h4>
+                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total Subjek Pajak <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
+                                                <div style="font-size: 11px; margin-top: 6px;">
+                                                    <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Karyawan Diproses</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Charts Section -->
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                                        <!-- Bar Chart: PPh 21 per Periode -->
+                                        <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white;">
+                                            <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                                                <i class="fas fa-chart-bar" style="color: #0284c7;"></i> Akumulasi PPh 21 Terutang per Periode
+                                            </h4>
+                                            <div style="height: 300px; position: relative;">
+                                                <canvas id="chartTaxTrend"></canvas>
+                                            </div>
+                                        </div>
+
+                                        <!-- Bar Chart: Gaji Bruto vs PPh 21 per Periode -->
+                                        <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white;">
+                                            <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                                                <i class="fas fa-chart-line" style="color: #0284c7;"></i> Akumulasi Penghasilan Bruto per Periode
+                                            </h4>
+                                            <div style="height: 300px; position: relative;">
+                                                <canvas id="chartTaxComposition"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Summary Data Table -->
+                                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                                            <div>
+                                                <h4 id="tableReportTaxTitle" style="font-size: 16px; font-weight: 700; color: #1e293b; margin: 0;">Rincian Laporan Pajak PPh 21</h4>
+                                                <p id="tableReportTaxSubtitle" style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">Menampilkan akumulasi PPh 21 & tunjangan pajak per perusahaan & bulan</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="table-container" style="overflow-x: auto;">
+                                            <table style="width: 100%; border-collapse: collapse; min-width: 1100px; font-size: 12px;">
+                                                <thead id="tableReportTaxHead">
+                                                    <!-- Dynamic Table Headers -->
+                                                </thead>
+                                                <tbody id="tableReportTaxBody">
+                                                    <!-- Dynamic Table Rows -->
                                                 </tbody>
                                             </table>
                                         </div>

@@ -2,7 +2,7 @@
     <div id="overlay" onclick="tutupSemuaModal()"></div>
 
     <div id="modalSlip" class="modal-skema" style="width: 600px; max-width: 95%; display: none; z-index: 2000;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3>Pay Slip</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalSlip()"></i>
         </div>
@@ -21,7 +21,7 @@
 
     <!-- BPJS Calculation Detail Modal -->
     <div id="modalDetailBpjs" class="modal-skema" style="display: none; width: 750px; max-width: 95%; z-index: 2005;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
             <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: white;">BPJS Calculation Details</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupDetailBpjsModal()"></i>
         </div>
@@ -107,7 +107,7 @@
 
     <!-- Payroll Scheme Form Modal -->
     <div id="modalSkema" class="modal-skema" style="width: 1100px; max-width: 95%;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalSkemaTitle">Add Payroll Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalSkema()"></i>
         </div>
@@ -545,7 +545,7 @@
 
     <!-- BPJS Scheme Form Modal -->
     <div id="modalBpjs" class="modal-skema" style="width: 500px; max-width: 95%;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalBpjsTitle">Add BPJS Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalBpjs()"></i>
         </div>
@@ -641,7 +641,7 @@
 
        <!-- PPh 21 Scheme Form Modal -->
     <div id="modalPph21" class="modal-skema" style="display: none; width: 500px; max-width: 95%; z-index: 2005; transition: width 0.3s ease;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalPph21Title">Add PPh 21 Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPph21()"></i>
         </div>
@@ -902,7 +902,7 @@
 
     <!-- PPh 21 Detail Info Modal -->
     <div id="modalDetailPph21" class="modal-skema" style="display: none; width: 950px; max-width: 95%; z-index: 2005;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <i class="fas fa-file-invoice-dollar" style="font-size: 20px; color: white;"></i>
                 <div>
@@ -1394,7 +1394,7 @@
         </div>
     </div>
     <div id="modalDetailPph21" class="modal-skema" style="display: none; width: 900px; max-width: 95%; z-index: 2005;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <i class="fas fa-file-invoice-dollar" style="font-size: 20px; color: white;"></i>
                 <div>
@@ -1818,7 +1818,7 @@
 
     <!-- Modal Add Client Scheme Option -->
     <div id="modalPilihanSkema" class="modal-skema" style="width: 800px; max-width: 95%;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalPilihanSkemaTitle">Add Client Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPilihanSkema()"></i>
         </div>
@@ -2580,7 +2580,7 @@
     <!-- Select Scheme Modal (New Pop-up) -->
     <div id="overlayPilihSkema" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000;" onclick="tutupModalPilihSkema()"></div>
     <div id="modalPilihSkema" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; max-width: 90%; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 2001; overflow: hidden; font-family: 'Inter', sans-serif;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
             <h3 id="modalPilihSkemaTitle" style="margin: 0; font-size: 18px; font-weight: 600; color: white;">Select Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalPilihSkema()"></i>
         </div>
@@ -2606,7 +2606,7 @@
 
     <!-- Payroll Scheme Detail Modal -->
     <div id="modalDetailSkemaPayroll" class="modal-skema" style="width: 600px; max-width: 95%;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3>Payroll Scheme Detail</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="document.getElementById('modalDetailSkemaPayroll').style.display='none'; document.getElementById('overlay').style.display='none';"></i>
         </div>
@@ -2653,7 +2653,7 @@
 
     <!-- BPJS & Tax Scheme Detail Modal -->
     <div id="modalDetailSkemaPajak" class="modal-skema" style="width: 600px; max-width: 95%;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3>BPJS & Tax Scheme Detail</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="document.getElementById('modalDetailSkemaPajak').style.display='none'; document.getElementById('overlay').style.display='none';"></i>
         </div>
@@ -2748,7 +2748,7 @@
 
     <!-- Payroll Scheme Template Form Modal (Multiple Schemes per Org Structure) -->
     <div id="modalSchemeTemplate" class="modal-skema" style="width: 1200px; max-width: 95%; display: none;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalSchemeTemplateTitle">Add Payroll Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeSchemeTemplateModal()"></i>
         </div>
@@ -3175,7 +3175,7 @@
 
     <!-- Upload Manual Salary Excel Modal -->
     <div id="modalUploadManualSalary" class="modal-skema" style="display: none; width: 650px; max-width: 95%; z-index: 2010;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #2980b9 0%, #1f618d 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3>Upload Gaji Manual</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadManualSalary()"></i>
         </div>
@@ -3205,7 +3205,7 @@
 
     <!-- Upload Overtime Excel Modal -->
     <div id="modalUploadLembur" class="modal-skema" style="display: none; width: 650px; max-width: 95%;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3>Upload Lembur Log</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadLembur()"></i>
         </div>
@@ -3257,7 +3257,7 @@
 
     <!-- Holiday Modal -->
     <div id="holidayModal" class="modal-skema" style="width: 480px; max-width: 95%; display: none; z-index: 2000;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="holidayModalTitle">Add Holiday</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeModal('holidayModal')"></i>
         </div>
@@ -3282,7 +3282,7 @@
 
     <!-- Attendance Modal -->
     <div id="attendanceModal" class="modal-skema" style="width: 520px; max-width: 95%; display: none; z-index: 2000;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="attendanceModalTitle">Input Kehadiran</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeModal('attendanceModal')"></i>
         </div>
@@ -3332,7 +3332,7 @@
 
     <!-- Overtime Modal -->
     <div id="overtimeModal" class="modal-skema" style="width: 520px; max-width: 95%; display: none; z-index: 2000;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="overtimeModalTitle">Input Lembur</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="closeModal('overtimeModal')"></i>
         </div>
@@ -3374,7 +3374,7 @@
 
     <!-- Modal: Tambah/Edit Master Skema Shift -->
     <div id="modalShiftScheme" class="modal-skema" style="width: 550px; max-width: 95%; display: none; z-index: 2000;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalShiftSchemeTitle">Tambah Skema Shift</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalShiftScheme()"></i>
         </div>
@@ -3411,7 +3411,7 @@
 
     <!-- Modal: Alokasi Shift Karyawan -->
     <div id="modalAssignShift" class="modal-skema" style="width: 500px; max-width: 95%; display: none; z-index: 2000;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalAssignShiftTitle">Assign Employee Shift</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalAssignShift()"></i>
         </div>
@@ -3449,7 +3449,7 @@
 
     <!-- Modal Hitung Kompensasi Kontrak -->
     <div id="modalHitungKompensasi" class="modal-skema" style="width: 550px; max-width: 95%; display: none; z-index: 2000; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 15px 20px; color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); padding: 15px 20px; color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0; font-size: 16px; font-weight: 600;"><i class="fas fa-calculator" style="margin-right: 8px;"></i>Hitung Kompensasi Kontrak</h3>
             <i class="fas fa-times" style="cursor: pointer; font-size: 18px;" onclick="tutupModalHitungKompensasi()"></i>
         </div>
@@ -3504,7 +3504,7 @@
 
     <!-- Modal Tetapkan Nilai Kompensasi -->
     <div id="modalTetapkanKompensasi" class="modal-skema" style="width: 500px; max-width: 95%; display: none; z-index: 2000; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 15px 20px; color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); padding: 15px 20px; color: white; border-top-left-radius: 16px; border-top-right-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
             <h3 style="margin: 0; font-size: 16px; font-weight: 600;"><i class="fas fa-check-double" style="margin-right: 8px;"></i>Tetapkan Nilai Kompensasi (HCOPS)</h3>
             <i class="fas fa-times" style="cursor: pointer; font-size: 18px;" onclick="tutupModalTetapkanKompensasi()"></i>
         </div>
@@ -3616,7 +3616,7 @@
 
     <!-- Modal: Tambah/Edit FPK Master -->
     <div id="modalFpkMaster" class="modal-skema" style="display: none; position: fixed; z-index: 1050; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 450px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); box-sizing: border-box; overflow: hidden;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
             <h3 id="fpkMasterTitle" style="margin: 0; font-size: 16px; font-weight: 700; color: white;">Tambah FPK Baru</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px;" onclick="tutupModalFpkMaster()"></i>
         </div>
@@ -3646,7 +3646,7 @@
 
     <!-- Modal: Penempelan Karyawan ke FPK -->
     <div id="modalFpkAssign" class="modal-skema" style="display: none; position: fixed; z-index: 1050; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 500px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); box-sizing: border-box; overflow: hidden;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
             <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: white;">Penempelan Karyawan ke FPK</h3>
             <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px;" onclick="tutupModalFpkAssign()"></i>
         </div>
@@ -3686,7 +3686,7 @@
 
     <!-- Modal KPI Report Detail (Total THP, Total Headcount, Rata-Rata Gaji, Tren MoM) -->
     <div id="modalReportKpiDetail" class="modal-skema" style="display: none; width: 920px; max-width: 95vw; max-height: 90vh; z-index: 2010; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); flex-direction: column;">
-        <div class="modal-header" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; flex-shrink: 0;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; flex-shrink: 0;">
             <h3 id="modalKpiDetailTitle" style="margin: 0; font-size: 18px; font-weight: 700; color: white; display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-chart-pie" id="modalKpiDetailIcon" style="color: white;"></i> Detail Metrik Summary Gaji
             </h3>
@@ -3715,7 +3715,7 @@
 
     <!-- Modal Detail Breakdown BPJS Report -->
     <div id="modalBpjsReportDetail" class="modal-skema" style="display: none; width: 920px; max-width: 95vw; max-height: 90vh; z-index: 2010; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); flex-direction: column;">
-        <div class="modal-header" id="modalBpjsReportHeader" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; flex-shrink: 0;">
+        <div class="modal-header" id="modalBpjsReportHeader" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; flex-shrink: 0;">
             <h3 id="modalBpjsReportTitle" style="margin: 0; font-size: 18px; font-weight: 700; color: white; display: flex; align-items: center; gap: 10px;">
                 <i class="fas fa-notes-medical" id="modalBpjsReportIcon" style="color: white;"></i> Rincian Perhitungan BPJS
             </h3>
@@ -3739,6 +3739,35 @@
         </div>
         <div class="modal-footer" style="padding: 14px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; flex-shrink: 0;">
             <button type="button" class="btn-cancel" onclick="tutupModalBpjsReportDetail()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; background: #cbd5e1; color: #334155; border: none; font-size: 13px;">Tutup</button>
+        </div>
+    </div>
+
+    <!-- Modal Detail Breakdown Tax Report -->
+    <div id="modalTaxReportDetail" class="modal-skema" style="display: none; width: 920px; max-width: 95vw; max-height: 90vh; z-index: 2010; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); flex-direction: column;">
+        <div class="modal-header" id="modalTaxReportHeader" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; flex-shrink: 0;">
+            <h3 id="modalTaxReportTitle" style="margin: 0; font-size: 18px; font-weight: 700; color: white; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-file-invoice-dollar" id="modalTaxReportIcon" style="color: white;"></i> Rincian Perhitungan Pajak (PPh 21)
+            </h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px; opacity: 0.9; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'" onclick="tutupModalTaxReportDetail()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px 24px; overflow-y: auto; background: #ffffff; max-height: calc(90vh - 120px);">
+            <div id="modalTaxReportHeaderMeta" style="margin-bottom: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                <!-- Dynamically populated by JS -->
+            </div>
+
+            <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 12px; max-height: 380px; overflow-y: auto; overflow-x: auto; background: white;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead id="modalTaxReportThead">
+                        <!-- Dynamically populated by JS -->
+                    </thead>
+                    <tbody id="modalTaxReportTbody">
+                        <!-- Dynamically populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 14px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; flex-shrink: 0;">
+            <button type="button" class="btn-cancel" onclick="tutupModalTaxReportDetail()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; background: #cbd5e1; color: #334155; border: none; font-size: 13px;">Tutup</button>
         </div>
     </div>
 

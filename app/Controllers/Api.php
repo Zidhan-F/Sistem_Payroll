@@ -9721,7 +9721,7 @@ class Api extends ResourceController
 
         if ($viewMode === 'employee') {
             $builderFinal = $this->db->table('payroll_final pf')
-                ->select('c.id as client_id, c.nama as client_name, pp.tahun, pp.bulan, pkwt.employee_name, employees.employ_id, pkwt.position_name,
+                ->select('c.id as client_id, c.nama as client_name, pp.tahun, pp.bulan, pkwt.employee_name, CAST(pkwt.id AS VARCHAR) as employ_id, pkwt.position_name,
                     COALESCE(pf.bpjs_kes_karyawan,0) as bpjs_kes_karyawan,
                     COALESCE(pf.bpjs_kes_perusahaan,0) as bpjs_kes_perusahaan,
                     COALESCE(pf.bpjs_jht_karyawan,0) as bpjs_jht_karyawan,
@@ -9733,7 +9733,6 @@ class Api extends ResourceController
                 ->join('payroll_periods pp', 'pp.id = pf.period_id')
                 ->join('clients c', 'c.id = pp.client_id')
                 ->join('pkwt', 'pkwt.id = pf.pkwt_id', 'left')
-                ->join('employees', 'employees.id = pkwt.employee_id', 'left')
                 ->orderBy('pp.tahun', 'DESC')
                 ->orderBy('pp.bulan', 'DESC')
                 ->orderBy('c.nama', 'ASC')
@@ -9755,7 +9754,7 @@ class Api extends ResourceController
             $finalList = $builderFinal->get()->getResultArray();
 
             $builderLegacy = $this->db->table('payrolls p')
-                ->select('c.id as client_id, c.nama as client_name, p.tahun, p.bulan, e.nama as employee_name, e.employ_id, e.jabatan as position_name,
+                ->select('c.id as client_id, c.nama as client_name, p.tahun, p.bulan, e.nama as employee_name, e.employ_id, COALESCE(pos.nama, \'-\') as position_name,
                     COALESCE(p.bpjs_kes_karyawan,0) as bpjs_kes_karyawan,
                     COALESCE(p.bpjs_kes_perusahaan,0) as bpjs_kes_perusahaan,
                     COALESCE(p.bpjs_jht_karyawan,0) as bpjs_jht_karyawan,
@@ -9766,6 +9765,7 @@ class Api extends ResourceController
                     COALESCE(p.bpjs_jkm_perusahaan,0) as bpjs_jkm_perusahaan')
                 ->join('employees e', 'e.id = p.employee_id')
                 ->join('clients c', 'c.id = e.client_id')
+                ->join('positions pos', 'pos.id = e.position_id', 'left')
                 ->orderBy('p.tahun', 'DESC')
                 ->orderBy('p.bulan', 'DESC')
                 ->orderBy('c.nama', 'ASC')
@@ -10005,6 +10005,235 @@ class Api extends ResourceController
                 'total_bpjs_pribadi' => $totalPribadi,
                 'total_bpjs_company' => $totalCompany,
                 'grand_total_bpjs' => $grandTotal,
+            ]
+        ]);
+    }
+
+    public function getTaxReport()
+    {
+        $clientId  = $this->request->getGet('client_id');
+        $tahun     = $this->request->getGet('tahun');
+        $startDate = $this->request->getGet('start_date');
+        $endDate   = $this->request->getGet('end_date');
+        $viewMode  = $this->request->getGet('view_mode') ?? 'summary';
+
+        $startCode = null;
+        if (!empty($startDate)) {
+            $ts = strtotime($startDate);
+            if ($ts !== false) {
+                $startCode = ((int)date('Y', $ts) * 100) + (int)date('n', $ts);
+            }
+        }
+
+        $endCode = null;
+        if (!empty($endDate)) {
+            $ts = strtotime($endDate);
+            if ($ts !== false) {
+                $endCode = ((int)date('Y', $ts) * 100) + (int)date('n', $ts);
+            }
+        }
+
+        $clients = $this->db->table('clients')->select('id, nama, sektor')->orderBy('nama', 'ASC')->get()->getResultArray();
+
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni',
+            7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        if ($viewMode === 'employee') {
+            $builderFinal = $this->db->table('payroll_final pf')
+                ->select('c.id as client_id, c.nama as client_name, pp.tahun, pp.bulan, pkwt.employee_name, CAST(pkwt.id AS VARCHAR) as employ_id, pkwt.position_name,
+                    COALESCE(pf.gaji_pokok,0) as gaji_pokok,
+                    COALESCE(pf.tax_allowance,0) as tax_allowance,
+                    COALESCE(pf.pph21,0) as pph21,
+                    COALESCE(pf.tax_method,\'Gross\') as tax_method,
+                    COALESCE(pf.ptkp_status,\'TK/0\') as ptkp_status,
+                    COALESCE(pf.take_home_pay,0) as take_home_pay')
+                ->join('payroll_periods pp', 'pp.id = pf.period_id')
+                ->join('clients c', 'c.id = pp.client_id')
+                ->join('pkwt', 'pkwt.id = pf.pkwt_id', 'left')
+                ->orderBy('pp.tahun', 'DESC')
+                ->orderBy('pp.bulan', 'DESC')
+                ->orderBy('c.nama', 'ASC')
+                ->orderBy('pkwt.employee_name', 'ASC');
+
+            if (!empty($clientId) && $clientId !== 'all') {
+                $builderFinal->where('c.id', $clientId);
+            }
+            if (!empty($startCode)) {
+                $builderFinal->where('((pp.tahun * 100) + pp.bulan) >=', $startCode);
+            }
+            if (!empty($endCode)) {
+                $builderFinal->where('((pp.tahun * 100) + pp.bulan) <=', $endCode);
+            }
+            if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
+                $builderFinal->where('pp.tahun', $tahun);
+            }
+
+            $finalList = $builderFinal->get()->getResultArray();
+
+            $builderLegacy = $this->db->table('payrolls p')
+                ->select('c.id as client_id, c.nama as client_name, p.tahun, p.bulan, e.nama as employee_name, e.employ_id, COALESCE(pos.nama, \'-\') as position_name,
+                    COALESCE(p.gaji_pokok,0) as gaji_pokok,
+                    COALESCE(p.tax_allowance,0) as tax_allowance,
+                    COALESCE(p.pph21,0) as pph21,
+                    COALESCE(p.tax_method,\'Gross\') as tax_method,
+                    COALESCE(p.ptkp_status,\'TK/0\') as ptkp_status,
+                    COALESCE(p.take_home_pay,0) as take_home_pay')
+                ->join('employees e', 'e.id = p.employee_id')
+                ->join('clients c', 'c.id = e.client_id')
+                ->join('positions pos', 'pos.id = e.position_id', 'left')
+                ->orderBy('p.tahun', 'DESC')
+                ->orderBy('p.bulan', 'DESC')
+                ->orderBy('c.nama', 'ASC')
+                ->orderBy('e.nama', 'ASC');
+
+            if (!empty($clientId) && $clientId !== 'all') {
+                $builderLegacy->where('c.id', $clientId);
+            }
+            if (!empty($startCode)) {
+                $builderLegacy->where('((p.tahun * 100) + p.bulan) >=', $startCode);
+            }
+            if (!empty($endCode)) {
+                $builderLegacy->where('((p.tahun * 100) + p.bulan) <=', $endCode);
+            }
+            if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
+                $builderLegacy->where('p.tahun', $tahun);
+            }
+
+            $legacyList = $builderLegacy->get()->getResultArray();
+
+            $reportData = [];
+            foreach (array_merge($finalList, $legacyList) as $item) {
+                $bNum = (int)$item['bulan'];
+                $tNum = (int)$item['tahun'];
+                $item['bulan_tahun_label'] = ($monthNames[$bNum] ?? $bNum) . ' ' . $tNum;
+                $item['gaji_pokok']        = (float)$item['gaji_pokok'];
+                $item['tax_allowance']     = (float)$item['tax_allowance'];
+                $item['pph21']             = (float)$item['pph21'];
+                $item['take_home_pay']     = (float)$item['take_home_pay'];
+                $reportData[] = $item;
+            }
+        } else {
+            $builderFinal = $this->db->table('payroll_final pf')
+                ->select('c.id as client_id, c.nama as client_name, pp.tahun, pp.bulan,
+                    COUNT(pf.id) as total_karyawan,
+                    SUM(COALESCE(pf.gaji_pokok,0)) as total_gaji_pokok,
+                    SUM(COALESCE(pf.tax_allowance,0)) as total_tax_allowance,
+                    SUM(COALESCE(pf.pph21,0)) as total_pph21,
+                    SUM(COALESCE(pf.take_home_pay,0)) as total_take_home_pay')
+                ->join('payroll_periods pp', 'pp.id = pf.period_id')
+                ->join('clients c', 'c.id = pp.client_id')
+                ->groupBy('c.id, c.nama, pp.tahun, pp.bulan')
+                ->orderBy('pp.tahun', 'ASC')
+                ->orderBy('pp.bulan', 'ASC')
+                ->orderBy('c.nama', 'ASC');
+
+            if (!empty($clientId) && $clientId !== 'all') {
+                $builderFinal->where('c.id', $clientId);
+            }
+            if (!empty($startCode)) {
+                $builderFinal->where('((pp.tahun * 100) + pp.bulan) >=', $startCode);
+            }
+            if (!empty($endCode)) {
+                $builderFinal->where('((pp.tahun * 100) + pp.bulan) <=', $endCode);
+            }
+            if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
+                $builderFinal->where('pp.tahun', $tahun);
+            }
+
+            $finalSummary = $builderFinal->get()->getResultArray();
+
+            $builderLegacy = $this->db->table('payrolls p')
+                ->select('c.id as client_id, c.nama as client_name, p.tahun, p.bulan,
+                    COUNT(p.id) as total_karyawan,
+                    SUM(COALESCE(p.gaji_pokok,0)) as total_gaji_pokok,
+                    SUM(COALESCE(p.tax_allowance,0)) as total_tax_allowance,
+                    SUM(COALESCE(p.pph21,0)) as total_pph21,
+                    SUM(COALESCE(p.take_home_pay,0)) as total_take_home_pay')
+                ->join('employees e', 'e.id = p.employee_id')
+                ->join('clients c', 'c.id = e.client_id')
+                ->groupBy('c.id, c.nama, p.tahun, p.bulan')
+                ->orderBy('p.tahun', 'ASC')
+                ->orderBy('p.bulan', 'ASC')
+                ->orderBy('c.nama', 'ASC');
+
+            if (!empty($clientId) && $clientId !== 'all') {
+                $builderLegacy->where('c.id', $clientId);
+            }
+            if (!empty($startCode)) {
+                $builderLegacy->where('((p.tahun * 100) + p.bulan) >=', $startCode);
+            }
+            if (!empty($endCode)) {
+                $builderLegacy->where('((p.tahun * 100) + p.bulan) <=', $endCode);
+            }
+            if (empty($startCode) && empty($endCode) && !empty($tahun) && $tahun !== 'all') {
+                $builderLegacy->where('p.tahun', $tahun);
+            }
+
+            $legacySummary = $builderLegacy->get()->getResultArray();
+
+            $mergedMap = [];
+            foreach (array_merge($finalSummary, $legacySummary) as $row) {
+                $key = $row['client_id'] . '_' . $row['tahun'] . '_' . sprintf('%02d', $row['bulan']);
+                if (!isset($mergedMap[$key])) {
+                    $bNum = (int)$row['bulan'];
+                    $tNum = (int)$row['tahun'];
+                    $mergedMap[$key] = [
+                        'client_id' => (int)$row['client_id'],
+                        'client_name' => $row['client_name'],
+                        'tahun' => $tNum,
+                        'bulan' => $bNum,
+                        'bulan_tahun_label' => ($monthNames[$bNum] ?? $bNum) . ' ' . $tNum,
+                        'total_karyawan' => 0,
+                        'total_gaji_pokok' => 0.0,
+                        'total_tax_allowance' => 0.0,
+                        'total_pph21' => 0.0,
+                        'total_take_home_pay' => 0.0,
+                    ];
+                }
+                $mergedMap[$key]['total_karyawan'] += (int)$row['total_karyawan'];
+                $mergedMap[$key]['total_gaji_pokok'] += (float)$row['total_gaji_pokok'];
+                $mergedMap[$key]['total_tax_allowance'] += (float)$row['total_tax_allowance'];
+                $mergedMap[$key]['total_pph21'] += (float)$row['total_pph21'];
+                $mergedMap[$key]['total_take_home_pay'] += (float)$row['total_take_home_pay'];
+            }
+
+            uksort($mergedMap, function($a, $b) use ($mergedMap) {
+                $itemA = $mergedMap[$a];
+                $itemB = $mergedMap[$b];
+                if ($itemA['tahun'] != $itemB['tahun']) return $itemA['tahun'] <=> $itemB['tahun'];
+                if ($itemA['bulan'] != $itemB['bulan']) return $itemA['bulan'] <=> $itemB['bulan'];
+                return strcmp($itemA['client_name'], $itemB['client_name']);
+            });
+
+            $reportData = array_values($mergedMap);
+        }
+
+        $totalPph21 = array_sum(array_column($reportData, $viewMode === 'employee' ? 'pph21' : 'total_pph21'));
+        $totalAllowance = array_sum(array_column($reportData, $viewMode === 'employee' ? 'tax_allowance' : 'total_tax_allowance'));
+        $totalBruto = array_sum(array_column($reportData, $viewMode === 'employee' ? 'gaji_pokok' : 'total_gaji_pokok'));
+
+        if ($viewMode === 'employee') {
+            $totalHeadcount = count($reportData);
+        } else {
+            $latestPerClient = [];
+            foreach ($reportData as $row) {
+                $latestPerClient[$row['client_id']] = (int)$row['total_karyawan'];
+            }
+            $totalHeadcount = array_sum($latestPerClient);
+        }
+
+        return $this->respond([
+            'status' => 'success',
+            'view_mode' => $viewMode,
+            'clients' => $clients,
+            'data' => $reportData,
+            'summary' => [
+                'total_pph21' => $totalPph21,
+                'total_tax_allowance' => $totalAllowance,
+                'total_bruto' => $totalBruto,
+                'total_headcount' => $totalHeadcount,
             ]
         ]);
     }
