@@ -1817,13 +1817,13 @@
     <div id="toastContainer"></div>
 
     <!-- Modal Add Client Scheme Option -->
-    <div id="modalPilihanSkema" class="modal-skema" style="width: 800px; max-width: 95%;">
-        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
+    <div id="modalPilihanSkema" class="modal-skema" style="display: none; z-index: 1000; width: 800px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); flex-shrink: 0; padding: 18px 25px;">
             <h3 id="modalPilihanSkemaTitle">Add Client Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPilihanSkema()"></i>
         </div>
-        <form id="formPilihanSkema" onsubmit="event.preventDefault(); simpanPilihanSkema();">
-            <div class="modal-body" style="padding: 25px;">
+        <form id="formPilihanSkema" onsubmit="event.preventDefault(); simpanPilihanSkema();" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; margin: 0;">
+            <div class="modal-body" style="padding: 25px; overflow-y: auto; flex: 1; min-height: 0;">
                 <input type="hidden" id="pilihanSkemaSetupId">
                 <div style="display: flex; flex-direction: column; gap: 15px;">
                     <!-- Client Name (Read-only) -->
@@ -1995,7 +1995,7 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 10px;">
+            <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0;">
                 <button type="button" class="btn-cancel" onclick="tutupModalPilihanSkema()" style="padding: 10px 24px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor: pointer;">Cancel</button>
                 <button type="submit" class="btn-save" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">Save Scheme Selection</button>
             </div>

@@ -549,7 +549,7 @@ window.simpanPilihanSkema = async function() {
         return;
     }
     
-    const isModal = document.getElementById('modalPilihanSkema') && document.getElementById('modalPilihanSkema').style.display === 'block';
+    const isModal = document.getElementById('modalPilihanSkema') && document.getElementById('modalPilihanSkema').style.display !== 'none';
     
     let payrollType, minimumWageId, customNominal, payrollSchemeId, bpjsSchemeId, taxSchemeId, compSchemeId;
     let level, divId, deptId, posId;
@@ -883,7 +883,7 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     }
     
     // Show modal IMMEDIATELY
-    document.getElementById('modalPilihanSkema').style.display = 'block';
+    document.getElementById('modalPilihanSkema').style.display = 'flex';
     
     // Get all select elements
     const divSelect = document.getElementById('modalPilihanSkemaDivisi');

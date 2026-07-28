@@ -1146,7 +1146,7 @@
                                             <h3 style="font-size: 20px; color: #1e293b; font-weight: 800; margin: 0 0 4px 0; display: flex; align-items: center; gap: 10px;">
                                                 <i class="fas fa-file-invoice-dollar" style="color: #059669;"></i> Laporan Payroll Pajak (PPh 21)
                                             </h3>
-                                            <p style="color: #64748b; font-size: 13px; margin: 0;">Rincian akumulasi PPh 21 terutang, tunjangan pajak, penghasilan bruto, dan metode pemotongan pajak.</p>
+                                            <p style="color: #64748b; font-size: 13px; margin: 0;">Rincian akumulasi PPh 21, tunjangan pajak, penghasilan bruto, dan metode pemotongan pajak.</p>
                                         </div>
                                         <div class="report-actions-bar" style="display: flex; gap: 10px; flex-wrap: wrap;">
                                             <button type="button" onclick="exportTaxReportExcel()" style="background: #059669; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s;">
@@ -1213,7 +1213,7 @@
                                             </div>
                                             <div class="stat-info">
                                                 <h4 id="kpiTaxTotalPph21" style="font-size: 18px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
-                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total PPh 21 Terutang <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
+                                                <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0; display: flex; align-items: center; justify-content: space-between;">Total PPh 21 <i class="fas fa-external-link-alt" style="font-size: 10px; opacity: 0.5;"></i></p>
                                                 <div style="font-size: 11px; margin-top: 6px;">
                                                     <span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Dipotong / Kena Pajak</span>
                                                 </div>
@@ -1254,7 +1254,7 @@
                                         <!-- Bar Chart: PPh 21 per Periode -->
                                         <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; background: white;">
                                             <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
-                                                <i class="fas fa-chart-bar" style="color: #0284c7;"></i> Akumulasi PPh 21 Terutang per Periode
+                                                <i class="fas fa-chart-bar" style="color: #0284c7;"></i> Akumulasi PPh 21 per Periode
                                             </h4>
                                             <div style="height: 300px; position: relative;">
                                                 <canvas id="chartTaxTrend"></canvas>
@@ -1281,7 +1281,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="table-container" style="overflow-x: auto;">
+                                        <div class="table-container no-sticky" style="overflow-x: auto;">
                                             <table style="width: 100%; border-collapse: collapse; min-width: 1100px; font-size: 12px;">
                                                 <thead id="tableReportTaxHead">
                                                     <!-- Dynamic Table Headers -->

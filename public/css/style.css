@@ -2852,6 +2852,18 @@ html.modal-open {
     /* matches primary-color hover tint */
 }
 
+/* Disable sticky column for tables without fixed action columns */
+.table-container.no-sticky th:last-child,
+.table-container.no-sticky td:last-child {
+    position: static !important;
+    right: auto !important;
+    box-shadow: none !important;
+}
+
+.table-container.no-sticky tbody tr:hover td:last-child {
+    background: transparent !important;
+}
+
 /* ===== Notifications System ===== */
 .notifications-container {
     position: relative;

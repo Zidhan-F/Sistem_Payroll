@@ -2172,7 +2172,7 @@ function renderTaxCharts() {
                 labels: labels,
                 datasets: [
                     {
-                        label: 'PPh 21 Terutang (Pajak)',
+                        label: 'PPh 21 (Pajak)',
                         data: pphData,
                         backgroundColor: '#0284c7',
                         borderRadius: 4
@@ -2284,7 +2284,7 @@ function renderTaxTable() {
                 <th style="padding: 10px;">Periode</th>
                 <th style="padding: 10px; text-align: center; background: #f8fafc; color: #334155;">Status PTKP</th>
                 <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">Penghasilan Bruto</th>
-                <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">PPh 21 Terutang</th>
+                <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">PPh 21</th>
                 <th style="padding: 10px; text-align: right; background: #e2e8f0; color: #0f172a;">Gaji Bersih (THP)</th>
             </tr>
         `;
@@ -2296,7 +2296,7 @@ function renderTaxTable() {
                 <th style="padding: 10px;">Periode</th>
                 <th style="padding: 10px;">Headcount</th>
                 <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">Total Bruto</th>
-                <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">Total PPh 21 Terutang</th>
+                <th style="padding: 10px; text-align: right; background: #f8fafc; color: #334155;">Total PPh 21</th>
                 <th style="padding: 10px; text-align: right; background: #e2e8f0; color: #0f172a;">Total THP Karyawan</th>
             </tr>
         `;
@@ -2446,7 +2446,7 @@ function showTaxRowDetailModal(index) {
             <td style="padding: 12px; text-align: right; color: #1e293b; font-weight: 600;">${formatRupiah(bruto)}</td>
         </tr>
         <tr style="border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
-            <td style="padding: 12px; font-weight: 700; color: #334155;">PPh 21 Terutang (Dipotong)</td>
+            <td style="padding: 12px; font-weight: 700; color: #334155;">PPh 21 (Dipotong)</td>
             <td style="padding: 12px; text-align: right; font-weight: 800; color: #1e293b;">${formatRupiah(pph)}</td>
         </tr>
         <tr style="background: #e2e8f0; font-weight: 800; color: #0f172a; font-size: 14px;">
@@ -2492,7 +2492,7 @@ function showTaxKpiDetailModal(kpiType) {
     let tbodyHtml = '';
 
     if (kpiType === 'pph21') {
-        titleText = 'Detail Metrik: Total PPh 21 Terutang';
+        titleText = 'Detail Metrik: Total PPh 21';
         metaHtml  = `
             <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total PPh 21:</strong><br><span style="font-weight: 800; color: #1e293b; font-size: 16px;">${formatRupiah(summary.total_pph21 || 0)}</span></div>
             <div><strong style="color: #64748b; font-size: 11px; text-transform: uppercase;">Total Bruto:</strong><br><span style="font-weight: 700; color: #334155;">${formatRupiah(summary.total_bruto || 0)}</span></div>
@@ -2503,7 +2503,7 @@ function showTaxKpiDetailModal(kpiType) {
                 <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
                 <th style="padding: 10px; text-align: center;">Periode</th>
                 <th style="padding: 10px; text-align: right;">Bruto</th>
-                <th style="padding: 10px; text-align: right;">PPh 21 Terutang</th>
+                <th style="padding: 10px; text-align: right;">PPh 21</th>
             </tr>
         `;
         data.forEach((item, idx) => {
@@ -2532,7 +2532,7 @@ function showTaxKpiDetailModal(kpiType) {
                 <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
                 <th style="padding: 10px; text-align: center;">Periode</th>
                 <th style="padding: 10px; text-align: right;">Tunjangan Pajak</th>
-                <th style="padding: 10px; text-align: right;">PPh 21 Terutang</th>
+                <th style="padding: 10px; text-align: right;">PPh 21</th>
             </tr>
         `;
         data.forEach((item, idx) => {
@@ -2561,7 +2561,7 @@ function showTaxKpiDetailModal(kpiType) {
                 <th style="padding: 10px;">Subjek (${isEmployeeMode ? 'Karyawan' : 'Klien'})</th>
                 <th style="padding: 10px; text-align: center;">Periode</th>
                 <th style="padding: 10px; text-align: right;">Penghasilan Bruto</th>
-                <th style="padding: 10px; text-align: right;">PPh 21 Terutang</th>
+                <th style="padding: 10px; text-align: right;">PPh 21</th>
             </tr>
         `;
         data.forEach((item, idx) => {
