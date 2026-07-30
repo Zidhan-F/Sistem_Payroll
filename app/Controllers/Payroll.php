@@ -914,6 +914,11 @@ class Payroll extends ResourceController
                 }
             }
 
+            // Fallback: If baseSalary is still 0, use resolved employee minimum wage
+            if ($baseSalary <= 0 && $empMinimumWage > 0) {
+                $baseSalary = $empMinimumWage;
+            }
+
             $empComponents = [];
             if ($pkwt) {
                 $dbComponents = $db->table('pkwt_components')
@@ -1295,14 +1300,43 @@ class Payroll extends ResourceController
             $effectiveStartDateStr = !empty($emp['tgl_masuk']) ? max($empStartDateStr, date('Y-m-d', strtotime($emp['tgl_masuk']))) : $empStartDateStr;
             $effectiveLemburStartDateStr = !empty($emp['tgl_masuk']) ? max($empLemburStartDateStr, date('Y-m-d', strtotime($emp['tgl_masuk']))) : $empLemburStartDateStr;
 
-            // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs berdasarkan cutoff period
-            $attendanceLogs = $db->table('attendance_logs')
+            // Langkah 1: Hitung Hari Kerja Aktual dari attendance_logs berdasarkan cutoff period (hanya hari kerja reguler)
+            $rawAttLogs = $db->table('attendance_logs')
                 ->where('employee_id', $emp['id'])
                 ->where('log_date >=', $effectiveStartDateStr)
                 ->where('log_date <=', $empEndDateStr)
                 ->where('status', 'Hadir')
                 ->get()->getResultArray();
-            $actualDaysWorked = count($attendanceLogs);
+
+            $hRows = $db->table('holiday_calendar')
+                ->where('tanggal >=', $effectiveStartDateStr)
+                ->where('tanggal <=', $empEndDateStr)
+                ->get()->getResultArray();
+            $hMap = [];
+            foreach ($hRows as $hr) {
+                $hMap[$hr['tanggal']] = true;
+            }
+
+            $wConfigVal = 5;
+            if (isset($emp['hari_kerja']) && intval($emp['hari_kerja']) > 0) {
+                $wConfigVal = intval($emp['hari_kerja']);
+            } elseif ($empConfig && isset($empConfig->position_hari_kerja) && intval($empConfig->position_hari_kerja) > 0) {
+                $wConfigVal = intval($empConfig->position_hari_kerja);
+            }
+
+            $actualDaysWorked = 0;
+            foreach ($rawAttLogs as $al) {
+                $alDate = $al['log_date'];
+                if (isset($hMap[$alDate])) continue; // Skip public holidays
+                $dow = intval(date('w', strtotime($alDate)));
+                if ($wConfigVal === 5 && ($dow === 0 || $dow === 6)) continue; // Skip weekends for 5-day week
+                if ($wConfigVal === 6 && $dow === 0) continue; // Skip Sunday for 6-day week
+                $actualDaysWorked++;
+            }
+
+            if ($actualDaysWorked > $standardDays) {
+                $actualDaysWorked = $standardDays;
+            }
 
             $isJoinedPrevMonth = false;
             $isActiveRegularPrevMonth = false;

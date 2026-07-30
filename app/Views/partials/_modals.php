@@ -112,7 +112,7 @@
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalSkema()"></i>
         </div>
         <form id="formSkema">
-            <div class="modal-body" style="padding: 25px;">
+            <div class="modal-body" style="padding: 25px; overflow-y: auto; max-height: calc(90vh - 130px);">
                 <input type="hidden" id="skemaId">
                 <input type="hidden" id="skemaIsPersentase" value="0">
                 <input type="hidden" id="skemaTipe" value="bulanan">
@@ -2169,12 +2169,12 @@
                 <div class="form-group">
                     <label style="font-weight: 600; margin-bottom: 8px; display: block;">Excel File</label>
                     <!-- Drag & Drop Uploader Area -->
-                    <div id="umrDropZone" style="border: 2px dashed #ddd; border-radius: 12px; padding: 35px 20px; text-align: center; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
+                    <div id="umrDropZone" onclick="triggerUmrFileInput()" style="border: 2px dashed #ddd; border-radius: 12px; padding: 35px 20px; text-align: center; background: #fafafa; cursor: pointer; transition: all 0.3s ease;">
                         <i class="fas fa-file-excel" style="font-size: 48px; color: var(--primary-color); margin-bottom: 15px;"></i>
                         <h4 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 6px;">Drag & Drop file here</h4>
                         <p style="font-size: 12px; color: #7f8c8d; margin-bottom: 15px;">or click to browse files from your computer</p>
                         <span id="umrFileName" style="font-size: 13px; font-weight: 600; color: var(--info); display: block; word-break: break-all;">No file selected yet</span>
-                        <input type="file" id="fileUmr" accept=".xlsx, .xls" style="display: none;">
+                        <input type="file" id="fileUmr" accept=".xlsx, .xls" style="display: none;" onchange="handleUmrFileSelect(event)">
                     </div>
                 </div>
             </div>

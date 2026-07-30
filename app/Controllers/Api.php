@@ -803,6 +803,115 @@ class Api extends ResourceController
         return $this->respondCreated(['message' => 'Compensation scheme added successfully']);
     }
 
+    public function createCompensationSchemesBulk()
+    {
+        $json = $this->request->getJSON(true);
+        if (empty($json) || !is_array($json)) {
+            return $this->fail('Data tidak valid atau kosong.');
+        }
+
+        $this->db->transStart();
+        $insertedCount = 0;
+        $errors = [];
+
+        foreach ($json as $index => $row) {
+            $rowNum = $index + 2; // Assuming row 1 is header
+
+            $nama = trim($row['nama'] ?? '');
+            $deskripsi = trim($row['deskripsi'] ?? '');
+            $tipe = strtolower(trim($row['tipe'] ?? 'pendapatan'));
+            if (!in_array($tipe, ['pendapatan', 'potongan'])) {
+                $tipe = 'pendapatan';
+            }
+
+            $sifatRaw = strtolower(trim($row['sifat_kompensasi'] ?? 'tetap'));
+            if (strpos($sifatRaw, 'variable') !== false || strpos($sifatRaw, 'tidak') !== false) {
+                $sifatKompensasi = 'tidak_tetap';
+            } else {
+                $sifatKompensasi = 'tetap';
+            }
+
+            $sumberRaw = strtolower(trim($row['sumber_nilai'] ?? 'nominal'));
+            if (strpos($sumberRaw, 'ump_umk') !== false || strpos($sumberRaw, 'ump/umk') !== false) {
+                $sumberNilai = 'ump_umk';
+            } elseif (strpos($sumberRaw, 'ump') !== false) {
+                $sumberNilai = 'ump';
+            } elseif (strpos($sumberRaw, 'umk') !== false) {
+                $sumberNilai = 'umk';
+            } else {
+                $sumberNilai = 'nominal';
+            }
+
+            $nilai = floatval($row['nilai'] ?? 0);
+            $isPersentase = intval($row['is_persentase'] ?? 0);
+
+            $periodeRaw = strtolower(trim($row['periode'] ?? 'bulan'));
+            if (strpos($periodeRaw, 'work') !== false || strpos($periodeRaw, 'hari') !== false) {
+                $periode = 'hari_kerja';
+            } elseif (strpos($periodeRaw, 'week') !== false || strpos($periodeRaw, 'minggu') !== false) {
+                $periode = 'minggu';
+            } elseif (strpos($periodeRaw, 'year') !== false || strpos($periodeRaw, 'tahun') !== false) {
+                $periode = 'tahun';
+            } else {
+                $periode = 'bulan';
+            }
+
+            if (empty($nama)) {
+                $errors[] = "Baris {$rowNum}: Scheme Name (Nama Skema Tunjangan) wajib diisi.";
+                continue;
+            }
+
+            // Insert scheme
+            $schemeData = [
+                'nama' => $nama,
+                'deskripsi' => $deskripsi
+            ];
+            $this->db->table('compensation_schemes')->insert($schemeData);
+            $schemeId = $this->db->insertID();
+
+            // Insert component
+            $componentData = [
+                'scheme_id' => $schemeId,
+                'nama' => $nama,
+                'tipe' => $tipe,
+                'nilai' => $nilai,
+                'is_persentase' => $isPersentase,
+                'jenis_komponen' => 'kompensasi',
+                'sumber_nilai' => $sumberNilai,
+                'periode' => $periode,
+                'sifat_kompensasi' => $sifatKompensasi
+            ];
+            $this->db->table('compensation_components')->insert($componentData);
+
+            $insertedCount++;
+        }
+
+        if (!empty($errors) && $insertedCount === 0) {
+            $this->db->transRollback();
+            return $this->respond([
+                'status' => 400,
+                'message' => 'Semua data gagal diimport.',
+                'errors' => $errors
+            ], 400);
+        }
+
+        $this->db->transComplete();
+
+        $userAction = $this->request->getHeaderLine('X-User-Action') ?: 'Admin';
+        $this->logActivity("Bulk upload Master Skema Tunjangan ({$insertedCount} skema berhasil dibuat)", $userAction);
+
+        $responseMsg = "Berhasil mengimport {$insertedCount} Master Skema Tunjangan.";
+        if (!empty($errors)) {
+            $responseMsg .= " Terdapat " . count($errors) . " baris yang diabaikan/gagal.";
+        }
+
+        return $this->respondCreated([
+            'message' => $responseMsg,
+            'inserted_count' => $insertedCount,
+            'errors' => $errors
+        ]);
+    }
+
     public function updateCompensationScheme($id)
     {
         $requestData = $this->request->getJSON(true);
@@ -1953,12 +2062,87 @@ class Api extends ResourceController
     }
 
     // --- OVERTIME LOGS ---
+    private function autoSyncHolidayAttendanceToOvertime($clientId, $bulan, $tahun)
+    {
+        if (!$bulan || !$tahun) return;
+
+        $startDate = sprintf('%04d-%02d-01', intval($tahun), intval($bulan));
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $holidayRows = $this->db->table('holiday_calendar')
+            ->where('tanggal >=', $startDate)
+            ->where('tanggal <=', $endDate)
+            ->get()->getResultArray();
+        $holidays = [];
+        foreach ($holidayRows as $h) {
+            $holidays[$h['tanggal']] = true;
+        }
+
+        $builder = $this->db->table('attendance_logs')
+            ->select('attendance_logs.*, employees.hari_kerja as employee_hari_kerja, positions.hari_kerja as position_hari_kerja')
+            ->join('employees', 'employees.id = attendance_logs.employee_id')
+            ->join('positions', 'positions.id = employees.position_id', 'left')
+            ->where('attendance_logs.log_date >=', $startDate)
+            ->where('attendance_logs.log_date <=', $endDate)
+            ->where('LOWER(attendance_logs.status)', 'hadir');
+
+        if ($clientId) {
+            $builder->where('employees.client_id', intval($clientId));
+        }
+
+        $attLogs = $builder->get()->getResultArray();
+
+        foreach ($attLogs as $att) {
+            $empId = intval($att['employee_id']);
+            $tgl = $att['log_date'];
+            $dow = intval(date('w', strtotime($tgl)));
+
+            $wConfig = intval($att['employee_hari_kerja'] ?: ($att['position_hari_kerja'] ?: 5));
+            $isHoliday = 0;
+
+            if (isset($holidays[$tgl])) {
+                $isHoliday = 1;
+            } elseif ($dow === 0) {
+                $isHoliday = 1;
+            } elseif ($dow === 6 && $wConfig < 6) {
+                $isHoliday = 1;
+            }
+
+            if ($isHoliday === 1) {
+                $existing = $this->db->table('overtime_logs')
+                    ->where('employee_id', $empId)
+                    ->where('tanggal', $tgl)
+                    ->get()->getRow();
+
+                if (!$existing) {
+                    $workHrs = floatval($att['calculated_work_hours']);
+                    if ($workHrs <= 0) $workHrs = 8.0;
+
+                    $this->db->table('overtime_logs')->insert([
+                        'employee_id'   => $empId,
+                        'tanggal'       => $tgl,
+                        'jam_lembur'    => $workHrs,
+                        'is_holiday'    => 1,
+                        'keterangan'    => 'Auto: Lembur Hari Libur',
+                        'status'        => 'Pending',
+                        'approved_by'   => null,
+                        'approved_at'   => null,
+                        'is_rapel'      => intval($att['is_rapel'] ?? 0),
+                        'payout_period' => $att['payout_period'] ?? null
+                    ]);
+                }
+            }
+        }
+    }
+
     public function getOvertimeLogs()
     {
         $employeeId = $this->request->getGet('employee_id');
         $bulan = $this->request->getGet('bulan');
         $tahun = $this->request->getGet('tahun');
         $clientId = $this->request->getGet('client_id');
+
+        $this->autoSyncHolidayAttendanceToOvertime($clientId, $bulan, $tahun);
 
         $builder = $this->db->table('overtime_logs');
         $builder->select('overtime_logs.*, employees.nama as employee_name, employees.nik as employee_nik, attendance_logs.check_in as jam_masuk, attendance_logs.check_out as jam_keluar');
@@ -2212,11 +2396,42 @@ class Api extends ResourceController
 
             // Resolve UMP/UMK values for UMP/UMK fallback in components
             $empMinimumWage = 0.0;
-            if ($employee['minimum_wage_id']) {
+            if (!empty($employee['minimum_wage_id'])) {
                 $mw = $db->table('minimum_wages')->where('id', $employee['minimum_wage_id'])->get()->getRow();
                 if ($mw) {
                     $empMinimumWage = floatval($mw->nominal);
                 }
+            }
+            if ($empMinimumWage <= 0) {
+                $searchCity = $employee['kota_kabupaten'] ?? '';
+                $searchProv = $employee['provinsi'] ?? '';
+                if (!empty($searchCity)) {
+                    $cleanCity = trim(str_ireplace(['KOTA ADM.', 'KOTA', 'KABUPATEN', 'KAB.'], '', $searchCity));
+                    $mw = $db->table('minimum_wages')
+                        ->groupStart()
+                            ->where('nama_daerah', $searchCity)
+                            ->orWhere('nama_daerah LIKE', '%' . $cleanCity . '%')
+                        ->groupEnd()
+                        ->orderBy('tahun', 'DESC')
+                        ->get()->getRow();
+                }
+                if (empty($mw) && !empty($searchProv)) {
+                    $cleanProv = trim(str_ireplace(['PROVINSI', 'DKI'], '', $searchProv));
+                    $mw = $db->table('minimum_wages')
+                        ->groupStart()
+                            ->where('nama_daerah', $searchProv)
+                            ->orWhere('provinsi', $searchProv)
+                            ->orWhere('nama_daerah LIKE', '%' . $cleanProv . '%')
+                        ->groupEnd()
+                        ->orderBy('tahun', 'DESC')
+                        ->get()->getRow();
+                }
+                if (!empty($mw)) {
+                    $empMinimumWage = floatval($mw->nominal);
+                }
+            }
+            if ($baseSalary <= 0 && $empMinimumWage > 0) {
+                $baseSalary = $empMinimumWage;
             }
             $umpWageValue = $empMinimumWage;
             $umkWageValue = $empMinimumWage;
@@ -3215,6 +3430,18 @@ class Api extends ResourceController
         $startDateStr = sprintf('%04d-%02d-%02d', $tahun_start, $bulan_start, $cutoffStart);
         $endDateStr = sprintf('%04d-%02d-%02d', $tahun_end, $bulan_end, $cutoffEnd);
 
+        // Pre-fetch holiday_calendar for the period month to compute accurate payable_days
+        $periodMonthStart = sprintf('%04d-%02d-01', intval($period->tahun), intval($period->bulan));
+        $periodMonthEnd = date('Y-m-t', strtotime($periodMonthStart));
+        $holidayRows = $this->db->table('holiday_calendar')
+                                ->where('tanggal >=', $periodMonthStart)
+                                ->where('tanggal <=', $periodMonthEnd)
+                                ->get()->getResultArray();
+        $holidaysInPeriod = [];
+        foreach ($holidayRows as $h) {
+            $holidaysInPeriod[$h['tanggal']] = true;
+        }
+
         // Get all PKWT and their attendance for this period
         $query = $this->db->table('pkwt')
                           ->select('pkwt.id as pkwt_id, pkwt.employee_name, pkwt.tipe_perjanjian, 
@@ -3237,6 +3464,37 @@ class Api extends ResourceController
             $row->rapel_hari_kerja = 0;
             $row->rapel_jam_lembur = 0.0;
             $row->rapel_payout_period = '';
+
+            // Compute Payable Days
+            $workDaysConfig = intval($row->employee_hari_kerja ?? 5);
+            if ($workDaysConfig <= 0) {
+                $workDaysConfig = intval($row->position_hari_kerja ?? 5);
+            }
+            if ($workDaysConfig <= 0) {
+                $workDaysConfig = 5;
+            }
+
+            $payableDaysCount = 0;
+            $startTs = strtotime($periodMonthStart);
+            $endTs = strtotime($periodMonthEnd);
+            for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+                $currDate = date('Y-m-d', $curr);
+                if (isset($holidaysInPeriod[$currDate])) {
+                    continue;
+                }
+                $dayOfWeek = intval(date('w', $curr));
+                if ($workDaysConfig === 5) {
+                    if ($dayOfWeek !== 0 && $dayOfWeek !== 6) $payableDaysCount++;
+                } elseif ($workDaysConfig === 6) {
+                    if ($dayOfWeek !== 0) $payableDaysCount++;
+                } else {
+                    $payableDaysCount++;
+                }
+            }
+            $row->payable_days = $payableDaysCount;
+            if (isset($row->hari_kerja) && floatval($row->hari_kerja) > floatval($payableDaysCount)) {
+                $row->hari_kerja = $payableDaysCount;
+            }
 
             // Override normal values to 0 if the employee joined after the cutoff date of the period
             $joinDate = !empty($row->tgl_masuk) ? $row->tgl_masuk : (!empty($row->start_contract) ? $row->start_contract : null);
@@ -5218,6 +5476,23 @@ class Api extends ResourceController
     public function getPayrollResults($periodId)
     {
         $clientId = $this->request->getGet('client_id');
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        $tYear = $period ? intval($period->tahun) : intval(date('Y'));
+        $tMonth = $period ? intval($period->bulan) : intval(date('n'));
+        $totalDaysInPeriod = intval(date('t', mktime(0, 0, 0, $tMonth, 1, $tYear)));
+
+        // Pre-fetch holiday_calendar for the period month to compute accurate payable_days
+        $periodMonthStart = sprintf('%04d-%02d-01', $tYear, $tMonth);
+        $periodMonthEnd = date('Y-m-t', strtotime($periodMonthStart));
+        $holidayRows = $this->db->table('holiday_calendar')
+                                ->where('tanggal >=', $periodMonthStart)
+                                ->where('tanggal <=', $periodMonthEnd)
+                                ->get()->getResultArray();
+        $holidaysInPeriod = [];
+        foreach ($holidayRows as $h) {
+            $holidaysInPeriod[$h['tanggal']] = true;
+        }
+
         $query = $this->db->table('payroll_final')
                          ->select('
                              payroll_final.*, 
@@ -5229,7 +5504,14 @@ class Api extends ResourceController
                              divisions.nama as division_name,
                              departments.nama as department_name,
                              positions.nama as position_name,
-                             employees.end_contract
+                             employees.end_contract,
+                             employees.tgl_masuk as join_date,
+                             employees.start_contract as emp_start_contract,
+                             pkwt.start_date as pkwt_start_date,
+                             payroll_attendance.hari_kerja as working_days,
+                             employees.hari_kerja as emp_hari_kerja,
+                             employees.custom_standard_days as emp_custom_standard_days,
+                             positions.hari_kerja as position_hari_kerja
                          ')
                          ->join('pkwt', 'pkwt.id = payroll_final.pkwt_id')
                          ->join('clients', 'clients.id = pkwt.client_id', 'left')
@@ -5237,15 +5519,12 @@ class Api extends ResourceController
                          ->join('positions', 'positions.id = employees.position_id', 'left')
                          ->join('departments', 'departments.id = positions.department_id', 'left')
                          ->join('divisions', 'divisions.id = departments.division_id', 'left')
+                         ->join('payroll_attendance', 'payroll_attendance.period_id = payroll_final.period_id AND payroll_attendance.pkwt_id = payroll_final.pkwt_id', 'left')
                          ->where('payroll_final.period_id', $periodId);
         if ($clientId) {
             $query->where('pkwt.client_id', $clientId);
         }
         $data = $query->get()->getResult();
-
-        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
-        $tYear = $period ? intval($period->tahun) : intval(date('Y'));
-        $tMonth = $period ? intval($period->bulan) : intval(date('n'));
 
         foreach ($data as &$row) {
             // Auto-hold if PKWT contract is expired in the processed period and not yet Approved
@@ -5263,9 +5542,56 @@ class Api extends ResourceController
             $row->department_name = $row->department_name ?? '-';
             $row->position_name = $row->position_name ?? $row->pkwt_position_name ?? '-';
 
+            // Resolve Join Date, Working Days, and Total Days in Period
+            $rawJoinDate = !empty($row->join_date) ? $row->join_date : (!empty($row->pkwt_start_date) ? $row->pkwt_start_date : (!empty($row->emp_start_contract) ? $row->emp_start_contract : null));
+            $row->join_date = $rawJoinDate ? date('Y-m-d', strtotime($rawJoinDate)) : '-';
+            $row->working_days = (isset($row->working_days) && $row->working_days !== null) ? floatval($row->working_days) : 0;
+            $row->total_days_in_period = $totalDaysInPeriod;
+
+            // Compute Payable Days by iterating each day in the period month,
+            // excluding weekends (based on hari_kerja config) and holiday_calendar dates.
+            // This matches the getStandardWorkingDaysInRange() logic used in Payroll.php.
+            $workDaysConfig = intval($row->emp_hari_kerja ?? 5);
+            if ($workDaysConfig <= 0) {
+                $workDaysConfig = intval($row->position_hari_kerja ?? 5);
+            }
+            if ($workDaysConfig <= 0) {
+                $workDaysConfig = 5;
+            }
+
+            // If employee has custom_standard_days override, use it directly
+            if (isset($row->emp_custom_standard_days) && intval($row->emp_custom_standard_days) > 0) {
+                $row->payable_days = intval($row->emp_custom_standard_days);
+            } else {
+                // Count actual working days in the period month
+                $payableDaysCount = 0;
+                $startTs = strtotime($periodMonthStart);
+                $endTs = strtotime($periodMonthEnd);
+                for ($curr = $startTs; $curr <= $endTs; $curr = strtotime('+1 day', $curr)) {
+                    $currDate = date('Y-m-d', $curr);
+                    if (isset($holidaysInPeriod[$currDate])) {
+                        continue; // Skip holiday calendar dates
+                    }
+                    $dayOfWeek = intval(date('w', $curr)); // 0=Sun, 6=Sat
+                    if ($workDaysConfig === 5) {
+                        if ($dayOfWeek !== 0 && $dayOfWeek !== 6) $payableDaysCount++;
+                    } elseif ($workDaysConfig === 6) {
+                        if ($dayOfWeek !== 0) $payableDaysCount++;
+                    } else {
+                        $payableDaysCount++; // 7 days = all days
+                    }
+                }
+                $row->payable_days = $payableDaysCount;
+            }
+
             // Resolve Scheme Name
             $schemeName = '-';
             $clientConfig = $this->resolveClientConfig($row->client_id, $row->position_name);
+
+            // Cap working_days at payable_days
+            if (isset($row->payable_days) && floatval($row->working_days) > floatval($row->payable_days)) {
+                $row->working_days = floatval($row->payable_days);
+            }
             if ($clientConfig) {
                 if ($clientConfig->payroll_type === 'Nominal') {
                     $schemeName = 'Nominal (Rp ' . number_format($clientConfig->custom_nominal, 0, ',', '.') . ')';
@@ -6689,6 +7015,23 @@ class Api extends ResourceController
     {
         $clientId = $this->request->getGet('client_id');
         
+        $period = $this->db->table('payroll_periods')->where('id', $periodId)->get()->getRow();
+        $tYear = $period ? intval($period->tahun) : intval(date('Y'));
+        $tMonth = $period ? intval($period->bulan) : intval(date('n'));
+        $totalDaysInPeriod = intval(date('t', mktime(0, 0, 0, $tMonth, 1, $tYear)));
+
+        // Pre-fetch holiday_calendar for the period month
+        $expPeriodMonthStart = sprintf('%04d-%02d-01', $tYear, $tMonth);
+        $expPeriodMonthEnd = date('Y-m-t', strtotime($expPeriodMonthStart));
+        $expHolidayRows = $this->db->table('holiday_calendar')
+                                   ->where('tanggal >=', $expPeriodMonthStart)
+                                   ->where('tanggal <=', $expPeriodMonthEnd)
+                                   ->get()->getResultArray();
+        $expHolidaysInPeriod = [];
+        foreach ($expHolidayRows as $h) {
+            $expHolidaysInPeriod[$h['tanggal']] = true;
+        }
+
         $query = $this->db->table('payroll_final')
                           ->select('
                               payroll_final.*, 
@@ -6701,6 +7044,13 @@ class Api extends ResourceController
                               employees.tempat_lahir,
                               employees.tanggal_lahir,
                               employees.npwp,
+                              employees.tgl_masuk as join_date,
+                              employees.start_contract as emp_start_contract,
+                              pkwt.start_date as pkwt_start_date,
+                              payroll_attendance.hari_kerja as working_days,
+                              employees.hari_kerja as emp_hari_kerja,
+                              employees.custom_standard_days as emp_custom_standard_days,
+                              positions.hari_kerja as position_hari_kerja,
                               divisions.nama as division_name,
                               departments.nama as department_name,
                               work_locations.lokasi_kerja as location_name,
@@ -6714,6 +7064,7 @@ class Api extends ResourceController
                           ->join('divisions', 'divisions.id = departments.division_id', 'left')
                           ->join('work_locations', 'work_locations.id = employees.work_location_id', 'left')
                           ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                          ->join('payroll_attendance', 'payroll_attendance.period_id = payroll_final.period_id AND payroll_attendance.pkwt_id = payroll_final.pkwt_id', 'left')
                           ->where('payroll_final.period_id', $periodId);
                           
         if ($clientId) {
@@ -6721,6 +7072,39 @@ class Api extends ResourceController
         }
         
         $results = $query->get()->getResultArray();
+
+        foreach ($results as &$row) {
+            $rawJoinDate = !empty($row['join_date']) ? $row['join_date'] : (!empty($row['pkwt_start_date']) ? $row['pkwt_start_date'] : (!empty($row['emp_start_contract']) ? $row['emp_start_contract'] : null));
+            $row['join_date'] = $rawJoinDate ? date('Y-m-d', strtotime($rawJoinDate)) : '-';
+            $row['working_days'] = (isset($row['working_days']) && $row['working_days'] !== null) ? floatval($row['working_days']) : 0;
+            $row['total_days_in_period'] = $totalDaysInPeriod;
+
+            // Compute Payable Days (accurate: excludes weekends + holiday_calendar)
+            $wdc = intval($row['emp_hari_kerja'] ?? 5);
+            if ($wdc <= 0) $wdc = intval($row['position_hari_kerja'] ?? 5);
+            if ($wdc <= 0) $wdc = 5;
+
+            if (isset($row['emp_custom_standard_days']) && intval($row['emp_custom_standard_days']) > 0) {
+                $row['payable_days'] = intval($row['emp_custom_standard_days']);
+            } else {
+                $pdCount = 0;
+                $sTs = strtotime($expPeriodMonthStart);
+                $eTs = strtotime($expPeriodMonthEnd);
+                for ($c = $sTs; $c <= $eTs; $c = strtotime('+1 day', $c)) {
+                    $cd = date('Y-m-d', $c);
+                    if (isset($expHolidaysInPeriod[$cd])) continue;
+                    $dw = intval(date('w', $c));
+                    if ($wdc === 5) { if ($dw !== 0 && $dw !== 6) $pdCount++; }
+                    elseif ($wdc === 6) { if ($dw !== 0) $pdCount++; }
+                    else { $pdCount++; }
+                }
+                $row['payable_days'] = $pdCount;
+            }
+
+            if (isset($row['payable_days']) && floatval($row['working_days']) > floatval($row['payable_days'])) {
+                $row['working_days'] = floatval($row['payable_days']);
+            }
+        }
         
         if ($this->request->getGet('format') === 'json') {
             return $this->respond($results);
@@ -8862,13 +9246,9 @@ class Api extends ResourceController
                 if ($cutoffEnd < 1) $cutoffEnd = 31;
             }
 
-            $prevMonth = intval($period->bulan) - 1;
-            $prevYear = intval($period->tahun);
-            if ($prevMonth == 0) {
-                $prevMonth = 12;
-                $prevYear--;
-            }
-            $startDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+            $otMonth = intval($period->bulan);
+            $otYear = intval($period->tahun);
+            $startDateStr = sprintf('%04d-%02d-01', $otYear, $otMonth);
             $endDateStr = date('Y-m-t', strtotime($startDateStr));
 
             $effectiveStartDateStr = !empty($employee->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($employee->tgl_masuk))) : $startDateStr;
@@ -8895,7 +9275,6 @@ class Api extends ResourceController
                                          ->where('(is_rapel = 0 OR is_rapel IS NULL)')
                                          ->where('is_holiday', 1)
                                          ->get()->getRow();
-                $lemburLibur = $lemburLiburObj ? floatval($lemburLiburObj->jam_lembur) : 0.0;
                 $lemburLibur = $lemburLiburObj ? floatval($lemburLiburObj->jam_lembur) : 0.0;
                 $lemburSum = $lemburBiasa + $lemburLibur;
 
@@ -9083,14 +9462,10 @@ class Api extends ResourceController
 
             $effectiveStartDateStr = !empty($emp->tgl_masuk) ? max($startDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $startDateStr;
 
-            // Overtime dates are calendar-month based (previous month)
-            $prevMonth = intval($period->bulan) - 1;
-            $prevYear = intval($period->tahun);
-            if ($prevMonth == 0) {
-                $prevMonth = 12;
-                $prevYear--;
-            }
-            $otStartDateStr = sprintf('%04d-%02d-01', $prevYear, $prevMonth);
+            // Overtime dates are calendar-month based (current period month)
+            $otMonth = intval($period->bulan);
+            $otYear = intval($period->tahun);
+            $otStartDateStr = sprintf('%04d-%02d-01', $otYear, $otMonth);
             $otEndDateStr = date('Y-m-t', strtotime($otStartDateStr));
 
             $effectiveOtStartDateStr = !empty($emp->tgl_masuk) ? max($otStartDateStr, date('Y-m-d', strtotime($emp->tgl_masuk))) : $otStartDateStr;

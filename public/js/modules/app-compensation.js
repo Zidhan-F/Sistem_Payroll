@@ -474,3 +474,184 @@ async function hapusKomponenKompensasi(id) {
         console.error(err);
     }
 }
+
+// ===== EXCEL TEMPLATE & BULK UPLOAD FOR ALLOWANCE SCHEME =====
+
+function downloadAllowanceSchemeTemplate() {
+    try {
+        const headers = [['Allowance Scheme Name', 'Allowance Type', 'Value Source', 'Period', 'Custom Nominal (Rp) / Value']];
+        const dummyRows = [
+            ['Meal Allowance', 'Variable Allowance', 'Custom Nominal', 'Per Working Day', 10000],
+            ['Transport Allowance', 'Fixed Allowance', 'Custom Nominal', 'Per Month', 200000],
+            ['Position Allowance', 'Fixed Allowance', 'UMP (Province)', 'Per Month', 10]
+        ];
+        const data = headers.concat(dummyRows);
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Allowance Schemes');
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 28 }, // Allowance Scheme Name
+            { wch: 20 }, // Allowance Type
+            { wch: 20 }, // Value Source
+            { wch: 20 }, // Period
+            { wch: 30 }  // Custom Nominal (Rp) / Value
+        ];
+
+        XLSX.writeFile(wb, 'master_allowance_scheme_template.xlsx');
+        showToast('Template downloaded successfully', 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to download template', 'error');
+    }
+}
+
+function triggerAllowanceSchemeExcelUpload() {
+    const input = document.getElementById('allowanceSchemeExcelInput');
+    if (input) {
+        input.value = ''; // Reset to allow uploading same file
+        input.click();
+    }
+}
+
+function handleAllowanceSchemeExcelUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            if (rows.length < 2) {
+                showToast('The uploaded Excel file contains no data rows.', 'error');
+                return;
+            }
+
+            // Normalize headers
+            const rawHeaders = rows[0].map(h => h ? h.toString().trim() : '');
+            const normHeaders = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+            
+            let nameIndex = normHeaders.findIndex(h => h === 'allowanceschemename' || h === 'schemename' || h === 'namaskema' || h === 'namatunjangan' || h === 'nama' || h === 'name');
+            if (nameIndex === -1) nameIndex = normHeaders.findIndex(h => h.includes('scheme') || h.includes('nama') || h.includes('name'));
+            if (nameIndex === -1) nameIndex = 0; // Fallback to column 0
+
+            let typeIndex = normHeaders.findIndex(h => h === 'allowancetype' || h === 'schemetype' || h === 'sifatkompensasi' || h === 'sifat' || h === 'type');
+            if (typeIndex === -1) typeIndex = normHeaders.findIndex(h => h.includes('type') || h.includes('sifat'));
+            if (typeIndex === -1) typeIndex = 1; // Fallback to column 1
+
+            let sourceIndex = normHeaders.findIndex(h => h === 'valuesource' || h === 'sumbernilai' || h === 'sumber' || h === 'source');
+            if (sourceIndex === -1) sourceIndex = normHeaders.findIndex(h => h.includes('source') || h.includes('sumber'));
+            if (sourceIndex === -1) sourceIndex = 2; // Fallback to column 2
+
+            let periodIndex = normHeaders.findIndex(h => h === 'period' || h === 'periode');
+            if (periodIndex === -1) periodIndex = normHeaders.findIndex(h => h.includes('period') || h.includes('periode'));
+            if (periodIndex === -1) periodIndex = 3; // Fallback to column 3
+
+            let valueIndex = normHeaders.findIndex((h, idx) => idx !== sourceIndex && (h.includes('custom') || h.includes('nominal') || h.includes('nilai') || h.includes('amount') || h === 'value'));
+            if (valueIndex === -1) {
+                valueIndex = normHeaders.findIndex((h, idx) => idx !== sourceIndex && idx !== nameIndex && idx !== typeIndex && idx !== periodIndex && h.includes('value'));
+            }
+            if (valueIndex === -1) valueIndex = 4; // Fallback to column 4
+
+            let percentIndex = normHeaders.findIndex(h => h.includes('percent') || h.includes('persen'));
+            let descIndex = normHeaders.findIndex(h => h.includes('desc') || h.includes('keterangan') || h.includes('deskripsi'));
+
+            const schemes = [];
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r || r.length === 0) continue;
+
+                const isRowEmpty = r.every(cell => cell === null || cell === undefined || cell.toString().trim() === '');
+                if (isRowEmpty) continue;
+
+                const namaVal = r[nameIndex] ? r[nameIndex].toString().trim() : '';
+                if (!namaVal) continue;
+
+                const typeVal = typeIndex !== -1 && r[typeIndex] ? r[typeIndex].toString().trim() : 'Fixed Allowance';
+                const sourceVal = sourceIndex !== -1 && r[sourceIndex] ? r[sourceIndex].toString().trim() : 'Custom Nominal';
+                const periodVal = periodIndex !== -1 && r[periodIndex] ? r[periodIndex].toString().trim() : 'Per Month';
+                
+                const rawValue = (valueIndex !== -1 && r[valueIndex] !== undefined && r[valueIndex] !== null) ? r[valueIndex] : 0;
+                let valStr = rawValue.toString().trim();
+                let cleanStr = valStr.replace(/[^0-9.,-]/g, '');
+                if (cleanStr.includes('.') && !cleanStr.includes(',')) {
+                    const parts = cleanStr.split('.');
+                    if (parts.length > 1 && parts[parts.length - 1].length === 3) {
+                        cleanStr = cleanStr.replace(/\./g, '');
+                    }
+                } else if (cleanStr.includes(',')) {
+                    cleanStr = cleanStr.replace(/,/g, '');
+                }
+                let numValue = parseFloat(cleanStr) || 0;
+
+                // Determine percentage
+                let isPersentase = 0;
+                if (percentIndex !== -1 && r[percentIndex] !== undefined && r[percentIndex] !== null) {
+                    const rawPercent = r[percentIndex].toString().trim().toLowerCase();
+                    isPersentase = (rawPercent === 'yes' || rawPercent === '1' || rawPercent === 'true' || rawPercent === 'ya') ? 1 : 0;
+                } else {
+                    const sourceLower = sourceVal.toLowerCase();
+                    if (sourceLower.includes('ump') || sourceLower.includes('umk') || valStr.includes('%')) {
+                        isPersentase = 1;
+                    }
+                }
+
+                const descVal = descIndex !== -1 && r[descIndex] ? r[descIndex].toString().trim() : '';
+
+                schemes.push({
+                    nama: namaVal,
+                    sifat_kompensasi: typeVal,
+                    sumber_nilai: sourceVal,
+                    nilai: numValue,
+                    is_persentase: isPersentase,
+                    periode: periodVal,
+                    deskripsi: descVal
+                });
+            }
+
+            if (schemes.length === 0) {
+                showToast('No valid data rows found in the uploaded file.', 'error');
+                return;
+            }
+
+            const userObj = JSON.parse(localStorage.getItem('user'));
+            const username = userObj ? userObj.username : 'admin';
+
+            const response = await fetch(`${API_URL}/compensation-schemes/bulk`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Action': username
+                },
+                body: JSON.stringify(schemes)
+            });
+
+            const resData = await response.json();
+            if (response.ok) {
+                showToast(resData.message || 'Bulk allowance schemes uploaded successfully!', 'success');
+                renderMasterKompensasi();
+            } else {
+                if (resData.errors && Array.isArray(resData.errors)) {
+                    alert('Failed to upload allowance schemes:\n\n' + resData.errors.join('\n'));
+                } else {
+                    showToast(resData.message || resData.error || 'Failed to import allowance schemes.', 'error');
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Error parsing Excel file.', 'error');
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+window.downloadAllowanceSchemeTemplate = downloadAllowanceSchemeTemplate;
+window.triggerAllowanceSchemeExcelUpload = triggerAllowanceSchemeExcelUpload;
+window.handleAllowanceSchemeExcelUpload = handleAllowanceSchemeExcelUpload;

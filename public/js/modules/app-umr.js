@@ -432,34 +432,33 @@ function downloadTemplateUmr() {
 }
 
 // Drag & Drop + File Input Handling
-document.addEventListener('DOMContentLoaded', () => {
+function triggerUmrFileInput() {
+    const fileInput = document.getElementById('fileUmr');
+    if (fileInput) fileInput.click();
+}
+
+function handleUmrFileSelect(e) {
+    const file = e && e.target && e.target.files ? e.target.files[0] : null;
+    if (file) {
+        const fileNameEl = document.getElementById('umrFileName');
+        if (fileNameEl) {
+            fileNameEl.innerText = `📌 ${file.name}`;
+            fileNameEl.style.display = 'block';
+        }
+    }
+}
+
+function initUmrUploader() {
     const dropZone = document.getElementById('umrDropZone');
     const fileInput = document.getElementById('fileUmr');
 
     if (fileInput) {
-        // Prevent click bubble to dropZone
         fileInput.addEventListener('click', (e) => {
             e.stopPropagation();
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const fileNameEl = document.getElementById('umrFileName');
-                if (fileNameEl) {
-                    fileNameEl.innerText = `📌 ${file.name}`;
-                    fileNameEl.style.display = 'block';
-                }
-            }
         });
     }
 
     if (dropZone) {
-        // Trigger file dialog on click
-        dropZone.addEventListener('click', () => {
-            fileInput.click();
-        });
-
         ['dragenter', 'dragover'].forEach(evt => {
             dropZone.addEventListener(evt, (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
         });
@@ -471,25 +470,37 @@ document.addEventListener('DOMContentLoaded', () => {
             const isExcel = file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'));
             if (file && isExcel) {
                 fileInput.files = e.dataTransfer.files;
-                const fileNameEl = document.getElementById('umrFileName');
-                if (fileNameEl) {
-                    fileNameEl.innerText = `📌 ${file.name}`;
-                    fileNameEl.style.display = 'block';
-                }
+                handleUmrFileSelect({ target: { files: e.dataTransfer.files } });
             } else {
                 showToast('Only Excel files (.xlsx, .xls) are allowed!', 'error');
             }
         });
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUmrUploader);
+} else {
+    initUmrUploader();
+}
+
 // Excel Upload Handler
-const formUploadUmr = document.getElementById('formUploadUmr');
-if (formUploadUmr) {
+document.addEventListener('DOMContentLoaded', () => {
+    bindFormUploadUmr();
+});
+// Also attempt immediate binding in case DOM is ready
+bindFormUploadUmr();
+
+function bindFormUploadUmr() {
+    const formUploadUmr = document.getElementById('formUploadUmr');
+    if (!formUploadUmr || formUploadUmr.dataset.bound) return;
+    formUploadUmr.dataset.bound = "true";
+
     formUploadUmr.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const fileInput = document.getElementById('fileUmr');
-        const file = fileInput.files[0];
+        const file = fileInput ? fileInput.files[0] : null;
 
         if (!file) {
             showToast('Please select an Excel file first!', 'error');
@@ -512,10 +523,10 @@ if (formUploadUmr) {
                     return;
                 }
 
-                const tipe = document.getElementById('uploadUmrTipe').value;
-                const tahun = document.getElementById('uploadUmrTahun').value;
+                const tipe = document.getElementById('uploadUmrTipe').value || currentUmrType || 'UMP';
+                const tahun = document.getElementById('uploadUmrTahun').value || '2026';
 
-                // Let's dynamically map columns in the Excel JSON array
+                // Dynamically map columns in the Excel JSON array
                 const firstRow = json[0];
                 const keys = Object.keys(firstRow);
 
@@ -525,42 +536,72 @@ if (formUploadUmr) {
                 let stateIdKey = '';
 
                 keys.forEach(k => {
-                    const cleanK = k.toLowerCase().replace(/\s+/g, '');
+                    const cleanK = k.toLowerCase().replace(/[^a-z0-9]/g, '');
                     if (cleanK.includes('code') || cleanK.includes('kode')) {
                         codeKey = k;
-                    } else if (cleanK.includes('name') || cleanK.includes('daerah') || cleanK.includes('kabupaten') || cleanK.includes('provinsi')) {
-                        if (!cleanK.includes('kode')) {
+                    } else if (
+                        cleanK.includes('name') || cleanK.includes('nama') ||
+                        cleanK.includes('daerah') || cleanK.includes('kabupaten') ||
+                        cleanK.includes('provinsi') || cleanK.includes('kota') ||
+                        cleanK.includes('wilayah') || cleanK.includes('city') ||
+                        cleanK.includes('regency') || cleanK.includes('state')
+                    ) {
+                        if (!cleanK.includes('code') && !cleanK.includes('kode') && !cleanK.includes('id')) {
                             nameKey = k;
                         }
-                    } else if (cleanK.includes('amount') || cleanK.includes('nominal') || cleanK.includes('gaji') || cleanK === 'ump' || cleanK === 'umk') {
+                    } else if (
+                        cleanK.includes('amount') || cleanK.includes('nominal') ||
+                        cleanK.includes('gaji') || cleanK.includes('ump') ||
+                        cleanK.includes('umk') || cleanK.includes('nilai') ||
+                        cleanK.includes('besaran') || cleanK.includes('rate') ||
+                        cleanK.includes('value')
+                    ) {
                         nominalKey = k;
-                    } else if (cleanK === 'stateid' || cleanK === 'provinsiid') {
+                    } else if (cleanK === 'stateid' || cleanK === 'provinsiid' || cleanK === 'idprovinsi') {
                         stateIdKey = k;
                     }
                 });
 
-                // Fallbacks if not auto-detected
+                // Fallbacks if auto-detect didn't catch specific positions
                 if (!codeKey) {
-                    if (tipe === 'UMP') {
-                        stateIdKey = keys[0] || '';
-                        codeKey = keys[1] || '';
-                        nameKey = keys[2] || '';
-                        nominalKey = keys[3] || '';
-                    } else {
-                        codeKey = keys[1] || '';
-                        nameKey = keys[2] || '';
-                        stateIdKey = keys[3] || '';
-                        nominalKey = keys[4] || '';
+                    if (tipe === 'UMP' && keys.length >= 4) {
+                        stateIdKey = stateIdKey || keys[0];
+                        codeKey = keys[1];
+                        nameKey = nameKey || keys[2];
+                        nominalKey = nominalKey || keys[3];
+                    } else if (tipe === 'UMK' && keys.length >= 5) {
+                        codeKey = keys[1];
+                        nameKey = nameKey || keys[2];
+                        stateIdKey = stateIdKey || keys[3];
+                        nominalKey = nominalKey || keys[4];
                     }
                 }
 
+                // If still missing name or nominal key, inspect by row sample types
+                if (!nameKey) {
+                    nameKey = keys.find(k => typeof firstRow[k] === 'string' && k !== codeKey) || keys[0];
+                }
+                if (!nominalKey) {
+                    nominalKey = keys.find(k => {
+                        const val = String(firstRow[k] || '').replace(/[^0-9]/g, '');
+                        return val.length > 0 && k !== codeKey && k !== stateIdKey;
+                    }) || keys[keys.length - 1];
+                }
+
+                let rowIdx = 1;
                 const items = json.map(row => {
                     let rawNominal = String(row[nominalKey] || '0').trim();
                     let nominalVal = parseFloat(rawNominal.replace(/[^0-9.-]+/g, '')) || 0;
 
-                    let codeVal = String(row[codeKey] || '').trim();
                     let nameVal = String(row[nameKey] || '').trim();
+                    let codeVal = String(row[codeKey] || '').trim();
                     let provinceVal = stateIdKey ? String(row[stateIdKey] || '').trim() : '';
+
+                    // Auto generate codeVal if empty but nameVal exists
+                    if (!codeVal && nameVal) {
+                        const cleanName = nameVal.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+                        codeVal = `${tipe}_${cleanName.substring(0, 15)}_${rowIdx++}`;
+                    }
 
                     return {
                         tipe: tipe,
@@ -570,10 +611,10 @@ if (formUploadUmr) {
                         nominal: nominalVal,
                         tahun: parseInt(tahun)
                     };
-                }).filter(item => item.kode_daerah && item.nama_daerah);
+                }).filter(item => item.nama_daerah);
 
                 if (items.length === 0) {
-                    showToast('No valid rows found in Excel sheet!', 'error');
+                    showToast('No valid rows found in Excel sheet! Check header columns.', 'error');
                     return;
                 }
 
@@ -589,7 +630,8 @@ if (formUploadUmr) {
                     renderUmrTable();
                     showToast(`${items.length} ${tipe} data uploaded successfully!`, 'success');
                 } else {
-                    showToast('Failed to upload data!', 'error');
+                    const errData = await res.json().catch(() => ({}));
+                    showToast(errData.message || 'Failed to upload data!', 'error');
                 }
             } catch (err) {
                 console.error(err);

@@ -1448,6 +1448,25 @@ body:has(#overlay:not([style*="display: none"]):not([style*="display:none"])) {
     max-height: 90vh;
     box-sizing: border-box;
     animation: modalSkemaEntrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    overflow: hidden;
+}
+
+.modal-skema form {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(90vh - 60px);
+    overflow: hidden;
+}
+
+.modal-skema .modal-body {
+    overflow-y: auto !important;
+    max-height: calc(90vh - 130px) !important;
+    box-sizing: border-box;
+}
+
+.modal-skema .modal-header,
+.modal-skema .modal-footer {
+    flex-shrink: 0;
 }
 
 .modal-skema:has(.modal-body) {

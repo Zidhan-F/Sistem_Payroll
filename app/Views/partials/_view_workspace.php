@@ -268,6 +268,10 @@
                                                          <th>Division</th>
                                                          <th>Department</th>
                                                          <th>Position</th>
+                                                         <th>Join Date</th>
+                                                         <th>Working Days</th>
+                                                         <th>Total Days in Period</th>
+                                                         <th>Payable Days</th>
                                                          <th>Scheme</th>
                                                          <th>PTKP</th>
                                                          <th>Basic Salary</th>

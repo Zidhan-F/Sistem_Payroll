@@ -233,7 +233,7 @@ async function renderReviewGajiTable() {
     try {
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="30" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="34" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
         const res = await fetch(url);
@@ -328,6 +328,10 @@ async function renderReviewGajiTable() {
                         <td>${row.division_name || '-'}</td>
                         <td>${row.department_name || '-'}</td>
                         <td>${row.position_name || '-'}</td>
+                        <td>${row.join_date || '-'}</td>
+                        <td>${(row.working_days !== undefined && row.working_days !== null) ? row.working_days + ' Days' : '0 Days'}</td>
+                        <td>${(row.total_days_in_period !== undefined && row.total_days_in_period !== null) ? row.total_days_in_period + ' Days' : '-'}</td>
+                        <td>${(row.payable_days !== undefined && row.payable_days !== null) ? row.payable_days + ' Days' : '-'}</td>
                         <td>${row.scheme_name || '-'}</td>
                         <td>${row.ptkp_status || 'TK/0'}</td>
                         <td>${formatRupiah(gp)}</td>
@@ -387,13 +391,13 @@ async function renderReviewGajiTable() {
             }
         } else { 
             section.style.display = 'block';
-            tbody.innerHTML = `<tr><td colspan="22" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>No data yet gaji yang di-generate untuk periode ini.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="34" style="text-align:center; padding: 20px; color:#7f8c8d;"><i class="fas fa-info-circle" style="margin-right: 8px;"></i>No data yet gaji yang di-generate untuk periode ini.</td></tr>`;
         }
     } catch (err) { 
         console.error(err); 
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="22" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="34" style="text-align: center; padding: 20px; color: #ef4444;"><i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>Gagal memuat hasil kalkulasi: ${err.message || err}</td></tr>`;
         }
     }
 }
@@ -956,6 +960,10 @@ async function exportGajiToExcel() {
                 'Division': row.division_name || '-',
                 'Department': row.department_name || '-',
                 'Position / Role': row.position_name || '-',
+                'Join Date': row.join_date || '-',
+                'Working Days': (row.working_days !== undefined && row.working_days !== null) ? row.working_days : 0,
+                'Total Days in Period': (row.total_days_in_period !== undefined && row.total_days_in_period !== null) ? row.total_days_in_period : 0,
+                'Payable Days': (row.payable_days !== undefined && row.payable_days !== null) ? row.payable_days : 0,
                 'Work Location': row.location_name || '-',
                 'Basic Salary (Gaji Pokok)': Math.round(gp * 100) / 100,
                 'Overtime Pay (Lembur)': Math.round(ot * 100) / 100,
@@ -1092,6 +1100,7 @@ async function exportGajiToExcel() {
             {wch: 15},  // Department
             {wch: 18},  // Position / Role
             {wch: 25},  // Work Location
+            {wch: 15},  // Payable Days
             {wch: 25},  // Basic Salary (Gaji Pokok)
             {wch: 20},  // Overtime Pay (Lembur)
             {wch: 20},  // Early Arrival Pay
@@ -2243,20 +2252,21 @@ function processParsedAttendance(rows) {
             const dd = String(dateObj.getDate()).padStart(2, '0');
             const formattedDate = `${yyyy}-${mm}-${dd}`;
 
-            // Filter: skip rows outside the selected period's cutoff range
-            if (activePeriod && activePeriod.start_date && activePeriod.end_date) {
-                const startParts = activePeriod.start_date.split('-');
-                const endParts = activePeriod.end_date.split('-');
-                const startDate = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]), 0, 0, 0);
-                const endDate = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]), 23, 59, 59);
-                if (dateObj < startDate || dateObj > endDate) {
-                    return; // Skip this row - not in the period's cutoff range
-                }
-            } else if (bulan && tahun) {
+            // Filter: allow rows in the selected calendar month OR within the active period cutoff range
+            if (bulan && tahun) {
                 const filterMonth = parseInt(bulan);
                 const filterYear = parseInt(tahun);
-                if (dateObj.getMonth() + 1 !== filterMonth || dateObj.getFullYear() !== filterYear) {
-                    return; // Skip this row - not in the selected calendar month
+                const inCalendarMonth = (dateObj.getMonth() + 1 === filterMonth && dateObj.getFullYear() === filterYear);
+                let inPeriodCutoff = false;
+                if (activePeriod && activePeriod.start_date && activePeriod.end_date) {
+                    const startParts = activePeriod.start_date.split('-');
+                    const endParts = activePeriod.end_date.split('-');
+                    const startDate = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]), 0, 0, 0);
+                    const endDate = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]), 23, 59, 59);
+                    inPeriodCutoff = (dateObj >= startDate && dateObj <= endDate);
+                }
+                if (!inCalendarMonth && !inPeriodCutoff) {
+                    return; // Skip this row - neither in calendar month nor in period cutoff
                 }
             }
 

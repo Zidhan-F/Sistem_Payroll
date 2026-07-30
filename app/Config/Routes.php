@@ -209,6 +209,7 @@ $routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
     $routes->delete('tax-schemes/(:num)', 'Api::deleteTaxScheme/$1');
 
     // Compensation Schemes CRUD
+    $routes->post('compensation-schemes/bulk', 'Api::createCompensationSchemesBulk');
     $routes->post('compensation-schemes', 'Api::createCompensationScheme');
     $routes->put('compensation-schemes/(:num)', 'Api::updateCompensationScheme/$1');
     $routes->delete('compensation-schemes/(:num)', 'Api::deleteCompensationScheme/$1');

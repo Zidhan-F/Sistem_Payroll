@@ -6,7 +6,14 @@
                         <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Allowance Scheme</h3>
                         <p style="color: #64748b; font-size: 13px; margin: 0;">Manage earnings allowances and deductions globally.</p>
                     </div>
-                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button id="btnDownloadAllowanceSchemeTemplate" class="btn-add" onclick="downloadAllowanceSchemeTemplate()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; border: none; padding: 10px 16px; color: white; cursor: pointer; transition: all 0.3s;" title="Download Excel Template">
+                            <i class="fas fa-download"></i> Download Template
+                        </button>
+                        <button id="btnUploadAllowanceSchemeExcel" class="btn-add" onclick="triggerAllowanceSchemeExcelUpload()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; border: none; padding: 10px 16px; color: white; cursor: pointer; transition: all 0.3s;" title="Upload Excel Data">
+                            <i class="fas fa-upload"></i> Upload Excel
+                        </button>
+                        <input type="file" id="allowanceSchemeExcelInput" accept=".xlsx, .xls" style="display: none;" onchange="handleAllowanceSchemeExcelUpload(event)">
                         <button class="btn-add" onclick="bukaModalSkemaKompensasi('tambah')" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px;">
                             <i class="fas fa-plus"></i> Add Scheme
                         </button>
