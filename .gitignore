@@ -125,3 +125,7 @@ _modules/*
 /results/
 /phpunit*.xml
 /scratch/
+node_modules/
+*.pptx
+*.xlsx
+
