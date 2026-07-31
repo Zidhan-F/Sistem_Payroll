@@ -48,13 +48,38 @@ async function loadPayrollReport(overrideClientId = null) {
             clientFilter = selectClientEl.value || clientFilter;
         }
 
-        const selectTahunEl = document.getElementById('filterReportTahun');
-        const tahunFilter = selectTahunEl ? selectTahunEl.value : (window.reportState.selectedTahun || 'all');
+        const reportTahunEl = document.getElementById('filterReportTahun');
+        const processTahunEl = document.getElementById('filterProcessReportTahun');
+        let tahunFilter = window.reportState.selectedTahun || '2026';
+        if (processTahunEl && processTahunEl.value) {
+            tahunFilter = processTahunEl.value;
+        } else if (reportTahunEl && reportTahunEl.value) {
+            tahunFilter = reportTahunEl.value;
+        }
+        if (reportTahunEl) reportTahunEl.value = tahunFilter;
+        if (processTahunEl) processTahunEl.value = tahunFilter;
 
-        const startDateEl = document.getElementById('filterReportStartDate');
-        const endDateEl = document.getElementById('filterReportEndDate');
-        const startDateFilter = startDateEl ? startDateEl.value : (window.reportState.selectedStartDate || '');
-        const endDateFilter = endDateEl ? endDateEl.value : (window.reportState.selectedEndDate || '');
+        const reportStartEl = document.getElementById('filterReportStartDate');
+        const processStartEl = document.getElementById('filterProcessReportStartDate');
+        let startDateFilter = window.reportState.selectedStartDate || '';
+        if (processStartEl && processStartEl.value) {
+            startDateFilter = processStartEl.value;
+        } else if (reportStartEl && reportStartEl.value) {
+            startDateFilter = reportStartEl.value;
+        }
+        if (reportStartEl) reportStartEl.value = startDateFilter;
+        if (processStartEl) processStartEl.value = startDateFilter;
+
+        const reportEndEl = document.getElementById('filterReportEndDate');
+        const processEndEl = document.getElementById('filterProcessReportEndDate');
+        let endDateFilter = window.reportState.selectedEndDate || '';
+        if (processEndEl && processEndEl.value) {
+            endDateFilter = processEndEl.value;
+        } else if (reportEndEl && reportEndEl.value) {
+            endDateFilter = reportEndEl.value;
+        }
+        if (reportEndEl) reportEndEl.value = endDateFilter;
+        if (processEndEl) processEndEl.value = endDateFilter;
 
         window.reportState.selectedClient = clientFilter;
         window.reportState.selectedTahun = tahunFilter;
@@ -124,30 +149,46 @@ function renderReportKpiCards() {
     const summary = window.reportState.summary || {};
     const data = window.reportState.data || [];
 
-    const elThp = document.getElementById('kpiReportTotalThp');
-    const elHeadcount = document.getElementById('kpiReportHeadcount');
-    const elAvg = document.getElementById('kpiReportAvgSalary');
-    const elMom = document.getElementById('kpiReportMomGrowth');
+    const thpText = formatRupiah(summary.total_thp || 0);
+    const hcText = (summary.total_headcount || 0) + ' Orang';
+    const avgText = formatRupiah(summary.avg_thp_per_employee || 0);
 
-    if (elThp) elThp.innerText = formatRupiah(summary.total_thp || 0);
-    if (elHeadcount) elHeadcount.innerText = (summary.total_headcount || 0) + ' Orang';
-    if (elAvg) elAvg.innerText = formatRupiah(summary.avg_thp_per_employee || 0);
-
-    if (elMom) {
-        if (data.length > 1) {
-            const lastItem = data[data.length - 1];
-            const growth = lastItem.mom_growth_percent || 0;
-            const isPos = growth >= 0;
-            elMom.innerHTML = `
-                <span style="color: ${isPos ? '#10b981' : '#ef4444'}; font-weight: 700;">
-                    <i class="fas fa-arrow-${isPos ? 'up' : 'down'}"></i> ${growth > 0 ? '+' : ''}${growth}%
-                </span>
-                <span style="font-size: 12px; color: #64748b; margin-left: 4px;">MoM</span>
-            `;
-        } else {
-            elMom.innerText = '0.00% MoM';
-        }
+    let momHtml = '0.00% MoM';
+    if (data.length > 1) {
+        const lastItem = data[data.length - 1];
+        const growth = lastItem.mom_growth_percent || 0;
+        const isPos = growth >= 0;
+        momHtml = `
+            <span style="color: ${isPos ? '#10b981' : '#ef4444'}; font-weight: 700;">
+                <i class="fas fa-arrow-${isPos ? 'up' : 'down'}"></i> ${growth > 0 ? '+' : ''}${growth}%
+            </span>
+            <span style="font-size: 12px; color: #64748b; margin-left: 4px;">MoM</span>
+        `;
     }
+
+    const elThp = document.getElementById('kpiReportTotalThp');
+    if (elThp) elThp.innerText = thpText;
+
+    const elHc = document.getElementById('kpiReportHeadcount');
+    if (elHc) elHc.innerText = hcText;
+
+    const elAvg = document.getElementById('kpiReportAvgSalary');
+    if (elAvg) elAvg.innerText = avgText;
+
+    const elMom = document.getElementById('kpiReportMomGrowth');
+    if (elMom) elMom.innerHTML = momHtml;
+
+    const elKesCo = document.getElementById('kpiProcessBpjsKesCo');
+    const elTkCo = document.getElementById('kpiProcessBpjsTkCo');
+    const elKesEmp = document.getElementById('kpiProcessBpjsKesEmp');
+    const elTkEmp = document.getElementById('kpiProcessBpjsTkEmp');
+    const elAbsen = document.getElementById('kpiProcessDeductionAbsen');
+
+    if (elKesCo) elKesCo.innerText = formatRupiah(summary.bpjs_kes_perusahaan || 0);
+    if (elTkCo) elTkCo.innerText = formatRupiah(summary.bpjs_tk_perusahaan || 0);
+    if (elKesEmp) elKesEmp.innerText = formatRupiah(summary.bpjs_kes_karyawan || 0);
+    if (elTkEmp) elTkEmp.innerText = formatRupiah(summary.bpjs_tk_karyawan || 0);
+    if (elAbsen) elAbsen.innerText = formatRupiah(summary.potongan_absen || 0);
 }
 
 /**
@@ -707,41 +748,97 @@ function exportReportPdf() {
     });
 }
 
-function onReportTahunChange() {
-    const startDateEl = document.getElementById('filterReportStartDate');
-    const endDateEl = document.getElementById('filterReportEndDate');
-    if (startDateEl) startDateEl.value = '';
-    if (endDateEl) endDateEl.value = '';
+function onReportTahunChange(event) {
+    let yearVal = 'all';
+    if (event && event.target && event.target.value !== undefined) {
+        yearVal = event.target.value;
+    } else {
+        const pEl = document.getElementById('filterProcessReportTahun');
+        const rEl = document.getElementById('filterReportTahun');
+        yearVal = pEl ? pEl.value : (rEl ? rEl.value : 'all');
+    }
 
+    ['filterReportTahun', 'filterProcessReportTahun'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = yearVal;
+    });
+
+    ['filterReportStartDate', 'filterProcessReportStartDate', 'filterReportEndDate', 'filterProcessReportEndDate'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    window.reportState.selectedTahun = yearVal;
     window.reportState.selectedStartDate = '';
     window.reportState.selectedEndDate = '';
 
     loadPayrollReport();
 }
 
-function onReportDateRangeChange() {
-    const startDateEl = document.getElementById('filterReportStartDate');
-    const endDateEl = document.getElementById('filterReportEndDate');
-    const selectTahunEl = document.getElementById('filterReportTahun');
+function onReportDateRangeChange(event) {
+    let startVal = '';
+    let endVal = '';
 
-    if ((startDateEl && startDateEl.value) || (endDateEl && endDateEl.value)) {
-        if (selectTahunEl) selectTahunEl.value = 'all';
+    if (event && event.target) {
+        if (event.target.id.includes('Process')) {
+            const pStart = document.getElementById('filterProcessReportStartDate');
+            const pEnd = document.getElementById('filterProcessReportEndDate');
+            startVal = pStart ? pStart.value : '';
+            endVal = pEnd ? pEnd.value : '';
+        } else {
+            const rStart = document.getElementById('filterReportStartDate');
+            const rEnd = document.getElementById('filterReportEndDate');
+            startVal = rStart ? rStart.value : '';
+            endVal = rEnd ? rEnd.value : '';
+        }
+    } else {
+        const pStart = document.getElementById('filterProcessReportStartDate');
+        const rStart = document.getElementById('filterReportStartDate');
+        const pEnd = document.getElementById('filterProcessReportEndDate');
+        const rEnd = document.getElementById('filterReportEndDate');
+        startVal = (pStart && pStart.value) || (rStart && rStart.value) || '';
+        endVal = (pEnd && pEnd.value) || (rEnd && rEnd.value) || '';
+    }
+
+    ['filterReportStartDate', 'filterProcessReportStartDate'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = startVal;
+    });
+
+    ['filterReportEndDate', 'filterProcessReportEndDate'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = endVal;
+    });
+
+    if (startVal || endVal) {
+        ['filterReportTahun', 'filterProcessReportTahun'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = 'all';
+        });
         window.reportState.selectedTahun = 'all';
     }
+
+    window.reportState.selectedStartDate = startVal;
+    window.reportState.selectedEndDate = endVal;
 
     loadPayrollReport();
 }
 
 function resetReportFilter() {
-    const startDateEl = document.getElementById('filterReportStartDate');
-    const endDateEl = document.getElementById('filterReportEndDate');
-    const selectTahunEl = document.getElementById('filterReportTahun');
-    const selectMetricEl = document.getElementById('filterReportMetric');
+    ['filterReportStartDate', 'filterProcessReportStartDate', 'filterReportEndDate', 'filterProcessReportEndDate'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
 
-    if (startDateEl) startDateEl.value = '';
-    if (endDateEl) endDateEl.value = '';
-    if (selectTahunEl) selectTahunEl.value = '2026';
-    if (selectMetricEl) selectMetricEl.value = 'total_thp';
+    ['filterReportTahun', 'filterProcessReportTahun'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '2026';
+    });
+
+    ['filterReportMetric', 'filterProcessReportMetric'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = 'total_thp';
+    });
 
     window.reportState.selectedStartDate = '';
     window.reportState.selectedEndDate = '';

@@ -251,6 +251,7 @@ async function renderReviewGajiTable() {
         const lastDayOfPeriodMonth = new Date(selectedYear, selectedMonth, 0);
 
         let displayData = data;
+        window.lastLoadedProcessGajiData = displayData;
         const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
         if (role === 'staff') {
             displayData = data.filter(row => {
@@ -382,6 +383,41 @@ async function renderReviewGajiTable() {
                 `;
             }).join('');
 
+            // Calculate totals for BPJS & Deductions summary cards
+            let sumBpjsKesCo = 0;
+            let sumBpjsTkCo = 0;
+            let sumBpjsKesEmp = 0;
+            let sumBpjsTkEmp = 0;
+            let sumPotAbsen = 0;
+
+            displayData.forEach(row => {
+                sumBpjsKesCo += parseFloat(row.bpjs_kes_perusahaan || 0);
+                sumBpjsTkCo += (
+                    parseFloat(row.bpjs_jht_perusahaan || 0) +
+                    parseFloat(row.bpjs_jp_perusahaan || 0) +
+                    parseFloat(row.bpjs_jkk_perusahaan || 0) +
+                    parseFloat(row.bpjs_jkm_perusahaan || 0)
+                );
+                sumBpjsKesEmp += parseFloat(row.bpjs_kes_karyawan || 0);
+                sumBpjsTkEmp += (
+                    parseFloat(row.bpjs_jht_karyawan || 0) +
+                    parseFloat(row.bpjs_jp_karyawan || 0)
+                );
+                sumPotAbsen += parseFloat(row.potongan_absen || 0);
+            });
+
+            const elKesCo = document.getElementById('kpiProcessBpjsKesCo');
+            const elTkCo = document.getElementById('kpiProcessBpjsTkCo');
+            const elKesEmp = document.getElementById('kpiProcessBpjsKesEmp');
+            const elTkEmp = document.getElementById('kpiProcessBpjsTkEmp');
+            const elAbsen = document.getElementById('kpiProcessDeductionAbsen');
+
+            if (elKesCo) elKesCo.innerText = formatRupiah(sumBpjsKesCo);
+            if (elTkCo) elTkCo.innerText = formatRupiah(sumBpjsTkCo);
+            if (elKesEmp) elKesEmp.innerText = formatRupiah(sumBpjsKesEmp);
+            if (elTkEmp) elTkEmp.innerText = formatRupiah(sumBpjsTkEmp);
+            if (elAbsen) elAbsen.innerText = formatRupiah(sumPotAbsen);
+
             // Hide the checkbox cells for staff role to avoid column shifting
             if (role === 'staff') {
                 tbody.querySelectorAll('.review-gaji-checkbox').forEach(input => {
@@ -509,7 +545,13 @@ async function generateGaji() {
     showToast('Calculating salary...', 'info');
     const url = window.selectedClientId ? `${API_URL}/generate-payroll/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/generate-payroll/${currentPeriodId}`;
     const res = await fetch(url, { method: 'POST' });
-    if (res.ok) { showToast('Salary generated successfully!', 'success'); renderReviewGajiTable(); }
+    if (res.ok) {
+        showToast('Salary generated successfully!', 'success');
+        renderReviewGajiTable();
+        if (typeof loadPayrollReport === 'function') {
+            loadPayrollReport(window.selectedClientId);
+        }
+    }
 }
 
 async function downloadSalaryTemplate() {
@@ -2567,3 +2609,322 @@ window.releaseHoldDanApprove = releaseHoldDanApprove;
 window.bukaSlipGaji = bukaSlipGaji;
 window.tutupModalSlip = tutupModalSlip;
 window.downloadSlip = downloadSlip;
+
+/**
+ * Show Modal Detail Breakdown for BPJS & Deductions in Process Payroll
+ */
+function showProcessBpjsDetailModal(type) {
+    const modal = document.getElementById('modalReportKpiDetail');
+    const overlay = document.getElementById('overlay');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('modalKpiDetailTitle');
+    const summaryEl = document.getElementById('modalKpiDetailSummary');
+    const theadEl = document.getElementById('modalKpiDetailThead');
+    const tbodyEl = document.getElementById('modalKpiDetailTbody');
+
+    const rows = window.lastLoadedProcessGajiData || [];
+
+    if (!rows || rows.length === 0) {
+        showToast('Belum ada data kalkulasi gaji yang diproses untuk periode ini', 'warning');
+        return;
+    }
+
+    if (type === 'bpjs_kes_co') {
+        titleEl.innerHTML = `<i class="fas fa-building-shield" style="color: #ffffff;"></i> Rincian Perhitungan BPJS Kesehatan (Company)`;
+        
+        let totalVal = 0;
+        rows.forEach(r => totalVal += parseFloat(r.bpjs_kes_perusahaan || 0));
+        const avgVal = rows.length > 0 ? (totalVal / rows.length) : 0;
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL BPJS KES (COMPANY)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #0284c7;">${formatRupiah(totalVal)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL KARYAWAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${rows.length} Orang</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">RATA-RATA / KARYAWAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #10b981;">${formatRupiah(avgVal)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TARIF PERUSAHAAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #3b82f6;">4.00% (Cap Rp12 Jt)</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">No</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Nama Karyawan</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Jabatan / Klien</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Gaji Pokok</th>
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Tarif Perusahaan</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Nominal BPJS Kes (Co)</th>
+            </tr>
+        `;
+
+        let htmlRows = '';
+        rows.forEach((r, idx) => {
+            const val = parseFloat(r.bpjs_kes_perusahaan || 0);
+            htmlRows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(r.employee_name || '-')}</td>
+                    <td style="padding: 12px;">${escapeHtml(r.position_name || r.client_name || '-')}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(r.gaji_pokok || 0)}</td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">4.00%</span></td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #0284c7;">${formatRupiah(val)}</td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = htmlRows;
+
+    } else if (type === 'bpjs_tk_co') {
+        titleEl.innerHTML = `<i class="fas fa-shield-alt" style="color: #ffffff;"></i> Rincian Perhitungan BPJS Ketenagakerjaan (Company)`;
+        
+        let sumJht = 0, sumJp = 0, sumJkk = 0, sumJkm = 0, totalVal = 0;
+        rows.forEach(r => {
+            const jht = parseFloat(r.bpjs_jht_perusahaan || 0);
+            const jp = parseFloat(r.bpjs_jp_perusahaan || 0);
+            const jkk = parseFloat(r.bpjs_jkk_perusahaan || 0);
+            const jkm = parseFloat(r.bpjs_jkm_perusahaan || 0);
+            sumJht += jht;
+            sumJp += jp;
+            sumJkk += jkk;
+            sumJkm += jkm;
+            totalVal += (jht + jp + jkk + jkm);
+        });
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL BPJS TK (COMPANY)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #4f46e5;">${formatRupiah(totalVal)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">JHT CO (3.7%)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${formatRupiah(sumJht)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">JP CO (2.0%)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #10b981;">${formatRupiah(sumJp)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">JKK & JKM CO</div>
+                <div style="font-size: 16px; font-weight: 800; color: #f59e0b;">${formatRupiah(sumJkk + sumJkm)}</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">No</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Nama Karyawan</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Gaji Pokok</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">JHT (3.7%)</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">JP (2%)</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">JKK</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">JKM</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Total BPJS TK (Co)</th>
+            </tr>
+        `;
+
+        let htmlRows = '';
+        rows.forEach((r, idx) => {
+            const jht = parseFloat(r.bpjs_jht_perusahaan || 0);
+            const jp = parseFloat(r.bpjs_jp_perusahaan || 0);
+            const jkk = parseFloat(r.bpjs_jkk_perusahaan || 0);
+            const jkm = parseFloat(r.bpjs_jkm_perusahaan || 0);
+            const tot = jht + jp + jkk + jkm;
+            htmlRows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(r.employee_name || '-')}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(r.gaji_pokok || 0)}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(jht)}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(jp)}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(jkk)}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(jkm)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #4f46e5;">${formatRupiah(tot)}</td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = htmlRows;
+
+    } else if (type === 'bpjs_kes_emp') {
+        titleEl.innerHTML = `<i class="fas fa-user-shield" style="color: #ffffff;"></i> Rincian Perhitungan BPJS Kesehatan (Employee)`;
+        
+        let totalVal = 0;
+        rows.forEach(r => totalVal += parseFloat(r.bpjs_kes_karyawan || 0));
+        const avgVal = rows.length > 0 ? (totalVal / rows.length) : 0;
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL BPJS KES (EMPLOYEE)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #10b981;">${formatRupiah(totalVal)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL KARYAWAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${rows.length} Orang</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">RATA-RATA / KARYAWAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #3b82f6;">${formatRupiah(avgVal)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TARIF KARYAWAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #10b981;">1.00% (Cap Rp12 Jt)</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">No</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Nama Karyawan</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Jabatan / Klien</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Gaji Pokok</th>
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Tarif Karyawan</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Nominal BPJS Kes (Emp)</th>
+            </tr>
+        `;
+
+        let htmlRows = '';
+        rows.forEach((r, idx) => {
+            const val = parseFloat(r.bpjs_kes_karyawan || 0);
+            htmlRows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(r.employee_name || '-')}</td>
+                    <td style="padding: 12px;">${escapeHtml(r.position_name || r.client_name || '-')}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(r.gaji_pokok || 0)}</td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">1.00%</span></td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #10b981;">${formatRupiah(val)}</td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = htmlRows;
+
+    } else if (type === 'bpjs_tk_emp') {
+        titleEl.innerHTML = `<i class="fas fa-id-card" style="color: #ffffff;"></i> Rincian Perhitungan BPJS Ketenagakerjaan (Employee)`;
+        
+        let sumJht = 0, sumJp = 0, totalVal = 0;
+        rows.forEach(r => {
+            const jht = parseFloat(r.bpjs_jht_karyawan || 0);
+            const jp = parseFloat(r.bpjs_jp_karyawan || 0);
+            sumJht += jht;
+            sumJp += jp;
+            totalVal += (jht + jp);
+        });
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL BPJS TK (EMPLOYEE)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #d97706;">${formatRupiah(totalVal)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">JHT KARYAWAN (2.0%)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${formatRupiah(sumJht)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">JP KARYAWAN (1.0%)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #10b981;">${formatRupiah(sumJp)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL KARYAWAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #3b82f6;">${rows.length} Orang</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">No</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Nama Karyawan</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Gaji Pokok</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">JHT (2.0%)</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">JP (1.0%)</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Total BPJS TK (Emp)</th>
+            </tr>
+        `;
+
+        let htmlRows = '';
+        rows.forEach((r, idx) => {
+            const jht = parseFloat(r.bpjs_jht_karyawan || 0);
+            const jp = parseFloat(r.bpjs_jp_karyawan || 0);
+            const tot = jht + jp;
+            htmlRows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(r.employee_name || '-')}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(r.gaji_pokok || 0)}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(jht)}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(jp)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #d97706;">${formatRupiah(tot)}</td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = htmlRows;
+
+    } else if (type === 'potongan_absen') {
+        titleEl.innerHTML = `<i class="fas fa-user-clock" style="color: #ffffff;"></i> Rincian Perhitungan Potongan Absensi (Deduction)`;
+        
+        let totalVal = 0;
+        let countDeducted = 0;
+        rows.forEach(r => {
+            const pot = parseFloat(r.potongan_absen || 0);
+            totalVal += pot;
+            if (pot > 0) countDeducted++;
+        });
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL POTONGAN ABSENSI</div>
+                <div style="font-size: 16px; font-weight: 800; color: #dc2626;">${formatRupiah(totalVal)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">KARYAWAN TERPOTONG</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${countDeducted} / ${rows.length} Orang</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">RUMUS DASAR</div>
+                <div style="font-size: 12px; font-weight: 700; color: #475569;">(GP / Total Hari) x Unpaid</div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">No</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Nama Karyawan</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Klien / Jabatan</th>
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Hari Kerja / Total</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Gaji Pokok</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Potongan Absensi</th>
+            </tr>
+        `;
+
+        let htmlRows = '';
+        rows.forEach((r, idx) => {
+            const pot = parseFloat(r.potongan_absen || 0);
+            const wDays = (r.working_days !== undefined && r.working_days !== null) ? r.working_days : 0;
+            const tDays = (r.total_days_in_period !== undefined && r.total_days_in_period !== null) ? r.total_days_in_period : '-';
+            htmlRows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(r.employee_name || '-')}</td>
+                    <td style="padding: 12px;">${escapeHtml(r.position_name || r.client_name || '-')}</td>
+                    <td style="padding: 12px; text-align: center;"><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${wDays} / ${tDays} Hari</span></td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(r.gaji_pokok || 0)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: ${pot > 0 ? '#dc2626' : '#64748b'};">${formatRupiah(pot)}</td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = htmlRows;
+    }
+
+    if (overlay) overlay.style.display = 'block';
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+}
+
+window.showProcessBpjsDetailModal = showProcessBpjsDetailModal;

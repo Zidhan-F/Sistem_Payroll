@@ -162,6 +162,96 @@
 
                         <!-- Panel: Proses Payroll -->
                         <div id="viewProses" class="w-tab-panel">
+
+                            <!-- Payroll Period Filter Selector (Positioned above 5 Cards Grid) -->
+                            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="fas fa-calendar-alt" style="color: var(--primary-color); font-size: 16px;"></i>
+                                    <span style="font-size: 14px; font-weight: 700; color: #334155;">Periode Payroll</span>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items: center;">
+                                    <span style="font-size: 13px; font-weight: 600; color: #64748b;">Payroll Period:</span>
+                                    <select id="processMonthSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 130px;">
+                                        <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+                                        <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+                                        <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+                                        <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                                    </select>
+                                    <select id="processYearSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 100px;">
+                                        <?php 
+                                        $currentYear = intval(date('Y'));
+                                        for ($y = $currentYear - 2; $y <= $currentYear + 3; $y++) {
+                                            $selected = ($y === $currentYear) ? 'selected' : '';
+                                            echo "<option value=\"$y\" $selected>$y</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- BPJS & Deductions Summary Cards Grid for Process Payroll -->
+                            <div class="stats-grid" style="margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                                <div class="stat-card" onclick="showProcessBpjsDetailModal('bpjs_kes_co')" title="Klik untuk lihat rincian perhitungan BPJS Kes (Company)" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(14, 165, 233, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div class="stat-icon" style="background: rgba(14, 165, 233, 0.1); color: #0284c7; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                                            <i class="fas fa-building-shield"></i>
+                                        </div>
+                                        <div>
+                                            <h4 id="kpiProcessBpjsKesCo" style="font-size: 15px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0; font-weight: 600; display: flex; align-items: center;">BPJS Kes (Company) <i class="fas fa-external-link-alt" style="font-size: 9px; opacity: 0.5; margin-left: 4px;"></i></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="stat-card" onclick="showProcessBpjsDetailModal('bpjs_tk_co')" title="Klik untuk lihat rincian perhitungan BPJS TK (Company)" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(99, 102, 241, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: #4f46e5; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </div>
+                                        <div>
+                                            <h4 id="kpiProcessBpjsTkCo" style="font-size: 15px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0; font-weight: 600; display: flex; align-items: center;">BPJS TK (Company) <i class="fas fa-external-link-alt" style="font-size: 9px; opacity: 0.5; margin-left: 4px;"></i></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="stat-card" onclick="showProcessBpjsDetailModal('bpjs_kes_emp')" title="Klik untuk lihat rincian perhitungan BPJS Kes (Employee)" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(16, 185, 129, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                                            <i class="fas fa-user-shield"></i>
+                                        </div>
+                                        <div>
+                                            <h4 id="kpiProcessBpjsKesEmp" style="font-size: 15px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0; font-weight: 600; display: flex; align-items: center;">BPJS Kes (Employee) <i class="fas fa-external-link-alt" style="font-size: 9px; opacity: 0.5; margin-left: 4px;"></i></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="stat-card" onclick="showProcessBpjsDetailModal('bpjs_tk_emp')" title="Klik untuk lihat rincian perhitungan BPJS TK (Employee)" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(245, 158, 11, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #d97706; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                                            <i class="fas fa-id-card"></i>
+                                        </div>
+                                        <div>
+                                            <h4 id="kpiProcessBpjsTkEmp" style="font-size: 15px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0; font-weight: 600; display: flex; align-items: center;">BPJS TK (Employee) <i class="fas fa-external-link-alt" style="font-size: 9px; opacity: 0.5; margin-left: 4px;"></i></p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="stat-card" onclick="showProcessBpjsDetailModal('potongan_absen')" title="Klik untuk lihat rincian perhitungan Potongan Absen" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(239, 68, 68, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #dc2626; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                                            <i class="fas fa-user-clock"></i>
+                                        </div>
+                                        <div>
+                                            <h4 id="kpiProcessDeductionAbsen" style="font-size: 15px; font-weight: 800; color: #1e293b; margin: 0;">Rp 0</h4>
+                                            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0; font-weight: 600; display: flex; align-items: center;">Deduction (Potongan Absen) <i class="fas fa-external-link-alt" style="font-size: 9px; opacity: 0.5; margin-left: 4px;"></i></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Sub Tabs for Process Payroll -->
                             <div class="sub-tabs-container" style="display: flex; gap: 8px; border-bottom: 2px solid #f1f5f9; margin-bottom: 20px; padding-bottom: 2px;">
                                 <button class="sub-tab-btn active" id="subTabSalaryProcessing" onclick="switchPayrollProcessSubTab('processing')" style="padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--primary-color); cursor: pointer; border-bottom: 2px solid var(--primary-color); margin-bottom: -2px; transition: all 0.2s ease; outline: none;">Monthly Salary Processing</button>
@@ -172,23 +262,6 @@
                             <div id="panelSalaryProcessing" class="client-proses-subpanel">
                                 <div class="section-header" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                                     <h3 style="font-size: 16px; color: var(--secondary-color); margin: 0;">Monthly Salary Processing</h3>
-                                    <div style="display: flex; gap: 12px; align-items: center;">
-                                        <select id="processMonthSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 130px;">
-                                            <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
-                                            <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
-                                            <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
-                                            <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
-                                        </select>
-                                        <select id="processYearSelect" onchange="onProcessPeriodChange()" style="padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e0; outline: none; background: white; font-weight: 600; color: #4a5568; cursor: pointer; min-width: 100px;">
-                                            <?php 
-                                            $currentYear = intval(date('Y'));
-                                            for ($y = $currentYear - 2; $y <= $currentYear + 3; $y++) {
-                                                $selected = ($y === $currentYear) ? 'selected' : '';
-                                                echo "<option value=\"$y\" $selected>$y</option>";
-                                            }
-                                            ?>
-                                        </select>
-                                    </div>
                                 </div>
 
                                 <div class="content-card">

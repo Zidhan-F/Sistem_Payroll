@@ -9890,6 +9890,11 @@ class Api extends ResourceController
                 SUM(COALESCE(pf.total_pendapatan,0)) as total_pendapatan, 
                 SUM(COALESCE(pf.total_potongan,0)) as total_potongan, 
                 SUM(COALESCE(pf.take_home_pay,0)) as total_thp,
+                SUM(COALESCE(pf.bpjs_kes_perusahaan,0)) as bpjs_kes_perusahaan,
+                SUM(COALESCE(pf.bpjs_jht_perusahaan,0) + COALESCE(pf.bpjs_jp_perusahaan,0) + COALESCE(pf.bpjs_jkk_perusahaan,0) + COALESCE(pf.bpjs_jkm_perusahaan,0)) as bpjs_tk_perusahaan,
+                SUM(COALESCE(pf.bpjs_kes_karyawan,0)) as bpjs_kes_karyawan,
+                SUM(COALESCE(pf.bpjs_jht_karyawan,0) + COALESCE(pf.bpjs_jp_karyawan,0)) as bpjs_tk_karyawan,
+                SUM(COALESCE(pf.potongan_absen,0)) as potongan_absen,
                 SUM(COALESCE(pf.bpjs_kes_perusahaan,0) + COALESCE(pf.bpjs_jht_perusahaan,0) + COALESCE(pf.bpjs_jp_perusahaan,0) + COALESCE(pf.bpjs_jkk_perusahaan,0) + COALESCE(pf.bpjs_jkm_perusahaan,0)) as bpjs_perusahaan,
                 SUM(COALESCE(pf.bpjs_kes_karyawan,0) + COALESCE(pf.bpjs_jht_karyawan,0) + COALESCE(pf.bpjs_jp_karyawan,0)) as bpjs_karyawan,
                 SUM(COALESCE(pf.pph21,0)) as total_pph21')
@@ -9923,6 +9928,11 @@ class Api extends ResourceController
                 SUM(COALESCE(p.gaji_pokok,0) + COALESCE(p.total_tunjangan,0) + COALESCE(p.lembur_pay,0) + COALESCE(p.bonus_tambahan,0)) as total_pendapatan, 
                 SUM(COALESCE(p.total_potongan,0) + COALESCE(p.potongan_absen,0)) as total_potongan, 
                 SUM(COALESCE(p.take_home_pay,0)) as total_thp,
+                SUM(COALESCE(p.bpjs_kes_perusahaan,0)) as bpjs_kes_perusahaan,
+                SUM(COALESCE(p.bpjs_jht_perusahaan,0) + COALESCE(p.bpjs_jp_perusahaan,0) + COALESCE(p.bpjs_jkk_perusahaan,0) + COALESCE(p.bpjs_jkm_perusahaan,0)) as bpjs_tk_perusahaan,
+                SUM(COALESCE(p.bpjs_kes_karyawan,0)) as bpjs_kes_karyawan,
+                SUM(COALESCE(p.bpjs_jht_karyawan,0) + COALESCE(p.bpjs_jp_karyawan,0)) as bpjs_tk_karyawan,
+                SUM(COALESCE(p.potongan_absen,0)) as potongan_absen,
                 SUM(COALESCE(p.bpjs_kes_perusahaan,0) + COALESCE(p.bpjs_jht_perusahaan,0) + COALESCE(p.bpjs_jp_perusahaan,0) + COALESCE(p.bpjs_jkk_perusahaan,0) + COALESCE(p.bpjs_jkm_perusahaan,0)) as bpjs_perusahaan,
                 SUM(COALESCE(p.bpjs_kes_karyawan,0) + COALESCE(p.bpjs_jht_karyawan,0) + COALESCE(p.bpjs_jp_karyawan,0)) as bpjs_karyawan,
                 SUM(COALESCE(p.pph21,0)) as total_pph21')
@@ -9971,6 +9981,11 @@ class Api extends ResourceController
                     'total_pendapatan' => 0.0,
                     'total_potongan' => 0.0,
                     'total_thp' => 0.0,
+                    'bpjs_kes_perusahaan' => 0.0,
+                    'bpjs_tk_perusahaan' => 0.0,
+                    'bpjs_kes_karyawan' => 0.0,
+                    'bpjs_tk_karyawan' => 0.0,
+                    'potongan_absen' => 0.0,
                     'bpjs_perusahaan' => 0.0,
                     'bpjs_karyawan' => 0.0,
                     'total_pph21' => 0.0,
@@ -9981,6 +9996,11 @@ class Api extends ResourceController
             $mergedMap[$key]['total_pendapatan'] += (float)$row['total_pendapatan'];
             $mergedMap[$key]['total_potongan'] += (float)$row['total_potongan'];
             $mergedMap[$key]['total_thp'] += (float)$row['total_thp'];
+            $mergedMap[$key]['bpjs_kes_perusahaan'] += (float)($row['bpjs_kes_perusahaan'] ?? 0);
+            $mergedMap[$key]['bpjs_tk_perusahaan'] += (float)($row['bpjs_tk_perusahaan'] ?? 0);
+            $mergedMap[$key]['bpjs_kes_karyawan'] += (float)($row['bpjs_kes_karyawan'] ?? 0);
+            $mergedMap[$key]['bpjs_tk_karyawan'] += (float)($row['bpjs_tk_karyawan'] ?? 0);
+            $mergedMap[$key]['potongan_absen'] += (float)($row['potongan_absen'] ?? 0);
             $mergedMap[$key]['bpjs_perusahaan'] += (float)$row['bpjs_perusahaan'];
             $mergedMap[$key]['bpjs_karyawan'] += (float)$row['bpjs_karyawan'];
             $mergedMap[$key]['total_pph21'] += (float)$row['total_pph21'];
@@ -10031,6 +10051,11 @@ class Api extends ResourceController
         $grandTotalPendapatan = array_sum(array_column($reportData, 'total_pendapatan'));
         $grandTotalPotongan = array_sum(array_column($reportData, 'total_potongan'));
         $totalBpjsPerusahaan = array_sum(array_column($reportData, 'bpjs_perusahaan'));
+        $totalBpjsKesCo = array_sum(array_column($reportData, 'bpjs_kes_perusahaan'));
+        $totalBpjsTkCo = array_sum(array_column($reportData, 'bpjs_tk_perusahaan'));
+        $totalBpjsKesEmp = array_sum(array_column($reportData, 'bpjs_kes_karyawan'));
+        $totalBpjsTkEmp = array_sum(array_column($reportData, 'bpjs_tk_karyawan'));
+        $totalPotonganAbsen = array_sum(array_column($reportData, 'potongan_absen'));
 
         if (!empty($clientId) && $clientId !== 'all') {
             $empCount = $this->db->table('employees')->where('client_id', $clientId)->countAllResults();
@@ -10058,6 +10083,11 @@ class Api extends ResourceController
                 'total_potongan' => $grandTotalPotongan,
                 'total_headcount' => $totalHeadcount,
                 'total_bpjs_perusahaan' => $totalBpjsPerusahaan,
+                'bpjs_kes_perusahaan' => $totalBpjsKesCo,
+                'bpjs_tk_perusahaan' => $totalBpjsTkCo,
+                'bpjs_kes_karyawan' => $totalBpjsKesEmp,
+                'bpjs_tk_karyawan' => $totalBpjsTkEmp,
+                'potongan_absen' => $totalPotonganAbsen,
                 'avg_thp_per_employee' => $totalHeadcount > 0 ? round($grandTotalThp / $totalHeadcount, 2) : 0,
             ]
         ]);

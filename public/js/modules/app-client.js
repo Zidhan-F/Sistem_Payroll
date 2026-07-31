@@ -169,6 +169,9 @@ function switchWorkspaceTab(tab) {
         }
     } else if (tab === 'proses') {
         loadActivePeriod();
+        if (typeof loadPayrollReport === 'function') {
+            loadPayrollReport(window.selectedClientId);
+        }
         if (typeof switchPayrollProcessSubTab === 'function') {
             const role = typeof getCurrentRole === 'function' ? getCurrentRole() : 'admin';
             // Client / Superior & Staff langsung melihat hasil kalkulasi (4.1 & 4.2), Payroll melakukan proses (3.1)
