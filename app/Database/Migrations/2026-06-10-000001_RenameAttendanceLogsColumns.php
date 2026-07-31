@@ -72,7 +72,15 @@ class RenameAttendanceLogsColumns extends Migration
         ];
 
         foreach ($renames as $oldName => $newName) {
-            $db->query("EXEC sp_rename 'attendance_logs.{$oldName}', '{$newName}', 'COLUMN'");
+            $oldExists = $db->query("SELECT COUNT(*) as cnt FROM sys.columns 
+                                    WHERE object_id = OBJECT_ID('attendance_logs') 
+                                    AND name = '{$oldName}'")->getRow()->cnt;
+            $newExists = $db->query("SELECT COUNT(*) as cnt FROM sys.columns 
+                                    WHERE object_id = OBJECT_ID('attendance_logs') 
+                                    AND name = '{$newName}'")->getRow()->cnt;
+            if ($oldExists > 0 && $newExists == 0) {
+                $db->query("EXEC sp_rename 'attendance_logs.{$oldName}', '{$newName}', 'COLUMN'");
+            }
         }
 
         // Add back status column
@@ -81,6 +89,16 @@ class RenameAttendanceLogsColumns extends Migration
                     ALTER TABLE attendance_logs ADD status NVARCHAR(20) DEFAULT 'Hadir'");
 
         // Drop early_leave_minutes
+        $constraint = $db->query("SELECT dc.name 
+                                FROM sys.default_constraints dc
+                                JOIN sys.columns c ON dc.parent_column_id = c.column_id AND dc.parent_object_id = c.object_id
+                                WHERE c.object_id = OBJECT_ID('attendance_logs') 
+                                AND c.name = 'early_leave_minutes'")->getRow();
+        
+        if ($constraint) {
+            $db->query("ALTER TABLE attendance_logs DROP CONSTRAINT {$constraint->name}");
+        }
+
         $db->query("IF EXISTS (SELECT * FROM sys.columns 
                     WHERE object_id = OBJECT_ID('attendance_logs') AND name = 'early_leave_minutes')
                     ALTER TABLE attendance_logs DROP COLUMN early_leave_minutes");
