@@ -32,6 +32,17 @@ class AddOvertimeConfigToPayrollSchemes extends Migration
         foreach ($columns as $col) {
             $result = $db->query("SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = '{$col}'")->getRow();
             if ($result) {
+                if ($db->DBDriver === 'SQLSRV') {
+                    $constraint = $db->query("
+                        SELECT dc.name 
+                        FROM sys.default_constraints dc
+                        JOIN sys.columns c ON dc.parent_object_id = c.object_id AND dc.parent_column_id = c.column_id
+                        WHERE c.object_id = OBJECT_ID('payroll_schemes') AND c.name = '{$col}'
+                    ")->getRow();
+                    if ($constraint) {
+                        $db->query("ALTER TABLE payroll_schemes DROP CONSTRAINT {$constraint->name}");
+                    }
+                }
                 $db->query("ALTER TABLE payroll_schemes DROP COLUMN {$col}");
             }
         }
