@@ -68,7 +68,7 @@ class FixAttendanceLogsDecimalOverflow extends Migration
         $cols = ['calculated_work_hours', 'calculated_overtime_hours', 'late_hours', 'early_leave_hours'];
         if ($db->DBDriver === 'SQLSRV') {
             foreach ($cols as $col) {
-                $db->query("ALTER TABLE attendance_logs ALTER COLUMN {$col} DECIMAL(4,1) DEFAULT 0.0");
+                $db->query("ALTER TABLE attendance_logs ALTER COLUMN {$col} DECIMAL(4,1) NULL");
             }
         } else {
             foreach ($cols as $col) {

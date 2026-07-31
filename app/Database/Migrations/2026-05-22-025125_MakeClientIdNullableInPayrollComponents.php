@@ -19,8 +19,8 @@ class MakeClientIdNullableInPayrollComponents extends Migration
 
     public function down()
     {
-        // We cannot reliably revert to NOT NULL without knowing a safe default or removing data,
-        // so leaving it as is or doing a best effort.
+        $db = \Config\Database::connect();
+        $db->query("UPDATE payroll_components SET client_id = 0 WHERE client_id IS NULL");
         $fields = [
             'client_id' => [
                 'type' => 'INT',
