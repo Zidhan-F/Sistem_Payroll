@@ -282,6 +282,111 @@ class CreateAllBaseSchemesTables extends Migration
             $this->forge->addKey('id', true);
             $this->forge->createTable('status_logs');
         }
+
+        // 7. attendance_logs Table
+        if (!$this->db->tableExists('attendance_logs')) {
+            $this->forge->addField([
+                'id' => [
+                    'type'           => 'INT',
+                    'constraint'     => 11,
+                    'unsigned'       => true,
+                    'auto_increment' => true,
+                ],
+                'employee_id' => [
+                    'type'       => 'INT',
+                    'constraint' => 11,
+                    'null'       => true,
+                ],
+                'client_id' => [
+                    'type'       => 'INT',
+                    'constraint' => 11,
+                    'null'       => true,
+                ],
+                'log_date' => [
+                    'type' => 'DATE',
+                    'null' => true,
+                ],
+                'check_in' => [
+                    'type' => 'TIME',
+                    'null' => true,
+                ],
+                'check_out' => [
+                    'type' => 'TIME',
+                    'null' => true,
+                ],
+                'work_hours' => [
+                    'type'       => 'DECIMAL',
+                    'constraint' => '5,2',
+                    'default'    => 0,
+                ],
+                'overtime_hours' => [
+                    'type'       => 'DECIMAL',
+                    'constraint' => '5,2',
+                    'default'    => 0,
+                ],
+                'status' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 20,
+                    'default'    => 'Hadir',
+                ],
+                'notes' => [
+                    'type' => 'TEXT',
+                    'null' => true,
+                ],
+                'created_at' => [
+                    'type' => 'DATETIME',
+                    'null' => true,
+                ],
+            ]);
+            $this->forge->addKey('id', true);
+            $this->forge->createTable('attendance_logs');
+        }
+
+        // 8. overtime_logs Table
+        if (!$this->db->tableExists('overtime_logs')) {
+            $this->forge->addField([
+                'id' => [
+                    'type'           => 'INT',
+                    'constraint'     => 11,
+                    'unsigned'       => true,
+                    'auto_increment' => true,
+                ],
+                'employee_id' => [
+                    'type'       => 'INT',
+                    'constraint' => 11,
+                    'null'       => true,
+                ],
+                'client_id' => [
+                    'type'       => 'INT',
+                    'constraint' => 11,
+                    'null'       => true,
+                ],
+                'log_date' => [
+                    'type' => 'DATE',
+                    'null' => true,
+                ],
+                'hours' => [
+                    'type'       => 'DECIMAL',
+                    'constraint' => '5,2',
+                    'default'    => 0,
+                ],
+                'status' => [
+                    'type'       => 'VARCHAR',
+                    'constraint' => 20,
+                    'default'    => 'Pending',
+                ],
+                'notes' => [
+                    'type' => 'TEXT',
+                    'null' => true,
+                ],
+                'created_at' => [
+                    'type' => 'DATETIME',
+                    'null' => true,
+                ],
+            ]);
+            $this->forge->addKey('id', true);
+            $this->forge->createTable('overtime_logs');
+        }
     }
 
     public function down()

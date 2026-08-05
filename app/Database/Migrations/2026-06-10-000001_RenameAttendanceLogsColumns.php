@@ -9,6 +9,9 @@ class RenameAttendanceLogsColumns extends Migration
     public function up()
     {
         $db = \Config\Database::connect();
+        if (!$db->tableExists('attendance_logs')) {
+            return;
+        }
 
         // Rename columns to match the code expectations
         $renames = [

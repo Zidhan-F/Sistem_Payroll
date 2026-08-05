@@ -28,17 +28,17 @@ class AddDendaToSchemes extends Migration
 
         if ($db->DBDriver === 'SQLSRV') {
             foreach ($dendaCols as $col => $def) {
-                $db->query("IF NOT EXISTS (SELECT * FROM sys.columns 
+                $db->query("IF OBJECT_ID('payroll_schemes') IS NOT NULL AND NOT EXISTS (SELECT * FROM sys.columns 
                             WHERE object_id = OBJECT_ID('payroll_schemes') AND name = '{$col}')
                             ALTER TABLE payroll_schemes ADD {$col} {$def}");
 
-                $db->query("IF NOT EXISTS (SELECT * FROM sys.columns 
+                $db->query("IF OBJECT_ID('payroll_scheme_templates') IS NOT NULL AND NOT EXISTS (SELECT * FROM sys.columns 
                             WHERE object_id = OBJECT_ID('payroll_scheme_templates') AND name = '{$col}')
                             ALTER TABLE payroll_scheme_templates ADD {$col} {$def}");
             }
 
             foreach ($attendanceCols as $col => $def) {
-                $db->query("IF NOT EXISTS (SELECT * FROM sys.columns 
+                $db->query("IF OBJECT_ID('attendance_logs') IS NOT NULL AND NOT EXISTS (SELECT * FROM sys.columns 
                             WHERE object_id = OBJECT_ID('attendance_logs') AND name = '{$col}')
                             ALTER TABLE attendance_logs ADD {$col} {$def}");
             }

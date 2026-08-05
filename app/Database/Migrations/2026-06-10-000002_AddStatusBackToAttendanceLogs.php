@@ -9,6 +9,9 @@ class AddStatusBackToAttendanceLogs extends Migration
     public function up()
     {
         $db = \Config\Database::connect();
+        if (!$db->tableExists('attendance_logs')) {
+            return;
+        }
 
         // Add back status column if it does not exist
         if ($db->DBDriver === 'SQLSRV') {
