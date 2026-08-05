@@ -367,13 +367,16 @@ class Migrasi extends BaseController
         $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('employees') AND name = 'alamat')
             ALTER TABLE employees ADD alamat NVARCHAR(MAX) NULL");
 
-        // 13. Tambah tabel status_logs (tanpa primary key)
+        // 13. Tambah tabel status_logs
         $db->query("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'status_logs')
             CREATE TABLE status_logs (
-                description NVARCHAR(255),
+                id INT IDENTITY(1,1) PRIMARY KEY,
+                description NVARCHAR(MAX),
                 user_action NVARCHAR(100),
                 created_at DATETIME DEFAULT GETDATE()
             )");
+        $db->query("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('status_logs') AND name = 'id')
+            ALTER TABLE status_logs ADD id INT IDENTITY(1,1) PRIMARY KEY");
         
         // Fix column naming for existing tables
         $db->query("IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('status_logs') AND name = 'action')

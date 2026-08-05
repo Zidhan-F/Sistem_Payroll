@@ -7511,7 +7511,7 @@ class Api extends ResourceController
     public function getLogs()
     {
         $logs = $this->db->table('status_logs')
-                         ->orderBy('created_at', 'DESC')
+                         ->orderBy('id', 'DESC')
                          ->get()
                          ->getResultArray();
         return $this->respond($logs ?: []);
