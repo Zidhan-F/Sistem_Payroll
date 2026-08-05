@@ -136,7 +136,7 @@ class CreateAdvancedPayrollSystem extends Migration
             ],
         ]);
         $this->forge->addKey('id', true);
-        $this->forge->createTable('payroll_periods');
+        $this->forge->createTable('payroll_periods', true);
     }
 
     public function down()

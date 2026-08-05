@@ -14,6 +14,11 @@ class FixAttendanceLogsDecimalOverflow extends Migration
 
         $db = \Config\Database::connect();
 
+        // Guard: skip if table doesn't exist yet (fresh DB)
+        if (!$db->tableExists('attendance_logs')) {
+            return;
+        }
+
         $cols = [
             'calculated_work_hours',
             'calculated_overtime_hours',

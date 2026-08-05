@@ -9,6 +9,11 @@ class DropUsersRoleCheckConstraint extends Migration
     public function up()
     {
         $db = \Config\Database::connect();
+
+        // Guard: skip if table doesn't exist yet (fresh DB)
+        if (!$db->tableExists('users')) {
+            return;
+        }
         
         if ($db->DBDriver === 'SQLSRV') {
             $query = "
