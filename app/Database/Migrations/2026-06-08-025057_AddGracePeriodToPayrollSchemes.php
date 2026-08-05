@@ -21,7 +21,17 @@ class AddGracePeriodToPayrollSchemes extends Migration
             ],
         ];
         
-        $this->forge->addColumn('payroll_schemes', $fields);
+        if ($this->db->tableExists('payroll_schemes')) {
+            $fieldsToAdd = [];
+            foreach ($fields as $col => $attr) {
+                if (!$this->db->fieldExists($col, 'payroll_schemes')) {
+                    $fieldsToAdd[$col] = $attr;
+                }
+            }
+            if (!empty($fieldsToAdd)) {
+                $this->forge->addColumn('payroll_schemes', $fieldsToAdd);
+            }
+        }
     }
 
     public function down()

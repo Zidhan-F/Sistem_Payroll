@@ -28,13 +28,15 @@ class AddCompensationAndAbsenToPayrollSchemes extends Migration
             ],
         ];
         $fieldsToAdd = [];
-        foreach ($allFields as $name => $def) {
-            if (!$this->db->fieldExists($name, 'payroll_schemes')) {
-                $fieldsToAdd[$name] = $def;
+        if ($this->db->tableExists('payroll_schemes')) {
+            foreach ($allFields as $name => $def) {
+                if (!$this->db->fieldExists($name, 'payroll_schemes')) {
+                    $fieldsToAdd[$name] = $def;
+                }
             }
-        }
-        if (!empty($fieldsToAdd)) {
-            $this->forge->addColumn('payroll_schemes', $fieldsToAdd);
+            if (!empty($fieldsToAdd)) {
+                $this->forge->addColumn('payroll_schemes', $fieldsToAdd);
+            }
         }
     }
 
