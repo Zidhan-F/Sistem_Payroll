@@ -14,12 +14,7 @@ $userRole = session()->get('role') ?? $_COOKIE['user_role'] ?? '';
             <span>Dashboard</span>
         </li>
         <?php endif; ?>
-        <?php if ($userRole === 'payroll'): ?>
-        <li id="menuUploadUmrPayroll" onclick="switchPayrollSub('uploadUmr')">
-            <i class="fas fa-file-upload"></i>
-            <span>Upload UMP and UMK</span>
-        </li>
-        <?php endif; ?>
+
         <?php if ($userRole === 'staff'): ?>
         <li id="menuMySalary" onclick="if(window.selectedClientId && typeof selectClient === 'function'){ selectClient(window.selectedClientId, window.selectedClientName, window.selectedClientSektor); } else { showToast('Your salary data is loading. Please wait a moment...', 'info'); }">
             <i class="fas fa-file-invoice-dollar"></i>
@@ -60,7 +55,7 @@ $userRole = session()->get('role') ?? $_COOKIE['user_role'] ?? '';
                 </li>
             </ul>
         </li>
-        <li id="menuPayroll" onclick="togglePayrollSubmenu()" <?= (!in_array($userRole, ['admin', 'hc_ops'])) ? 'style="display: none;"' : '' ?>>
+        <li id="menuPayroll" onclick="togglePayrollSubmenu()" <?= (!in_array($userRole, ['admin', 'hc_ops', 'payroll'])) ? 'style="display: none;"' : '' ?>>
             <i class="fas fa-file-invoice-dollar"></i>
             <span>Master Payroll Scheme</span>
             <i class="fas fa-chevron-down submenu-arrow"></i>

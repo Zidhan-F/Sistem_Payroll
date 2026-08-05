@@ -168,7 +168,7 @@ $routes->group('api', ['filter' => 'role:payroll,hc_ops,recruiter,business_devel
 // =====================================================================
 // HC OPS — Manage Client Schema, Org, Scheme, Compensation
 // =====================================================================
-$routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
+$routes->group('api', ['filter' => 'role:hc_ops,payroll'], function($routes) {
     // Client Config Details (Schema & Components)
     $routes->post('clients/schema', 'Client::saveSchema');
     $routes->post('clients/components', 'Client::saveComponent');

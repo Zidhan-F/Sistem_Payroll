@@ -237,10 +237,10 @@ function applyRoleRestrictions() {
     const subSetting = document.getElementById('submenu_setting');
     const subPajak = document.getElementById('submenu_pajak');
 
-    if (subUploadUmr) subUploadUmr.style.display = (isAdmin || role === 'payroll') ? '' : 'none';
-    if (subKompensasi) subKompensasi.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
-    if (subSetting) subSetting.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
-    if (subPajak) subPajak.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (subUploadUmr) subUploadUmr.style.display = (isAdmin || role === 'payroll' || role === 'hc_ops') ? '' : 'none';
+    if (subKompensasi) subKompensasi.style.display = (isAdmin || role === 'hc_ops' || role === 'payroll') ? '' : 'none';
+    if (subSetting) subSetting.style.display = (isAdmin || role === 'hc_ops' || role === 'payroll') ? '' : 'none';
+    if (subPajak) subPajak.style.display = (isAdmin || role === 'hc_ops' || role === 'payroll') ? '' : 'none';
 
     // Tampilkan role badge di header
     const headerRoleBadge = document.getElementById('headerRoleBadge');
@@ -283,11 +283,11 @@ function applyRoleRestrictions() {
     if (qaAddClient) qaAddClient.style.display = (isAdmin || role === 'business_development') ? '' : 'none';
     if (qaAddEmployee) qaAddEmployee.style.display = (isAdmin || role === 'recruiter') ? '' : 'none';
     if (qaAddStoGlobal) qaAddStoGlobal.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
-    if (qaSalaryStructure) qaSalaryStructure.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
-    if (qaBpjsTaxScheme) qaBpjsTaxScheme.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
-    if (qaWorkLocation) qaWorkLocation.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none'; // wait, it was originally `(isAdmin || role === 'hc_ops')`, which is already correct. But we can just replace what's needed.
-    if (qaUploadUmkUmp) qaUploadUmkUmp.style.display = (isAdmin || role === 'payroll') ? '' : 'none';
-    if (qaSchemeSettings) qaSchemeSettings.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (qaSalaryStructure) qaSalaryStructure.style.display = (isAdmin || role === 'hc_ops' || role === 'payroll') ? '' : 'none';
+    if (qaBpjsTaxScheme) qaBpjsTaxScheme.style.display = (isAdmin || role === 'hc_ops' || role === 'payroll') ? '' : 'none';
+    if (qaWorkLocation) qaWorkLocation.style.display = (isAdmin || role === 'hc_ops') ? '' : 'none';
+    if (qaUploadUmkUmp) qaUploadUmkUmp.style.display = (isAdmin || role === 'payroll' || role === 'hc_ops') ? '' : 'none';
+    if (qaSchemeSettings) qaSchemeSettings.style.display = (isAdmin || role === 'hc_ops' || role === 'payroll') ? '' : 'none';
 
     // FPK Tab Restrictions
     const fpkTabMaster = document.querySelector('.fpk-tab-btn[data-tab="master"]');
@@ -358,7 +358,8 @@ function applyRoleRestrictions() {
             if (scheduleMenu) sidebar.appendChild(scheduleMenu);
         } else if (role === 'payroll') {
             if (db) sidebar.appendChild(db);
-            if (uploadUmrPayroll) sidebar.appendChild(uploadUmrPayroll);
+            if (payroll) sidebar.appendChild(payroll);
+            if (subPayroll) sidebar.appendChild(subPayroll);
             if (klien) sidebar.appendChild(klien);
         } else {
             // Default order
@@ -859,14 +860,10 @@ function switchView(view) {
         const subItem = document.getElementById(subItemId);
         if (subItem) subItem.classList.add('active');
     } else if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
-        if (getCurrentRole() === 'payroll') {
-            const item = document.getElementById('menuUploadUmrPayroll');
-            if (item) item.classList.add('active');
-        } else {
-            const parent = document.getElementById('menuPayroll');
-            if (parent) parent.classList.add('active');
-            if (submenuPayroll) submenuPayroll.style.display = 'block';
-            if (arrowPayroll) arrowPayroll.style.transform = 'rotate(180deg)';
+        const parent = document.getElementById('menuPayroll');
+        if (parent) parent.classList.add('active');
+        if (submenuPayroll) submenuPayroll.style.display = 'block';
+        if (arrowPayroll) arrowPayroll.style.transform = 'rotate(180deg)';
 
             let subItemId = 'submenu_setting'; // Default
             if (view === 'payroll') {
@@ -883,7 +880,6 @@ function switchView(view) {
 
             const subItem = document.getElementById(subItemId);
             if (subItem) subItem.classList.add('active');
-        }
     }
 
     const titles = {
