@@ -330,6 +330,7 @@ async function renderReviewGajiTable() {
                         <td>${row.department_name || '-'}</td>
                         <td>${row.position_name || '-'}</td>
                         <td>${row.join_date || '-'}</td>
+                        <td>${(row.work_days_per_week !== undefined && row.work_days_per_week !== null) ? row.work_days_per_week + ' Days/Wk' : '5 Days/Wk'}</td>
                         <td>${(row.working_days !== undefined && row.working_days !== null) ? row.working_days + ' Days' : '0 Days'}</td>
                         <td>${(row.total_days_in_period !== undefined && row.total_days_in_period !== null) ? row.total_days_in_period + ' Days' : '-'}</td>
                         <td>${(row.payable_days !== undefined && row.payable_days !== null) ? row.payable_days + ' Days' : '-'}</td>
@@ -389,6 +390,7 @@ async function renderReviewGajiTable() {
             let sumBpjsKesEmp = 0;
             let sumBpjsTkEmp = 0;
             let sumPotAbsen = 0;
+            let sumNetSalary = 0;
 
             displayData.forEach(row => {
                 sumBpjsKesCo += parseFloat(row.bpjs_kes_perusahaan || 0);
@@ -404,14 +406,18 @@ async function renderReviewGajiTable() {
                     parseFloat(row.bpjs_jp_karyawan || 0)
                 );
                 sumPotAbsen += parseFloat(row.potongan_absen || 0);
+                const netVal = (row.take_home_pay !== undefined && row.take_home_pay !== null) ? parseFloat(row.take_home_pay) : (parseFloat(row.total_pendapatan || 0) - parseFloat(row.total_potongan || 0));
+                sumNetSalary += netVal;
             });
 
+            const elNetSalary = document.getElementById('kpiProcessTotalNetSalary');
             const elKesCo = document.getElementById('kpiProcessBpjsKesCo');
             const elTkCo = document.getElementById('kpiProcessBpjsTkCo');
             const elKesEmp = document.getElementById('kpiProcessBpjsKesEmp');
             const elTkEmp = document.getElementById('kpiProcessBpjsTkEmp');
             const elAbsen = document.getElementById('kpiProcessDeductionAbsen');
 
+            if (elNetSalary) elNetSalary.innerText = formatRupiah(sumNetSalary);
             if (elKesCo) elKesCo.innerText = formatRupiah(sumBpjsKesCo);
             if (elTkCo) elTkCo.innerText = formatRupiah(sumBpjsTkCo);
             if (elKesEmp) elKesEmp.innerText = formatRupiah(sumBpjsKesEmp);
@@ -1003,6 +1009,7 @@ async function exportGajiToExcel() {
                 'Department': row.department_name || '-',
                 'Position / Role': row.position_name || '-',
                 'Join Date': row.join_date || '-',
+                'Work Scheme': ((row.work_days_per_week !== undefined && row.work_days_per_week !== null) ? row.work_days_per_week : 5) + ' Days/Wk',
                 'Working Days': (row.working_days !== undefined && row.working_days !== null) ? row.working_days : 0,
                 'Total Days in Period': (row.total_days_in_period !== undefined && row.total_days_in_period !== null) ? row.total_days_in_period : 0,
                 'Payable Days': (row.payable_days !== undefined && row.payable_days !== null) ? row.payable_days : 0,
@@ -2916,6 +2923,101 @@ function showProcessBpjsDetailModal(type) {
                     <td style="padding: 12px; text-align: center;"><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${wDays} / ${tDays} Hari</span></td>
                     <td style="padding: 12px; text-align: right;">${formatRupiah(r.gaji_pokok || 0)}</td>
                     <td style="padding: 12px; text-align: right; font-weight: 800; color: ${pot > 0 ? '#dc2626' : '#64748b'};">${formatRupiah(pot)}</td>
+                </tr>
+            `;
+        });
+        tbodyEl.innerHTML = htmlRows;
+
+    } else if (type === 'total_net_salary') {
+        titleEl.innerHTML = `<i class="fas fa-wallet" style="color: #ffffff;"></i> Rincian Perhitungan Total Net Salary (Gaji Bersih / THP)`;
+        
+        let totalNet = 0;
+        let totalGross = 0;
+        let totalDeductions = 0;
+        rows.forEach(r => {
+            const gp = parseFloat(r.gaji_pokok || 0);
+            const ot = parseFloat(r.lembur || 0);
+            const ea = parseFloat(r.early_arrival || 0);
+            const rapel = parseFloat(r.rapel || 0);
+            const bonus = parseFloat(r.bonus_lain || 0);
+            const gross = gp + ot + ea + rapel + bonus;
+
+            const potAbsen = parseFloat(r.potongan_absen || 0);
+            const kesEmp = parseFloat(r.bpjs_kes_karyawan || 0);
+            const jhtEmp = parseFloat(r.bpjs_jht_karyawan || 0);
+            const jpEmp = parseFloat(r.bpjs_jp_karyawan || 0);
+            const pph = parseFloat(r.pph21 || 0);
+            const potLain = parseFloat(r.potongan_lain || 0);
+            const ded = potAbsen + kesEmp + jhtEmp + jpEmp + pph + potLain;
+
+            const thp = parseFloat(r.take_home_pay !== undefined && r.take_home_pay !== null ? r.take_home_pay : (gross - ded));
+
+            totalGross += gross;
+            totalDeductions += ded;
+            totalNet += thp;
+        });
+
+        const avgNet = rows.length > 0 ? (totalNet / rows.length) : 0;
+
+        summaryEl.innerHTML = `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL GAJI BERSIH (NET)</div>
+                <div style="font-size: 16px; font-weight: 800; color: #16a34a;">${formatRupiah(totalNet)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL KARYAWAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e293b;">${rows.length} Orang</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">RATA-RATA / KARYAWAN</div>
+                <div style="font-size: 16px; font-weight: 800; color: #3b82f6;">${formatRupiah(avgNet)}</div>
+            </div>
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div style="font-size: 11px; color: #64748b; font-weight: 600;">TOTAL GROSS / DEDUCTION</div>
+                <div style="font-size: 12px; font-weight: 700; color: #475569;">${formatRupiah(totalGross)} / <span style="color:#dc2626;">${formatRupiah(totalDeductions)}</span></div>
+            </div>
+        `;
+
+        theadEl.innerHTML = `
+            <tr style="background: #f1f5f9; color: #475569; font-weight: 700;">
+                <th style="padding: 12px; text-align: center; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">No</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Nama Karyawan</th>
+                <th style="padding: 12px; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Jabatan / Klien</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Gaji Pokok</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Total Earnings</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Total Deductions</th>
+                <th style="padding: 12px; text-align: right; position: sticky; top: 0; background: #f1f5f9; z-index: 10; box-shadow: inset 0 -2px 0 #cbd5e1;">Net Salary (THP)</th>
+            </tr>
+        `;
+
+        let htmlRows = '';
+        rows.forEach((r, idx) => {
+            const gp = parseFloat(r.gaji_pokok || 0);
+            const ot = parseFloat(r.lembur || 0);
+            const ea = parseFloat(r.early_arrival || 0);
+            const rapel = parseFloat(r.rapel || 0);
+            const bonus = parseFloat(r.bonus_lain || 0);
+            const gross = gp + ot + ea + rapel + bonus;
+
+            const potAbsen = parseFloat(r.potongan_absen || 0);
+            const kesEmp = parseFloat(r.bpjs_kes_karyawan || 0);
+            const jhtEmp = parseFloat(r.bpjs_jht_karyawan || 0);
+            const jpEmp = parseFloat(r.bpjs_jp_karyawan || 0);
+            const pph = parseFloat(r.pph21 || 0);
+            const potLain = parseFloat(r.potongan_lain || 0);
+            const ded = potAbsen + kesEmp + jhtEmp + jpEmp + pph + potLain;
+
+            const thp = parseFloat(r.take_home_pay !== undefined && r.take_home_pay !== null ? r.take_home_pay : (gross - ded));
+
+            htmlRows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px; text-align: center; font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px; font-weight: 700;">${escapeHtml(r.employee_name || '-')}</td>
+                    <td style="padding: 12px;">${escapeHtml(r.position_name || r.client_name || '-')}</td>
+                    <td style="padding: 12px; text-align: right;">${formatRupiah(gp)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #1e293b;">${formatRupiah(gross)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 600; color: #dc2626;">${formatRupiah(ded)}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 800; color: #16a34a;">${formatRupiah(thp)}</td>
                 </tr>
             `;
         });

@@ -752,16 +752,6 @@ function switchView(view) {
         switchScheduleSubTab('holiday');
         return;
     }
-    if (view === 'attendance') {
-        switchView('schedule');
-        switchScheduleSubTab('attendance');
-        return;
-    }
-    if (view === 'overtime') {
-        switchView('schedule');
-        switchScheduleSubTab('overtime');
-        return;
-    }
 
     // RBAC: Check permission before switching view
     if (!hasPermission(view)) {
@@ -965,17 +955,8 @@ function switchView(view) {
             attYear.dataset.initialized = 'true';
         }
 
-        // default to holiday calendar sub tab if none is active
-        const activeSubTab = document.querySelector('.sub-tab-btn.active[id^="subTabSchedule"]');
-        if (!activeSubTab) {
-            switchScheduleSubTab('holiday');
-        } else {
-            // refresh active tab
-            const tabId = activeSubTab.id;
-            if (tabId === 'subTabScheduleHoliday') switchScheduleSubTab('holiday');
-            else if (tabId === 'subTabScheduleAttendance') switchScheduleSubTab('attendance');
-            else if (tabId === 'subTabScheduleOvertime') switchScheduleSubTab('overtime');
-        }
+        // Default to holiday calendar sub-tab in Schedule
+        switchScheduleSubTab('holiday');
     }
 
     if (typeof window.updateAiAssistantContext === 'function') {

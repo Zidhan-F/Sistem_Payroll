@@ -48,6 +48,7 @@ $routes->group('api', ['filter' => 'role'], function($routes) {
 
     // Payroll Schemes (read)
     $routes->get('payroll-schemes', 'Api::getPayrollSchemes');
+    $routes->post('payroll-schemes/upload-excel', 'Api::uploadPayrollSchemeExcel');
     $routes->get('payroll-schemes-templates', 'PayrollScheme::index');
     $routes->get('payroll-schemes-templates/by-org', 'PayrollScheme::getByOrgStructure');
     $routes->get('payroll-schemes-templates/for-employee', 'PayrollScheme::getSchemeForEmployee');

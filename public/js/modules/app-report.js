@@ -178,12 +178,14 @@ function renderReportKpiCards() {
     const elMom = document.getElementById('kpiReportMomGrowth');
     if (elMom) elMom.innerHTML = momHtml;
 
+    const elNetSalary = document.getElementById('kpiProcessTotalNetSalary');
     const elKesCo = document.getElementById('kpiProcessBpjsKesCo');
     const elTkCo = document.getElementById('kpiProcessBpjsTkCo');
     const elKesEmp = document.getElementById('kpiProcessBpjsKesEmp');
     const elTkEmp = document.getElementById('kpiProcessBpjsTkEmp');
     const elAbsen = document.getElementById('kpiProcessDeductionAbsen');
 
+    if (elNetSalary) elNetSalary.innerText = formatRupiah(summary.total_thp !== undefined ? summary.total_thp : (summary.thp || summary.total_net_salary || 0));
     if (elKesCo) elKesCo.innerText = formatRupiah(summary.bpjs_kes_perusahaan || 0);
     if (elTkCo) elTkCo.innerText = formatRupiah(summary.bpjs_tk_perusahaan || 0);
     if (elKesEmp) elKesEmp.innerText = formatRupiah(summary.bpjs_kes_karyawan || 0);

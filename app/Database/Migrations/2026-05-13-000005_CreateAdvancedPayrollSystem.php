@@ -37,8 +37,8 @@ class CreateAdvancedPayrollSystem extends Migration
                 'default'    => 0, // 0 means use formula (Salary/173)
             ],
             'tax_method' => [
-                'type'       => 'ENUM',
-                'constraint' => ['Gross', 'Net', 'Gross Up'],
+                'type'       => 'VARCHAR',
+                'constraint' => '50',
                 'default'    => 'Gross',
             ],
             'cut_off_start' => [

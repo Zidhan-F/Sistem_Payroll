@@ -191,6 +191,18 @@
 
                             <!-- BPJS & Deductions Summary Cards Grid for Process Payroll -->
                             <div class="stats-grid" style="margin-bottom: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                                <div class="stat-card" onclick="showProcessBpjsDetailModal('total_net_salary')" title="Klik untuk lihat rincian Total Net Salary (Gaji Bersih / Take Home Pay)" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(34, 197, 94, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
+                                    <div style="display: flex; align-items: center; gap: 14px;">
+                                        <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #16a34a; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
+                                            <i class="fas fa-wallet"></i>
+                                        </div>
+                                        <div>
+                                            <h4 id="kpiProcessTotalNetSalary" style="font-size: 15px; font-weight: 800; color: #16a34a; margin: 0;">Rp 0</h4>
+                                            <p style="font-size: 11px; color: #64748b; margin: 2px 0 0 0; font-weight: 600; display: flex; align-items: center;">Total Net Salary <i class="fas fa-external-link-alt" style="font-size: 9px; opacity: 0.5; margin-left: 4px;"></i></p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="stat-card" onclick="showProcessBpjsDetailModal('bpjs_kes_co')" title="Klik untuk lihat rincian perhitungan BPJS Kes (Company)" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; background: #ffffff; cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 20px rgba(14, 165, 233, 0.15)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
                                     <div style="display: flex; align-items: center; gap: 14px;">
                                         <div class="stat-icon" style="background: rgba(14, 165, 233, 0.1); color: #0284c7; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">
@@ -341,8 +353,9 @@
                                                          <th>Division</th>
                                                          <th>Department</th>
                                                          <th>Position</th>
-                                                         <th>Join Date</th>
-                                                         <th>Working Days</th>
+                                                          <th>Join Date</th>
+                                                          <th>Work Scheme</th>
+                                                          <th>Working Days</th>
                                                          <th>Total Days in Period</th>
                                                          <th>Payable Days</th>
                                                          <th>Scheme</th>

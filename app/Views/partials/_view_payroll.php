@@ -12,11 +12,19 @@
 
                 <!-- Sub-tab 1: Payroll Scheme Container -->
                 <div id="payrollSkemaContainer">
-                    <div class="section-header" style="margin-bottom: 20px;">
+                    <div class="section-header" style="margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                         <h3 style="font-size: 16px; color: var(--secondary-color);">Master Payroll Scheme</h3>
-                        <button class="btn-add" onclick="bukaModalSkema('tambah')">
-                            <i class="fas fa-plus"></i> Add Scheme
-                        </button>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn-add" onclick="downloadTemplateSkemaPayroll()" style="background: #0284c7; color: white;" title="Download Template Excel Kosong">
+                                <i class="fas fa-download"></i> Download Template
+                            </button>
+                            <button class="btn-add" onclick="bukaModalUploadSkemaPayroll()" style="background: #10b981; color: white;" title="Upload File Excel Skema Payroll">
+                                <i class="fas fa-file-excel"></i> Upload Excel
+                            </button>
+                            <button class="btn-add" onclick="bukaModalSkema('tambah')">
+                                <i class="fas fa-plus"></i> Add Scheme
+                            </button>
+                        </div>
                     </div>
                     <div id="payrollSchemesContainer" class="schemes-grid">
                         <!-- Scheme cards will be rendered by app.js -->

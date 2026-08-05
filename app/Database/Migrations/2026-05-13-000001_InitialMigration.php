@@ -31,6 +31,25 @@ class InitialMigration extends Migration
             'role' => [
                 'type'       => 'VARCHAR',
                 'constraint' => '50',
+                'default'    => 'staff',
+            ],
+            'full_name' => [
+                'type'       => 'VARCHAR',
+                'constraint' => '200',
+                'null'       => true,
+            ],
+            'is_active' => [
+                'type'       => 'TINYINT',
+                'constraint' => 1,
+                'default'    => 1,
+            ],
+            'created_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'updated_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
             ],
         ]);
         $this->forge->addKey('id', true);

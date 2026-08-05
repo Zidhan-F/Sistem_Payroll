@@ -56,8 +56,8 @@ class CreatePayrollSchemeTemplates extends Migration
             
             // Sumber Gaji Pokok
             'sumber_gaji' => [
-                'type'       => 'ENUM',
-                'constraint' => ['ump', 'umk', 'nominal'],
+                'type'       => 'VARCHAR',
+                'constraint' => '50',
                 'default'    => 'nominal',
                 'comment'    => 'Sumber gaji: ump (UMP Provinsi), umk (UMK Kota), nominal (Custom)'
             ],
@@ -188,8 +188,8 @@ class CreatePayrollSchemeTemplates extends Migration
                 'default'    => 0.30,
             ],
             'metode_pajak' => [
-                'type'       => 'ENUM',
-                'constraint' => ['Gross', 'Net', 'Gross Up'],
+                'type'       => 'VARCHAR',
+                'constraint' => '50',
                 'default'    => 'Gross',
             ],
             'ptkp_status' => [

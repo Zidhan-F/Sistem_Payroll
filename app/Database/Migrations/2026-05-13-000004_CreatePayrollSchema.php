@@ -168,8 +168,8 @@ class CreatePayrollSchema extends Migration
                 'constraint' => '100',
             ],
             'tipe' => [
-                'type'       => 'ENUM',
-                'constraint' => ['Tunjangan', 'Potongan'],
+                'type'       => 'VARCHAR',
+                'constraint' => '50',
             ],
             'jumlah' => [
                 'type'       => 'DECIMAL',

@@ -552,6 +552,95 @@ class Api extends ResourceController
         return $this->respond($schemes);
     }
 
+    public function uploadPayrollSchemeExcel()
+    {
+        $requestData = $this->request->getJSON(true);
+        $schemes = $requestData['schemes'] ?? [];
+
+        if (empty($schemes) || !is_array($schemes)) {
+            return $this->fail('Data skema payroll tidak ditemukan atau kosong');
+        }
+
+        $count = 0;
+        foreach ($schemes as $s) {
+            $nama = trim($s['nama'] ?? '');
+            if (empty($nama)) continue;
+
+            $schemeData = [
+                'nama'                      => $nama,
+                'deskripsi'                 => $s['deskripsi'] ?? '',
+                'tipe'                      => !empty($s['tipe']) ? strtolower($s['tipe']) : 'bulanan',
+                'prorate'                   => isset($s['prorate']) ? intval($s['prorate']) : 0,
+                'absen_tidak_potong'        => isset($s['absen_tidak_potong']) ? intval($s['absen_tidak_potong']) : 0,
+                'nominal_potongan'          => isset($s['nominal_potongan']) ? floatval($s['nominal_potongan']) : 0,
+                'grace_period_late'         => isset($s['grace_period_late']) ? intval($s['grace_period_late']) : 0,
+                'grace_period_early'        => isset($s['grace_period_early']) ? intval($s['grace_period_early']) : 0,
+                'min_overtime'              => isset($s['min_overtime']) ? intval($s['min_overtime']) : 30,
+                'max_early_arrival_minutes' => isset($s['max_early_arrival_minutes']) ? intval($s['max_early_arrival_minutes']) : 180,
+                'overtime_type'             => $s['overtime_type'] ?? 'standard',
+                'lumpsum_nominal'           => isset($s['lumpsum_nominal']) ? floatval($s['lumpsum_nominal']) : 0,
+            ];
+
+            $this->db->table('payroll_schemes')->insert($schemeData);
+            $schemeId = $this->db->insertID();
+
+            // Insert Basic Salary component
+            $basicSalaryVal = isset($s['gaji_pokok']) ? floatval($s['gaji_pokok']) : 0;
+            $sumberGaji = strtolower($s['sumber_gaji'] ?? 'nominal');
+
+            $basicComp = [
+                'scheme_id'        => $schemeId,
+                'nama'             => 'Gaji Pokok',
+                'nama_komponen'    => 'Gaji Pokok',
+                'tipe'             => 'pendapatan',
+                'nilai'            => $basicSalaryVal,
+                'is_persentase'    => 0,
+                'jenis_komponen'   => 'basic_salary',
+                'sumber_nilai'     => $sumberGaji,
+                'periode'          => 'bulan',
+                'sifat_kompensasi' => 'tetap',
+                'is_bpjs'          => 1,
+                'is_pph21'         => 1,
+                'is_active'        => 1
+            ];
+            $this->db->table('payroll_components')->insert($basicComp);
+
+            // Insert custom components if provided
+            if (!empty($s['components']) && is_array($s['components'])) {
+                foreach ($s['components'] as $comp) {
+                    $compNama = trim($comp['nama'] ?? '');
+                    if (empty($compNama)) continue;
+
+                    $compData = [
+                        'scheme_id'        => $schemeId,
+                        'nama'             => $compNama,
+                        'nama_komponen'    => $compNama,
+                        'tipe'             => !empty($comp['tipe']) ? strtolower($comp['tipe']) : 'pendapatan',
+                        'nilai'            => isset($comp['nilai']) ? floatval($comp['nilai']) : 0,
+                        'is_persentase'    => isset($comp['is_persentase']) ? intval($comp['is_persentase']) : 0,
+                        'jenis_komponen'   => 'kompensasi',
+                        'sumber_nilai'     => $comp['sumber_nilai'] ?? 'nominal',
+                        'periode'          => $comp['periode'] ?? 'bulan',
+                        'sifat_kompensasi' => $comp['sifat_kompensasi'] ?? 'tetap',
+                        'is_bpjs'          => isset($comp['is_bpjs']) ? intval($comp['is_bpjs']) : 1,
+                        'is_pph21'         => isset($comp['is_pph21']) ? intval($comp['is_pph21']) : 1,
+                        'is_active'        => 1
+                    ];
+                    $this->db->table('payroll_components')->insert($compData);
+                }
+            }
+
+            $count++;
+        }
+
+        $this->logActivity("Mengunggah $count skema payroll baru via Excel");
+        return $this->respondCreated([
+            'status'  => 200,
+            'message' => "Berhasil mengimpor $count skema payroll baru dari Excel!",
+            'count'   => $count
+        ]);
+    }
+
     public function createPayrollScheme()
     {
         $requestData = $this->request->getJSON(true);
@@ -5583,6 +5672,7 @@ class Api extends ResourceController
                 }
                 $row->payable_days = $payableDaysCount;
             }
+            $row->work_days_per_week = $workDaysConfig;
 
             // Resolve Scheme Name
             $schemeName = '-';

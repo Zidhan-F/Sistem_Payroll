@@ -3280,6 +3280,38 @@
         </div>
     </div>
 
+    <!-- Modal Upload Excel Master Payroll Scheme -->
+    <div id="modalUploadSkemaPayroll" class="modal-skema" style="width: 580px; max-width: 95%; display: none; z-index: 2000;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+            <h3 style="color: white; margin: 0; font-size: 18px;">Upload Excel Master Payroll Scheme</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px;" onclick="tutupModalUploadSkemaPayroll()"></i>
+        </div>
+        <div class="modal-body" style="padding: 25px;">
+            <div id="dropzoneSkemaPayrollExcel" style="background: rgba(16, 185, 129, 0.08); border: 2px dashed #10b981; padding: 25px 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; transition: all 0.2s ease;">
+                <i class="fas fa-file-excel" style="font-size: 42px; color: #10b981; margin-bottom: 12px; display: block;"></i>
+                <span style="font-size: 15px; font-weight: 600; color: #1e293b; display: block; margin-bottom: 6px;">Pilih File Excel Skema Payroll</span>
+                <span style="font-size: 13px; color: #64748b; display: block; margin-bottom: 16px;">Format yang didukung: .xlsx, .xls</span>
+                
+                <div style="display: flex; justify-content: center; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                    <input type="file" id="fileSkemaPayrollExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleSkemaPayrollFileSelect(event)">
+                    <button type="button" class="btn-add" onclick="document.getElementById('fileSkemaPayrollExcel').click()" style="background: #10b981; padding: 10px 20px; font-weight: 600;">
+                        <i class="fas fa-folder-open"></i> Choose File
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="downloadTemplateSkemaPayroll()" style="padding: 10px 18px; border: 1px solid #cbd5e0; background: white; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-download"></i> Download Template Kosong
+                    </button>
+                </div>
+                <span id="labelSkemaPayrollFilename" style="font-size: 13px; font-weight: 600; color: #059669; display: block; margin-top: 8px;">Tidak ada file yang dipilih</span>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn-cancel" onclick="tutupModalUploadSkemaPayroll()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
+            <button type="button" id="btnSubmitUploadedSkemaPayroll" onclick="importSkemaPayrollExcel()" style="background: #10b981; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-upload"></i> Upload & Import
+            </button>
+        </div>
+    </div>
+
     <!-- Attendance Modal -->
     <div id="attendanceModal" class="modal-skema" style="width: 520px; max-width: 95%; display: none; z-index: 2000;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">

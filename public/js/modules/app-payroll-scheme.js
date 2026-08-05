@@ -601,3 +601,286 @@ function handleLumpsumSubtypeChange() {
     setLumpsumSubtype(val);
 }
 window.handleLumpsumSubtypeChange = handleLumpsumSubtypeChange;
+
+// ===== EXCEL TEMPLATE DOWNLOAD & UPLOAD FITUR SKEMA PAYROLL =====
+
+function downloadTemplateSkemaPayroll() {
+    try {
+        // Form template excel kosong (hanya header kolom tanpa data contoh)
+        const headers = [[
+            'Nama Skema',
+            'Deskripsi',
+            'Tipe Skema (bulanan/harian)',
+            'Gaji Pokok Nominal (Rp)',
+            'Sumber Gaji (nominal/ump/umk)',
+            'Prorate (1=Ya, 0=Tidak)',
+            'Absen Tidak Potong (1=Ya, 0=Tidak)',
+            'Nominal Potongan Alpa (Rp/hari)',
+            'Toleransi Terlambat (Menit)',
+            'Toleransi Pulang Cepat (Menit)',
+            'Minimal Lembur (Menit)',
+            'Tipe Lembur (standard/lumpsum)',
+            'Nominal Lembur Lumpsum (Rp)',
+            'Komponen 1 Nama',
+            'Komponen 1 Tipe (pendapatan/potongan)',
+            'Komponen 1 Nilai',
+            'Komponen 1 Persentase (1=Ya, 0=Tidak)',
+            'Komponen 2 Nama',
+            'Komponen 2 Tipe (pendapatan/potongan)',
+            'Komponen 2 Nilai',
+            'Komponen 2 Persentase (1=Ya, 0=Tidak)',
+            'Komponen 3 Nama',
+            'Komponen 3 Tipe (pendapatan/potongan)',
+            'Komponen 3 Nilai',
+            'Komponen 3 Persentase (1=Ya, 0=Tidak)'
+        ]];
+
+        const ws = XLSX.utils.aoa_to_sheet(headers);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Template Skema Payroll');
+
+        // Adjust column widths
+        ws['!cols'] = [
+            { wch: 25 }, // Nama Skema
+            { wch: 25 }, // Deskripsi
+            { wch: 22 }, // Tipe Skema
+            { wch: 22 }, // Gaji Pokok Nominal
+            { wch: 22 }, // Sumber Gaji
+            { wch: 20 }, // Prorate
+            { wch: 22 }, // Absen Tidak Potong
+            { wch: 24 }, // Nominal Potongan Alpa
+            { wch: 22 }, // Toleransi Terlambat
+            { wch: 24 }, // Toleransi Pulang Cepat
+            { wch: 20 }, // Minimal Lembur
+            { wch: 24 }, // Tipe Lembur
+            { wch: 24 }, // Nominal Lembur Lumpsum
+            { wch: 20 }, // Komponen 1 Nama
+            { wch: 25 }, // Komponen 1 Tipe
+            { wch: 18 }, // Komponen 1 Nilai
+            { wch: 24 }, // Komponen 1 Persentase
+            { wch: 20 }, // Komponen 2 Nama
+            { wch: 25 }, // Komponen 2 Tipe
+            { wch: 18 }, // Komponen 2 Nilai
+            { wch: 24 }, // Komponen 2 Persentase
+            { wch: 20 }, // Komponen 3 Nama
+            { wch: 25 }, // Komponen 3 Tipe
+            { wch: 18 }, // Komponen 3 Nilai
+            { wch: 24 }  // Komponen 3 Persentase
+        ];
+
+        XLSX.writeFile(wb, 'template_master_payroll_scheme.xlsx');
+        if (typeof showToast === 'function') {
+            showToast('Template Excel kosong berhasil diunduh!', 'success');
+        } else {
+            alert('Template Excel kosong berhasil diunduh!');
+        }
+    } catch (err) {
+        console.error('Error downloading template:', err);
+        if (typeof showToast === 'function') {
+            showToast('Gagal mendownload template Excel', 'error');
+        }
+    }
+}
+window.downloadTemplateSkemaPayroll = downloadTemplateSkemaPayroll;
+
+function bukaModalUploadSkemaPayroll() {
+    const modal = document.getElementById('modalUploadSkemaPayroll');
+    const overlay = document.getElementById('overlay');
+    if (modal) modal.style.display = 'block';
+    if (overlay) overlay.style.display = 'block';
+
+    // Reset file input label
+    const fileInput = document.getElementById('fileSkemaPayrollExcel');
+    const fileLabel = document.getElementById('labelSkemaPayrollFilename');
+    if (fileInput) fileInput.value = '';
+    if (fileLabel) {
+        fileLabel.textContent = 'Tidak ada file yang dipilih';
+        fileLabel.style.color = '#059669';
+    }
+}
+window.bukaModalUploadSkemaPayroll = bukaModalUploadSkemaPayroll;
+
+function tutupModalUploadSkemaPayroll() {
+    const modal = document.getElementById('modalUploadSkemaPayroll');
+    const overlay = document.getElementById('overlay');
+    if (modal) modal.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
+}
+window.tutupModalUploadSkemaPayroll = tutupModalUploadSkemaPayroll;
+
+function handleSkemaPayrollFileSelect(e) {
+    const file = e && e.target && e.target.files ? e.target.files[0] : null;
+    const fileLabel = document.getElementById('labelSkemaPayrollFilename');
+    if (file && fileLabel) {
+        fileLabel.textContent = `📌 File Terpilih: ${file.name}`;
+        fileLabel.style.color = '#059669';
+    } else if (fileLabel) {
+        fileLabel.textContent = 'Tidak ada file yang dipilih';
+    }
+}
+window.handleSkemaPayrollFileSelect = handleSkemaPayrollFileSelect;
+
+async function importSkemaPayrollExcel() {
+    const fileInput = document.getElementById('fileSkemaPayrollExcel');
+    const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+    if (!file) {
+        if (typeof showToast === 'function') {
+            showToast('Silakan pilih file Excel terlebih dahulu!', 'warning');
+        } else {
+            alert('Silakan pilih file Excel terlebih dahulu!');
+        }
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            if (rows.length < 2) {
+                if (typeof showToast === 'function') {
+                    showToast('File Excel tidak berisi baris data!', 'error');
+                } else {
+                    alert('File Excel tidak berisi baris data!');
+                }
+                return;
+            }
+
+            const headerRow = rows[0].map(h => h ? h.toString().trim().toLowerCase() : '');
+            
+            // Helper to get value by matching header keyword
+            const getVal = (rowArr, keywords, defaultVal = '') => {
+                for (const kw of keywords) {
+                    const idx = headerRow.findIndex(h => h.includes(kw));
+                    if (idx !== -1 && rowArr[idx] !== undefined && rowArr[idx] !== null) {
+                        return rowArr[idx].toString().trim();
+                    }
+                }
+                return defaultVal;
+            };
+
+            const parsedSchemes = [];
+
+            for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r || r.length === 0) continue;
+                const isRowEmpty = r.every(cell => cell === null || cell === undefined || cell.toString().trim() === '');
+                if (isRowEmpty) continue;
+
+                // Read Nama Skema (first column or header search)
+                let namaSkema = r[0] ? r[0].toString().trim() : '';
+                if (!namaSkema) {
+                    namaSkema = getVal(r, ['nama skema', 'nama', 'skema']);
+                }
+                if (!namaSkema) continue;
+
+                const deskripsi = getVal(r, ['deskripsi', 'catatan', 'keterangan']);
+                const tipe = getVal(r, ['tipe skema', 'tipe'], 'bulanan').toLowerCase();
+                const gajiPokok = parseFloat(getVal(r, ['gaji pokok', 'gajipokok', 'basic salary', 'nominal gaji'], 0)) || 0;
+                const sumberGaji = getVal(r, ['sumber gaji', 'sumbergaji'], 'nominal').toLowerCase();
+                const prorate = parseInt(getVal(r, ['prorate'], 0)) || 0;
+                const absenTidakPotong = parseInt(getVal(r, ['absen tidak potong', 'tidak potong'], 0)) || 0;
+                const nominalPotongan = parseFloat(getVal(r, ['nominal potongan', 'potongan alpa'], 0)) || 0;
+                const graceLate = parseInt(getVal(r, ['toleransi terlambat', 'late'], 0)) || 0;
+                const graceEarly = parseInt(getVal(r, ['toleransi pulang cepat', 'early'], 0)) || 0;
+                const minOvertime = parseInt(getVal(r, ['minimal lembur', 'min overtime'], 30)) || 30;
+                const tipeLembur = getVal(r, ['tipe lembur', 'overtime type'], 'standard').toLowerCase();
+                const lumpsumNominal = parseFloat(getVal(r, ['nominal lembur lumpsum', 'lumpsum'], 0)) || 0;
+
+                // Extract components dynamically if present
+                const components = [];
+                for (let compIdx = 1; compIdx <= 5; compIdx++) {
+                    const compNama = getVal(r, [`komponen ${compIdx} nama`, `komponen${compIdx}nama`, `tunjangan ${compIdx} nama`, `potongan ${compIdx} nama`]);
+                    if (compNama) {
+                        const compTipe = getVal(r, [`komponen ${compIdx} tipe`, `tunjangan ${compIdx} tipe`, `potongan ${compIdx} tipe`], 'pendapatan').toLowerCase();
+                        const compNilai = parseFloat(getVal(r, [`komponen ${compIdx} nilai`, `tunjangan ${compIdx} nominal`, `potongan ${compIdx} nominal`], 0)) || 0;
+                        const compPersen = parseInt(getVal(r, [`komponen ${compIdx} persentase`], 0)) || 0;
+                        components.push({
+                            nama: compNama,
+                            tipe: compTipe,
+                            nilai: compNilai,
+                            is_persentase: compPersen
+                        });
+                    }
+                }
+
+                parsedSchemes.push({
+                    nama: namaSkema,
+                    deskripsi: deskripsi,
+                    tipe: tipe,
+                    gaji_pokok: gajiPokok,
+                    sumber_gaji: sumberGaji,
+                    prorate: prorate,
+                    absen_tidak_potong: absenTidakPotong,
+                    nominal_potongan: nominalPotongan,
+                    grace_period_late: graceLate,
+                    grace_period_early: graceEarly,
+                    min_overtime: minOvertime,
+                    overtime_type: tipeLembur,
+                    lumpsum_nominal: lumpsumNominal,
+                    components: components
+                });
+            }
+
+            if (parsedSchemes.length === 0) {
+                if (typeof showToast === 'function') {
+                    showToast('Tidak ada skema valid yang ditemukan pada file Excel!', 'warning');
+                } else {
+                    alert('Tidak ada skema valid yang ditemukan pada file Excel!');
+                }
+                return;
+            }
+
+            const btnSubmit = document.getElementById('btnSubmitUploadedSkemaPayroll');
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mengimpor...`;
+            }
+
+            const response = await fetch(`${API_URL}/payroll-schemes/upload-excel`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ schemes: parsedSchemes })
+            });
+
+            const result = await response.json();
+
+            if (btnSubmit) {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = `<i class="fas fa-upload"></i> Upload & Import`;
+            }
+
+            if (response.ok) {
+                tutupModalUploadSkemaPayroll();
+                if (typeof showToast === 'function') {
+                    showToast(result.message || 'Berhasil mengimpor skema payroll!', 'success');
+                } else {
+                    alert(result.message || 'Berhasil mengimpor skema payroll!');
+                }
+                if (typeof renderPayrollSchemes === 'function') {
+                    renderPayrollSchemes();
+                }
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast(result.message || 'Gagal mengimpor skema payroll.', 'error');
+                } else {
+                    alert(result.message || 'Gagal mengimpor skema payroll.');
+                }
+            }
+        } catch (err) {
+            console.error('Error importing Excel:', err);
+            if (typeof showToast === 'function') {
+                showToast('Gagal memproses file Excel: ' + err.message, 'error');
+            } else {
+                alert('Gagal memproses file Excel: ' + err.message);
+            }
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+window.importSkemaPayrollExcel = importSkemaPayrollExcel;

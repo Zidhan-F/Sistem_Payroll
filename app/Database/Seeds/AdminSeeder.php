@@ -15,7 +15,12 @@ class AdminSeeder extends Seeder
             'role'     => 'admin'
         ];
 
-        // Simple Queries
-        $this->db->table('users')->insert($data);
+        $existing = $this->db->table('users')->where('username', 'admin')->get()->getRowArray();
+        if (!$existing) {
+            $this->db->table('users')->insert($data);
+        }
+
+        // Set all pending users (like newly registered account) to admin as well
+        $this->db->table('users')->where('role', 'pending')->update(['role' => 'admin', 'is_active' => 1]);
     }
 }
