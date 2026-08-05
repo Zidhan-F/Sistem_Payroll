@@ -213,7 +213,7 @@ function applyRoleRestrictions() {
             const hasAny = (isAdmin || 
                 perms.includes('payroll') || 
                 perms.includes('pajak') || 
-                perms.includes('masterKompensasi')) && role !== 'payroll';
+                perms.includes('masterKompensasi'));
             el.style.display = hasAny ? '' : 'none';
         } else {
             el.style.display = (isAdmin || perms.includes(view)) ? '' : 'none';
