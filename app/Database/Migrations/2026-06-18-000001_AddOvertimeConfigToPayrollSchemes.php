@@ -18,10 +18,8 @@ class AddOvertimeConfigToPayrollSchemes extends Migration
 
         if ($db->DBDriver === 'SQLSRV') {
             foreach ($columns as $col => $def) {
-                $result = $db->query("SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = '{$col}'")->getRow();
-                if (!$result) {
-                    $db->query("ALTER TABLE payroll_schemes ADD {$col} {$def}");
-                }
+                $db->query("IF OBJECT_ID('payroll_schemes') IS NOT NULL AND NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('payroll_schemes') AND name = '{$col}')
+                            ALTER TABLE payroll_schemes ADD {$col} {$def}");
             }
         } else {
             $fields = [
