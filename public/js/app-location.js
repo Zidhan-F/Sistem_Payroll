@@ -170,8 +170,16 @@ function renderWorkLocationsTable() {
 }
 
 async function bukaModalLokasiKerja() {
-    document.getElementById('modalLokasiKerja').style.display = 'flex';
-    document.getElementById('overlay').style.display = 'block';
+    const modal = document.getElementById('modalLokasiKerja');
+    const overlay = document.getElementById('overlay');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.style.zIndex = '2050';
+    }
+    if (overlay) {
+        overlay.style.display = 'block';
+        overlay.style.zIndex = '2040';
+    }
     
     document.getElementById('formLokasiKerja').reset();
     document.getElementById('workLocationId').value = '';

@@ -358,6 +358,8 @@
                                                           <th>Working Days</th>
                                                          <th>Total Days in Period</th>
                                                          <th>Payable Days</th>
+                                                         <th>Target Hours</th>
+                                                         <th>Actual Worked Hours</th>
                                                          <th>Scheme</th>
                                                          <th>PTKP</th>
                                                          <th>Basic Salary</th>
@@ -413,13 +415,13 @@
                                         <div style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
                                             <table style="width: 100%; border-collapse: collapse; background: white;">
                                                 <thead>
-                                                    <tr style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white;">
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Division</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Department</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Position</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">Payroll Scheme</th>
-                                                        <th style="padding: 15px; text-align: left; font-weight: 600; font-size: 13px;">BPJS Scheme</th>
-                                                        <th style="padding: 15px; text-align: center; font-weight: 600; font-size: 13px;">Action</th>
+                                                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                                                        <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 13px;">Division</th>
+                                                        <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 13px;">Department</th>
+                                                        <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 13px;">Position</th>
+                                                        <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 13px;">Payroll Scheme</th>
+                                                        <th style="padding: 14px 16px; text-align: left; font-weight: 700; font-size: 13px;">BPJS Scheme</th>
+                                                        <th style="padding: 14px 16px; text-align: center; font-weight: 700; font-size: 13px; width: 120px;">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="tabelPilihanSkemaKlien">

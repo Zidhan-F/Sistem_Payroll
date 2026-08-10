@@ -102,12 +102,12 @@ if (currentUser && document.getElementById('headerUserName')) {
 // ===== RBAC - Role Based Access Control =====
 const ROLE_PERMISSIONS = {
     admin: ['*'], // Akses semua
-    payroll: ['dashboard', 'klien', 'payroll', 'pajak', 'masterKompensasi', 'clientWorkspace', 'laporanGaji'],
-    business_development: ['dashboard', 'klien'],
-    recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace', 'fpkMaster'],
-    client_superior: ['dashboard', 'klien', 'clientWorkspace', 'laporanGaji'],
-    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak', 'fpkMaster', 'laporanGaji'],
-    staff: ['clientWorkspace']
+    payroll: ['dashboard', 'klien', 'payroll', 'pajak', 'masterKompensasi', 'clientWorkspace', 'laporanGaji', 'pusatPajak'],
+    business_development: ['dashboard', 'klien', 'pajak', 'pusatPajak'],
+    recruiter: ['dashboard', 'klien', 'manajemenKaryawan', 'clientWorkspace', 'fpkMaster', 'pajak', 'pusatPajak'],
+    client_superior: ['dashboard', 'klien', 'clientWorkspace', 'laporanGaji', 'pajak', 'pusatPajak'],
+    hc_ops: ['dashboard', 'klien', 'schedule', 'manajemenKaryawan', 'globalLokasiKerja', 'skemaShift', 'clientWorkspace', 'sto', 'payroll', 'masterKompensasi', 'pajak', 'fpkMaster', 'laporanGaji', 'pusatPajak'],
+    staff: ['clientWorkspace', 'pajak', 'pusatPajak']
 };
 
 const ROLE_LABELS = {
@@ -845,6 +845,9 @@ function switchView(view) {
     } else if (view === 'schedule') {
         const item = document.getElementById('menuSchedule');
         if (item) item.classList.add('active');
+    } else if (view === 'pusatPajak') {
+        const item = document.getElementById('menuPajak');
+        if (item) item.classList.add('active');
     } else if (view === 'globalLokasiKerja' || view === 'manajemenKaryawan' || view === 'skemaShift' || view === 'fpkMaster') {
         const parent = document.getElementById('menuManajemenKaryawan');
         if (parent) parent.classList.add('active');
@@ -859,7 +862,7 @@ function switchView(view) {
 
         const subItem = document.getElementById(subItemId);
         if (subItem) subItem.classList.add('active');
-    } else if (view === 'payroll' || view === 'masterKompensasi' || view === 'pajak') {
+    } else if (view === 'payroll' || view === 'masterKompensasi') {
         const parent = document.getElementById('menuPayroll');
         if (parent) parent.classList.add('active');
         if (submenuPayroll) submenuPayroll.style.display = 'block';
@@ -873,9 +876,6 @@ function switchView(view) {
             } else if (view === 'masterKompensasi') {
                 subItemId = 'submenu_kompensasi';
                 currentPayrollSub = 'kompensasi'; // sync global state
-            } else if (view === 'pajak') {
-                subItemId = 'submenu_pajak';
-                currentPayrollSub = 'pajak'; // sync global state
             }
 
             const subItem = document.getElementById(subItemId);
@@ -892,6 +892,7 @@ function switchView(view) {
         payroll: 'Master Payroll Scheme',
         pajak: 'Master Payroll Scheme',
         masterKompensasi: 'Master Payroll Scheme',
+        pusatPajak: 'Pusat Informasi Pajak',
         schedule: 'Schedule',
         skemaShift: 'Employee Management',
         fpkMaster: 'Employee Management'
@@ -921,6 +922,7 @@ function switchView(view) {
         }
     }
     if (view === 'pajak') renderTaxSchemes();
+    if (view === 'pusatPajak') { if (typeof renderTaxArticles === 'function') renderTaxArticles(); }
     if (view === 'masterKompensasi') renderMasterKompensasi();
     
     if (view === 'schedule') {

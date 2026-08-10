@@ -45,6 +45,42 @@
              <span>Late Upload: Attendance upload for this period has passed the cut-off date (<strong id="attendanceCutoffDateLabel">-</strong>).</span>
         </div>
 
+        <!-- Attendance Summary Cards (Hours Worked, Expected Hours, Masa Kerja) -->
+        <div id="attendanceSummaryCards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px;">
+            <div onclick="showAttendanceSummaryDetail('actual')" title="Klik untuk melihat rincian Jam Kerja Aktual" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(37,99,235,0.06); cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 20px -5px rgba(37,99,235,0.25)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 6px rgba(37,99,235,0.06)';">
+                <div style="width: 46px; height: 46px; border-radius: 10px; background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(37,99,235,0.25);">
+                    <i class="fas fa-user-clock"></i>
+                </div>
+                <div>
+                    <span style="font-size: 11.5px; color: #1e40af; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Jam Kerja Aktual</span>
+                    <div id="summaryActualHours" style="font-size: 22px; font-weight: 800; color: #1e3a8a; margin-top: 2px;">0 <span style="font-size: 13px; font-weight: 600;">Jam</span></div>
+                    <span style="font-size: 11.5px; color: #3b82f6;">Total jam bekerja di bulan ini <i class="fas fa-arrow-right" style="font-size: 10px; margin-left: 2px;"></i></span>
+                </div>
+            </div>
+
+            <div onclick="showAttendanceSummaryDetail('expected')" title="Klik untuk melihat rincian Jam Kerja Seharusnya" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(22,163,74,0.06); cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 20px -5px rgba(22,163,74,0.25)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 6px rgba(22,163,74,0.06)';">
+                <div style="width: 46px; height: 46px; border-radius: 10px; background: #16a34a; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(22,163,74,0.25);">
+                    <i class="fas fa-business-time"></i>
+                </div>
+                <div>
+                    <span style="font-size: 11.5px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Jam Kerja Seharusnya</span>
+                    <div id="summaryExpectedHours" style="font-size: 22px; font-weight: 800; color: #14532d; margin-top: 2px;">0 <span style="font-size: 13px; font-weight: 600;">Jam</span></div>
+                    <span style="font-size: 11.5px; color: #22c55e;">Target standar hari kerja bulan ini <i class="fas fa-arrow-right" style="font-size: 10px; margin-left: 2px;"></i></span>
+                </div>
+            </div>
+
+            <div onclick="showAttendanceSummaryDetail('tenure')" title="Klik untuk melihat rincian Masa Kerja Karyawan" style="background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border: 1px solid #e9d5ff; border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(147,51,234,0.06); cursor: pointer; transition: all 0.25s ease;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 10px 20px -5px rgba(147,51,234,0.25)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 6px rgba(147,51,234,0.06)';">
+                <div style="width: 46px; height: 46px; border-radius: 10px; background: #9333ea; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(147,51,234,0.25);">
+                    <i class="fas fa-history"></i>
+                </div>
+                <div>
+                    <span style="font-size: 11.5px; color: #6b21a8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Masa Kerja Karyawan</span>
+                    <div id="summaryTenureMonths" style="font-size: 22px; font-weight: 800; color: #581c87; margin-top: 2px;">0 <span style="font-size: 13px; font-weight: 600;">Bulan</span></div>
+                    <span style="font-size: 11.5px; color: #a855f7;">Rata-rata/Total akumulasi masa kerja <i class="fas fa-arrow-right" style="font-size: 10px; margin-left: 2px;"></i></span>
+                </div>
+            </div>
+        </div>
+
         <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; background: white;">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>

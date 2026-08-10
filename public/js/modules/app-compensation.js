@@ -121,7 +121,9 @@ async function renderMasterKompensasi() {
 
             let periodeDisplay = '-';
             if (comp) {
-                if (comp.periode === 'hari_kerja') {
+                if (comp.periode === 'jam' || comp.periode === 'per_jam') {
+                    periodeDisplay = 'Per Hour';
+                } else if (comp.periode === 'hari_kerja') {
                     periodeDisplay = 'Per Working Day';
                 } else if (comp.periode === 'minggu') {
                     periodeDisplay = 'Per Week';
@@ -301,8 +303,16 @@ window.handleSchemeNilaiInput = function(element) {
 }
 
 function bukaModalSkemaKompensasi(mode, id = null) {
-    document.getElementById('modalSkemaKompensasi').style.display = 'block';
-    document.getElementById('overlay').style.display = 'block';
+    const modal = document.getElementById('modalSkemaKompensasi');
+    const overlay = document.getElementById('overlay');
+    if (modal) {
+        modal.style.display = 'block';
+        modal.style.zIndex = '2050';
+    }
+    if (overlay) {
+        overlay.style.display = 'block';
+        overlay.style.zIndex = '2040';
+    }
     if (mode === 'edit' && id) {
         const scheme = window.compensationSchemes.find(s => s.id == id);
         if (scheme) {

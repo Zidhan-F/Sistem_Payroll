@@ -233,7 +233,7 @@ async function renderReviewGajiTable() {
     try {
         const tbody = document.getElementById('tabelReviewGajiBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="34" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="36" style="text-align: center; padding: 20px; color: #94a3b8;"><i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i>Loading data...</td></tr>`;
         }
         const url = window.selectedClientId ? `${API_URL}/payroll-results/${currentPeriodId}?client_id=${window.selectedClientId}` : `${API_URL}/payroll-results/${currentPeriodId}`;
         const res = await fetch(url);
@@ -334,6 +334,8 @@ async function renderReviewGajiTable() {
                         <td>${(row.working_days !== undefined && row.working_days !== null) ? row.working_days + ' Days' : '0 Days'}</td>
                         <td>${(row.total_days_in_period !== undefined && row.total_days_in_period !== null) ? row.total_days_in_period + ' Days' : '-'}</td>
                         <td>${(row.payable_days !== undefined && row.payable_days !== null) ? row.payable_days + ' Days' : '-'}</td>
+                        <td>${(row.target_work_hours !== undefined && row.target_work_hours !== null) ? row.target_work_hours + ' Hours' : ((row.payable_days || 0) * 8) + ' Hours'}</td>
+                        <td>${(row.actual_work_hours !== undefined && row.actual_work_hours !== null) ? row.actual_work_hours + ' Hours' : ((row.working_days || 0) * 8) + ' Hours'}</td>
                         <td>${row.scheme_name || '-'}</td>
                         <td>${row.ptkp_status || 'TK/0'}</td>
                         <td>${formatRupiah(gp)}</td>
@@ -998,13 +1000,9 @@ async function exportGajiToExcel() {
 
             return {
                 'No': index + 1,
-                'Company / Client': row.client_name || '-',
-                'Employee ID (NIK)': row.employ_id || '-',
                 'Employee Name': row.employee_name || '-',
                 'Contract Type': row.tipe_perjanjian || 'PKWT',
-                'Place & Date of Birth': dob,
-                'NPWP': row.npwp || '-',
-                'Status PTKP': row.ptkp_status || 'TK/0',
+                'Company / Client': row.client_name || '-',
                 'Division': row.division_name || '-',
                 'Department': row.department_name || '-',
                 'Position / Role': row.position_name || '-',
@@ -1013,7 +1011,10 @@ async function exportGajiToExcel() {
                 'Working Days': (row.working_days !== undefined && row.working_days !== null) ? row.working_days : 0,
                 'Total Days in Period': (row.total_days_in_period !== undefined && row.total_days_in_period !== null) ? row.total_days_in_period : 0,
                 'Payable Days': (row.payable_days !== undefined && row.payable_days !== null) ? row.payable_days : 0,
-                'Work Location': row.location_name || '-',
+                'Target Hours': (row.target_work_hours !== undefined && row.target_work_hours !== null) ? row.target_work_hours : ((row.payable_days || 0) * 8),
+                'Actual Worked Hours': (row.actual_work_hours !== undefined && row.actual_work_hours !== null) ? row.actual_work_hours : ((row.working_days || 0) * 8),
+                'Scheme': row.scheme_name || '-',
+                'Status PTKP': row.ptkp_status || 'TK/0',
                 'Basic Salary (Gaji Pokok)': Math.round(gp * 100) / 100,
                 'Overtime Pay (Lembur)': Math.round(ot * 100) / 100,
                 'Early Arrival Pay': Math.round(ea * 100) / 100,
@@ -1034,24 +1035,32 @@ async function exportGajiToExcel() {
                 'BPJS JKK (Perusahaan)': Math.round(bpjsJkkCo * 100) / 100,
                 'BPJS JKM (Perusahaan)': Math.round(bpjsJkmCo * 100) / 100,
                 'Total BPJS (Perusahaan)': Math.round(totalCoBpjsRow * 100) / 100,
-                'Status': row.status_approval || 'Pending'
+                'Status': row.status_approval || 'Pending',
+                'Employee ID (NIK)': row.employ_id || '-',
+                'NPWP': row.npwp || '-',
+                'Work Location': row.location_name || '-',
+                'Place & Date of Birth': dob
             };
         });
 
         // Push total row
         formatted.push({
             'No': 'TOTAL',
-            'Company / Client': '',
-            'Employee ID (NIK)': '',
             'Employee Name': '',
             'Contract Type': '',
-            'Place & Date of Birth': '',
-            'NPWP': '',
-            'Status PTKP': '',
+            'Company / Client': '',
             'Division': '',
             'Department': '',
             'Position / Role': '',
-            'Work Location': '',
+            'Join Date': '',
+            'Work Scheme': '',
+            'Working Days': '',
+            'Total Days in Period': '',
+            'Payable Days': '',
+            'Target Hours': '',
+            'Actual Worked Hours': '',
+            'Scheme': '',
+            'Status PTKP': '',
             'Basic Salary (Gaji Pokok)': Math.round(totalGp * 100) / 100,
             'Overtime Pay (Lembur)': Math.round(totalOt * 100) / 100,
             'Early Arrival Pay': Math.round(totalEa * 100) / 100,
@@ -1072,7 +1081,11 @@ async function exportGajiToExcel() {
             'BPJS JKK (Perusahaan)': Math.round(totalBpjsJkkCo * 100) / 100,
             'BPJS JKM (Perusahaan)': Math.round(totalBpjsJkmCo * 100) / 100,
             'Total BPJS (Perusahaan)': Math.round(totalTotalBpjsCo * 100) / 100,
-            'Status': ''
+            'Status': '',
+            'Employee ID (NIK)': '',
+            'NPWP': '',
+            'Work Location': '',
+            'Place & Date of Birth': ''
         });
         
         // Create SheetJS workbook and worksheet

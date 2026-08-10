@@ -36,21 +36,36 @@ class Employee extends ResourceController
         }
 
         $clientId = $this->request->getGet('client_id');
+        $sessRole = session()->get('role');
+        $userId = session()->get('user_id');
+
+        $userClientModel = new \App\Models\UserClientModel();
+        $allowedClientIds = ($sessRole === 'admin' || !$sessRole) ? null : $userClientModel->getUserClientIds($userId);
+
+        $today = date('Y-m-d');
+        $builder = $this->model->select('employees.*, users.role as user_role, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, COALESCE(employees.division_id, departments.division_id) as division_id, COALESCE(employees.department_id, positions.department_id) as department_id, clients.nama as nama_klien, COALESCE(NULLIF(CAST(employees.alamat AS VARCHAR(MAX)), \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal, work_locations.lokasi_kerja as nama_lokasi, work_locations.provinsi as provinsi, work_locations.kota_kabupaten as kota_kabupaten, (SELECT TOP 1 shift_scheme_id FROM employee_shifts WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC) as shift_scheme_id, (SELECT TOP 1 shift_schemes.name FROM employee_shifts LEFT JOIN shift_schemes ON shift_schemes.id = employee_shifts.shift_scheme_id WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC) as shift_name')
+                    ->join('users', 'users.username = employees.nik', 'left')
+                    ->join('positions', 'positions.id = employees.position_id', 'left')
+                    ->join('departments', 'departments.id = COALESCE(employees.department_id, positions.department_id)', 'left')
+                    ->join('divisions', 'divisions.id = COALESCE(employees.division_id, departments.division_id)', 'left')
+                    ->join('clients', 'clients.id = employees.client_id', 'left')
+                    ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
+                    ->join('work_locations', 'work_locations.id = employees.work_location_id', 'left');
+
         if ($clientId) {
-            $today = date('Y-m-d');
-            $data = $this->model->select('employees.*, users.role as user_role, positions.nama as nama_posisi, departments.nama as nama_dept, divisions.nama as nama_divisi, COALESCE(employees.division_id, departments.division_id) as division_id, COALESCE(employees.department_id, positions.department_id) as department_id, clients.nama as nama_klien, COALESCE(NULLIF(CAST(employees.alamat AS VARCHAR(MAX)), \'\'), minimum_wages.nama_daerah) as alamat, minimum_wages.tipe as umr_tipe, minimum_wages.nominal as umr_nominal, work_locations.lokasi_kerja as nama_lokasi, work_locations.provinsi as provinsi, work_locations.kota_kabupaten as kota_kabupaten, (SELECT TOP 1 shift_scheme_id FROM employee_shifts WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC) as shift_scheme_id, (SELECT TOP 1 shift_schemes.name FROM employee_shifts LEFT JOIN shift_schemes ON shift_schemes.id = employee_shifts.shift_scheme_id WHERE employee_shifts.employee_id = employees.id AND (employee_shifts.end_date IS NULL OR employee_shifts.end_date >= \'' . $today . '\') ORDER BY employee_shifts.start_date DESC) as shift_name')
-                        ->join('users', 'users.username = employees.nik', 'left')
-                        ->join('positions', 'positions.id = employees.position_id', 'left')
-                        ->join('departments', 'departments.id = COALESCE(employees.department_id, positions.department_id)', 'left')
-                        ->join('divisions', 'divisions.id = COALESCE(employees.division_id, departments.division_id)', 'left')
-                        ->join('clients', 'clients.id = employees.client_id', 'left')
-                        ->join('minimum_wages', 'minimum_wages.id = employees.minimum_wage_id', 'left')
-                        ->join('work_locations', 'work_locations.id = employees.work_location_id', 'left')
-                        ->where('employees.client_id', $clientId)
-                        ->findAll();
-            return $this->respond($data);
+            $builder->where('employees.client_id', $clientId);
         }
-        return $this->respond($this->model->getFullData());
+
+        if ($allowedClientIds !== null) {
+            if (!empty($allowedClientIds)) {
+                $builder->whereIn('employees.client_id', $allowedClientIds);
+            } else {
+                $builder->where('employees.client_id', -1);
+            }
+        }
+
+        $data = $builder->findAll();
+        return $this->respond($data);
     }
 
     public function create()
@@ -179,6 +194,18 @@ class Employee extends ResourceController
                         'created_at' => date('Y-m-d H:i:s'),
                         'updated_at' => date('Y-m-d H:i:s')
                     ]);
+                }
+            }
+
+            // Sync user_clients junction table
+            $createdUser = $dbUser->table('users')->where('username', $username)->get()->getRow();
+            if ($createdUser) {
+                $userClientModel = new \App\Models\UserClientModel();
+                $cIdsToAssign = !empty($data['allowed_client_ids']) && is_array($data['allowed_client_ids']) 
+                    ? $data['allowed_client_ids'] 
+                    : (!empty($data['client_id']) ? [(int)$data['client_id']] : []);
+                if (!empty($cIdsToAssign)) {
+                    $userClientModel->syncUserClients($createdUser->id, $cIdsToAssign);
                 }
             }
 
@@ -335,6 +362,20 @@ class Employee extends ResourceController
                             'created_at' => date('Y-m-d H:i:s'),
                             'updated_at' => date('Y-m-d H:i:s')
                         ]);
+                    }
+                }
+            }
+
+            // Sync user_clients junction table
+            if ($oldEmp) {
+                $targetUserObj = $db->table('users')->where('username', $oldEmp['employ_id'] ?? $oldEmp['nik'])->get()->getRow();
+                if ($targetUserObj) {
+                    $userClientModel = new \App\Models\UserClientModel();
+                    $cIdsToAssign = !empty($data['allowed_client_ids']) && is_array($data['allowed_client_ids']) 
+                        ? $data['allowed_client_ids'] 
+                        : (!empty($data['client_id']) ? [(int)$data['client_id']] : (!empty($oldEmp['client_id']) ? [(int)$oldEmp['client_id']] : []));
+                    if (!empty($cIdsToAssign)) {
+                        $userClientModel->syncUserClients($targetUserObj->id, $cIdsToAssign);
                     }
                 }
             }

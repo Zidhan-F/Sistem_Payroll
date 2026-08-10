@@ -956,12 +956,6 @@ class Payroll extends ResourceController
                                 continue; // Skip in the current month's calculation
                             }
                         }
-                        
-                        $currentPeriod1 = intval($bulan) . '-' . intval($tahun);
-                        $currentPeriod2 = sprintf('%02d-%d', intval($bulan), intval($tahun));
-                        if ($payoutPeriod !== $currentPeriod1 && $payoutPeriod !== $currentPeriod2) {
-                            continue; // Skip this component
-                        }
                     }
 
                     $isBasic = (isset($comp['jenis_komponen']) && $comp['jenis_komponen'] === 'basic_salary') || (stripos($comp['nama'], 'Gaji Pokok') !== false);
@@ -979,12 +973,12 @@ class Payroll extends ResourceController
                             } else if ($sumber_nilai === 'ump_umk') {
                                 $baseSalary = $empMinimumWage * ($base_nilai / 100);
                             } else {
-                                if ($emp && isset($emp['gaji_pokok']) && floatval($emp['gaji_pokok']) > 0) {
+                                if ($base_nilai > 0) {
+                                    $baseSalary = $base_nilai;
+                                } else if ($emp && isset($emp['gaji_pokok']) && floatval($emp['gaji_pokok']) > 0) {
                                     $baseSalary = floatval($emp['gaji_pokok']);
                                 } else if ($empMinimumWage > 0) {
                                     $baseSalary = $empMinimumWage;
-                                } else {
-                                    $baseSalary = $base_nilai;
                                 }
                             }
                         }
@@ -1092,7 +1086,24 @@ class Payroll extends ResourceController
                     }
 
                     $periode = $comp['periode'] ?? 'bulan';
-                    if ($periode === 'hari' || $periode === 'hari_kerja') {
+                    if ($periode === 'jam') {
+                        $actualHours = 0.0;
+                        if (!empty($emp['id'])) {
+                            $hrsRow = $db->table('attendance_logs')
+                                ->selectSum('calculated_work_hours')
+                                ->where('employee_id', $emp['id'])
+                                ->where('log_date >=', $currMonthStart)
+                                ->where('log_date <=', $currMonthEnd)
+                                ->get()->getRow();
+                            if ($hrsRow && floatval($hrsRow->calculated_work_hours) > 0) {
+                                $actualHours = floatval($hrsRow->calculated_work_hours);
+                            }
+                        }
+                        if ($actualHours <= 0) {
+                            $actualHours = $actualDaysWorkedPrev * 8;
+                        }
+                        $nilai = $base_nilai * $actualHours;
+                    } elseif ($periode === 'hari' || $periode === 'hari_kerja') {
                         $nilai = $base_nilai * $actualDaysWorkedPrev;
                     } elseif ($periode === 'minggu') {
                         $nilai = $base_nilai * 4 * $prorateFactor;
@@ -2277,7 +2288,7 @@ class Payroll extends ResourceController
             // Calculate Early Arrival Pay
             $companySetting = $db->table('company_payroll_setting')->get()->getRowArray();
             $minMinutes = isset($companySetting['early_arrival_min_minutes']) ? intval($companySetting['early_arrival_min_minutes']) : 30;
-            $calcUnit = isset($companySetting['early_arrival_calculation_unit']) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
+            $calcUnit = (isset($companySetting['early_arrival_calculation_unit']) && intval($companySetting['early_arrival_calculation_unit']) > 0) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
             $roundingMethod = $companySetting['early_arrival_rounding_method'] ?? 'CEILING';
             $maxMinutes = isset($companySetting['max_early_arrival_minutes']) ? intval($companySetting['max_early_arrival_minutes']) : 180;
             $earlyArrivalEnabled = isset($companySetting['early_arrival_enabled']) ? intval($companySetting['early_arrival_enabled']) : 1;

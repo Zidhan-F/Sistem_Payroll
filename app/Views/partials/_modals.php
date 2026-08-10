@@ -106,7 +106,7 @@
     </div>
 
     <!-- Payroll Scheme Form Modal -->
-    <div id="modalSkema" class="modal-skema" style="width: 1100px; max-width: 95%;">
+    <div id="modalSkema" class="modal-skema" style="width: 1100px; max-width: 95%; z-index: 2050;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
             <h3 id="modalSkemaTitle">Add Payroll Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalSkema()"></i>
@@ -153,6 +153,7 @@
                                 <option value="bulan" selected>Per Month</option>
                                 <option value="minggu">Per Week</option>
                                 <option value="hari_kerja">Per Working Day</option>
+                                <option value="jam">Per Hour</option>
                                 <option value="tahun">Per Year</option>
                             </select>
                         </div>
@@ -447,26 +448,26 @@
     </div>
 
     <!-- Client Form Modal -->
-    <div id="modalClient">
-        <div class="modal-header">
-            <h3 id="modalTitle">Add Client Data</h3>
-            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModal()"></i>
+    <div id="modalClient" style="background: #ffffff !important; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); padding: 18px 24px; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="modalTitle" style="margin: 0; color: white; font-size: 18px; font-weight: 600;">Add Client Data</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px;" onclick="tutupModal()"></i>
         </div>
         <form id="formKlien">
-            <div class="modal-body">
+            <div class="modal-body" style="padding: 24px; background: #ffffff;">
                 <input type="hidden" id="clientId">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Client Name</label>
-                        <input type="text" id="namaKlien" placeholder="Enter client name" required>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Client Name <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="namaKlien" placeholder="Enter client name" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                     </div>
                     <div class="form-group">
-                        <label>Client Email</label>
-                        <input type="email" id="emailKlien" placeholder="client@gmail.com" required>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Client Email <span style="color: #ef4444;">*</span></label>
+                        <input type="email" id="emailKlien" placeholder="client@gmail.com" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                     </div>
                     <div class="form-group">
-                        <label>Select Client Sector</label>
-                        <select id="sektorKlien" required>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Select Client Sector <span style="color: #ef4444;">*</span></label>
+                        <select id="sektorKlien" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                             <option value="">-- Select Sector --</option>
                             <option value="Retail">Retail</option>
                             <option value="Manufaktur">Manufacturing</option>
@@ -475,32 +476,32 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Business Registration Number (NIB)</label>
-                        <input type="text" id="nib" placeholder="Enter NIB" required>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Business Registration Number (NIB) <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="nib" placeholder="Enter NIB" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                     </div>
                     <div class="form-group">
-                        <label>Tax ID (NPWP)</label>
-                        <input type="text" id="npwp" placeholder="Enter NPWP" required>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Tax ID (NPWP) <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="npwp" placeholder="Enter NPWP" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                     </div>
                     <div class="form-group">
-                        <label>Join Date</label>
-                        <input type="date" id="tanggalBergabung" required>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Join Date <span style="color: #ef4444;">*</span></label>
+                        <input type="date" id="tanggalBergabung" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                     </div>
                     <div class="form-group full-width">
-                        <label>Address</label>
-                        <textarea id="alamat" rows="3" placeholder="Enter complete address" required></textarea>
+                        <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Address <span style="color: #ef4444;">*</span></label>
+                        <textarea id="alamat" rows="3" placeholder="Enter complete address" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;"></textarea>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="tutupModal()">Cancel</button>
-                <button type="submit" id="btnSubmit" class="btn-save">Save</button>
+            <div class="modal-footer" style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" class="btn-cancel" onclick="tutupModal()" style="padding: 10px 20px; border-radius: 8px; font-weight: 600;">Cancel</button>
+                <button type="submit" id="btnSubmit" class="btn-save" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save</button>
             </div>
         </form>
     </div>
 
     <!-- Organization Form Modal -->
-    <div id="modalOrg" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 450px; border-radius: 12px; z-index: 1100; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;">
+    <div id="modalOrg" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 450px; border-radius: 12px; z-index: 2050; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;">
         <div class="modal-header">
             <h3 id="modalOrgTitle">Add Division</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalOrg()"></i>
@@ -1817,7 +1818,7 @@
     <div id="toastContainer"></div>
 
     <!-- Modal Add Client Scheme Option -->
-    <div id="modalPilihanSkema" class="modal-skema" style="display: none; z-index: 1000; width: 800px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
+    <div id="modalPilihanSkema" class="modal-skema" style="display: none; z-index: 2050; width: 800px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); flex-shrink: 0; padding: 18px 25px;">
             <h3 id="modalPilihanSkemaTitle">Add Client Scheme</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalPilihanSkema()"></i>
@@ -2225,7 +2226,7 @@
     </div>
 
     <!-- Employee Data Modal -->
-    <div id="modalKaryawan" class="modal-skema" style="display: none; z-index: 1000; width: 780px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
+    <div id="modalKaryawan" class="modal-skema" style="display: none; z-index: 2050; width: 780px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
         <div class="modal-header" style="background: var(--primary-color); flex-shrink: 0; padding: 18px 25px;">
             <h3 id="modalKaryawanTitle">Add Employee Data</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalKaryawan()"></i>
@@ -2331,6 +2332,7 @@
                             <option value="PKWT">PKWT</option>
                             <option value="PKWTT">PKWTT</option>
                             <option value="PKHL">PKHL</option>
+                            <option value="Kemitraan">Kemitraan</option>
                         </select>
                     </div>
                 </div>
@@ -2404,7 +2406,7 @@
     </div>
 
     <!-- Work Location Modal -->
-    <div id="modalLokasiKerja" class="modal-skema" style="display: none; z-index: 1000; width: 650px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
+    <div id="modalLokasiKerja" class="modal-skema" style="display: none; z-index: 2050; width: 650px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
         <div class="modal-header" style="background: var(--primary-color); flex-shrink: 0; padding: 18px 25px;">
             <h3 id="modalLokasiKerjaTitle">Add Work Location</h3>
             <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalLokasiKerja()"></i>
@@ -2489,6 +2491,7 @@
                             <option value="bulan" selected>Per Month</option>
                             <option value="minggu">Per Week</option>
                             <option value="hari_kerja">Per Working Day</option>
+                            <option value="jam">Per Hour</option>
                             <option value="tahun">Per Year</option>
                         </select>
                     </div>
@@ -3405,26 +3408,26 @@
     </div>
 
     <!-- Modal: Tambah/Edit Master Skema Shift -->
-    <div id="modalShiftScheme" class="modal-skema" style="width: 550px; max-width: 95%; display: none; z-index: 2000;">
-        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
-            <h3 id="modalShiftSchemeTitle">Tambah Skema Shift</h3>
-            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalShiftScheme()"></i>
+    <div id="modalShiftScheme" class="modal-skema" style="width: 550px; max-width: 95%; display: none; z-index: 2000; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); padding: 18px 24px; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="modalShiftSchemeTitle" style="margin: 0; color: white; font-size: 18px; font-weight: 600;">Tambah Skema Shift</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px;" onclick="tutupModalShiftScheme()"></i>
         </div>
-        <div class="modal-body" style="padding: 25px;">
+        <div class="modal-body" style="padding: 24px; background: #ffffff;">
             <form id="formShiftScheme" onsubmit="simpanShiftScheme(event)">
                 <input type="hidden" id="shiftSchemeId">
-                <div class="form-group" style="margin-bottom: 15px;">
+                <div class="form-group" style="margin-bottom: 16px;">
                     <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Nama Shift <span style="color: #ef4444;">*</span></label>
-                    <input type="text" id="shiftSchemeName" placeholder="Contoh: Shift Pagi, Shift Malam, Lembur Khusus" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                    <input type="text" id="shiftSchemeName" placeholder="Contoh: Shift Pagi, Shift Malam, Lembur Khusus" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                 </div>
-                <div style="display: flex; gap: 12px; margin-bottom: 15px;">
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
                     <div style="flex: 1;">
                         <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Mulai <span style="color: #ef4444;">*</span></label>
-                        <input type="time" id="shiftSchemeStartTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                        <input type="time" id="shiftSchemeStartTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                     </div>
                     <div style="flex: 1;">
                         <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Jam Selesai <span style="color: #ef4444;">*</span></label>
-                        <input type="time" id="shiftSchemeEndTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #e2e8f0; font-size: 14px; outline: none;">
+                        <input type="time" id="shiftSchemeEndTime" required style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 14px; outline: none; background: #ffffff; color: #1e293b;">
                     </div>
                 </div>
                 <!-- Hidden fields to maintain JavaScript compatibility without displaying in the form -->
@@ -3433,8 +3436,8 @@
                     <input type="number" id="shiftSchemeGraceLate" value="0">
                     <input type="number" id="shiftSchemeGraceEarly" value="0">
                 </div>
-                <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                    <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px;">Cancel</button>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                    <button type="button" class="btn-cancel" onclick="tutupModalShiftScheme()" style="padding: 10px 20px; border-radius: 8px; font-weight: 600;">Cancel</button>
                     <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save</button>
                 </div>
             </form>
@@ -3442,12 +3445,12 @@
     </div>
 
     <!-- Modal: Alokasi Shift Karyawan -->
-    <div id="modalAssignShift" class="modal-skema" style="width: 500px; max-width: 95%; display: none; z-index: 2000;">
-        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
-            <h3 id="modalAssignShiftTitle">Assign Employee Shift</h3>
-            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalAssignShift()"></i>
+    <div id="modalAssignShift" class="modal-skema" style="width: 500px; max-width: 95%; display: none; z-index: 2000; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25);">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); padding: 18px 24px; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="modalAssignShiftTitle" style="margin: 0; color: white; font-size: 18px; font-weight: 600;">Assign Employee Shift</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 18px;" onclick="tutupModalAssignShift()"></i>
         </div>
-        <div class="modal-body" style="padding: 25px;">
+        <div class="modal-body" style="padding: 24px; background: #ffffff;">
             <form id="formAssignShift" onsubmit="simpanAssignShift(event)">
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; color: #334155; margin-bottom: 6px; display: block; font-size: 14px;">Pilih Karyawan <span style="color: #ef4444;">*</span></label>
@@ -3802,6 +3805,58 @@
             <button type="button" class="btn-cancel" onclick="tutupModalTaxReportDetail()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; background: #cbd5e1; color: #334155; border: none; font-size: 13px;">Tutup</button>
         </div>
     </div>
+
+    <!-- Modal Detail Summary Attendance Card -->
+    <div id="modalAttendanceCardDetail" class="modal-skema" style="display: none; width: 920px; max-width: 95vw; max-height: 90vh; z-index: 2040; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); flex-direction: column; background: white;">
+        <div id="modalAttDetailHeader" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); padding: 18px 24px; color: white; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    <i id="modalAttDetailIcon" class="fas fa-user-clock"></i>
+                </div>
+                <div>
+                    <h3 id="modalAttDetailTitle" style="margin: 0; font-size: 18px; font-weight: 700; color: white;">Detail Jam Kerja Aktual</h3>
+                    <p id="modalAttDetailSubtitle" style="margin: 2px 0 0 0; font-size: 12.5px; opacity: 0.9; color: #eff6ff;">Rincian akumulasi jam kerja karyawan periode ini</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeAttendanceCardDetailModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.35)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                <i class="fas fa-times" style="font-size: 16px;"></i>
+            </button>
+        </div>
+
+        <div style="padding: 20px 24px; overflow-y: auto; flex: 1; color: #334155; font-size: 14px;">
+            <!-- Summary Stat Banner -->
+            <div id="modalAttDetailStatBanner" style="margin-bottom: 18px;"></div>
+
+            <!-- Search & Table -->
+            <div style="position: relative; margin-bottom: 14px;">
+                <i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;"></i>
+                <input type="text" id="searchAttDetailInput" placeholder="Cari nama / NIK karyawan..." onkeyup="filterAttDetailRows()" style="width: 100%; padding: 9px 14px 9px 38px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; outline: none;">
+            </div>
+
+            <div class="table-container" style="border: 1px solid #e2e8f0; border-radius: 10px; max-height: 380px; overflow-y: auto; background: white;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead id="modalAttDetailThead" style="background: #f8fafc; position: sticky; top: 0; z-index: 2;">
+                        <!-- JS populated -->
+                    </thead>
+                    <tbody id="modalAttDetailTbody">
+                        <!-- JS populated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="padding: 14px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 12px; color: #64748b;" id="modalAttDetailFooterInfo">
+                <i class="fas fa-shield-alt" style="color: #2563eb;"></i> Data kehadiran terverifikasi sistem
+            </div>
+            <button type="button" onclick="closeAttendanceCardDetailModal()" style="padding: 8px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; background: #cbd5e1; color: #334155; border: none; font-size: 13px;">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <?= view('partials/_modal_pajak_detail') ?>
+
 
 
 

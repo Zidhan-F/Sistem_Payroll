@@ -28,6 +28,7 @@
     <script src="<?= base_url('js/modules/app-payroll-scheme.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-payroll-scheme-templates.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-tax.js?v=' . time()) ?>"></script>
+    <script src="<?= base_url('js/modules/app-tax-edu.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-compensation.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-workspace.js?v=' . time()) ?>"></script>
     <script src="<?= base_url('js/modules/app-pkwt.js?v=' . time()) ?>"></script>

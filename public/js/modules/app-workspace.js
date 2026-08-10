@@ -358,17 +358,35 @@ async function loadSchemaMappingTable() {
         }
         
         tbody.innerHTML = mappings.map(m => {
+            const divLabel = m.division_name ? `<span style="font-weight:600; color:#1e293b;">${m.division_name}</span>` : `<span style="color:#94a3b8; font-style:italic;">Global</span>`;
+            const deptLabel = m.department_name ? `<span style="font-weight:600; color:#1e293b;">${m.department_name}</span>` : `<span style="color:#94a3b8; font-style:italic;">Global</span>`;
+            const posLabel = m.position_name ? `<span style="font-weight:600; color:#1e293b;">${m.position_name}</span>` : `<span style="color:#94a3b8; font-style:italic;">Global</span>`;
+            const psName = m.payroll_scheme_name || m.payroll_type || '-';
+            const bpjsName = m.bpjs_scheme_name || '-';
+
             return `
-                <tr>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.division_name || 'Global'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.department_name || 'Global'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.position_name || 'Global'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.payroll_scheme_name || m.payroll_type || '-'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0; color:#1e293b;">${m.bpjs_scheme_name || '-'}</td>
-                    <td style="padding:12px 15px; border-bottom:1px solid #e2e8f0;">
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 12px;">
-                            <button onclick="editSchemaMapping(${m.id})" class="btn-icon" title="Edit" style="color:#94a3b8; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-edit" style="font-size:16px;"></i></button>
-                            <button onclick="hapusSchemaMapping(${m.id})" class="btn-icon" title="Delete" style="color:#e74c3c; background:transparent; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; box-shadow:none; width:auto; height:auto; padding:4px;"><i class="fas fa-trash" style="font-size:16px;"></i></button>
+                <tr style="transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                    <td style="padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px;">${divLabel}</td>
+                    <td style="padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px;">${deptLabel}</td>
+                    <td style="padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px;">${posLabel}</td>
+                    <td style="padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px;">
+                        <span style="background: #eff6ff; color: #2563eb; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-file-invoice-dollar" style="font-size: 11px;"></i> ${psName}
+                        </span>
+                    </td>
+                    <td style="padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13.5px;">
+                        <span style="background: #f0fdf4; color: #16a34a; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-shield-alt" style="font-size: 11px;"></i> ${bpjsName}
+                        </span>
+                    </td>
+                    <td style="padding: 14px 16px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+                        <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                            <button onclick="editSchemaMapping(${m.id})" title="Edit" style="background: #f8fafc; border: 1px solid #cbd5e1; color: #3b82f6; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#3b82f6'; this.style.color='white'; this.style.borderColor='#3b82f6';" onmouseout="this.style.background='#f8fafc'; this.style.color='#3b82f6'; this.style.borderColor='#cbd5e1';">
+                                <i class="fas fa-edit" style="font-size: 13px;"></i>
+                            </button>
+                            <button onclick="hapusSchemaMapping(${m.id})" title="Delete" style="background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#ef4444'; this.style.color='white'; this.style.borderColor='#ef4444';" onmouseout="this.style.background='#fef2f2'; this.style.color='#ef4444'; this.style.borderColor='#fecaca';">
+                                <i class="fas fa-trash" style="font-size: 13px;"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>

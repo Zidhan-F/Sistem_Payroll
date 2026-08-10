@@ -1437,14 +1437,15 @@ body:has(#overlay:not([style*="display: none"]):not([style*="display:none"])) {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.95);
-    background: white;
+    background: #ffffff !important;
+    color: #1e293b !important;
     width: 500px;
     max-width: 90%;
     border-radius: 16px;
-    z-index: 1000;
+    z-index: 2050;
     box-shadow:
-        0 25px 60px rgba(0, 0, 0, 0.15),
-        0 0 0 1px rgba(243, 156, 18, 0.08);
+        0 25px 60px rgba(0, 0, 0, 0.25),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
     max-height: 90vh;
     box-sizing: border-box;
     animation: modalSkemaEntrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -1459,9 +1460,35 @@ body:has(#overlay:not([style*="display: none"]):not([style*="display:none"])) {
 }
 
 .modal-skema .modal-body {
+    background: #ffffff !important;
+    color: #1e293b !important;
     overflow-y: auto !important;
     max-height: calc(90vh - 130px) !important;
     box-sizing: border-box;
+}
+
+.modal-skema label {
+    color: #334155 !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+}
+
+.modal-skema input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+.modal-skema select,
+.modal-skema textarea {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+}
+
+.modal-skema input:focus,
+.modal-skema select:focus,
+.modal-skema textarea:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15) !important;
+    outline: none !important;
 }
 
 .modal-skema .modal-header,
@@ -2647,6 +2674,103 @@ body:has(#overlay:not([style*="display: none"]):not([style*="display:none"])) {
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
     }
+}
+
+/* ===== Universal High-Contrast Solid White Modal Enforcement ===== */
+#modalClient,
+#modalKaryawan,
+#modalOrg,
+#modalSalary,
+#modalPayrollComponent,
+#modalSkema,
+#modalKomponen,
+#modalSkemaPilih,
+#modalSlipGaji,
+.modal-skema,
+div[id^="modal"] {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border-radius: 16px !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3) !important;
+    overflow: hidden !important;
+}
+
+#modalClient .modal-body,
+.modal-skema .modal-body,
+div[id^="modal"] .modal-body {
+    background: #ffffff !important;
+    color: #1e293b !important;
+}
+
+#modalClient .modal-header,
+.modal-skema .modal-header,
+div[id^="modal"] .modal-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    padding: 18px 24px !important;
+    color: #ffffff !important;
+}
+
+/* Ensure title elements inside headers have transparent background and bold white text */
+.modal-header h3,
+.modal-header h4,
+.modal-header h2,
+h3[id*="Title"],
+h3[id*="title"] {
+    background: transparent !important;
+    color: #ffffff !important;
+    margin: 0 !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+}
+
+#modalClient .modal-footer,
+.modal-skema .modal-footer,
+div[id^="modal"] .modal-footer {
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding: 16px 24px !important;
+}
+
+#modalClient label,
+.modal-skema label,
+div[id^="modal"] label {
+    color: #334155 !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    margin-bottom: 6px !important;
+    display: block !important;
+}
+
+#modalClient input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+#modalClient select,
+#modalClient textarea,
+.modal-skema input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+.modal-skema select,
+.modal-skema textarea,
+div[id^="modal"] input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+div[id^="modal"] select,
+div[id^="modal"] textarea {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+}
+
+#modalClient input:focus,
+#modalClient select:focus,
+#modalClient textarea:focus,
+.modal-skema input:focus,
+.modal-skema select:focus,
+.modal-skema textarea:focus,
+div[id^="modal"] input:focus,
+div[id^="modal"] select:focus,
+div[id^="modal"] textarea:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18) !important;
+    outline: none !important;
 }
 
 /* 4. Skeleton Shimmer Loading Styles */

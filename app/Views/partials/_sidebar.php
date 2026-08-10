@@ -73,11 +73,14 @@ $userRole = session()->get('role') ?? $_COOKIE['user_role'] ?? '';
                 <i class="fas fa-cog"></i>
                 <span>Scheme Settings</span>
             </li>
-
     </ul>
     <li id="menuSchedule" onclick="switchView('schedule')" <?= (!in_array($userRole, ['admin', 'hc_ops'])) ? 'style="display: none;"' : '' ?>>
         <i class="fas fa-calendar-alt"></i>
         <span><?= ($userRole === 'hc_ops') ? 'Setting Holiday Calendar' : 'Schedule' ?></span>
+    </li>
+    <li id="menuPajak" onclick="switchView('pusatPajak')">
+        <i class="fas fa-book-open"></i>
+        <span>Pusat Informasi Pajak</span>
     </li>
     </ul>
 </div>

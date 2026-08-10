@@ -2,6 +2,7 @@
 
 let currentAttendanceLogs = [];
 let editingAttendanceLogId = null;
+let currentAttendanceSummaryData = null;
 
 async function loadAttendanceClients() {
     const select = document.getElementById('attendanceClientSelect');
@@ -89,6 +90,29 @@ async function loadAttendanceLogs() {
             lateUploadBanners.forEach(banner => {
                 banner.style.display = 'none';
             });
+        }
+
+        // Update summary cards (Jam Kerja Aktual, Jam Kerja Seharusnya, Masa Kerja)
+        if (data && data.summary) {
+            currentAttendanceSummaryData = data.summary;
+            const actualHrs = data.summary.total_actual_hours || 0;
+            const expectedHrs = data.summary.expected_hours || 0;
+            const avgTenure = data.summary.avg_tenure_months || 0;
+
+            const actualFormatted = `${actualHrs} <span style="font-size: 13px; font-weight: 600;">Jam</span>`;
+            const expectedFormatted = `${expectedHrs} <span style="font-size: 13px; font-weight: 600;">Jam</span>`;
+            const tenureFormatted = `${avgTenure} <span style="font-size: 13px; font-weight: 600;">Bulan</span>`;
+
+            const elActual = document.getElementById('summaryActualHours');
+            const elExpected = document.getElementById('summaryExpectedHours');
+            const elTenure = document.getElementById('summaryTenureMonths');
+            if (elActual) elActual.innerHTML = actualFormatted;
+            if (elExpected) elExpected.innerHTML = expectedFormatted;
+            if (elTenure) elTenure.innerHTML = tenureFormatted;
+
+            document.querySelectorAll('.summaryActualHoursVal').forEach(el => el.innerHTML = actualFormatted);
+            document.querySelectorAll('.summaryExpectedHoursVal').forEach(el => el.innerHTML = expectedFormatted);
+            document.querySelectorAll('.summaryTenureMonthsVal').forEach(el => el.innerHTML = tenureFormatted);
         }
 
         if (!currentAttendanceLogs || currentAttendanceLogs.length === 0) {
@@ -724,4 +748,278 @@ window.bukaModalAttendance = bukaModalAttendance;
 window.simpanAttendance = simpanAttendance;
 window.loadAttendanceLogs = loadAttendanceLogs;
 window.loadAttendanceClients = loadAttendanceClients;
+
+// ===== ATTENDANCE SUMMARY CARD DETAIL MODAL =====
+function showAttendanceSummaryDetail(type) {
+    const modal = document.getElementById('modalAttendanceCardDetail');
+    if (!modal) return;
+
+    const header = document.getElementById('modalAttDetailHeader');
+    const icon = document.getElementById('modalAttDetailIcon');
+    const title = document.getElementById('modalAttDetailTitle');
+    const subtitle = document.getElementById('modalAttDetailSubtitle');
+    const statBanner = document.getElementById('modalAttDetailStatBanner');
+    const thead = document.getElementById('modalAttDetailThead');
+    const searchInput = document.getElementById('searchAttDetailInput');
+    if (searchInput) searchInput.value = '';
+
+    const summary = currentAttendanceSummaryData || {};
+    const logs = currentAttendanceLogs || [];
+
+    if (type === 'actual') {
+        header.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+        icon.className = 'fas fa-user-clock';
+        title.innerText = 'Detail Jam Kerja Aktual Karyawan';
+        subtitle.innerText = 'Rincian akumulasi jam kerja dan lembur per karyawan pada periode ini';
+
+        const empMap = {};
+        logs.forEach(l => {
+            const empId = l.employee_id || l.employee_name;
+            if (!empMap[empId]) {
+                empMap[empId] = {
+                    name: l.employee_name || 'Karyawan',
+                    position: l.position_name || l.department_name || '-',
+                    presentDays: 0,
+                    actualHours: 0,
+                    overtimeHours: 0
+                };
+            }
+            if (l.jam_masuk && l.jam_masuk !== '-') empMap[empId].presentDays++;
+            empMap[empId].actualHours += parseFloat(l.calculated_work_hours || 0);
+            empMap[empId].overtimeHours += parseFloat(l.calculated_overtime_hours || 0);
+        });
+
+        const empList = Object.values(empMap);
+        const totalActual = summary.total_actual_hours || empList.reduce((acc, e) => acc + e.actualHours, 0);
+
+        statBanner.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 14px 18px;">
+                <div>
+                    <span style="font-size: 11px; color: #1e40af; font-weight: 700; text-transform: uppercase;">Total Jam Kerja Aktual</span>
+                    <h4 style="margin: 2px 0 0 0; font-size: 20px; font-weight: 800; color: #1e3a8a;">${totalActual.toFixed(1)} Jam</h4>
+                </div>
+                <div>
+                    <span style="font-size: 11px; color: #1e40af; font-weight: 700; text-transform: uppercase;">Total Karyawan Aktif</span>
+                    <h4 style="margin: 2px 0 0 0; font-size: 20px; font-weight: 800; color: #1d4ed8;">${empList.length} Orang</h4>
+                </div>
+                <div>
+                    <span style="font-size: 11px; color: #1e40af; font-weight: 700; text-transform: uppercase;">Rata-rata per Karyawan</span>
+                    <h4 style="margin: 2px 0 0 0; font-size: 20px; font-weight: 800; color: #2563eb;">${empList.length > 0 ? (totalActual / empList.length).toFixed(1) : 0} Jam</h4>
+                </div>
+            </div>
+        `;
+
+        thead.innerHTML = `
+            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">No</th>
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">Nama Karyawan</th>
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">Posisi / Departemen</th>
+                <th style="padding: 12px 14px; text-align: center; font-weight: 700;">Hari Hadir</th>
+                <th style="padding: 12px 14px; text-align: right; font-weight: 700;">Jam Kerja Aktual</th>
+                <th style="padding: 12px 14px; text-align: right; font-weight: 700;">Jam Lembur</th>
+            </tr>
+        `;
+
+        renderAttDetailTableRows(empList.map((e, idx) => `
+            <tr class="att-detail-row" data-search="${e.name.toLowerCase()} ${e.position.toLowerCase()}" style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 14px;">${idx + 1}</td>
+                <td style="padding: 10px 14px; font-weight: 600; color: #1e293b;">${e.name}</td>
+                <td style="padding: 10px 14px; color: #64748b;">${e.position}</td>
+                <td style="padding: 10px 14px; text-align: center;"><span style="background: #f0fdf4; color: #16a34a; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${e.presentDays} Hari</span></td>
+                <td style="padding: 10px 14px; text-align: right; font-weight: 700; color: #1e3a8a;">${e.actualHours.toFixed(1)} Jam</td>
+                <td style="padding: 10px 14px; text-align: right; font-weight: 700; color: #d97706;">${e.overtimeHours.toFixed(1)} Jam</td>
+            </tr>
+        `));
+
+    } else if (type === 'expected') {
+        header.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)';
+        icon.className = 'fas fa-business-time';
+        title.innerText = 'Rincian Jam Kerja Seharusnya (Target Standar)';
+        subtitle.innerText = 'Target standar hari kerja dan jam kerja efektif periode ini';
+
+        const expected = summary.expected_hours || 152;
+        const workDays = summary.work_days_count || Math.round(expected / 8);
+
+        const empMap = {};
+        logs.forEach(l => {
+            const empId = l.employee_id || l.employee_name;
+            if (!empMap[empId]) {
+                empMap[empId] = {
+                    name: l.employee_name || 'Karyawan',
+                    position: l.position_name || l.department_name || '-',
+                    actualHours: 0
+                };
+            }
+            empMap[empId].actualHours += parseFloat(l.calculated_work_hours || 0);
+        });
+
+        const empList = Object.values(empMap);
+
+        statBanner.innerHTML = `
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <span style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase;">Formula Standar Hari Kerja</span>
+                        <h4 style="margin: 2px 0 0 0; font-size: 18px; font-weight: 800; color: #14532d;">
+                            ${workDays} Hari Kerja Efektif × 8 Jam = ${expected} Jam / Karyawan
+                        </h4>
+                    </div>
+                    <span style="background: #dcfce7; color: #15803d; font-weight: 700; padding: 6px 14px; border-radius: 8px; font-size: 13px;">
+                        Target Standar Bulan Ini
+                    </span>
+                </div>
+                <p style="margin: 8px 0 0 0; font-size: 12.5px; color: #166534; line-height: 1.4;">
+                    Target ini dihitung dari jumlah hari efektif kerja (mengabaikan akhir pekan dan libur nasional) dikalikan standar 8 jam kerja harian.
+                </p>
+            </div>
+        `;
+
+        thead.innerHTML = `
+            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">No</th>
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">Nama Karyawan</th>
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">Posisi / Departemen</th>
+                <th style="padding: 12px 14px; text-align: right; font-weight: 700;">Target Jam</th>
+                <th style="padding: 12px 14px; text-align: right; font-weight: 700;">Realisasi Jam</th>
+                <th style="padding: 12px 14px; text-align: center; font-weight: 700;">Persentase Pemenuhan</th>
+            </tr>
+        `;
+
+        renderAttDetailTableRows(empList.map((e, idx) => {
+            const pct = expected > 0 ? Math.min(100, Math.round((e.actualHours / expected) * 100)) : 0;
+            const badgeBg = pct >= 100 ? '#f0fdf4' : (pct >= 80 ? '#fffbe6' : '#fef2f2');
+            const badgeColor = pct >= 100 ? '#16a34a' : (pct >= 80 ? '#d97706' : '#dc2626');
+
+            return `
+                <tr class="att-detail-row" data-search="${e.name.toLowerCase()} ${e.position.toLowerCase()}" style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px 14px;">${idx + 1}</td>
+                    <td style="padding: 10px 14px; font-weight: 600; color: #1e293b;">${e.name}</td>
+                    <td style="padding: 10px 14px; color: #64748b;">${e.position}</td>
+                    <td style="padding: 10px 14px; text-align: right; font-weight: 600;">${expected} Jam</td>
+                    <td style="padding: 10px 14px; text-align: right; font-weight: 700; color: #14532d;">${e.actualHours.toFixed(1)} Jam</td>
+                    <td style="padding: 10px 14px; text-align: center;">
+                        <span style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 800; padding: 3px 10px; border-radius: 6px; font-size: 12px;">
+                            ${pct}%
+                        </span>
+                    </td>
+                </tr>
+            `;
+        }));
+
+    } else if (type === 'tenure') {
+        header.style.background = 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)';
+        icon.className = 'fas fa-history';
+        title.innerText = 'Rincian Akumulasi Masa Kerja Karyawan';
+        subtitle.innerText = 'Rata-rata dan total durasi masa kerja karyawan hingga periode ini';
+
+        const tenureList = (summary.tenure_details && summary.tenure_details.length > 0) 
+            ? summary.tenure_details 
+            : [];
+
+        const avgTenure = summary.avg_tenure_months || 0;
+        const maxTenure = summary.max_tenure_months || 0;
+
+        statBanner.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 12px; padding: 14px 18px;">
+                <div>
+                    <span style="font-size: 11px; color: #6b21a8; font-weight: 700; text-transform: uppercase;">Rata-rata Masa Kerja</span>
+                    <h4 style="margin: 2px 0 0 0; font-size: 20px; font-weight: 800; color: #581c87;">${avgTenure} Bulan</h4>
+                </div>
+                <div>
+                    <span style="font-size: 11px; color: #6b21a8; font-weight: 700; text-transform: uppercase;">Masa Kerja Tertinggi</span>
+                    <h4 style="margin: 2px 0 0 0; font-size: 20px; font-weight: 800; color: #7e22ce;">${maxTenure} Bulan</h4>
+                </div>
+                <div>
+                    <span style="font-size: 11px; color: #6b21a8; font-weight: 700; text-transform: uppercase;">Total Karyawan Terdaftar</span>
+                    <h4 style="margin: 2px 0 0 0; font-size: 20px; font-weight: 800; color: #9333ea;">${tenureList.length} Karyawan</h4>
+                </div>
+            </div>
+        `;
+
+        thead.innerHTML = `
+            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; color: #475569;">
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">No</th>
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">Nama Karyawan</th>
+                <th style="padding: 12px 14px; text-align: left; font-weight: 700;">NIK & Posisi</th>
+                <th style="padding: 12px 14px; text-align: center; font-weight: 700;">Tanggal Masuk</th>
+                <th style="padding: 12px 14px; text-align: center; font-weight: 700;">Tipe Perjanjian</th>
+                <th style="padding: 12px 14px; text-align: right; font-weight: 700;">Akumulasi Masa Kerja</th>
+            </tr>
+        `;
+
+        if (tenureList.length === 0) {
+            const empMap = {};
+            logs.forEach(l => {
+                const empId = l.employee_id || l.employee_name;
+                if (!empMap[empId]) {
+                    empMap[empId] = {
+                        nama: l.employee_name || 'Karyawan',
+                        nik: l.nik || '-',
+                        position_name: l.position_name || '-',
+                        tgl_masuk: l.tgl_masuk || l.start_contract || '-',
+                        tipe_perjanjian: l.tipe_perjanjian || 'PKWT',
+                        tenure_months: avgTenure
+                    };
+                }
+            });
+            Object.values(empMap).forEach(e => tenureList.push(e));
+        }
+
+        renderAttDetailTableRows(tenureList.map((e, idx) => {
+            const m = parseInt(e.tenure_months || 0);
+            const yrs = Math.floor(m / 12);
+            const rM = m % 12;
+            let tenureText = `${m} Bulan`;
+            if (yrs > 0) {
+                tenureText = `${yrs} Thn ${rM} Bln (${m} Bln)`;
+            }
+
+            return `
+                <tr class="att-detail-row" data-search="${e.nama.toLowerCase()} ${(e.nik||'').toLowerCase()} ${(e.position_name||'').toLowerCase()}" style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px 14px;">${idx + 1}</td>
+                    <td style="padding: 10px 14px; font-weight: 600; color: #1e293b;">${e.nama}</td>
+                    <td style="padding: 10px 14px; color: #64748b;">${e.nik !== '-' ? e.nik + ' - ' : ''}${e.position_name}</td>
+                    <td style="padding: 10px 14px; text-align: center; color: #475569;">${e.tgl_masuk}</td>
+                    <td style="padding: 10px 14px; text-align: center;"><span style="background: #f3f4f6; color: #374151; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${e.tipe_perjanjian || 'PKWT'}</span></td>
+                    <td style="padding: 10px 14px; text-align: right; font-weight: 700; color: #581c87;">${tenureText}</td>
+                </tr>
+            `;
+        }));
+    }
+
+    modal.style.display = 'flex';
+}
+
+function renderAttDetailTableRows(rowsHtmlArray) {
+    const tbody = document.getElementById('modalAttDetailTbody');
+    if (!tbody) return;
+
+    if (!rowsHtmlArray || rowsHtmlArray.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 30px; color: #94a3b8;">Tidak ada data rincian untuk ditampilkan.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = rowsHtmlArray.join('');
+}
+
+function filterAttDetailRows() {
+    const query = document.getElementById('searchAttDetailInput').value.toLowerCase().trim();
+    document.querySelectorAll('.att-detail-row').forEach(row => {
+        const searchData = row.dataset.search || '';
+        if (query === '' || searchData.includes(query)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function closeAttendanceCardDetailModal() {
+    const modal = document.getElementById('modalAttendanceCardDetail');
+    if (modal) modal.style.display = 'none';
+}
+
+window.showAttendanceSummaryDetail = showAttendanceSummaryDetail;
+window.closeAttendanceCardDetailModal = closeAttendanceCardDetailModal;
+window.filterAttDetailRows = filterAttDetailRows;
 

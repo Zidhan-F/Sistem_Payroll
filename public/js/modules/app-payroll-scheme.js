@@ -135,8 +135,16 @@ async function renderPayrollSchemes() {
     }
 
 async function bukaModalSkema(mode, id = null) {
-    document.getElementById('modalSkema').style.display = 'block';
-    document.getElementById('overlay').style.display = 'block';
+    const modal = document.getElementById('modalSkema');
+    const overlay = document.getElementById('overlay');
+    if (modal) {
+        modal.style.display = 'block';
+        modal.style.zIndex = '2050';
+    }
+    if (overlay) {
+        overlay.style.display = 'block';
+        overlay.style.zIndex = '2040';
+    }
 
     try {
         const compRes = await fetch(`${API_URL}/compensation-schemes`);

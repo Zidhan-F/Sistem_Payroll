@@ -257,19 +257,81 @@ class Api extends ResourceController
                 return $this->failUnauthorized('Akun Anda belum disetujui atau belum diberi role oleh Administrator.');
             }
 
+            $userClientModel = new \App\Models\UserClientModel();
+            $allowedClientIds = [];
+            $role = $user->role ?? 'admin';
+
+            if ($role === 'admin') {
+                $allowedClientIds = ['all'];
+            } else {
+                $allowedClientIds = $userClientModel->getUserClientIds($user->id);
+            }
+
+            session()->set([
+                'user_id'            => $user->id,
+                'username'           => $user->username,
+                'role'               => $role,
+                'allowed_client_ids' => $allowedClientIds
+            ]);
+
             $this->logActivity("User login berhasil", $user->username);
             return $this->respond([
                 'message' => 'Login successful',
                 'user' => [
-                    'id'        => $user->id,
-                    'username'  => $user->username,
-                    'role'      => $user->role ?? 'admin',
-                    'full_name' => $user->full_name ?? $user->username
+                    'id'                 => $user->id,
+                    'username'           => $user->username,
+                    'email'              => $user->email ?? '',
+                    'role'               => $role,
+                    'full_name'          => $user->full_name ?? $user->username,
+                    'allowed_client_ids' => $allowedClientIds
                 ]
             ]);
         }
 
         return $this->failUnauthorized('Username/Email atau password salah');
+    }
+
+    /**
+     * Helper to get allowed client_id array for current logged in user.
+     * Returns null if admin (unrestricted).
+     * Returns array of allowed client_ids for restricted roles.
+     */
+    private function getAllowedClientIdsForCurrentUser()
+    {
+        $sessRole = session()->get('role');
+        $userId = session()->get('user_id');
+
+        // Admin has full access to all clients
+        if ($sessRole === 'admin' || !$sessRole) {
+            return null;
+        }
+
+        // For non-admin roles (recruiter, hc_ops, payroll, business_development, client_superior, etc.)
+        $userClientModel = new \App\Models\UserClientModel();
+        $clientIds = $userClientModel->getUserClientIds($userId);
+        return !empty($clientIds) ? $clientIds : [-1];
+    }
+
+    public function getUserClients($userId)
+    {
+        $userClientModel = new \App\Models\UserClientModel();
+        $clientIds = $userClientModel->getUserClientIds($userId);
+        return $this->respond(['user_id' => intval($userId), 'client_ids' => $clientIds]);
+    }
+
+    public function assignUserClients($userId)
+    {
+        $data = $this->request->getJSON(true);
+        $clientIds = $data['client_ids'] ?? [];
+        if (!is_array($clientIds)) {
+            $clientIds = [];
+        }
+
+        $userClientModel = new \App\Models\UserClientModel();
+        $userClientModel->syncUserClients($userId, $clientIds);
+
+        $this->logActivity("Memperbarui penugasan Klien untuk User ID: " . $userId);
+        return $this->respond(['message' => 'User clients updated successfully', 'client_ids' => $clientIds]);
     }
 
     public function getMinimumWages()
@@ -323,7 +385,12 @@ class Api extends ResourceController
     // --- CLIENTS ---
     public function getClients()
     {
-        $clients = $this->db->table('clients')->get()->getResult();
+        $query = $this->db->table('clients');
+        $allowedClientIds = $this->getAllowedClientIdsForCurrentUser();
+        if ($allowedClientIds !== null) {
+            $query->whereIn('id', $allowedClientIds);
+        }
+        $clients = $query->get()->getResult();
         foreach ($clients as &$client) {
             if (isset($client->npwp)) {
                 $client->npwp = (string)$client->npwp;
@@ -1720,11 +1787,90 @@ class Api extends ResourceController
             }
         }
 
+        // Calculate summary metrics
+        $totalActualHours = 0.0;
+        foreach ($logs as $l) {
+            $totalActualHours += floatval($l['calculated_work_hours'] ?? 0);
+        }
+        $totalActualHours = round($totalActualHours, 2);
+
+        // Calculate expected hours for the month (excluding weekends & holidays)
+        $expectedHours = 0;
+        if ($bulan && $tahun) {
+            $numDaysInMonth = intval(date('t', mktime(0, 0, 0, intval($bulan), 1, intval($tahun))));
+            $workDaysCount = 0;
+            for ($d = 1; $d <= $numDaysInMonth; $d++) {
+                $dateStr = sprintf('%04d-%02d-%02d', intval($tahun), intval($bulan), $d);
+                $dayOfWeek = date('w', strtotime($dateStr));
+                if ($dayOfWeek != 0 && $dayOfWeek != 6 && !isset($holidays[$dateStr])) {
+                    $workDaysCount++;
+                }
+            }
+            $expectedHours = $workDaysCount * 8; // Standard 8 hours per workday
+        }
+
+        // Calculate tenure in months for employee(s)
+        $tenureDetails = [];
+        $tenureMonthsList = [];
+        $employeeIds = array_unique(array_column($logs, 'employee_id'));
+        if (empty($employeeIds) && $employeeId) {
+            $employeeIds = [intval($employeeId)];
+        }
+        if (empty($employeeIds) && $clientId) {
+            $empRows = $this->db->table('employees')
+                ->select('employees.id, employees.nik, employees.nama, employees.tgl_masuk, employees.start_contract, employees.tipe_perjanjian, positions.nama as position_name')
+                ->join('positions', 'positions.id = employees.position_id', 'left')
+                ->where('employees.client_id', intval($clientId))
+                ->get()->getResultArray();
+        } else if (!empty($employeeIds)) {
+            $empRows = $this->db->table('employees')
+                ->select('employees.id, employees.nik, employees.nama, employees.tgl_masuk, employees.start_contract, employees.tipe_perjanjian, positions.nama as position_name')
+                ->join('positions', 'positions.id = employees.position_id', 'left')
+                ->whereIn('employees.id', $employeeIds)
+                ->get()->getResultArray();
+        } else {
+            $empRows = [];
+        }
+
+        $targetYear = $tahun ? intval($tahun) : intval(date('Y'));
+        $targetMonth = $bulan ? intval($bulan) : intval(date('n'));
+
+        foreach ($empRows as $er) {
+            $jDate = !empty($er['tgl_masuk']) ? $er['tgl_masuk'] : ($er['start_contract'] ?? null);
+            $mWorked = 0;
+            if ($jDate) {
+                $jYear = intval(date('Y', strtotime($jDate)));
+                $jMonth = intval(date('n', strtotime($jDate)));
+                $mWorked = max(1, ($targetYear - $jYear) * 12 + ($targetMonth - $jMonth) + 1);
+                $tenureMonthsList[] = $mWorked;
+            }
+            $tenureDetails[] = [
+                'id'              => $er['id'],
+                'nik'             => $er['nik'] ?? '-',
+                'nama'            => $er['nama'],
+                'position_name'   => $er['position_name'] ?? '-',
+                'tgl_masuk'       => $jDate ? date('Y-m-d', strtotime($jDate)) : '-',
+                'tipe_perjanjian' => $er['tipe_perjanjian'] ?? 'PKWT',
+                'tenure_months'   => $mWorked
+            ];
+        }
+
+        $avgTenureMonths = !empty($tenureMonthsList) ? round(array_sum($tenureMonthsList) / count($tenureMonthsList), 1) : 0;
+        $maxTenureMonths = !empty($tenureMonthsList) ? max($tenureMonthsList) : 0;
+
         return $this->respond([
             'data' => $logs,
             'is_late_upload' => $isLateUpload,
             'cutoff_date' => $cutoffDateStr,
-            'holidays' => $holidays
+            'holidays' => $holidays,
+            'summary' => [
+                'total_actual_hours' => $totalActualHours,
+                'expected_hours'     => $expectedHours,
+                'work_days_count'    => $workDaysCount ?? 19,
+                'avg_tenure_months'  => $avgTenureMonths,
+                'max_tenure_months'  => $maxTenureMonths,
+                'tenure_details'     => $tenureDetails
+            ]
         ]);
     }
 
@@ -2454,6 +2600,17 @@ class Api extends ResourceController
                     } elseif ($payrollConfig->payroll_type === 'Nominal') {
                         if ($payrollConfig->custom_nominal > 0) {
                             $baseSalary = floatval($payrollConfig->custom_nominal);
+                        }
+                    } elseif (!empty($payrollConfig->payroll_scheme_id)) {
+                        $schemeComp = $db->table('payroll_components')
+                            ->where('scheme_id', $payrollConfig->payroll_scheme_id)
+                            ->groupStart()
+                                ->where('jenis_komponen', 'basic_salary')
+                                ->orLike('nama', 'Gaji Pokok')
+                            ->groupEnd()
+                            ->get()->getRow();
+                        if ($schemeComp && floatval($schemeComp->nilai) > 0) {
+                            $baseSalary = floatval($schemeComp->nilai);
                         }
                     }
                 }
@@ -4523,8 +4680,9 @@ class Api extends ResourceController
                         }
                         $base_nilai = $kompTetapValue * ($base_nilai / 100);
                     } else {
-                        // Force base_nilai to use Employee's setup if available!
-                        if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
+                        if ($base_nilai > 0) {
+                            // Keep base_nilai from component / scheme!
+                        } else if ($emp && isset($emp->gaji_pokok) && floatval($emp->gaji_pokok) > 0) {
                             $base_nilai = floatval($emp->gaji_pokok);
                         } else if ($minimumWage > 0) {
                             $base_nilai = $minimumWage;
@@ -4535,7 +4693,25 @@ class Api extends ResourceController
                     
                     // Scale by period
                     if (isset($comp->periode)) {
-                        if ($comp->periode === 'hari' || $comp->periode === 'hari_kerja') {
+                        if ($comp->periode === 'jam') {
+                            $actualHours = 0.0;
+                            if ($emp && !empty($emp->id)) {
+                                $hrsRow = $this->db->table('attendance_logs')
+                                    ->selectSum('calculated_work_hours')
+                                    ->where('employee_id', $emp->id)
+                                    ->where('log_date >=', $startDateStr)
+                                    ->where('log_date <=', $endDateStr)
+                                    ->get()->getRow();
+                                if ($hrsRow && floatval($hrsRow->calculated_work_hours) > 0) {
+                                    $actualHours = floatval($hrsRow->calculated_work_hours);
+                                }
+                            }
+                            if ($actualHours <= 0) {
+                                $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
+                                $actualHours = $days * 8;
+                            }
+                            $base_nilai = $base_nilai * $actualHours;
+                        } elseif ($comp->periode === 'hari' || $comp->periode === 'hari_kerja') {
                             $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                             $base_nilai = $base_nilai * $days;
                         } elseif ($comp->periode === 'minggu') {
@@ -4955,7 +5131,25 @@ class Api extends ResourceController
                         }
                         
                         // Scale by period
-                        if ($comp->periode === 'hari' || $comp->periode === 'hari_kerja') {
+                        if ($comp->periode === 'jam') {
+                            $actualHours = 0.0;
+                            if ($emp && !empty($emp->id)) {
+                                $hrsRow = $this->db->table('attendance_logs')
+                                    ->selectSum('calculated_work_hours')
+                                    ->where('employee_id', $emp->id)
+                                    ->where('log_date >=', $startDateStr)
+                                    ->where('log_date <=', $endDateStr)
+                                    ->get()->getRow();
+                                if ($hrsRow && floatval($hrsRow->calculated_work_hours) > 0) {
+                                    $actualHours = floatval($hrsRow->calculated_work_hours);
+                                }
+                            }
+                            if ($actualHours <= 0) {
+                                $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
+                                $actualHours = $days * 8;
+                            }
+                            $nilai = $base_nilai * $actualHours;
+                        } elseif ($comp->periode === 'hari' || $comp->periode === 'hari_kerja') {
                             $days = ($att && isset($att->hari_kerja) && $att->hari_kerja !== null) ? intval($att->hari_kerja) : $stdWorkingDays;
                             $nilai = $base_nilai * $days;
                         } elseif ($comp->periode === 'minggu') {
@@ -5119,7 +5313,7 @@ class Api extends ResourceController
                 // === Early Arrival Calculation ===
                 $companySetting = $this->db->table('company_payroll_setting')->get()->getRowArray();
                 $minMinutes = isset($companySetting['early_arrival_min_minutes']) ? intval($companySetting['early_arrival_min_minutes']) : 30;
-                $calcUnit = isset($companySetting['early_arrival_calculation_unit']) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
+                $calcUnit = (isset($companySetting['early_arrival_calculation_unit']) && intval($companySetting['early_arrival_calculation_unit']) > 0) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
                 $roundingMethod = $companySetting['early_arrival_rounding_method'] ?? 'CEILING';
                 $maxMinutes = isset($companySetting['max_early_arrival_minutes']) ? intval($companySetting['max_early_arrival_minutes']) : 180;
                 $earlyArrivalEnabled = isset($companySetting['early_arrival_enabled']) ? intval($companySetting['early_arrival_enabled']) : 1;
@@ -5613,6 +5807,10 @@ class Api extends ResourceController
         if ($clientId) {
             $query->where('pkwt.client_id', $clientId);
         }
+        $allowedClientIds = $this->getAllowedClientIdsForCurrentUser();
+        if ($allowedClientIds !== null) {
+            $query->whereIn('pkwt.client_id', $allowedClientIds);
+        }
         $data = $query->get()->getResult();
 
         foreach ($data as &$row) {
@@ -5673,6 +5871,32 @@ class Api extends ResourceController
                 $row->payable_days = $payableDaysCount;
             }
             $row->work_days_per_week = $workDaysConfig;
+            $row->target_work_hours = floatval($row->payable_days) * 8.0;
+
+            // Query actual worked hours from attendance_logs for this employee in this period
+            $actualHours = 0.0;
+            if (!empty($row->employee_name) && !empty($row->client_id)) {
+                $empObj = $this->db->table('employees')
+                    ->select('id')
+                    ->where('nama', $row->employee_name)
+                    ->where('client_id', $row->client_id)
+                    ->get()->getRow();
+                if ($empObj) {
+                    $hrsRow = $this->db->table('attendance_logs')
+                        ->selectSum('calculated_work_hours')
+                        ->where('employee_id', $empObj->id)
+                        ->where('log_date >=', $periodMonthStart)
+                        ->where('log_date <=', $periodMonthEnd)
+                        ->get()->getRow();
+                    if ($hrsRow && floatval($hrsRow->calculated_work_hours) > 0) {
+                        $actualHours = floatval($hrsRow->calculated_work_hours);
+                    }
+                }
+            }
+            if ($actualHours <= 0 && floatval($row->working_days) > 0) {
+                $actualHours = floatval($row->working_days) * 8.0;
+            }
+            $row->actual_work_hours = $actualHours;
 
             // Resolve Scheme Name
             $schemeName = '-';
@@ -5785,6 +6009,11 @@ class Api extends ResourceController
         if (!$row) {
             return $this->failNotFound('Data gaji not found');
         }
+
+        $allowedClientIds = $this->getAllowedClientIdsForCurrentUser();
+        if ($allowedClientIds !== null && !in_array((int)$row->client_id, $allowedClientIds)) {
+            return $this->failForbidden('Anda tidak memiliki akses untuk menyetujui gaji dari klien ini.');
+        }
         
         if ($row->status_approval === 'Hold') {
             // Check if it's a PKWT contract expired hold
@@ -5848,6 +6077,11 @@ class Api extends ResourceController
                             ->getRow();
             if (!$row) {
                 return $this->failNotFound('Data gaji tidak ditemukan (ID: ' . $id . ')');
+            }
+
+            $allowedClientIds = $this->getAllowedClientIdsForCurrentUser();
+            if ($allowedClientIds !== null && !in_array((int)$row->client_id, $allowedClientIds)) {
+                return $this->failForbidden('Anda tidak memiliki akses untuk menyetujui gaji karyawan ' . $row->employee_name . '.');
             }
             
             if ($row->status_approval === 'Hold') {
@@ -6164,7 +6398,7 @@ class Api extends ResourceController
             // 2. Hitung early arrival pay
             $companySetting = $this->db->table('company_payroll_setting')->get()->getRowArray();
             $minMinutes = isset($companySetting['early_arrival_min_minutes']) ? intval($companySetting['early_arrival_min_minutes']) : 30;
-            $calcUnit = isset($companySetting['early_arrival_calculation_unit']) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
+            $calcUnit = (isset($companySetting['early_arrival_calculation_unit']) && intval($companySetting['early_arrival_calculation_unit']) > 0) ? intval($companySetting['early_arrival_calculation_unit']) : 60;
             $roundingMethod = $companySetting['early_arrival_rounding_method'] ?? 'CEILING';
             $maxMinutes = isset($companySetting['max_early_arrival_minutes']) ? intval($companySetting['max_early_arrival_minutes']) : 180;
             $earlyArrivalEnabled = isset($companySetting['early_arrival_enabled']) ? intval($companySetting['early_arrival_enabled']) : 1;
@@ -7194,6 +7428,52 @@ class Api extends ResourceController
             if (isset($row['payable_days']) && floatval($row['working_days']) > floatval($row['payable_days'])) {
                 $row['working_days'] = floatval($row['payable_days']);
             }
+
+            $row['target_work_hours'] = floatval($row['payable_days']) * 8.0;
+
+            // Query actual worked hours from attendance_logs for this employee in this period
+            $actualHours = 0.0;
+            if (!empty($row['employee_name']) && !empty($row['client_id'])) {
+                $empObj = $this->db->table('employees')
+                    ->select('id')
+                    ->where('nama', $row['employee_name'])
+                    ->where('client_id', $row['client_id'])
+                    ->get()->getRow();
+                if ($empObj) {
+                    $hrsRow = $this->db->table('attendance_logs')
+                        ->selectSum('calculated_work_hours')
+                        ->where('employee_id', $empObj->id)
+                        ->where('log_date >=', $expPeriodMonthStart)
+                        ->where('log_date <=', $expPeriodMonthEnd)
+                        ->get()->getRow();
+                    if ($hrsRow && floatval($hrsRow->calculated_work_hours) > 0) {
+                        $actualHours = floatval($hrsRow->calculated_work_hours);
+                    }
+                }
+            }
+            if ($actualHours <= 0 && floatval($row['working_days']) > 0) {
+                $actualHours = floatval($row['working_days']) * 8.0;
+            }
+            $row['actual_work_hours'] = $actualHours;
+
+            // Resolve Scheme Name
+            $schemeName = '-';
+            $clientConfig = $this->resolveClientConfig($row['client_id'], $row['position_name'] ?? null);
+            if ($clientConfig) {
+                if ($clientConfig->payroll_type === 'Nominal') {
+                    $schemeName = 'Nominal (Rp ' . number_format($clientConfig->custom_nominal, 0, ',', '.') . ')';
+                } elseif ($clientConfig->payroll_type === 'UMP/UMK' || $clientConfig->payroll_type === 'UMP' || $clientConfig->payroll_type === 'UMK') {
+                    $schemeName = $clientConfig->payroll_type;
+                } elseif ($clientConfig->payroll_type === 'Template' && $clientConfig->payroll_scheme_id) {
+                    $payrollScheme = $this->db->table('payroll_schemes')
+                                              ->where('id', $clientConfig->payroll_scheme_id)
+                                              ->get()->getRow();
+                    if ($payrollScheme) {
+                        $schemeName = $payrollScheme->nama;
+                    }
+                }
+            }
+            $row['scheme_name'] = $schemeName;
         }
         
         if ($this->request->getGet('format') === 'json') {
@@ -8601,7 +8881,7 @@ class Api extends ResourceController
                         if (isset($comp->sumber_nilai) && ($comp->sumber_nilai === 'ump' || $comp->sumber_nilai === 'umk' || $comp->sumber_nilai === 'kompensasi')) {
                             $nilai = $comp->nilai;
                         } else {
-                            $nilai = $basicSalary;
+                            $nilai = ($basicSalary > 0) ? $basicSalary : floatval($comp->nilai);
                         }
                     }
 

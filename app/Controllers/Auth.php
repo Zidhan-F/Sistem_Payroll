@@ -52,20 +52,33 @@ class Auth extends ResourceController
                 return $this->failUnauthorized('Akun Anda belum disetujui atau belum diberi role oleh Administrator.');
             }
 
+            $userClientModel = new \App\Models\UserClientModel();
+            $allowedClientIds = [];
+            $role = $user['role'] ?? 'admin';
+
+            if ($role === 'admin') {
+                $allowedClientIds = ['all'];
+            } else {
+                $allowedClientIds = $userClientModel->getUserClientIds($user['id']);
+            }
+
             session()->set([
-                'user_id'  => $user['id'] ?? 1,
-                'username' => $user['username'],
-                'role'     => $user['role'] ?? 'admin'
+                'user_id'            => $user['id'] ?? 1,
+                'username'           => $user['username'],
+                'role'               => $role,
+                'allowed_client_ids' => $allowedClientIds
             ]);
 
             return $this->respond([
                 'success' => true,
                 'message' => 'Login successful',
                 'user'    => [
-                    'username'  => $user['username'],
-                    'email'     => $user['email'],
-                    'role'      => $user['role'] ?? 'admin',
-                    'full_name' => $user['full_name'] ?? $user['username']
+                    'id'                 => $user['id'],
+                    'username'           => $user['username'],
+                    'email'              => $user['email'],
+                    'role'               => $role,
+                    'full_name'          => $user['full_name'] ?? $user['username'],
+                    'allowed_client_ids' => $allowedClientIds
                 ]
             ]);
         }
