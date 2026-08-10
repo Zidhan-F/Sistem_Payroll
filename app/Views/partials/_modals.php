@@ -501,30 +501,30 @@
     </div>
 
     <!-- Organization Form Modal -->
-    <div id="modalOrg" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 450px; border-radius: 12px; z-index: 2050; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); overflow: hidden;">
-        <div class="modal-header">
-            <h3 id="modalOrgTitle">Add Division</h3>
-            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalOrg()"></i>
+    <div id="modalOrg" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 450px; max-width: 95vw; border-radius: 12px; z-index: 2050; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15); overflow: hidden; box-sizing: border-box;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+            <h3 id="modalOrgTitle" style="color: white; margin: 0; font-size: 17px; font-weight: 700;">Add Division</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 16px; opacity: 0.9;" onclick="tutupModalOrg()"></i>
         </div>
-        <form id="formOrg">
-            <div class="modal-body">
+        <form id="formOrg" style="margin: 0;">
+            <div class="modal-body" style="padding: 24px;">
                 <input type="hidden" id="orgId">
                 <input type="hidden" id="orgParentId">
                 <input type="hidden" id="orgType">
 
-                <div class="form-group">
-                    <label id="labelOrgName">Division Name</label>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label id="labelOrgName" style="font-weight: 600; font-size: 13px; color: #334155; display: block; margin-bottom: 8px;">Division Name</label>
                     <input type="hidden" id="orgName">
                     <select id="orgNameSelect" style="width: 100%;" required>
                         <option value="">-- Select Name --</option>
                     </select>
-                    <div id="quickBadgeContainer" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; display: none;"></div>
+                    <div id="quickBadgeContainer" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; display: none;"></div>
                 </div>
                 <!-- Extra Fields (Hanya untuk Posisi) -->
-                <div id="posExtraFields" style="display: none;">
-                    <div class="form-group">
-                        <label>Position Level</label>
-                        <select id="posLevel" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; font-size: 14px;">
+                <div id="posExtraFields" style="display: none; margin-top: 16px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-weight: 600; font-size: 13px; color: #334155; display: block; margin-bottom: 8px;">Position Level</label>
+                        <select id="posLevel" style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; font-size: 14px; background: white;">
                             <option value="">-- Select Level --</option>
                             <option value="Intern">Intern</option>
                             <option value="Junior">Junior</option>
@@ -537,9 +537,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="tutupModalOrg()">Cancel</button>
-                <button type="submit" class="btn-save">Save</button>
+            <div class="modal-footer" style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-cancel" onclick="tutupModalOrg()" style="padding: 10px 20px; border-radius: 8px; font-weight: 600; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn-save" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save</button>
             </div>
         </form>
     </div>

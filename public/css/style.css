@@ -2898,43 +2898,43 @@ html.modal-open {
 }
 
 .ts-wrapper .ts-control {
-    border: 1px solid var(--primary-color) !important;
-    border-radius: 10px !important;
-    padding: 12px 14px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
     font-size: 14px !important;
-    background: var(--white) !important;
+    background: #ffffff !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    min-height: 45px;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    min-height: 42px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .ts-wrapper:hover .ts-control {
-    border-color: #d6840f !important;
+    border-color: #9ca3af !important;
 }
 
 .ts-wrapper.focus .ts-control {
     border-color: var(--primary-color) !important;
-    box-shadow:
-        0 0 0 3px rgba(243, 156, 18, 0.25),
-        0 1px 3px rgba(0, 0, 0, 0.06) !important;
-}
-
-.ts-wrapper.focus:hover .ts-control {
-    border-color: #d6840f !important;
+    box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.2) !important;
 }
 
 .ts-wrapper.disabled .ts-control {
     background-color: #f8fafc !important;
-    border-color: rgba(243, 156, 18, 0.4) !important;
+    border-color: #e2e8f0 !important;
     opacity: 0.7;
     cursor: not-allowed;
 }
 
 /* Fix for Tom Select search input inheriting global form group styles */
-.ts-wrapper .ts-control input {
+.ts-wrapper .ts-control input,
+.ts-wrapper .ts-control input:focus,
+.ts-wrapper .ts-control input:hover,
+.ts-wrapper .ts-control input:active {
     border: none !important;
+    outline: none !important;
     background: transparent !important;
     box-shadow: none !important;
     padding: 0 !important;
@@ -2942,28 +2942,36 @@ html.modal-open {
     border-radius: 0 !important;
     height: auto !important;
     min-height: 0 !important;
+    font-size: 14px !important;
+    line-height: inherit !important;
+    color: #1e293b !important;
+    width: auto !important;
 }
 
 /* Tom Select Dropdown List Styling */
 .ts-dropdown {
     border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-    margin-top: 5px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+    margin-top: 4px !important;
     overflow: hidden !important;
-    background: var(--white) !important;
-    z-index: 1050 !important;
+    background: #ffffff !important;
+    z-index: 2100 !important;
 }
 
 .ts-dropdown .option {
     padding: 10px 14px !important;
     font-size: 14px !important;
-    transition: background 0.2s ease, color 0.2s ease;
+    color: #334155 !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease, color 0.15s ease !important;
 }
 
+.ts-dropdown .option:hover,
 .ts-dropdown .option.active {
-    background-color: rgba(243, 156, 18, 0.1) !important;
-    color: var(--primary-dark) !important;
+    background-color: #fff7ed !important;
+    color: var(--primary-color) !important;
+    font-weight: 600 !important;
 }
 
 

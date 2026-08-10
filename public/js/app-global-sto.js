@@ -184,24 +184,37 @@ async function populateOrgNameSelect(type, selectedValue = '') {
         const response = await fetch(`${GLOBAL_STO_API}${endpoint}`);
         const data = await response.json();
 
-        data.forEach(item => {
+        if (Array.isArray(data)) {
+            data.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.nama;
+                opt.innerText = item.nama;
+                if (selectedValue && item.nama === selectedValue) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+
+        // If selectedValue is not in master list, append it as option
+        if (selectedValue && (!Array.isArray(data) || !data.some(item => item.nama === selectedValue))) {
             const opt = document.createElement('option');
-            opt.value = item.nama;
-            opt.innerText = item.nama;
-            if (selectedValue && item.nama === selectedValue) {
-                opt.selected = true;
-            }
+            opt.value = selectedValue;
+            opt.innerText = selectedValue;
+            opt.selected = true;
             select.appendChild(opt);
-        });
+        }
 
         // Initialize or rebuild TomSelect
         if (window.orgNameSelectInstance) {
             window.orgNameSelectInstance.destroy();
         }
 
+        const typeLabel = type === 'divisi' ? 'division' : type === 'department' ? 'department' : 'position';
         window.orgNameSelectInstance = new TomSelect(select, {
-            create: false,
-            placeholder: `Search and select ${type === 'divisi' ? 'division' : type === 'department' ? 'department' : 'position'}...`,
+            create: true,
+            persist: false,
+            placeholder: `Search or enter new ${typeLabel} name...`,
             sortField: { field: "text", direction: "asc" }
         });
 
@@ -209,7 +222,7 @@ async function populateOrgNameSelect(type, selectedValue = '') {
         window.orgNameSelectInstance.on('change', function(val) {
             const orgNameInput = document.getElementById('orgName');
             if (orgNameInput) {
-                orgNameInput.value = val;
+                orgNameInput.value = val || '';
             }
         });
         
