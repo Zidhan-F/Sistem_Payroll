@@ -2579,19 +2579,19 @@
     </div>
 
     <!-- Select Scheme Modal (New Pop-up) -->
-    <div id="overlayPilihSkema" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000;" onclick="tutupModalPilihSkema()"></div>
-    <div id="modalPilihSkema" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; max-width: 90%; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 2001; overflow: hidden; font-family: 'Inter', sans-serif;">
-        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px 20px;">
-            <h3 id="modalPilihSkemaTitle" style="margin: 0; font-size: 18px; font-weight: 600; color: white;">Select Scheme</h3>
-            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalPilihSkema()"></i>
+    <div id="overlayPilihSkema" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2090;" onclick="tutupModalPilihSkema()"></div>
+    <div id="modalPilihSkema" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; max-width: 90vw; background: white; border-radius: 12px; box-shadow: 0 20px 30px rgba(0,0,0,0.25); z-index: 2100; overflow: hidden; font-family: 'Inter', sans-serif;">
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px;">
+            <h3 id="modalPilihSkemaTitle" style="margin: 0; font-size: 17px; font-weight: 700; color: white;">Select Scheme</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 16px;" onclick="tutupModalPilihSkema()"></i>
         </div>
         <div class="modal-body" style="padding: 20px; max-height: 400px; overflow-y: auto;">
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                 <thead>
-                    <tr style="border-bottom: 2px solid #cbd5e1; color: #475569; background: #e2e8f0;">
-                        <th style="padding: 10px 8px; text-align: center; width: 60px;">Select</th>
-                        <th style="padding: 10px 8px; text-align: left; width: 35%;">Scheme Name</th>
-                        <th style="padding: 10px 8px; text-align: left; width: 60%;">Allowance</th>
+                    <tr style="border-bottom: 2px solid #cbd5e1; color: #475569; background: #f1f5f9;">
+                        <th style="padding: 10px 12px; text-align: center; width: 60px;">Select</th>
+                        <th style="padding: 10px 12px; text-align: left; width: 35%;">Scheme Name</th>
+                        <th style="padding: 10px 12px; text-align: left; width: 60%;">Allowance</th>
                     </tr>
                 </thead>
                 <tbody id="modalPilihSkemaBody">
@@ -2599,9 +2599,9 @@
                 </tbody>
             </table>
         </div>
-        <div class="modal-footer" style="padding: 15px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
-            <button type="button" class="btn-cancel" onclick="tutupModalPilihSkema()" style="margin: 0; padding: 10px 20px;">Cancel</button>
-            <button type="button" class="btn-save" onclick="terapkanPilihanSkema()" style="margin: 0; padding: 10px 20px; background: #0d6efd; color: white;">Apply</button>
+        <div class="modal-footer" style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+            <button type="button" class="btn-cancel" onclick="tutupModalPilihSkema()" style="margin: 0; padding: 10px 20px; border-radius: 8px; font-weight: 600; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer;">Cancel</button>
+            <button type="button" class="btn-save" onclick="terapkanPilihanSkema()" style="margin: 0; padding: 10px 24px; background: var(--primary-color); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Apply</button>
         </div>
     </div>
 

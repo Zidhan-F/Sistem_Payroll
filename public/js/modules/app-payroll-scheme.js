@@ -326,7 +326,7 @@ function formatRupiahVal(val) {
     return rupiahFormatter.format(val);
 }
 
-function bukaModalPilihSkema(sifat) {
+async function bukaModalPilihSkema(sifat) {
     window.activePilihSkemaSifat = sifat;
     
     const titleEl = document.getElementById('modalPilihSkemaTitle');
@@ -334,6 +334,15 @@ function bukaModalPilihSkema(sifat) {
     if (!titleEl || !bodyEl) return;
 
     titleEl.innerText = sifat === 'tetap' ? 'Select Fixed Allowance Scheme' : 'Select Variable Allowance Scheme';
+
+    if (!window.compensationSchemes || window.compensationSchemes.length === 0) {
+        try {
+            const compRes = await fetch(`${API_URL}/compensation-schemes`);
+            window.compensationSchemes = await compRes.json();
+        } catch (err) {
+            console.error('Error fetching compensation schemes in bukaModalPilihSkema:', err);
+        }
+    }
 
     const filteredSchemes = (window.compensationSchemes || []).filter(s => 
         (s.components || []).some(c => c.sifat_kompensasi === sifat)
@@ -372,7 +381,7 @@ function bukaModalPilihSkema(sifat) {
             return `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="padding: 10px 8px; text-align: center; vertical-align: middle;">
-                        <input type="checkbox" class="modal-choice-scheme-checkbox" value="${s.id}" ${checkedAttr} style="cursor: pointer; width: 16px; height: 16px;">
+                        <input type="checkbox" class="modal-choice-scheme-checkbox" value="${s.id}" ${checkedAttr} style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-color);">
                     </td>
                     <td style="padding: 10px 8px; font-weight: 600; color: #1e293b; vertical-align: middle;">${s.nama}</td>
                     <td style="padding: 10px 8px; vertical-align: middle; line-height: 1.5;">${compsList}</td>
@@ -381,8 +390,16 @@ function bukaModalPilihSkema(sifat) {
         }).join('');
     }
 
-    document.getElementById('overlayPilihSkema').style.display = 'block';
-    document.getElementById('modalPilihSkema').style.display = 'block';
+    const overlay = document.getElementById('overlayPilihSkema');
+    const modal = document.getElementById('modalPilihSkema');
+    if (overlay) {
+        overlay.style.display = 'block';
+        overlay.style.zIndex = '2090';
+    }
+    if (modal) {
+        modal.style.display = 'block';
+        modal.style.zIndex = '2100';
+    }
 }
 
 function tutupModalPilihSkema() {
