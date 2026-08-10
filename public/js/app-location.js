@@ -192,9 +192,6 @@ async function bukaModalLokasiKerja() {
     if (clientSelect) {
         clientSelect.disabled = false;
     }
-    if (window.locClientSelectInstance) {
-        window.locClientSelectInstance.enable();
-    }
     
     await populateLocClients();
     await populateProvinsiKotaLists();
@@ -290,18 +287,16 @@ async function populateLocClients() {
     // Save current selection value
     const currentVal = clientSelect.value;
     
-    if (window.locClientSelectInstance) {
-        window.locClientSelectInstance.destroy();
-    }
-    
     clientSelect.innerHTML = '<option value="">-- Select Client --</option>';
     
     try {
         const r = await fetch('/api/clients');
         const clientsData = await r.json();
-        clientsData.forEach(c => {
-            clientSelect.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
-        });
+        if (Array.isArray(clientsData)) {
+            clientsData.forEach(c => {
+                clientSelect.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
+            });
+        }
         
         if (window.selectedClientId) {
             clientSelect.value = window.selectedClientId;
@@ -310,18 +305,9 @@ async function populateLocClients() {
         } else {
             clientSelect.parentElement.style.display = 'block';
             if (currentVal) clientSelect.value = currentVal;
-            
-            // Initialize TomSelect for "select search"
-            window.locClientSelectInstance = new TomSelect(clientSelect, {
-                create: false,
-                sortField: {
-                    field: "text",
-                    direction: "asc"
-                }
-            });
         }
     } catch (e) {
-        console.error(e);
+        console.error('Error fetching clients for work location:', e);
     }
 }
 
@@ -378,11 +364,6 @@ async function editLokasiKerja(id) {
     if (clientSelect) {
         clientSelect.value = loc.client_id;
         clientSelect.disabled = true;
-        
-        if (window.locClientSelectInstance) {
-            window.locClientSelectInstance.setValue(loc.client_id);
-            window.locClientSelectInstance.disable();
-        }
         
         if (window.selectedClientId) {
             clientSelect.parentElement.style.display = 'none';

@@ -2407,47 +2407,45 @@
 
     <!-- Work Location Modal -->
     <div id="modalLokasiKerja" class="modal-skema" style="display: none; z-index: 2050; width: 650px; max-width: 95vw; max-height: 85vh; overflow: hidden; flex-direction: column; box-sizing: border-box;">
-        <div class="modal-header" style="background: var(--primary-color); flex-shrink: 0; padding: 18px 25px;">
-            <h3 id="modalLokasiKerjaTitle">Add Work Location</h3>
-            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalLokasiKerja()"></i>
+        <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); flex-shrink: 0; padding: 18px 25px;">
+            <h3 id="modalLokasiKerjaTitle" style="color: white; margin: 0; font-size: 17px; font-weight: 700;">Add Work Location</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white;" onclick="tutupModalLokasiKerja()"></i>
         </div>
         <form id="formLokasiKerja" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; margin: 0;">
             <div class="modal-body" style="padding: 25px; overflow-y: auto; flex: 1; min-height: 0;">
                 <input type="hidden" id="workLocationId">
                 
                 <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="font-weight: 600; margin-bottom: 6px; display: block;">Select Company / Client</label>
-                    <select id="locClientId" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                    <label style="font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px; display: block;">Select Company / Client</label>
+                    <select id="locClientId" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; outline: none; font-size: 14px; background: white; height: 42px;">
                         <option value="">-- Select Client --</option>
                     </select>
                 </div>
 
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group" style="grid-column: 1 / -1;">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Work Location</label>
-                        <input type="text" id="locName" placeholder="Example: Bandung Branch Office" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <label style="font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px; display: block;">Work Location</label>
+                        <input type="text" id="locName" placeholder="Example: Bandung Branch Office" required style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; outline: none; font-size: 14px; height: 42px; background: white;">
                     </div>
                     <input type="hidden" id="locCode">
                 </div>
 
-
-
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">Province</label>
-                        <input type="text" id="locProvinsi" list="provinsiList" placeholder="Type or select Province..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <label style="font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px; display: block;">Province</label>
+                        <input type="text" id="locProvinsi" list="provinsiList" placeholder="Type or select Province..." style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; outline: none; font-size: 14px; height: 42px; background: white;">
                         <datalist id="provinsiList"></datalist>
                     </div>
                     <div class="form-group">
-                        <label style="font-weight: 600; margin-bottom: 6px; display: block;">City/Regency</label>
-                        <input type="text" id="locKotaKabupaten" list="kotaList" placeholder="Type or select City/Regency..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <label style="font-weight: 600; font-size: 13px; color: #334155; margin-bottom: 6px; display: block;">City/Regency</label>
+                        <input type="text" id="locKotaKabupaten" list="kotaList" placeholder="Type or select City/Regency..." style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; outline: none; font-size: 14px; height: 42px; background: white;">
                         <datalist id="kotaList"></datalist>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer" style="flex-shrink: 0; padding: 15px 25px;">
-                <button type="button" class="btn-cancel" onclick="tutupModalLokasiKerja()">Cancel</button>
-                <button type="submit" class="btn-save" style="background: var(--primary-color);">Save Data</button>
+            <div class="modal-footer" style="flex-shrink: 0; padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn-cancel" onclick="tutupModalLokasiKerja()" style="padding: 10px 20px; border-radius: 8px; font-weight: 600; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn-save" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save Data</button>
             </div>
         </form>
     </div>
