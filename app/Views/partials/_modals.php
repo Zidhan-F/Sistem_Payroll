@@ -1908,73 +1908,73 @@
                         
                         <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 5px;">
                             <!-- BPJS Health -->
-                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #e0f2fe; display: flex; align-items: center; justify-content: center; color: #0284c7;">
+                            <label class="bpjs-program-card">
+                                <div class="bpjs-card-left">
+                                    <div class="bpjs-card-icon" style="background: #e0f2fe; color: #0284c7;">
                                         <i class="fas fa-hand-holding-medical" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">BPJS Health</div>
-                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsKesDesc">Default: Karyawan 1%, Perusahaan 4%</div>
+                                        <div class="bpjs-card-title">BPJS Health</div>
+                                        <div class="bpjs-card-desc" id="mClientBpjsKesDesc">Default: Karyawan 1%, Perusahaan 4%</div>
                                     </div>
                                 </div>
-                                <input type="checkbox" id="mClientBpjsKesActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                                <input type="checkbox" id="mClientBpjsKesActive">
                             </label>
 
                             <!-- JHT -->
-                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #dcfce7; display: flex; align-items: center; justify-content: center; color: #16a34a;">
+                            <label class="bpjs-program-card">
+                                <div class="bpjs-card-left">
+                                    <div class="bpjs-card-icon" style="background: #dcfce7; color: #16a34a;">
                                         <i class="fas fa-coins" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Hari Tua (JHT)</div>
-                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJhtDesc">Default: Karyawan 2%, Perusahaan 3.7%</div>
+                                        <div class="bpjs-card-title">Jaminan Hari Tua (JHT)</div>
+                                        <div class="bpjs-card-desc" id="mClientBpjsJhtDesc">Default: Karyawan 2%, Perusahaan 3.7%</div>
                                     </div>
                                 </div>
-                                <input type="checkbox" id="mClientBpjsJhtActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                                <input type="checkbox" id="mClientBpjsJhtActive">
                             </label>
 
                             <!-- JP -->
-                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #fef9c3; display: flex; align-items: center; justify-content: center; color: #ca8a04;">
+                            <label class="bpjs-program-card">
+                                <div class="bpjs-card-left">
+                                    <div class="bpjs-card-icon" style="background: #fef9c3; color: #ca8a04;">
                                         <i class="fas fa-piggy-bank" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Pensiun (JP)</div>
-                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJpDesc">Default: Karyawan 1%, Perusahaan 2%</div>
+                                        <div class="bpjs-card-title">Jaminan Pensiun (JP)</div>
+                                        <div class="bpjs-card-desc" id="mClientBpjsJpDesc">Default: Karyawan 1%, Perusahaan 2%</div>
                                     </div>
                                 </div>
-                                <input type="checkbox" id="mClientBpjsJpActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                                <input type="checkbox" id="mClientBpjsJpActive">
                             </label>
 
                             <!-- JKK -->
-                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #fee2e2; display: flex; align-items: center; justify-content: center; color: #dc2626;">
+                            <label class="bpjs-program-card">
+                                <div class="bpjs-card-left">
+                                    <div class="bpjs-card-icon" style="background: #fee2e2; color: #dc2626;">
                                         <i class="fas fa-user-shield" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kecelakaan Kerja (JKK)</div>
-                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkkDesc">Default: Perusahaan 0.24%</div>
+                                        <div class="bpjs-card-title">Jaminan Kecelakaan Kerja (JKK)</div>
+                                        <div class="bpjs-card-desc" id="mClientBpjsJkkDesc">Default: Perusahaan 0.24%</div>
                                     </div>
                                 </div>
-                                <input type="checkbox" id="mClientBpjsJkkActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                                <input type="checkbox" id="mClientBpjsJkkActive">
                             </label>
 
                             <!-- JKM -->
-                            <label style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff; cursor: pointer; transition: all 0.2s ease;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 36px; height: 36px; border-radius: 6px; background: #f3e8ff; display: flex; align-items: center; justify-content: center; color: #9333ea;">
+                            <label class="bpjs-program-card">
+                                <div class="bpjs-card-left">
+                                    <div class="bpjs-card-icon" style="background: #f3e8ff; color: #9333ea;">
                                         <i class="fas fa-heartbeat" style="font-size: 16px;"></i>
                                     </div>
                                     <div>
-                                        <div style="font-weight: 600; color: #1e293b; font-size: 13px;">Jaminan Kematian (JKM)</div>
-                                        <div style="font-size: 11px; color: #64748b;" id="mClientBpjsJkmDesc">Default: Perusahaan 0.3%</div>
+                                        <div class="bpjs-card-title">Jaminan Kematian (JKM)</div>
+                                        <div class="bpjs-card-desc" id="mClientBpjsJkmDesc">Default: Perusahaan 0.3%</div>
                                     </div>
                                 </div>
-                                <input type="checkbox" id="mClientBpjsJkmActive" style="width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer;">
+                                <input type="checkbox" id="mClientBpjsJkmActive">
                             </label>
                         </div>
                     </div>

@@ -2731,14 +2731,77 @@ div[id^="modal"] .modal-footer {
     padding: 16px 24px !important;
 }
 
-#modalClient label,
-.modal-skema label,
-div[id^="modal"] label {
+#modalClient label:not(.bpjs-program-card):not(.checkbox-card):not(.user-toggle-container),
+.modal-skema label:not(.bpjs-program-card):not(.checkbox-card):not(.user-toggle-container),
+div[id^="modal"] label:not(.bpjs-program-card):not(.checkbox-card):not(.user-toggle-container) {
     color: #334155 !important;
     font-weight: 600 !important;
     font-size: 14px !important;
     margin-bottom: 6px !important;
     display: block !important;
+}
+
+/* BPJS Program Cards in Modal */
+.bpjs-program-card,
+label.bpjs-program-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 12px 16px !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+    user-select: none !important;
+}
+
+.bpjs-program-card:hover {
+    border-color: #cbd5e1 !important;
+    background: #f8fafc !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+.bpjs-program-card .bpjs-card-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+    flex: 1 !important;
+}
+
+.bpjs-program-card .bpjs-card-icon {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+
+.bpjs-program-card .bpjs-card-title {
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    font-size: 13px !important;
+    margin-bottom: 2px !important;
+}
+
+.bpjs-program-card .bpjs-card-desc {
+    font-size: 11px !important;
+    color: #64748b !important;
+    font-weight: 400 !important;
+}
+
+.bpjs-program-card input[type="checkbox"] {
+    width: 20px !important;
+    height: 20px !important;
+    accent-color: var(--primary-color) !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
 }
 
 #modalClient input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
