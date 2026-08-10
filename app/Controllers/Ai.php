@@ -355,20 +355,13 @@ class Ai extends ResourceController
 
             // Get Active periods
             $periods = $this->db->table('payroll_periods')
-                                ->select('client_id, bulan, tahun, status_cutoff')
-                                ->where('status_cutoff', 'Open')
+                                ->select('id, nama, bulan, tahun, status')
+                                ->where('status', 'Open')
                                 ->get()
                                 ->getResultArray();
             $periodsStr = "";
             foreach ($periods as $p) {
-                $clientName = '-';
-                foreach ($clients as $c) {
-                    if ($c['id'] == $p['client_id']) {
-                        $clientName = $c['nama'];
-                        break;
-                    }
-                }
-                $periodsStr .= "- {$clientName} untuk Periode {$p['bulan']}/{$p['tahun']}\n";
+                $periodsStr .= "- {$p['nama']} (Bulan: {$p['bulan']}/{$p['tahun']}, Status: {$p['status']})\n";
             }
 
             // Current context details from UI

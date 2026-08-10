@@ -139,6 +139,9 @@ $routes->group('api', ['filter' => 'role'], function($routes) {
     // Shift Schemes (read)
     $routes->get('shift-schemes', 'Api::getShiftSchemes');
 
+    // System Settings (read)
+    $routes->get('settings', 'Api::getSettings');
+
     // Employee Shifts (read)
     $routes->get('employee-shifts', 'Api::getEmployeeShifts');
 
@@ -239,6 +242,9 @@ $routes->group('api', ['filter' => 'role:hc_ops,payroll'], function($routes) {
     $routes->post('contract-compensations/calculate', 'ContractCompensation::calculate');
     $routes->post('contract-compensations/set/(:num)', 'ContractCompensation::setCompensation/$1');
     $routes->delete('contract-compensations/(:num)', 'ContractCompensation::delete/$1');
+
+    // System Settings
+    $routes->post('settings', 'Api::saveSettings');
 });
 
 // =====================================================================

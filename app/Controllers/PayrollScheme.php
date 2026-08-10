@@ -18,11 +18,11 @@ class PayrollScheme extends ResourceController
     {
         $clientId = $this->request->getGet('client_id');
         
-        if (!$clientId) {
-            return $this->fail('client_id is required');
+        if ($clientId) {
+            $schemes = $this->model->getByClient($clientId);
+        } else {
+            $schemes = $this->model->findAll();
         }
-
-        $schemes = $this->model->getByClient($clientId);
         return $this->respond($schemes);
     }
 
