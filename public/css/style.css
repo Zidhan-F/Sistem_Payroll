@@ -3604,4 +3604,12 @@ body:not(.role-admin):not(.role-client_superior) #tabelReviewGaji th:first-child
     transform: translateX(20px);
 }
 
+/* Fix input prefix overlap for Location Minimum Wage and currency fields */
+#empMinimumWage,
+#skemaLumpsumNominal {
+    padding-left: 48px !important;
+    letter-spacing: 0.3px;
+}
+
+
 

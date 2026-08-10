@@ -359,9 +359,9 @@
                                     <label id="labelLumpsumNominal" style="font-weight: 600; font-size: 12px; color: #475569; display: block; margin-bottom: 6px;">
                                         Hourly Overtime Rate (Rp)
                                     </label>
-                                    <div style="position: relative;">
-                                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 600; color: #94a3b8;">Rp</span>
-                                        <input type="text" id="skemaLumpsumNominal" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px 10px 10px 36px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px; font-weight: 600;">
+                                    <div style="position: relative; display: flex; align-items: center;">
+                                        <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; font-weight: 600; color: #94a3b8; pointer-events: none; z-index: 2;">Rp</span>
+                                        <input type="text" id="skemaLumpsumNominal" placeholder="0" onkeyup="formatRupiahInput(this)" style="width: 100%; padding: 10px 14px 10px 48px !important; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; height: 42px; font-weight: 600; box-sizing: border-box;">
                                     </div>
                                 </div>
                             </div>
@@ -2370,9 +2370,9 @@
 
                 <div class="form-group" id="empMinimumWageContainer" style="margin-bottom: 15px; display: none;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Location Minimum Wage (UMP / UMK)</label>
-                    <div style="position: relative;">
-                        <input type="text" id="empMinimumWage" readonly style="width: 100%; padding: 10px 10px 10px 40px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f8fafc; color: #475569; font-weight: 600;">
-                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-weight: 600; color: #64748b; font-size: 14px; pointer-events: none; z-index: 2;">Rp</span>
+                        <input type="text" id="empMinimumWage" readonly style="width: 100%; padding: 12px 14px 12px 48px !important; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background: #f8fafc; color: #334155; font-weight: 600; box-sizing: border-box;">
                     </div>
                     <small id="empMinimumWageInfo" style="margin-top: 4px; display: block; font-size: 12px; color: #64748b; font-weight: 500;"></small>
                 </div>
