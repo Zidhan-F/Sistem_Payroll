@@ -515,7 +515,7 @@
                 <div class="form-group" style="margin-bottom: 0;">
                     <label id="labelOrgName" style="font-weight: 600; font-size: 13px; color: #334155; display: block; margin-bottom: 8px;">Division Name</label>
                     <input type="hidden" id="orgName">
-                    <select id="orgNameSelect" style="width: 100%;" required>
+                    <select id="orgNameSelect" style="width: 100%; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; font-size: 14px; background: white; height: 42px; box-sizing: border-box;" required>
                         <option value="">-- Select Name --</option>
                     </select>
                     <div id="quickBadgeContainer" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; display: none;"></div>
@@ -2237,7 +2237,7 @@
                 
                 <div class="form-group" id="empClientIdContainer" style="margin-bottom: 15px;">
                     <label style="font-weight: 600; margin-bottom: 6px; display: block;">Select Company / Client</label>
-                    <select id="empClientId" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; background-color: white;">
+                    <select id="empClientId" style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #d1d5db; outline: none; font-size: 14px; background-color: white; height: 42px; box-sizing: border-box;">
                         <option value="">-- Select Client --</option>
                     </select>
                 </div>

@@ -172,12 +172,20 @@ async function hapusGlobalSto(type, id) {
     }
 }
 
-// Integration: Populate client workspace dropdown with TomSelect
+// Integration: Populate client workspace dropdown with standard native select
 async function populateOrgNameSelect(type, selectedValue = '') {
     const select = document.getElementById('orgNameSelect');
     if (!select) return;
 
-    select.innerHTML = '<option value="">-- Select Name --</option>';
+    if (window.orgNameSelectInstance) {
+        try {
+            window.orgNameSelectInstance.destroy();
+        } catch (e) {}
+        window.orgNameSelectInstance = null;
+    }
+
+    const typeLabel = type === 'divisi' ? 'Division' : type === 'department' ? 'Department' : 'Position';
+    select.innerHTML = `<option value="">-- Select ${typeLabel} --</option>`;
 
     try {
         const endpoint = `/global-${type === 'divisi' ? 'divisions' : type === 'department' ? 'departments' : 'positions'}`;
@@ -205,35 +213,21 @@ async function populateOrgNameSelect(type, selectedValue = '') {
             select.appendChild(opt);
         }
 
-        // Initialize or rebuild TomSelect
-        if (window.orgNameSelectInstance) {
-            window.orgNameSelectInstance.destroy();
-        }
-
-        const typeLabel = type === 'divisi' ? 'division' : type === 'department' ? 'department' : 'position';
-        window.orgNameSelectInstance = new TomSelect(select, {
-            create: true,
-            persist: false,
-            placeholder: `Search or enter new ${typeLabel} name...`,
-            sortField: { field: "text", direction: "asc" }
-        });
-
-        // Sync selected value to the hidden native input #orgName
-        window.orgNameSelectInstance.on('change', function(val) {
-            const orgNameInput = document.getElementById('orgName');
-            if (orgNameInput) {
-                orgNameInput.value = val || '';
-            }
-        });
-        
-        // If there's an active select value, set it explicitly in TomSelect
         if (selectedValue) {
-            window.orgNameSelectInstance.setValue(selectedValue);
+            select.value = selectedValue;
+        }
+
+        const orgNameInput = document.getElementById('orgName');
+        if (orgNameInput) {
+            orgNameInput.value = select.value || '';
+        }
+
+        select.onchange = function() {
             const orgNameInput = document.getElementById('orgName');
             if (orgNameInput) {
-                orgNameInput.value = selectedValue;
+                orgNameInput.value = select.value || '';
             }
-        }
+        };
     } catch (err) {
         console.error(`Error loading global list for dropdown:`, err);
     }
