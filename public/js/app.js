@@ -968,18 +968,10 @@ function tutupSemuaModal(keepSidebarOpen = false) {
     const modals = ['modalClient', 'modalSkema', 'modalKomponen', 'modalOrg', 'modalPajak', 'modalSetup', 'modalPKWT', 'modalPeriode', 'modalCutOff', 'modalSlip', 'modalManualUmr', 'modalUploadUmr', 'modalSkemaKompensasi', 'modalKomponenKompensasi', 'modalKaryawan', 'modalLokasiKerja', 'modalDetailSkemaPayroll', 'modalDetailSkemaPajak', 'modalGlobalSto', 'modalBpjs', 'modalPph21', 'modalDetailBpjs', 'modalDetailPph21', 'modalPilihanSkema', 'modalSchemeTemplate', 'modalPilihSkema', 'modalSchedule', 'modalUploadAbsensi', 'attendanceModal', 'overtimeModal', 'modalHitungKompensasi', 'modalTetapkanKompensasi', 'modalDetailKompensasi'];
     modals.forEach(m => { if(document.getElementById(m)) document.getElementById(m).style.display = 'none'; });
     
-    // Clean up TomSelect instances from modalPilihanSkema if it was open
+    // Clean up modalPilihanSkema if it was open
     if (typeof window.tutupModalPilihanSkema === 'function') {
         try {
-            // Destroy TomSelect instances (excluding bpjs select which is native)
-            ['modalPilihanSkemaDivisi', 'modalPilihanSkemaDepartemen', 'modalPilihanSkemaPosisi', 'modalPilihanSkemaPayroll', 'modalPilihanSkemaPajak'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.tomselect) el.tomselect.destroy();
-            });
-            const overrideFields = document.getElementById('modalClientBpjsOverrideFields');
-            if (overrideFields) overrideFields.style.display = 'none';
-            window.modalClientBpjsOriginalValues = null;
-            window.editSchemaMappingId = null;
+            window.tutupModalPilihanSkema();
         } catch(e) { /* ignore cleanup errors */ }
     }
 

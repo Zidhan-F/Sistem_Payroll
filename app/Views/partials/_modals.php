@@ -1837,13 +1837,13 @@
                     <div style="display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 15px;">
                         <span style="font-weight: 600; color: #475569; margin-bottom: 5px;"><i class="fas fa-sitemap" style="margin-right: 8px;"></i>Organizational Structure (Optional)</span>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                            <select id="modalPilihanSkemaDivisi" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                            <select id="modalPilihanSkemaDivisi" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; background: white; font-size: 14px; outline: none; height: 42px;">
                                 <option value="">-- Select Division --</option>
                             </select>
-                            <select id="modalPilihanSkemaDepartemen" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                            <select id="modalPilihanSkemaDepartemen" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; background: white; font-size: 14px; outline: none; height: 42px;">
                                 <option value="">-- Select Department --</option>
                             </select>
-                            <select id="modalPilihanSkemaPosisi" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                            <select id="modalPilihanSkemaPosisi" style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; background: white; font-size: 14px; outline: none; height: 42px;">
                                 <option value="">-- Select Position --</option>
                             </select>
                         </div>
@@ -1861,7 +1861,7 @@
                             </div>
                             <small style="color: #64748b; font-size: 11px;">Select the payroll template scheme that applies for salary calculation.</small>
                         </div>
-                        <select id="modalPilihanSkemaPayroll" onchange="handleModalPilihanSkemaPayrollChange(this.value)" required style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                        <select id="modalPilihanSkemaPayroll" onchange="handleModalPilihanSkemaPayrollChange(this.value)" required style="width: 50%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; background: white; font-size: 14px; outline: none; height: 42px;">
                             <option value="">-- Select Payroll Scheme --</option>
                         </select>
                     </div>
@@ -1990,7 +1990,7 @@
                             </div>
                             <small style="color: #64748b; font-size: 11px;">Calculation method for PPh 21 tax deductions.</small>
                         </div>
-                        <select id="modalPilihanSkemaPajak" onchange="handleModalPilihanSkemaPajakChange(this.value)" style="width: 50%; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; background: white;">
+                        <select id="modalPilihanSkemaPajak" onchange="handleModalPilihanSkemaPajakChange(this.value)" style="width: 50%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; background: white; font-size: 14px; outline: none; height: 42px;">
                             <option value="">-- Select Tax Scheme --</option>
                         </select>
                     </div>

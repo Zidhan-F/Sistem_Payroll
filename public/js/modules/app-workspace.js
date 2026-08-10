@@ -417,15 +417,18 @@ async function editSchemaMapping(id) {
         const bpjsEl = document.getElementById('modalPilihanSkemaBpjs');
         const tsEl = document.getElementById('modalPilihanSkemaPajak');
 
-        if (conf.division_id && divEl && divEl.tomselect) {
-            divEl.tomselect.setValue(conf.division_id);
+        if (conf.division_id && divEl) {
+            divEl.value = conf.division_id;
             window.updateModalDeptDropdown(conf.division_id, conf.department_id);
             if (conf.department_id) {
                 window.updateModalPosDropdown(conf.division_id, conf.department_id, conf.position_id);
             }
         }
-        if (conf.payroll_scheme_id && psEl && psEl.tomselect) {
-            psEl.tomselect.setValue(conf.payroll_scheme_id);
+        if (conf.payroll_scheme_id && psEl) {
+            psEl.value = conf.payroll_scheme_id;
+            if (typeof handleModalPilihanSkemaPayrollChange === 'function') {
+                handleModalPilihanSkemaPayrollChange(conf.payroll_scheme_id);
+            }
         }
         if (bpjsEl) {
             const hasOption = Array.from(bpjsEl.options).some(opt => opt.value == conf.bpjs_scheme_id);
@@ -437,8 +440,11 @@ async function editSchemaMapping(id) {
                 window.handleModalPilihanSkemaBpjsChange('tambah_skema');
             }
         }
-        if (conf.tax_scheme_id && tsEl && tsEl.tomselect) {
-            tsEl.tomselect.setValue(conf.tax_scheme_id);
+        if (conf.tax_scheme_id && tsEl) {
+            tsEl.value = conf.tax_scheme_id;
+            if (typeof handleModalPilihanSkemaPajakChange === 'function') {
+                handleModalPilihanSkemaPajakChange(conf.tax_scheme_id);
+            }
         }
         document.getElementById('modalPilihanSkemaPayDate').value = conf.pay_date !== undefined && conf.pay_date !== null ? conf.pay_date : '';
         document.getElementById('modalPilihanSkemaCutoffStart').value = conf.cutoff_start !== undefined && conf.cutoff_start !== null ? conf.cutoff_start : (conf.cutoff_gaji_pokok_start !== undefined ? conf.cutoff_gaji_pokok_start : '');
@@ -810,10 +816,6 @@ window.updateModalDeptDropdown = function(divId, selectedDeptId = '') {
     const deptSelect = document.getElementById('modalPilihanSkemaDepartemen');
     if (!deptSelect) return;
     
-    if (deptSelect.tomselect) {
-        deptSelect.tomselect.destroy();
-    }
-    
     deptSelect.innerHTML = '<option value="">-- Select Department --</option>';
     
     if (divId && Array.isArray(wsClientOrgHierarchy)) {
@@ -825,29 +827,13 @@ window.updateModalDeptDropdown = function(divId, selectedDeptId = '') {
         }
     }
     
-    new TomSelect(deptSelect, { 
-        create: false, 
-        sortField: { field: 'text', direction: 'asc' } 
-    });
-    
-    deptSelect.tomselect.on('change', (val) => {
-        window.updateModalPosDropdown(divId, val);
-    });
-
-    if (selectedDeptId) {
-        deptSelect.tomselect.setValue(selectedDeptId);
-    } else {
-        window.updateModalPosDropdown(divId, '');
-    }
+    deptSelect.value = selectedDeptId || '';
+    window.updateModalPosDropdown(divId, deptSelect.value, '');
 };
 
 window.updateModalPosDropdown = function(divId, deptId, selectedPosId = '') {
     const posSelect = document.getElementById('modalPilihanSkemaPosisi');
     if (!posSelect) return;
-    
-    if (posSelect.tomselect) {
-        posSelect.tomselect.destroy();
-    }
     
     posSelect.innerHTML = '<option value="">-- Select Position --</option>';
     
@@ -863,14 +849,7 @@ window.updateModalPosDropdown = function(divId, deptId, selectedPosId = '') {
         }
     }
     
-    new TomSelect(posSelect, { 
-        create: false, 
-        sortField: { field: 'text', direction: 'asc' } 
-    });
-    
-    if (selectedPosId) {
-        posSelect.tomselect.setValue(selectedPosId);
-    }
+    posSelect.value = selectedPosId || '';
 };
 
 window.openModalPilihanSkema = async function(isEdit = false) {
@@ -888,10 +867,6 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     // Set default values for cutoff and payday to empty
     document.getElementById('modalPilihanSkemaCutoffStart').value = '';
     document.getElementById('modalPilihanSkemaPayDate').value = '';
-
-
-    
-    // No extra cutoff inputs to reset
 
     // Set client name
     const titleEl = document.getElementById('clientWorkspaceTitle');
@@ -918,11 +893,6 @@ window.openModalPilihanSkema = async function(isEdit = false) {
         }
         window.handleModalPilihanSkemaBpjsChange('tambah_skema');
     }
-
-    // Destroy existing TomSelect instances before repopulating (excluding bpjsSelect)
-    [divSelect, deptSelect, posSelect, psSelect, tsSelect].forEach(el => {
-        if (el && el.tomselect) el.tomselect.destroy();
-    });
 
     try {
         // Fetch client-specific org hierarchy, schemes, and schedule templates in parallel
@@ -975,20 +945,16 @@ window.openModalPilihanSkema = async function(isEdit = false) {
             posSelect.innerHTML = '<option value="">-- Select Position --</option>';
         }
 
-
-
-        // Initialize all TomSelects
-        [psSelect, tsSelect, divSelect, deptSelect, posSelect].forEach(el => {
-            if (el) {
-                new TomSelect(el, { create: false, sortField: { field: 'text', direction: 'asc' } });
-            }
-        });
-
-        // Bind cascading change listeners
-        if (divSelect && divSelect.tomselect) {
-            divSelect.tomselect.on('change', (val) => {
-                window.updateModalDeptDropdown(val);
-            });
+        // Bind cascading change listeners for native dropdowns
+        if (divSelect) {
+            divSelect.onchange = function() {
+                window.updateModalDeptDropdown(this.value);
+            };
+        }
+        if (deptSelect) {
+            deptSelect.onchange = function() {
+                window.updateModalPosDropdown(divSelect ? divSelect.value : '', this.value);
+            };
         }
 
         // Trigger change handler if not editing to ensure fields are fresh
@@ -998,7 +964,9 @@ window.openModalPilihanSkema = async function(isEdit = false) {
     } catch (e) {
         console.error('Error loading modal data:', e);
     }
-};window.handleModalPilihanSkemaBpjsChange = function(value) {
+};
+
+window.handleModalPilihanSkemaBpjsChange = function(value) {
     const fieldsDiv = document.getElementById('modalClientBpjsOverrideFields');
     if (!fieldsDiv) return;
 
@@ -1110,12 +1078,6 @@ window.tutupModalPilihanSkema = function() {
     if (overrideFields) overrideFields.style.display = 'none';
     window.modalClientBpjsOriginalValues = null;
     window.modalClientBpjsBaseRates = null;
-
-    // Destroy TomSelect instances (excluding bpjs select which is native)
-    ['modalPilihanSkemaDivisi', 'modalPilihanSkemaDepartemen', 'modalPilihanSkemaPosisi', 'modalPilihanSkemaPayroll', 'modalPilihanSkemaPajak'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.tomselect) el.tomselect.destroy();
-    });
 };
 
 function goToMasterKompensasi() {
