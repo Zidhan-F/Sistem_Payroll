@@ -99,11 +99,11 @@ function bukaModalShiftScheme(mode, id = null) {
     document.getElementById('shiftSchemeId').value = '';
 
     if (mode === 'tambah') {
-        title.innerText = 'Tambah Skema Shift';
+        title.innerText = 'Add Shift Scheme';
         modal.style.display = 'block';
         document.getElementById('overlay').style.display = 'block';
     } else {
-        title.innerText = 'Edit Skema Shift';
+        title.innerText = 'Edit Shift Scheme';
         const s = allShiftSchemes.find(x => x.id == id);
         if (s) {
             document.getElementById('shiftSchemeId').value = s.id;
