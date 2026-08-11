@@ -680,9 +680,9 @@ async function bukaModalKaryawan(mode,id=null){
             if(ds) ds.innerHTML = '<option value="">-- Select Division --</option>';
             if(deps) deps.innerHTML = '<option value="">-- Select Department --</option>';
             if(ps) ps.innerHTML = '<option value="">-- Select Position --</option>';
-            if(ds) new TomSelect(ds, { create: false });
-            if(deps) new TomSelect(deps, { create: false });
-            if(ps) new TomSelect(ps, { create: false });
+            if(ds) new TomSelect(ds, { create: false, sortField: { field: "text", direction: "asc" } });
+            if(deps) new TomSelect(deps, { create: false, sortField: { field: "text", direction: "asc" } });
+            if(ps) new TomSelect(ps, { create: false, sortField: { field: "text", direction: "asc" } });
         }
     };
 
@@ -752,13 +752,35 @@ async function bukaModalKaryawan(mode,id=null){
         create: false,
         sortField: { field: "text", direction: "asc" }
     });
+
+    window.empClientSelectInstance.on('change', async (cid) => {
+        if (window.isKaryawanModalInitializing) return;
+        if (cid) {
+            await loadWorkLocationsForSelect(cid);
+            await loadOrgSelects(cid);
+        } else {
+            document.getElementById('empWorkLocationId').innerHTML = '<option value="">-- Select Work Location --</option>';
+            const ds = document.getElementById('empDivisionId');
+            const deps = document.getElementById('empDepartmentId');
+            const ps = document.getElementById('empPositionId');
+            if (ds && ds.tomselect) ds.tomselect.destroy();
+            if (deps && deps.tomselect) deps.tomselect.destroy();
+            if (ps && ps.tomselect) ps.tomselect.destroy();
+            if(ds) ds.innerHTML = '<option value="">-- Select Division --</option>';
+            if(deps) deps.innerHTML = '<option value="">-- Select Department --</option>';
+            if(ps) ps.innerHTML = '<option value="">-- Select Position --</option>';
+            if(ds) new TomSelect(ds, { create: false, sortField: { field: "text", direction: "asc" } });
+            if(deps) new TomSelect(deps, { create: false, sortField: { field: "text", direction: "asc" } });
+            if(ps) new TomSelect(ps, { create: false, sortField: { field: "text", direction: "asc" } });
+        }
+    });
     
     // Explicitly sync TomSelect value and disabled state
     if (mode === 'edit' && emp) {
-        window.empClientSelectInstance.setValue(emp.client_id);
+        window.empClientSelectInstance.setValue(emp.client_id, true);
         window.empClientSelectInstance.disable();
     } else if (selectedClientId) {
-        window.empClientSelectInstance.setValue(selectedClientId);
+        window.empClientSelectInstance.setValue(selectedClientId, true);
         window.empClientSelectInstance.disable();
     } else {
         window.empClientSelectInstance.enable();

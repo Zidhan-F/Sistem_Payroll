@@ -2958,12 +2958,14 @@ html.modal-open {
     padding: 0 !important;
     border: none !important;
     background: transparent !important;
+    position: relative !important;
+    width: 100% !important;
 }
 
 .ts-wrapper .ts-control {
     border: 1px solid #d1d5db !important;
     border-radius: 8px !important;
-    padding: 10px 14px !important;
+    padding: 0 32px 0 14px !important;
     font-size: 14px !important;
     background: #ffffff !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
@@ -2971,8 +2973,12 @@ html.modal-open {
     display: flex !important;
     align-items: center !important;
     min-height: 42px !important;
+    height: 42px !important;
     width: 100% !important;
     box-sizing: border-box !important;
+    position: relative !important;
+    cursor: pointer !important;
+    overflow: hidden !important;
 }
 
 .ts-wrapper:hover .ts-control {
@@ -2991,7 +2997,48 @@ html.modal-open {
     cursor: not-allowed;
 }
 
-/* Fix for Tom Select search input inheriting global form group styles */
+/* Caret / arrow indicator on the right of single TomSelect control */
+.ts-wrapper.single .ts-control::after {
+    content: "";
+    display: block;
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    margin-top: -3px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 5px 5px 0 5px;
+    border-color: #64748b transparent transparent transparent;
+    pointer-events: none;
+    transition: transform 0.2s ease;
+}
+
+.ts-wrapper.single.dropdown-active .ts-control::after {
+    transform: rotate(180deg);
+}
+
+/* Item text (selected value) inside control */
+.ts-wrapper.single .ts-control .item {
+    font-size: 14px !important;
+    color: #1e293b !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    line-height: normal !important;
+    flex: 1 1 auto !important;
+}
+
+/* Input inside control for direct in-place search - strips ALL inherited form-group border/bg/padding/box-shadow */
+.form-group .ts-wrapper .ts-control input,
+.form-group .ts-wrapper .ts-control input:focus,
+.form-group .ts-wrapper .ts-control input:hover,
+.form-group .ts-wrapper .ts-control input:active,
 .ts-wrapper .ts-control input,
 .ts-wrapper .ts-control input:focus,
 .ts-wrapper .ts-control input:hover,
@@ -3003,12 +3050,49 @@ html.modal-open {
     padding: 0 !important;
     margin: 0 !important;
     border-radius: 0 !important;
-    height: auto !important;
-    min-height: 0 !important;
     font-size: 14px !important;
-    line-height: inherit !important;
+    line-height: normal !important;
     color: #1e293b !important;
-    width: auto !important;
+    min-height: 0 !important;
+    cursor: inherit !important;
+}
+
+.ts-wrapper .ts-control input::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* When item is selected in single mode and NOT actively typing: hide input so no search box sits beside item */
+.ts-wrapper.single.has-items:not(.input-active) .ts-control input {
+    position: absolute !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    left: 0 !important;
+    top: 0 !important;
+}
+
+/* When user is actively typing in single-select: hide item and let search input fill full width directly */
+.ts-wrapper.single.input-active .ts-control .item {
+    display: none !important;
+}
+
+.ts-wrapper.single.input-active .ts-control input {
+    position: static !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    width: 100% !important;
+    flex: 1 1 auto !important;
+    display: block !important;
+}
+
+/* If no item selected (placeholder state), input takes full width */
+.ts-wrapper.single:not(.has-items) .ts-control input {
+    position: static !important;
+    width: 100% !important;
+    flex: 1 1 auto !important;
+    opacity: 1 !important;
+    display: block !important;
 }
 
 /* Tom Select Dropdown List Styling */
@@ -3019,7 +3103,7 @@ html.modal-open {
     margin-top: 4px !important;
     overflow: hidden !important;
     background: #ffffff !important;
-    z-index: 2100 !important;
+    z-index: 2200 !important;
 }
 
 .ts-dropdown .option {
@@ -3034,6 +3118,12 @@ html.modal-open {
 .ts-dropdown .option.active {
     background-color: #fff7ed !important;
     color: var(--primary-color) !important;
+    font-weight: 600 !important;
+}
+
+.ts-dropdown .option.selected {
+    background-color: #fef3c7 !important;
+    color: #d97706 !important;
     font-weight: 600 !important;
 }
 

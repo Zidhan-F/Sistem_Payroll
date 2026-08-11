@@ -14,7 +14,13 @@
                     <h3 style="font-size: 18px; color: var(--secondary-color); font-weight: 700; margin: 0 0 4px 0;">Master Shift Scheme</h3>
                     <p style="color: #64748b; font-size: 13px; margin: 0;">Manage standard work shift schemes, late tolerance, and overtime rates.</p>
                 </div>
-                <div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button class="btn-add" onclick="bukaModalUploadShiftScheme()" style="background: #27ae60; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 18px; cursor: pointer; transition: all 0.3s;" title="Upload Excel Skema Shift">
+                        <i class="fas fa-file-excel"></i> Upload Excel
+                    </button>
+                    <button class="btn-add" onclick="downloadShiftSchemeTemplate()" style="background: #0284c7; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 18px; cursor: pointer; transition: all 0.3s;" title="Download Template Excel Skema Shift">
+                        <i class="fas fa-download"></i> Download Template
+                    </button>
                     <button class="btn-add" onclick="bukaModalShiftScheme('tambah')" style="background: var(--primary-color); display: inline-flex; align-items: center; gap: 8px; font-weight: 600; border-radius: 8px; color: white; border: none; padding: 10px 20px; cursor: pointer; transition: all 0.3s;">
                         <i class="fas fa-plus"></i> Add Shift Scheme
                     </button>

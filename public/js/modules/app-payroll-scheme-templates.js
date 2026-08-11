@@ -490,7 +490,7 @@ async function viewSchemeTemplateDetail(id) {
  * Toggle scheme active status
  */
 async function toggleSchemeTemplateActive(id) {
-    if (!confirm('Are you sure you want to change the status of this scheme?')) return;
+    if (!await showConfirm('Are you sure you want to change the status of this scheme?', 'Change Status', 'Yes, Change', 'Cancel', 'primary')) return;
     
     try {
         const response = await fetch(`/api/payroll-schemes-templates/toggle-active/${id}`, {
@@ -514,7 +514,7 @@ async function toggleSchemeTemplateActive(id) {
  * Delete scheme template
  */
 async function deleteSchemeTemplate(id) {
-    if (!confirm('Are you sure you want to delete this scheme? This action cannot be undone.')) return;
+    if (!await showConfirm('Are you sure you want to delete this scheme? This action cannot be undone.')) return;
     
     try {
         const response = await fetch(`/api/payroll-schemes-templates/${id}`, {

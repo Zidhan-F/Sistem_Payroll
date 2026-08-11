@@ -3098,6 +3098,114 @@ class Api extends ResourceController
         return $this->respond(['message' => 'Early arrival log reset to pending successfully.']);
     }
 
+    public function importEarlyArrivalLogs()
+    {
+        $db = \Config\Database::connect();
+        $json = $this->request->getJSON(true);
+        $logs = $json['logs'] ?? [];
+        $payoutPeriodStr = $json['payout_period'] ?? null;
+        $clientId = $json['client_id'] ?? null;
+        
+        if (empty($logs)) {
+            return $this->failValidationErrors('Tidak ada data Early Arrival yang diunggah.');
+        }
+
+        $successCount = 0;
+        $errorLogs = [];
+
+        foreach ($logs as $index => $row) {
+            $nik = trim($row['nik'] ?? '');
+            $nama = trim($row['nama'] ?? '');
+            $tanggal = trim($row['tanggal'] ?? '');
+            $shiftStart = trim($row['shift_start_time'] ?? '08:00');
+            $checkIn = trim($row['check_in_time'] ?? '');
+            $earlyMinutes = intval($row['early_minutes'] ?? 0);
+            $keterangan = trim($row['keterangan'] ?? 'Imported from Excel');
+
+            if (empty($tanggal) || (empty($nik) && empty($nama))) {
+                $errorLogs[] = "Baris " . ($index + 1) . ": Incomplete data.";
+                continue;
+            }
+
+            // 1. Lookup Employee
+            $employee = null;
+            if (!empty($nik)) {
+                $builder = $db->table('employees')->where('nik', $nik);
+                if ($clientId) $builder->where('client_id', intval($clientId));
+                $employee = $builder->get()->getRowArray();
+            }
+            if (!$employee && !empty($nama)) {
+                $builder = $db->table('employees')->where('LOWER(nama)', strtolower($nama));
+                if ($clientId) $builder->where('client_id', intval($clientId));
+                $employee = $builder->get()->getRowArray();
+            }
+            if (!$employee && !empty($nama)) {
+                $builder = $db->table('employees')->like('nama', $nama);
+                if ($clientId) $builder->where('client_id', intval($clientId));
+                $employee = $builder->get()->getRowArray();
+            }
+
+            if (!$employee) {
+                $errorLogs[] = "Baris " . ($index + 1) . ": Karyawan '" . ($nik ?: $nama) . "' tidak ditemukan.";
+                continue;
+            }
+
+            // Calculate minutes if not directly provided
+            if ($earlyMinutes <= 0 && !empty($checkIn) && !empty($shiftStart)) {
+                $checkInTs = strtotime($checkIn);
+                $shiftStartTs = strtotime($shiftStart);
+                if ($checkInTs && $shiftStartTs && $checkInTs < $shiftStartTs) {
+                    $earlyMinutes = intval(($shiftStartTs - $checkInTs) / 60);
+                }
+            }
+
+            if ($earlyMinutes <= 0) {
+                $earlyMinutes = 30; // Default sensible early arrival
+            }
+
+            $eligibleMinutes = $earlyMinutes;
+
+            // Check existing record
+            $existing = $db->table('early_arrival')
+                ->where('employee_id', intval($employee['id']))
+                ->where('date', $tanggal)
+                ->get()->getRowArray();
+
+            if ($existing) {
+                $db->table('early_arrival')->where('id', $existing['id'])->update([
+                    'shift_start_time' => $shiftStart,
+                    'check_in_time'    => $checkIn ?: $shiftStart,
+                    'early_minutes'    => $earlyMinutes,
+                    'eligible_minutes' => $eligibleMinutes,
+                    'status'           => 'PENDING',
+                    'updated_at'       => date('Y-m-d H:i:s')
+                ]);
+            } else {
+                $db->table('early_arrival')->insert([
+                    'attendance_id'    => 0,
+                    'employee_id'      => intval($employee['id']),
+                    'date'             => $tanggal,
+                    'shift_id'         => null,
+                    'shift_start_time' => $shiftStart,
+                    'check_in_time'    => $checkIn ?: $shiftStart,
+                    'early_minutes'    => $earlyMinutes,
+                    'eligible_minutes' => $eligibleMinutes,
+                    'status'           => 'PENDING',
+                    'created_at'       => date('Y-m-d H:i:s'),
+                    'updated_at'       => date('Y-m-d H:i:s')
+                ]);
+            }
+            $successCount++;
+        }
+
+        return $this->respond([
+            'success' => true,
+            'imported_count' => $successCount,
+            'errors' => $errorLogs,
+            'message' => "Berhasil mengimpor $successCount log Early Arrival."
+        ]);
+    }
+
     private function syncEarlyArrival($attendanceId, $employeeId, $tanggal, $checkIn, $shiftSchemeId = null, $payoutPeriod = null)
     {
         $db = \Config\Database::connect();
@@ -9518,6 +9626,82 @@ class Api extends ResourceController
         $this->db->table('shift_schemes')->where('id', $id)->delete();
         $this->logActivity("Menghapus skema shift ID: " . $id);
         return $this->respondDeleted(['message' => 'Skema shift deleted successfully']);
+    }
+
+    public function importShiftSchemes()
+    {
+        $json = $this->request->getJSON(true);
+        $schemes = $json['schemes'] ?? [];
+
+        if (empty($schemes)) {
+            return $this->failValidationErrors('Tidak ada data skema shift yang diunggah.');
+        }
+
+        $successCount = 0;
+        $errorLogs = [];
+
+        foreach ($schemes as $index => $row) {
+            $name = trim($row['name'] ?? '');
+            $startTime = trim($row['start_time'] ?? '');
+            $endTime = trim($row['end_time'] ?? '');
+            $duration = floatval($row['duration'] ?? 0);
+            $graceLate = intval($row['grace_period_late'] ?? 0);
+            $graceEarly = intval($row['grace_period_early'] ?? 0);
+
+            if (empty($name) || empty($startTime) || empty($endTime)) {
+                $errorLogs[] = "Baris " . ($index + 1) . ": Nama shift, jam masuk, dan jam keluar wajib diisi.";
+                continue;
+            }
+
+            if (strlen($startTime) == 5) $startTime .= ':00';
+            if (strlen($endTime) == 5) $endTime .= ':00';
+
+            if ($duration <= 0) {
+                try {
+                    $startObj = new \DateTime($startTime);
+                    $endObj = new \DateTime($endTime);
+                    if ($endObj < $startObj) {
+                        $endObj->modify('+1 day');
+                    }
+                    $diff = $startObj->diff($endObj);
+                    $duration = floatval(number_format($diff->h + ($diff->i / 60), 1));
+                } catch (\Exception $e) {
+                    $duration = 8.0;
+                }
+            }
+
+            $existing = $this->db->table('shift_schemes')->where('LOWER(name)', strtolower($name))->get()->getRowArray();
+            if ($existing) {
+                $this->db->table('shift_schemes')->where('id', $existing['id'])->update([
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'duration' => $duration,
+                    'grace_period_late' => $graceLate,
+                    'grace_period_early' => $graceEarly,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            } else {
+                $this->db->table('shift_schemes')->insert([
+                    'name' => $name,
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'duration' => $duration,
+                    'grace_period_late' => $graceLate,
+                    'grace_period_early' => $graceEarly,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+            $successCount++;
+        }
+
+        $this->logActivity("Mengimpor $successCount skema shift dari file Excel");
+        return $this->respond([
+            'success' => true,
+            'imported_count' => $successCount,
+            'errors' => $errorLogs,
+            'message' => "Berhasil mengimpor $successCount skema shift."
+        ]);
     }
 
     // --- EMPLOYEE SHIFTS ---

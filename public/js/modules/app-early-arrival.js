@@ -8,14 +8,22 @@ const formatMinsToHours = (minutes) => {
 
 async function loadEarlyArrivalClients() {
     const select = document.getElementById('eaClientFilter');
-    if (!select) return;
+    if (select && window.selectedClientId) {
+        select.value = window.selectedClientId;
+    }
     try {
-        const res = await fetch(`${API_URL}/clients`);
-        const clients = await res.json();
-        select.innerHTML = '<option value="">-- Select Client --</option>';
-        clients.forEach(c => {
-            select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
-        });
+        if (select && select.tagName === 'SELECT') {
+            const res = await fetch(`${API_URL}/clients`);
+            const clients = await res.json();
+            select.innerHTML = '<option value="">-- Select Client --</option>';
+            clients.forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
+            });
+
+            if (window.selectedClientId && clients.some(c => c.id == window.selectedClientId)) {
+                select.value = window.selectedClientId;
+            }
+        }
 
         // Set current month and year as default filter values if not set
         const currentMonth = new Date().getMonth() + 1;
@@ -31,10 +39,6 @@ async function loadEarlyArrivalClients() {
             yearFilter.value = currentYear;
         }
 
-        if (window.selectedClientId && clients.some(c => c.id == window.selectedClientId)) {
-            select.value = window.selectedClientId;
-        }
-
         onEaClientChanged();
     } catch (e) {
         console.error('Error loading early arrival clients:', e);
@@ -42,12 +46,8 @@ async function loadEarlyArrivalClients() {
 }
 
 async function onEaClientChanged() {
-    const clientId = document.getElementById('eaClientFilter')?.value;
+    const clientId = window.selectedClientId || document.getElementById('eaClientFilter')?.value;
     const empSelect = document.getElementById('eaEmployeeFilter');
-
-    if (clientId) {
-        window.selectedClientId = clientId;
-    }
 
     if (!clientId) {
         if (empSelect) empSelect.innerHTML = '<option value="">-- All Employees --</option>';
@@ -81,7 +81,7 @@ async function loadEarlyArrivalLogs() {
     const mainTbody = document.getElementById('eaTableBody');
     if (!pendingTbody && !historyTbody && !mainTbody) return;
 
-    const clientId = document.getElementById('eaClientFilter')?.value;
+    const clientId = window.selectedClientId || document.getElementById('eaClientFilter')?.value;
     const bulan = document.getElementById('eaMonthFilter')?.value;
     const tahun = document.getElementById('eaYearFilter')?.value;
     const employeeId = document.getElementById('eaEmployeeFilter')?.value;
@@ -631,6 +631,366 @@ function rejectSelectedEarlyArrival() {
     bulkRejectEarlyArrival();
 }
 
+let parsedEarlyArrivalData = [];
+let earlyArrivalUploadPeriods = [];
+
+async function downloadEarlyArrivalTemplate() {
+    showToast('Downloading Early Arrival template...', 'info');
+    try {
+        const clientId = window.selectedClientId || document.getElementById('eaClientFilter')?.value;
+        let sampleRows = [
+            ['NIK', 'Nama', 'Tanggal', 'Jam Shift Masuk', 'Jam Check In', 'Menit Early Arrival', 'Alasan / Keterangan']
+        ];
+
+        if (clientId) {
+            try {
+                const res = await fetch(`${API_URL}/employees?client_id=${clientId}`);
+                const emps = await res.json();
+                const list = emps.data || emps;
+                if (Array.isArray(list) && list.length > 0) {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    list.slice(0, 10).forEach(emp => {
+                        sampleRows.push([
+                            emp.nik || '',
+                            emp.nama || '',
+                            todayStr,
+                            '08:00',
+                            '07:30',
+                            30,
+                            'Penugasan operasional buka toko lebih awal'
+                        ]);
+                    });
+                }
+            } catch (err) {
+                console.warn('Could not fetch employees for sample template:', err);
+            }
+        }
+
+        if (sampleRows.length === 1) {
+            sampleRows.push(
+                ['EMP001', 'Budi Santoso', '2026-01-15', '08:00', '07:30', 30, 'Penugasan operasional buka toko lebih awal'],
+                ['EMP002', 'Siti Rahma', '2026-01-15', '08:00', '07:15', 45, 'Briefing pagi shift 1']
+            );
+        }
+
+        const worksheet = XLSX.utils.aoa_to_sheet(sampleRows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Early Arrival Template");
+
+        const max_widths = [15, 25, 15, 18, 16, 20, 40];
+        worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+        const filename = 'Early_Arrival_Template.xlsx';
+        XLSX.writeFile(workbook, filename);
+        showToast('Template Early Arrival berhasil diunduh!', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Gagal mengunduh template: ' + (e.message || e), 'error');
+    }
+}
+
+async function downloadEarlyArrivalTemplateMain() {
+    await downloadEarlyArrivalTemplate();
+}
+
+async function bukaModalUploadEarlyArrival() {
+    const logsEl = document.getElementById('uploadEarlyArrivalLogs');
+    if (logsEl) logsEl.innerHTML = "Pilih Client dan Periode untuk memulai.";
+    
+    const labelFilename = document.getElementById('labelEarlyArrivalFilename');
+    if (labelFilename) labelFilename.innerText = "No file selected";
+    
+    const fileInput = document.getElementById('fileEarlyArrivalExcel');
+    if (fileInput) fileInput.value = "";
+
+    const text1 = document.getElementById('dropzoneEarlyArrivalText1');
+    const text2 = document.getElementById('dropzoneEarlyArrivalText2');
+    if (text1) text1.innerText = 'Pilih File Excel Early Arrival';
+    if (text2) text2.innerText = 'Kolom: NIK, Nama, Tanggal (YYYY-MM-DD), Jam Check In';
+
+    const saveBtn = document.getElementById('btnSaveUploadedEarlyArrival');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = "0.5";
+        saveBtn.style.cursor = "not-allowed";
+    }
+
+    parsedEarlyArrivalData = [];
+
+    // Populate Clients & Periods
+    const select = document.getElementById('modalUploadEarlyArrivalClient');
+    const periodSelect = document.getElementById('modalUploadEarlyArrivalPeriod');
+    if (select) select.innerHTML = '<option value="">-- Select Client --</option>';
+    if (periodSelect) {
+        periodSelect.innerHTML = '<option value="">-- Select Client First --</option>';
+        periodSelect.disabled = true;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/clients`);
+        const clients = await res.json();
+        if (select && Array.isArray(clients)) {
+            clients.forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.nama}</option>`;
+            });
+        }
+
+        const activeClientId = window.selectedClientId || document.getElementById('eaClientFilter')?.value;
+        if (select && activeClientId) {
+            select.value = activeClientId;
+            await onEarlyArrivalUploadClientChanged();
+        }
+    } catch(e) {
+        console.error(e);
+        showToast('Failed to load client list', 'error');
+    }
+
+    const modal = document.getElementById('modalUploadEarlyArrival');
+    const overlay = document.getElementById('overlay');
+    if (modal) modal.style.display = 'block';
+    if (overlay) overlay.style.display = 'block';
+}
+
+function tutupModalUploadEarlyArrival() {
+    const modal = document.getElementById('modalUploadEarlyArrival');
+    const overlay = document.getElementById('overlay');
+    if (modal) modal.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
+}
+
+async function onEarlyArrivalUploadClientChanged() {
+    const clientId = document.getElementById('modalUploadEarlyArrivalClient')?.value;
+    const periodSelect = document.getElementById('modalUploadEarlyArrivalPeriod');
+    if (!periodSelect) return;
+
+    if (!clientId) {
+        periodSelect.innerHTML = '<option value="">-- Select Client First --</option>';
+        periodSelect.disabled = true;
+        return;
+    }
+
+    periodSelect.innerHTML = '<option value="">-- Loading Periods... --</option>';
+    periodSelect.disabled = true;
+
+    try {
+        const res = await fetch(`${API_URL}/periods?client_id=${clientId}`);
+        const periods = await res.json();
+        earlyArrivalUploadPeriods = Array.isArray(periods) ? periods : [];
+
+        if (earlyArrivalUploadPeriods.length === 0) {
+            periodSelect.innerHTML = '<option value="">-- No open payroll periods found --</option>';
+            periodSelect.disabled = true;
+            return;
+        }
+
+        periodSelect.innerHTML = '<option value="">-- Select Payroll Period --</option>';
+        earlyArrivalUploadPeriods.forEach(p => {
+            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const mName = monthNames[parseInt(p.bulan) - 1] || p.bulan;
+            periodSelect.innerHTML += `<option value="${p.id}">${mName} ${p.tahun}</option>`;
+        });
+
+        const currentMonth = document.getElementById('eaMonthFilter')?.value || (new Date().getMonth() + 1);
+        const currentYear = document.getElementById('eaYearFilter')?.value || new Date().getFullYear();
+        const match = earlyArrivalUploadPeriods.find(p => p.bulan == currentMonth && p.tahun == currentYear);
+        if (match) {
+            periodSelect.value = match.id;
+        } else if (earlyArrivalUploadPeriods.length > 0) {
+            periodSelect.value = earlyArrivalUploadPeriods[0].id;
+        }
+
+        periodSelect.disabled = false;
+    } catch (e) {
+        console.error(e);
+        periodSelect.innerHTML = '<option value="">-- Failed to load periods --</option>';
+        periodSelect.disabled = true;
+    }
+}
+
+function handleEarlyArrivalFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    processEarlyArrivalFile(file);
+}
+
+function processEarlyArrivalFile(file) {
+    if (!file) return;
+
+    const clientId = document.getElementById('modalUploadEarlyArrivalClient')?.value;
+    const periodId = document.getElementById('modalUploadEarlyArrivalPeriod')?.value;
+    if (!clientId || !periodId) {
+        showToast('Pilih Client dan Periode terlebih dahulu sebelum memilih file.', 'warning');
+        return;
+    }
+
+    const text1 = document.getElementById('dropzoneEarlyArrivalText1');
+    const text2 = document.getElementById('dropzoneEarlyArrivalText2');
+    if (text1) text1.innerText = file.name;
+    if (text2) text2.innerText = 'File selected. Click or drag another file to replace.';
+
+    const labelFilename = document.getElementById('labelEarlyArrivalFilename');
+    if (labelFilename) labelFilename.innerText = file.name;
+
+    const logsDiv = document.getElementById('uploadEarlyArrivalLogs');
+    if (logsDiv) logsDiv.innerHTML = "Reading file...\n";
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+
+            if (json.length === 0) {
+                if (logsDiv) logsDiv.innerHTML += "Error: File Excel kosong.\n";
+                return;
+            }
+
+            if (logsDiv) logsDiv.innerHTML += `Parsed ${json.length} baris dari sheet "${sheetName}".\n`;
+            processParsedEarlyArrival(json);
+        } catch (err) {
+            console.error(err);
+            if (logsDiv) logsDiv.innerHTML += `Error parsing file: ${err.message || err}\n`;
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function handleEarlyArrivalDragOver(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneEarlyArrivalExcel');
+    if (zone) {
+        zone.style.borderColor = 'var(--primary-dark)';
+        zone.style.backgroundColor = 'rgba(39, 174, 96, 0.18)';
+    }
+}
+
+function handleEarlyArrivalDragLeave(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneEarlyArrivalExcel');
+    if (zone) {
+        zone.style.borderColor = '#27ae60';
+        zone.style.backgroundColor = 'rgba(39, 174, 96, 0.08)';
+    }
+}
+
+function handleEarlyArrivalDrop(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneEarlyArrivalExcel');
+    if (zone) {
+        zone.style.borderColor = '#27ae60';
+        zone.style.backgroundColor = 'rgba(39, 174, 96, 0.08)';
+    }
+    
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        const file = event.dataTransfer.files[0];
+        const fileInput = document.getElementById('fileEarlyArrivalExcel');
+        if (fileInput) {
+            fileInput.files = event.dataTransfer.files;
+        }
+        processEarlyArrivalFile(file);
+    }
+}
+
+function processParsedEarlyArrival(json) {
+    parsedEarlyArrivalData = [];
+    const logsDiv = document.getElementById('uploadEarlyArrivalLogs');
+
+    let validCount = 0;
+    json.forEach((row, idx) => {
+        const nik = (row['NIK'] || row['nik'] || '').toString().trim();
+        const nama = (row['Nama'] || row['nama'] || row['Nama Karyawan'] || '').toString().trim();
+        const tanggal = (row['Tanggal'] || row['tanggal'] || row['Date'] || '').toString().trim();
+        const shiftStart = (row['Jam Shift Masuk'] || row['Shift Masuk'] || row['shift_start_time'] || '08:00').toString().trim();
+        const checkIn = (row['Jam Check In'] || row['Check In'] || row['check_in_time'] || '').toString().trim();
+        const menit = parseInt(row['Menit Early Arrival'] || row['Menit'] || row['early_minutes'] || 0);
+        const keterangan = (row['Alasan / Keterangan'] || row['Keterangan'] || row['Alasan'] || row['alasan'] || 'Upload Excel Early Arrival').toString().trim();
+
+        if ((nik || nama) && tanggal) {
+            parsedEarlyArrivalData.push({
+                nik,
+                nama,
+                tanggal,
+                shift_start_time: shiftStart,
+                check_in_time: checkIn,
+                early_minutes: menit,
+                keterangan
+            });
+            validCount++;
+        }
+    });
+
+    if (logsDiv) {
+        logsDiv.innerHTML += `\nSukses: Berhasil memuat ${validCount} data Early Arrival yang valid.\nKlik 'Apply & Save Early Arrival' untuk menyimpan.`;
+    }
+
+    if (validCount > 0) {
+        const btn = document.getElementById('btnSaveUploadedEarlyArrival');
+        if (btn) {
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+            btn.style.opacity = '1';
+        }
+    }
+}
+
+async function saveUploadedEarlyArrival() {
+    if (parsedEarlyArrivalData.length === 0) {
+        showToast('Tidak ada data Early Arrival untuk disimpan.', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('btnSaveUploadedEarlyArrival');
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    }
+
+    const periodId = document.getElementById('modalUploadEarlyArrivalPeriod')?.value;
+    const activePeriod = (earlyArrivalUploadPeriods || []).find(p => p.id == periodId);
+    const payoutPeriodStr = activePeriod ? `${activePeriod.bulan}-${activePeriod.tahun}` : '';
+    const clientId = document.getElementById('modalUploadEarlyArrivalClient')?.value || window.selectedClientId;
+
+    showToast('Menyimpan data Early Arrival...', 'info');
+
+    try {
+        const res = await fetch(`${API_URL}/early-arrival/import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                client_id: parseInt(clientId),
+                logs: parsedEarlyArrivalData,
+                payout_period: payoutPeriodStr
+            })
+        });
+
+        const result = await res.json();
+        if (res.ok && (result.success || result.status === 200 || result.imported_count >= 0)) {
+            showToast(`Berhasil mengimpor ${result.imported_count || parsedEarlyArrivalData.length} data Early Arrival!`, 'success');
+            tutupModalUploadEarlyArrival();
+            loadEarlyArrivalLogs();
+        } else {
+            showToast(result.message || 'Gagal mengimpor data Early Arrival.', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Error saving: ' + err.message, 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
+    }
+}
+
 Object.assign(window, {
     loadEarlyArrivalClients,
     onEaClientChanged,
@@ -647,5 +1007,17 @@ Object.assign(window, {
     filterEaHistory,
     toggleSelectAllEa,
     approveSelectedEarlyArrival,
-    rejectSelectedEarlyArrival
+    rejectSelectedEarlyArrival,
+    downloadEarlyArrivalTemplate,
+    downloadEarlyArrivalTemplateMain,
+    bukaModalUploadEarlyArrival,
+    tutupModalUploadEarlyArrival,
+    onEarlyArrivalUploadClientChanged,
+    handleEarlyArrivalFileSelect,
+    processEarlyArrivalFile,
+    handleEarlyArrivalDragOver,
+    handleEarlyArrivalDragLeave,
+    handleEarlyArrivalDrop,
+    processParsedEarlyArrival,
+    saveUploadedEarlyArrival
 });

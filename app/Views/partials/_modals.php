@@ -3256,6 +3256,58 @@
         </div>
     </div>
 
+    <!-- Upload Early Arrival Excel Modal -->
+    <div id="modalUploadEarlyArrival" class="modal-skema" style="display: none; width: 650px; max-width: 95%;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #27ae60 0%, #219653 100%);">
+            <h3>Upload Early Arrival Log</h3>
+            <i class="fas fa-times" style="cursor: pointer;" onclick="tutupModalUploadEarlyArrival()"></i>
+        </div>
+        <div class="modal-body" style="padding: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Client</label>
+                    <select id="modalUploadEarlyArrivalClient" onchange="onEarlyArrivalUploadClientChanged()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;">
+                        <option value="">-- Select Client --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Period</label>
+                    <select id="modalUploadEarlyArrivalPeriod" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px;" disabled>
+                        <option value="">-- Select Client First --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="dropzoneEarlyArrivalExcel" ondragover="handleEarlyArrivalDragOver(event)" ondragleave="handleEarlyArrivalDragLeave(event)" ondrop="handleEarlyArrivalDrop(event)" style="background: rgba(39, 174, 96, 0.08); border: 1px dashed #27ae60; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; transition: all 0.2s ease;">
+                <i class="fas fa-file-excel" style="font-size: 36px; color: #27ae60; margin-bottom: 10px; display: block;"></i>
+                <span id="dropzoneEarlyArrivalText1" style="font-size: 14px; font-weight: 600; color: #2c3e50; display: block; margin-bottom: 5px;">Pilih File Excel Early Arrival</span>
+                <span id="dropzoneEarlyArrivalText2" style="font-size: 12px; color: #64748b; display: block; margin-bottom: 12px;">Kolom: NIK, Nama, Tanggal (YYYY-MM-DD), Jam Check In</span>
+                
+                <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 10px;">
+                    <input type="file" id="fileEarlyArrivalExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleEarlyArrivalFileSelect(event)">
+                    <button type="button" class="btn-add" onclick="document.getElementById('fileEarlyArrivalExcel').click()" style="background: #27ae60; padding: 8px 20px; font-weight: 600; border: none; color: white; border-radius: 8px; cursor: pointer;">
+                        Choose File
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="downloadEarlyArrivalTemplate()" style="padding: 8px 16px; border: 1px solid #cbd5e0; background: white; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer;">
+                        <i class="fas fa-download"></i> Download Template
+                    </button>
+                </div>
+                <span id="labelEarlyArrivalFilename" style="font-size: 13px; font-weight: 600; color: #27ae60; display: block; margin-top: 5px;">No file selected</span>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569;">Parsing & Upload Summary</label>
+                <div id="uploadEarlyArrivalLogs" style="background: #1e293b; color: #38bdf8; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; height: 120px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
+                    Waiting for file...
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 15px 25px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+            <button type="button" class="btn-cancel" onclick="tutupModalUploadEarlyArrival()" style="padding: 10px 24px; border-radius: 8px;">Close</button>
+            <button type="button" id="btnSaveUploadedEarlyArrival" disabled onclick="saveUploadedEarlyArrival()" style="background: #27ae60; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5;">Apply & Save Early Arrival</button>
+        </div>
+    </div>
+
     <!-- Holiday Modal -->
     <div id="holidayModal" class="modal-skema" style="width: 480px; max-width: 95%; display: none; z-index: 2000;">
         <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);">
@@ -3439,6 +3491,43 @@
                     <button type="submit" style="background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">Save</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal: Upload Master Skema Shift Excel -->
+    <div id="modalUploadShiftScheme" class="modal-skema" style="width: 600px; max-width: 95vw; display: none; z-index: 2050; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.25); box-sizing: border-box;">
+        <div class="modal-header" style="background: linear-gradient(135deg, #27ae60 0%, #219653 100%); padding: 18px 24px; color: white; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; color: white; font-size: 17px; font-weight: 700;">Upload Master Skema Shift</h3>
+            <i class="fas fa-times" style="cursor: pointer; color: white; font-size: 16px; opacity: 0.9;" onclick="tutupModalUploadShiftScheme()"></i>
+        </div>
+        <div class="modal-body" style="padding: 24px; background: #ffffff;">
+            <div id="dropzoneShiftSchemeExcel" ondragover="handleShiftSchemeDragOver(event)" ondragleave="handleShiftSchemeDragLeave(event)" ondrop="handleShiftSchemeDrop(event)" style="background: rgba(39, 174, 96, 0.08); border: 1px dashed #27ae60; padding: 20px; border-radius: 10px; margin-bottom: 15px; text-align: center; transition: all 0.2s ease;">
+                <i class="fas fa-file-excel" style="font-size: 40px; color: #27ae60; margin-bottom: 12px; display: block;"></i>
+                <span id="dropzoneShiftSchemeText1" style="font-size: 14px; font-weight: 700; color: #2c3e50; display: block; margin-bottom: 5px;">Pilih File Excel Master Skema Shift</span>
+                <span id="dropzoneShiftSchemeText2" style="font-size: 12.5px; color: #64748b; display: block; margin-bottom: 15px;">Format kolom: Shift Name, Start Time (HH:MM), End Time (HH:MM), Late Tolerance, Early Tolerance</span>
+                
+                <div style="display: flex; justify-content: center; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+                    <input type="file" id="fileShiftSchemeExcel" accept=".xlsx, .xls" style="display: none;" onchange="handleShiftSchemeFileSelect(event)">
+                    <button type="button" class="btn-add" onclick="document.getElementById('fileShiftSchemeExcel').click()" style="background: #27ae60; padding: 9px 22px; font-weight: 600; border: none; color: white; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-folder-open"></i> Choose File
+                    </button>
+                    <button type="button" class="btn-cancel" onclick="downloadShiftSchemeTemplate()" style="padding: 9px 18px; border: 1px solid #cbd5e0; background: white; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px; border-radius: 8px; cursor: pointer;">
+                        <i class="fas fa-download"></i> Download Template
+                    </button>
+                </div>
+                <span id="labelShiftSchemeFilename" style="font-size: 13px; font-weight: 600; color: #27ae60; display: block; margin-top: 6px;">No file selected</span>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-weight: 600; margin-bottom: 6px; display: block; color: #475569; font-size: 13px;">Parsing Summary</label>
+                <div id="uploadShiftSchemeLogs" style="background: #1e293b; color: #38bdf8; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; height: 120px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;">
+                    Waiting for file...
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 15px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn-cancel" onclick="tutupModalUploadShiftScheme()" style="padding: 10px 20px; border-radius: 8px; font-weight: 600; border: 1px solid #e2e8f0; background: white; color: #64748b; cursor: pointer;">Close</button>
+            <button type="button" id="btnSaveUploadedShiftScheme" disabled onclick="saveUploadedShiftScheme()" style="background: #27ae60; padding: 10px 24px; border-radius: 8px; color: white; border: none; font-weight: 600; cursor: not-allowed; opacity: 0.5; transition: all 0.2s;">Apply & Save Shift Schemes</button>
         </div>
     </div>
 

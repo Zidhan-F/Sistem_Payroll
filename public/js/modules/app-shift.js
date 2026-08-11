@@ -157,20 +157,20 @@ function simpanShiftScheme(event) {
     });
 }
 
-function hapusShiftScheme(id) {
-    if (confirm('Are you sure you want to delete this shift scheme?')) {
-        fetch(`${API_URL}/shift-schemes/${id}`, { method: 'DELETE' })
-            .then(res => {
-                if (res.ok) {
-                    showToast('Shift scheme deleted successfully', 'success');
-                    loadShiftSchemes();
-                } else {
-                    res.json().then(data => {
-                        showToast(data.messages?.error || 'Failed to delete shift scheme', 'error');
-                    });
-                }
-            })
-            .catch(err => console.error(err));
+async function hapusShiftScheme(id) {
+    if (!await showConfirm('Are you sure you want to delete this shift scheme?')) return;
+    try {
+        const res = await fetch(`${API_URL}/shift-schemes/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showToast('Shift scheme deleted successfully', 'success');
+            loadShiftSchemes();
+        } else {
+            const data = await res.json();
+            showToast(data.message || data.messages?.error || 'Failed to delete shift scheme', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Terjadi kesalahan saat menghapus skema shift', 'error');
     }
 }
 
@@ -304,18 +304,275 @@ function simpanAssignShift(event) {
     });
 }
 
-function hapusEmployeeShift(id) {
-    if (confirm('Are you sure you want to delete this shift allocation?')) {
-        fetch(`${API_URL}/employee-shifts/${id}`, { method: 'DELETE' })
-            .then(res => {
-                if (res.ok) {
-                    showToast('Shift allocation deleted successfully', 'success');
-                    loadEmployeeShifts(document.getElementById('shiftEmployeeFilterSelect').value);
-                } else {
-                    showToast('Failed to delete shift allocation', 'error');
-                }
+async function hapusEmployeeShift(id) {
+    if (!await showConfirm('Are you sure you want to delete this shift allocation?')) return;
+    try {
+        const res = await fetch(`${API_URL}/employee-shifts/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            showToast('Shift allocation deleted successfully', 'success');
+            loadEmployeeShifts(document.getElementById('shiftEmployeeFilterSelect')?.value);
+        } else {
+            const data = await res.json();
+            showToast(data.message || data.messages?.error || 'Failed to delete shift allocation', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Terjadi kesalahan saat menghapus alokasi shift', 'error');
+    }
+}
+
+let parsedShiftSchemeData = [];
+
+// --- EXCEL TEMPLATE DOWNLOAD FOR SHIFT SCHEME ---
+function downloadShiftSchemeTemplate() {
+    showToast('Downloading Shift Scheme template...', 'info');
+    try {
+        let sampleRows = [
+            ['Shift Name', 'Start Time (HH:MM)', 'End Time (HH:MM)', 'Duration (Hours)', 'Late Tolerance (Minutes)', 'Early Leave Tolerance (Minutes)'],
+            ['Shift Pagi', '08:00', '17:00', 8.0, 15, 15],
+            ['Shift Siang', '13:00', '21:00', 8.0, 15, 15],
+            ['Shift Malam', '21:00', '06:00', 8.0, 0, 0],
+            ['Shift Halfday', '08:00', '13:00', 5.0, 10, 10]
+        ];
+
+        const worksheet = XLSX.utils.aoa_to_sheet(sampleRows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Shift Scheme Template");
+
+        const max_widths = [22, 22, 22, 18, 25, 30];
+        worksheet['!cols'] = max_widths.map(w => ({ wch: w }));
+
+        const filename = 'Shift_Scheme_Template.xlsx';
+        XLSX.writeFile(workbook, filename);
+        showToast('Template Skema Shift berhasil diunduh!', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Gagal mengunduh template: ' + (e.message || e), 'error');
+    }
+}
+
+// --- EXCEL UPLOAD FOR SHIFT SCHEME ---
+function bukaModalUploadShiftScheme() {
+    const logsEl = document.getElementById('uploadShiftSchemeLogs');
+    if (logsEl) logsEl.innerHTML = "Waiting for file...";
+    
+    const labelFilename = document.getElementById('labelShiftSchemeFilename');
+    if (labelFilename) labelFilename.innerText = "No file selected";
+    
+    const fileInput = document.getElementById('fileShiftSchemeExcel');
+    if (fileInput) fileInput.value = "";
+
+    const text1 = document.getElementById('dropzoneShiftSchemeText1');
+    const text2 = document.getElementById('dropzoneShiftSchemeText2');
+    if (text1) text1.innerText = 'Pilih File Excel Master Skema Shift';
+    if (text2) text2.innerText = 'Format kolom: Shift Name, Start Time (HH:MM), End Time (HH:MM), Late Tolerance, Early Tolerance';
+
+    const saveBtn = document.getElementById('btnSaveUploadedShiftScheme');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = "0.5";
+        saveBtn.style.cursor = "not-allowed";
+    }
+
+    parsedShiftSchemeData = [];
+
+    const modal = document.getElementById('modalUploadShiftScheme');
+    const overlay = document.getElementById('overlay');
+    if (modal) modal.style.display = 'block';
+    if (overlay) overlay.style.display = 'block';
+}
+
+function tutupModalUploadShiftScheme() {
+    const modal = document.getElementById('modalUploadShiftScheme');
+    const overlay = document.getElementById('overlay');
+    if (modal) modal.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
+}
+
+function handleShiftSchemeFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    processShiftSchemeFile(file);
+}
+
+function processShiftSchemeFile(file) {
+    if (!file) return;
+
+    const text1 = document.getElementById('dropzoneShiftSchemeText1');
+    const text2 = document.getElementById('dropzoneShiftSchemeText2');
+    if (text1) text1.innerText = file.name;
+    if (text2) text2.innerText = 'File selected. Click or drag another file to replace.';
+
+    const labelFilename = document.getElementById('labelShiftSchemeFilename');
+    if (labelFilename) labelFilename.innerText = file.name;
+
+    const logsDiv = document.getElementById('uploadShiftSchemeLogs');
+    if (logsDiv) logsDiv.innerHTML = "Reading file...\n";
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: false });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+
+            if (json.length === 0) {
+                if (logsDiv) logsDiv.innerHTML += "Error: File Excel kosong.\n";
+                return;
+            }
+
+            if (logsDiv) logsDiv.innerHTML += `Parsed ${json.length} baris dari sheet "${sheetName}".\n`;
+            processParsedShiftScheme(json);
+        } catch (err) {
+            console.error(err);
+            if (logsDiv) logsDiv.innerHTML += `Error parsing file: ${err.message || err}\n`;
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function handleShiftSchemeDragOver(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneShiftSchemeExcel');
+    if (zone) {
+        zone.style.borderColor = 'var(--primary-dark)';
+        zone.style.backgroundColor = 'rgba(39, 174, 96, 0.18)';
+    }
+}
+
+function handleShiftSchemeDragLeave(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneShiftSchemeExcel');
+    if (zone) {
+        zone.style.borderColor = '#27ae60';
+        zone.style.backgroundColor = 'rgba(39, 174, 96, 0.08)';
+    }
+}
+
+function handleShiftSchemeDrop(event) {
+    event.preventDefault();
+    const zone = document.getElementById('dropzoneShiftSchemeExcel');
+    if (zone) {
+        zone.style.borderColor = '#27ae60';
+        zone.style.backgroundColor = 'rgba(39, 174, 96, 0.08)';
+    }
+    
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+        const file = event.dataTransfer.files[0];
+        const fileInput = document.getElementById('fileShiftSchemeExcel');
+        if (fileInput) {
+            fileInput.files = event.dataTransfer.files;
+        }
+        processShiftSchemeFile(file);
+    }
+}
+
+function formatTimeToHHMM(timeStr) {
+    if (!timeStr) return '';
+    let s = timeStr.toString().trim();
+    if (!isNaN(s) && parseFloat(s) < 1 && parseFloat(s) > 0) {
+        const totalMinutes = Math.round(parseFloat(s) * 24 * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    }
+    if (s.includes(':')) {
+        const parts = s.split(':');
+        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+    }
+    return s;
+}
+
+function processParsedShiftScheme(json) {
+    parsedShiftSchemeData = [];
+    const logsDiv = document.getElementById('uploadShiftSchemeLogs');
+
+    let validCount = 0;
+    json.forEach((row, idx) => {
+        const name = (row['Shift Name'] || row['Nama Shift'] || row['name'] || row['Name'] || '').toString().trim();
+        const rawStartTime = row['Start Time (HH:MM)'] || row['Start Time'] || row['Jam Masuk'] || row['start_time'] || '';
+        const rawEndTime = row['End Time (HH:MM)'] || row['End Time'] || row['Jam Keluar'] || row['end_time'] || '';
+        const duration = parseFloat(row['Duration (Hours)'] || row['Duration'] || row['Durasi'] || row['Durasi (Jam)'] || row['duration'] || 0);
+        const graceLate = parseInt(row['Late Tolerance (Minutes)'] || row['Late Tolerance'] || row['Toleransi Terlambat'] || row['grace_period_late'] || 0);
+        const graceEarly = parseInt(row['Early Leave Tolerance (Minutes)'] || row['Early Tolerance'] || row['Toleransi Pulang Awal'] || row['grace_period_early'] || 0);
+
+        const startTime = formatTimeToHHMM(rawStartTime);
+        const endTime = formatTimeToHHMM(rawEndTime);
+
+        if (name && startTime && endTime) {
+            parsedShiftSchemeData.push({
+                name,
+                start_time: startTime,
+                end_time: endTime,
+                duration: duration,
+                grace_period_late: graceLate,
+                grace_period_early: graceEarly
+            });
+            validCount++;
+        }
+    });
+
+    if (logsDiv) {
+        logsDiv.innerHTML += `\nSukses: Berhasil memuat ${validCount} skema shift yang valid.\nKlik 'Apply & Save Shift Schemes' untuk menyimpan ke database.`;
+    }
+
+    if (validCount > 0) {
+        const btn = document.getElementById('btnSaveUploadedShiftScheme');
+        if (btn) {
+            btn.disabled = false;
+            btn.style.cursor = 'pointer';
+            btn.style.opacity = '1';
+        }
+    }
+}
+
+async function saveUploadedShiftScheme() {
+    if (parsedShiftSchemeData.length === 0) {
+        showToast('Tidak ada data skema shift untuk disimpan.', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('btnSaveUploadedShiftScheme');
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    }
+
+    showToast('Menyimpan data skema shift...', 'info');
+
+    try {
+        const res = await fetch(`${API_URL}/shift-schemes/import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                schemes: parsedShiftSchemeData
             })
-            .catch(err => console.error(err));
+        });
+
+        const result = await res.json();
+        if (res.ok && (result.success || result.status === 200 || result.imported_count >= 0)) {
+            showToast(`Berhasil mengimpor ${result.imported_count || parsedShiftSchemeData.length} skema shift!`, 'success');
+            tutupModalUploadShiftScheme();
+            loadShiftSchemes();
+        } else {
+            showToast(result.message || 'Gagal mengimpor skema shift.', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('Error saving: ' + err.message, 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        }
     }
 }
 
@@ -326,6 +583,15 @@ window.bukaModalShiftScheme = bukaModalShiftScheme;
 window.tutupModalShiftScheme = tutupModalShiftScheme;
 window.simpanShiftScheme = simpanShiftScheme;
 window.hapusShiftScheme = hapusShiftScheme;
+window.downloadShiftSchemeTemplate = downloadShiftSchemeTemplate;
+window.bukaModalUploadShiftScheme = bukaModalUploadShiftScheme;
+window.tutupModalUploadShiftScheme = tutupModalUploadShiftScheme;
+window.handleShiftSchemeFileSelect = handleShiftSchemeFileSelect;
+window.handleShiftSchemeDragOver = handleShiftSchemeDragOver;
+window.handleShiftSchemeDragLeave = handleShiftSchemeDragLeave;
+window.handleShiftSchemeDrop = handleShiftSchemeDrop;
+window.processParsedShiftScheme = processParsedShiftScheme;
+window.saveUploadedShiftScheme = saveUploadedShiftScheme;
 
 window.loadShiftEmployeesDropdown = loadShiftEmployeesDropdown;
 window.loadEmployeeShifts = loadEmployeeShifts;

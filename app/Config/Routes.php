@@ -313,6 +313,7 @@ $routes->group('api', ['filter' => 'role:hc_ops'], function($routes) {
     $routes->post('shift-schemes', 'Api::createShiftScheme');
     $routes->put('shift-schemes/(:num)', 'Api::updateShiftScheme/$1');
     $routes->delete('shift-schemes/(:num)', 'Api::deleteShiftScheme/$1');
+    $routes->post('shift-schemes/import', 'Api::importShiftSchemes');
 
     // Employee Shifts
     $routes->post('employee-shifts', 'Api::assignEmployeeShift');
@@ -356,6 +357,7 @@ $routes->group('api', ['filter' => 'role:client_superior'], function($routes) {
     $routes->post('early-arrival/reset/(:num)', 'Api::resetEarlyArrivalLog/$1');
     $routes->post('early-arrival/bulk-approve', 'Api::bulkApproveEarlyArrivalLogs');
     $routes->post('early-arrival/bulk-reject', 'Api::bulkRejectEarlyArrivalLogs');
+    $routes->post('early-arrival/import', 'Api::importEarlyArrivalLogs');
 
     // Contract Compensation Approval
     $routes->post('contract-compensations/approve/(:num)', 'ContractCompensation::approve/$1');
